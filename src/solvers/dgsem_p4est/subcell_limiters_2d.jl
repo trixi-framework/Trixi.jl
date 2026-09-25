@@ -12,57 +12,71 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+    # Process interfaces on different axes separately. Interfaces on the
+    # same axis update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for axis in 1:ndims(mesh)
+        @threaded for interface in eachinterface(dg, cache)
+            # Get side index information on the elements
+            primary_indices = node_indices[1, interface]
+            secondary_indices = node_indices[2, interface]
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+            primary_axis = cld(indices2direction(primary_indices), 2)
+            secondary_axis = cld(indices2direction(secondary_indices), 2)
 
-        # Create the local i,j indexing
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+            update_primary = primary_axis == axis
+            update_secondary = secondary_axis == axis
+            (update_primary || update_secondary) || continue
+
+            # Get element index information on the elements
+            primary_element = neighbor_ids[1, interface]
+            secondary_element = neighbor_ids[2, interface]
+
+            # Create the local i,j indexing
+            i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
                                                                      index_range)
-        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+            j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                      index_range)
+            i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                         index_range)
+            j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
+            for node in eachnode(dg)
+                if update_primary
+                    var_secondary = u[variable, i_secondary, j_secondary,
+                                      secondary_element]
+                    var_min[i_primary, j_primary, primary_element] = min(var_min[i_primary,
+                                                                                 j_primary,
+                                                                                 primary_element],
+                                                                         var_secondary)
+                    var_max[i_primary, j_primary, primary_element] = max(var_max[i_primary,
+                                                                                 j_primary,
+                                                                                 primary_element],
+                                                                         var_secondary)
+                end
+                if update_secondary
+                    var_primary = u[variable, i_primary, j_primary, primary_element]
+                    var_min[i_secondary, j_secondary, secondary_element] = min(var_min[i_secondary,
+                                                                                       j_secondary,
+                                                                                       secondary_element],
+                                                                               var_primary)
+                    var_max[i_secondary, j_secondary, secondary_element] = max(var_max[i_secondary,
+                                                                                       j_secondary,
+                                                                                       secondary_element],
+                                                                               var_primary)
+                end
 
-        for node in eachnode(dg)
-            var_primary = u[variable, i_primary, j_primary, primary_element]
-            var_secondary = u[variable, i_secondary, j_secondary, secondary_element]
-
-            var_min[i_primary, j_primary, primary_element] = min(var_min[i_primary,
-                                                                         j_primary,
-                                                                         primary_element],
-                                                                 var_secondary)
-            var_max[i_primary, j_primary, primary_element] = max(var_max[i_primary,
-                                                                         j_primary,
-                                                                         primary_element],
-                                                                 var_secondary)
-
-            var_min[i_secondary, j_secondary, secondary_element] = min(var_min[i_secondary,
-                                                                               j_secondary,
-                                                                               secondary_element],
-                                                                       var_primary)
-            var_max[i_secondary, j_secondary, secondary_element] = max(var_max[i_secondary,
-                                                                               j_secondary,
-                                                                               secondary_element],
-                                                                       var_primary)
-
-            # Increment primary element indices
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
+                # Increment primary element indices
+                i_primary += i_primary_step
+                j_primary += j_primary_step
+                i_secondary += i_secondary_step
+                j_secondary += j_secondary_step
+            end
         end
     end
 
@@ -134,48 +148,64 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+    # Process interfaces on different axes separately. Interfaces on the
+    # same axis update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for axis in 1:ndims(mesh)
+        @threaded for interface in eachinterface(dg, cache)
+            # Get side index information on the elements
+            primary_indices = node_indices[1, interface]
+            secondary_indices = node_indices[2, interface]
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+            primary_axis = cld(indices2direction(primary_indices), 2)
+            secondary_axis = cld(indices2direction(secondary_indices), 2)
 
-        # Create the local i,j indexing
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+            update_primary = primary_axis == axis
+            update_secondary = secondary_axis == axis
+            (update_primary || update_secondary) || continue
+
+            # Get element index information on the elements
+            primary_element = neighbor_ids[1, interface]
+            secondary_element = neighbor_ids[2, interface]
+
+            # Create the local i,j indexing
+            i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
                                                                      index_range)
-        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+            j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                      index_range)
+            i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                         index_range)
+            j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
+            for node in eachnode(dg)
+                if update_primary
+                    var_secondary = variable_values[i_secondary, j_secondary,
+                                                    secondary_element]
+                    var_minmax[i_primary, j_primary, primary_element] = minmax(var_minmax[i_primary,
+                                                                                          j_primary,
+                                                                                          primary_element],
+                                                                               var_secondary)
+                end
 
-        for node in eachnode(dg)
-            var_primary = variable_values[i_primary, j_primary, primary_element]
-            var_secondary = variable_values[i_secondary, j_secondary, secondary_element]
+                if update_secondary
+                    var_primary = variable_values[i_primary, j_primary, primary_element]
+                    var_minmax[i_secondary, j_secondary, secondary_element] = minmax(var_minmax[i_secondary,
+                                                                                                j_secondary,
+                                                                                                secondary_element],
+                                                                                     var_primary)
+                end
 
-            var_minmax[i_primary, j_primary, primary_element] = minmax(var_minmax[i_primary,
-                                                                                  j_primary,
-                                                                                  primary_element],
-                                                                       var_secondary)
-            var_minmax[i_secondary, j_secondary, secondary_element] = minmax(var_minmax[i_secondary,
-                                                                                        j_secondary,
-                                                                                        secondary_element],
-                                                                             var_primary)
-
-            # Increment primary element indices
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
+                # Increment primary element indices
+                i_primary += i_primary_step
+                j_primary += j_primary_step
+                i_secondary += i_secondary_step
+                j_secondary += j_secondary_step
+            end
         end
     end
 
