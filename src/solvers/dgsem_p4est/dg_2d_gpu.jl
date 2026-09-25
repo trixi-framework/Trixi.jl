@@ -5,6 +5,125 @@
 @muladd begin
 #! format: noindent
 
+@inline function calc_volume_integral!(backend::Backend, du, u,
+                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                       have_nonconservative_terms, equations,
+                                       volume_integral::VolumeIntegralFluxDifferencing,
+                                       dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+
+    kernel_type = flux_differencing_kernel(backend,
+                                           cache.flux_differencing_kernel)
+    if !(kernel_type isa FullSweepGlobal) ||
+       (have_nonconservative_terms isa True &&
+        combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
+                                                        equations) isa False)
+        return calc_volume_integral_fallback!(backend, du, u, mesh,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral, dg, cache)
+    end
+
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    kernel! = flux_differencing_KAkernel!(backend)
+    kernel!(du, u, equations, typeof(mesh), kernel_type,
+            have_nonconservative_terms,
+            combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
+                                                            equations),
+            dg, volume_integral.volume_flux,
+            Val(NNODES), Val(nvariables(equations)),
+            derivative_split, contravariant_vectors,
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{2},
+                                                                 T8codeMesh{2}}},
+                                             ::FullSweepGlobal,
+                                             have_nonconservative_terms::False,
+                                             combine_conservative_and_nonconservative_fluxes::False,
+                                             dg::DGSEM, volume_flux,
+                                             ::Val{NNODES}, ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    i, j, element = @index(Global, NTuple)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors,
+                                        i, j, element)
+    for ii in 1:NNODES
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, element))
+        flux1 = volume_flux(u_node,
+                            get_node_vars(u, equations, dg, ii, j, element),
+                            Ja1_avg, equations)
+        du_local = du_local + derivative_split[i, ii] * flux1
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors,
+                                        i, j, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, element))
+        flux2 = volume_flux(u_node,
+                            get_node_vars(u, equations, dg, i, jj, element),
+                            Ja2_avg, equations)
+        du_local = du_local + derivative_split[j, jj] * flux2
+    end
+
+    set_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{2},
+                                                                 T8codeMesh{2}}},
+                                             ::FullSweepGlobal,
+                                             have_nonconservative_terms::True,
+                                             combine_conservative_and_nonconservative_fluxes::True,
+                                             dg::DGSEM, volume_flux,
+                                             ::Val{NNODES}, ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    i, j, element = @index(Global, NTuple)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors,
+                                        i, j, element)
+    for ii in 1:NNODES
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, element))
+        flux1_left, _ = volume_flux(u_node,
+                                    get_node_vars(u, equations, dg,
+                                                  ii, j, element),
+                                    Ja1_avg, equations)
+        du_local = du_local + derivative_split[i, ii] * flux1_left
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors,
+                                        i, j, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, element))
+        flux2_left, _ = volume_flux(u_node,
+                                    get_node_vars(u, equations, dg,
+                                                  i, jj, element),
+                                    Ja2_avg, equations)
+        du_local = du_local + derivative_split[j, jj] * flux2_left
+    end
+
+    set_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},

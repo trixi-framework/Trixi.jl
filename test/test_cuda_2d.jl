@@ -150,6 +150,99 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "CUDA 2D: Euler FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    StorageT = CuArray
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT,
+                  solver = DGSEM(polydeg = 3,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                 volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+
+    function run_with_kernel(flux_differencing_kernel)
+        ode = semidiscretize(semi, (0.0, 0.1);
+                             real_type = Float32,
+                             storage_type = StorageT,
+                             flux_differencing_kernel)
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                    dt = 1, ode_default_options()..., callback = callbacks)
+        return ode, sol
+    end
+
+    ode, sol = run_with_kernel(HalfSweep())
+    u_reference = Array(sol.u[end])
+    ode, sol = run_with_kernel(FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_reference
+
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: MHD FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    StorageT = CuArray
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT)
+
+    function run_with_kernel(flux_differencing_kernel)
+        ode = semidiscretize(semi, (0.0, 0.1);
+                             real_type = Float32,
+                             storage_type = StorageT,
+                             flux_differencing_kernel)
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                    dt = 1, ode_default_options()..., callback = callbacks)
+        return ode, sol
+    end
+
+    ode, sol = run_with_kernel(HalfSweep())
+    u_reference = Array(sol.u[end])
+    ode, sol = run_with_kernel(FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_reference
+
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    semi = remake(semi;
+                  solver = DGSEM(polydeg = 3,
+                                 surface_flux = semi.solver.surface_integral.surface_flux,
+                                 volume_integral = VolumeIntegralFluxDifferencing((flux_hindenlang_gassner,
+                                                                                   flux_nonconservative_powell))))
+    @testset "tuple volume flux fallback" begin
+        ode, sol = run_with_kernel(HalfSweep())
+        u_reference = Array(sol.u[end])
+        @test all(isfinite, u_reference)
+        ode, sol = run_with_kernel(FullSweepGlobal())
+        @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+        @test all(isfinite, Array(sol.u[end]))
+        @test Array(sol.u[end]) ≈ u_reference
+    end
+end
+
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Flux Differencing Float32 / CUDA" setup=[
     Setup,
     CUDA2DExamples
