@@ -115,7 +115,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     j_primary = j_primary_start
     for i in index_range
         for v in eachvariable(equations)
-            interfaces_u[1, v, i, interface] = u[v, i_primary, j_primary,
+            interfaces_u[1, v, i, interface] = u[v,
+                                                 i_primary, j_primary,
                                                  primary_element]
         end
         i_primary += i_primary_step
@@ -136,7 +137,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     j_secondary = j_secondary_start
     for i in index_range
         for v in eachvariable(equations)
-            interfaces_u[2, v, i, interface] = u[v, i_secondary, j_secondary,
+            interfaces_u[2, v, i, interface] = u[v,
+                                                 i_secondary, j_secondary,
                                                  secondary_element]
         end
         i_secondary += i_secondary_step
@@ -753,7 +755,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+        surface_flux_values[v, node_index,
+        direction_index, element_index] = flux_[v]
     end
 
     return nothing
@@ -788,7 +791,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+        surface_flux_values[v, node_index,
+        direction_index, element_index] = flux_[v]
     end
     return nothing
 end
@@ -856,7 +860,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, node_index,
-        direction_index, element_index] = flux[v] + 0.5f0 * noncons_flux[v]
+        direction_index, element_index] = flux[v] +
+                                          0.5f0 * noncons_flux[v]
     end
 
     return nothing
@@ -896,7 +901,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux[v]
+        surface_flux_values[v, node_index,
+        direction_index, element_index] = flux[v]
     end
 
     return nothing
@@ -945,7 +951,8 @@ function prolong2mortars!(cache, u,
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         cache.mortars.u[1, v, position, i, mortar] = u[v,
-                                                                       i_small, j_small,
+                                                                       i_small,
+                                                                       j_small,
                                                                        element]
                     end
                     i_small += i_small_step
@@ -1228,7 +1235,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
                 for v in eachvariable(equations)
                     # surface at -x
                     du[v, 1, l, element] = (du[v, 1, l, element] +
-                                            surface_flux_values[v, l, 1, element] *
+                                            surface_flux_values[v, l, 1,
+                                                                element] *
                                             factor)
 
                     # surface at +x
@@ -1239,7 +1247,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
 
                     # surface at -y
                     du[v, l, 1, element] = (du[v, l, 1, element] +
-                                            surface_flux_values[v, l, 3, element] *
+                                            surface_flux_values[v, l, 3,
+                                                                element] *
                                             factor)
 
                     # surface at +y

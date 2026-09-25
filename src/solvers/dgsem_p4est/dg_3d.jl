@@ -685,8 +685,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
-        direction_index, element_index] = flux[v] + 0.5f0 *
-                                                    noncons_flux[v]
+        direction_index, element_index] = flux[v] +
+                                          0.5f0 * noncons_flux[v]
     end
 
     return nothing
