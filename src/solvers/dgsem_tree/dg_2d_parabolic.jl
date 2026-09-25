@@ -55,8 +55,14 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
                        dg, parabolic_scheme, cache, cache_parabolic)
     end
 
-    prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
-                                  mesh, equations_parabolic, dg)
+    # 3D does currently not have a `GradientBoundaryContainer`
+    # => `prolong_gradients2boundaries!` only available for 2D
+    if mesh isa TreeMesh{2}
+        @trixi_timeit timer() "prolong_gradients2boundaries!" begin
+            prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
+                                          mesh, equations_parabolic, dg)
+        end
+    end
 
     # Compute and store the parabolic fluxes
     @trixi_timeit timer() "calculate parabolic fluxes" begin

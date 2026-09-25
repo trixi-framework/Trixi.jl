@@ -50,8 +50,10 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # 3D does currently not have a `GradientBoundaryContainer`
     # => `prolong_gradients2boundaries!` only available for 2D
     if mesh isa P4estMesh{2}
-        prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
-                                      mesh, equations_parabolic, dg)
+        @trixi_timeit timer() "prolong_gradients2boundaries!" begin
+            prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
+                                          mesh, equations_parabolic, dg)
+        end
     end
 
     # Compute and store the parabolic fluxes
@@ -990,18 +992,6 @@ function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                 boundary_condition_types, boundary_indices,
                                 Gradient(), mesh, equations_parabolic, surface_integral,
                                 dg)
-    return nothing
-end
-
-function calc_boundary_flux_divergence!(cache, cache_parabolic, t, boundary_conditions,
-                                        mesh::P4estMesh,
-                                        equations_parabolic, surface_integral, dg::DG)
-    (; boundary_condition_types, boundary_indices) = boundary_conditions
-
-    calc_boundary_flux_by_type!(cache, cache_parabolic, t,
-                                boundary_condition_types, boundary_indices,
-                                Divergence(), mesh, equations_parabolic,
-                                surface_integral, dg)
     return nothing
 end
 
