@@ -976,7 +976,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic3D Euler-Laplace Diffusion: elixir_euler_laplace_diffusion.jl" setup=[
+@testitem "Parabolic3D: TreeMesh3D: elixir_euler_laplace_diffusion.jl" setup=[
     Setup,
     Parabolic3D
 ] tags=[:parabolic_part3] begin
@@ -999,4 +999,5 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end

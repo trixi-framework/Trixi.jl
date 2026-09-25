@@ -701,7 +701,7 @@ end
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
 end
 
-@testitem "Parabolic1D Euler-Laplace Diffusion: elixir_euler_laplace_diffusion.jl" setup=[
+@testitem "Parabolic1D: TreeMesh1D: elixir_euler_laplace_diffusion.jl" setup=[
     Setup,
     Parabolic1D
 ] tags=[:parabolic_part1] begin
@@ -718,4 +718,5 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
