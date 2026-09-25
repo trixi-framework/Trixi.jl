@@ -533,6 +533,7 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
     @boundscheck begin
         check_axes(boundaries, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_indexing)
