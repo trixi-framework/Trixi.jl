@@ -38,6 +38,8 @@ for human readability.
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
+  unity is now supported, which then results in a different temperature `T` ([#3165])
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
