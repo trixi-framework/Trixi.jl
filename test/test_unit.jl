@@ -4399,6 +4399,38 @@ end
         end
     end
 
+    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        maxiters=1)
+
+    @testset "StructuredMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
+                                 "elixir_euler_basic.jl"),
+                        maxiters=1)
+
+    @testset "UnstructuredMesh2D" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+    end
+
     @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
                                  "elixir_euler_source_terms_nonperiodic_curved.jl"),
                         maxiters=1)
