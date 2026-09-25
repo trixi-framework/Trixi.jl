@@ -705,7 +705,8 @@ end
     Setup,
     Parabolic1D
 ] tags=[:parabolic_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
                         l2=[0.10954500481114468,
                             0.1417583694046777,
                             0.4087206508328759],
