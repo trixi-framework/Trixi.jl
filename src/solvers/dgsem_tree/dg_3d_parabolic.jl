@@ -197,8 +197,8 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -483,8 +483,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(3),
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -588,8 +588,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(3),
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -884,8 +884,8 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1095,8 +1095,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -1152,8 +1152,8 @@ function calc_surface_integral_gradient!(gradients,
         check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
