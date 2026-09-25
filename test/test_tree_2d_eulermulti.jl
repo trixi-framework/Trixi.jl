@@ -26,7 +26,7 @@ end
 end
 
 @testitem "TreeMesh2D EulerMulti: entropy potential" setup=[Setup] tags=[:tree_part2] begin
-    using LinearAlgebra: dot
+    using LinearAlgebra: dot, norm
     gammas = (1.4, 1.6)
     gas_constants = (1.0, 2.0)
     equations = CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
@@ -36,14 +36,14 @@ end
     u_ll, u_rr = prim2cons.((q_ll, q_rr), equations)
 
     # check that `flux_chandrashekar` is entropy conservative
-    v_ll, v_rr = cons2entropy.((u_ll, u_rr), equations)
+    w_ll, w_rr = cons2entropy.((u_ll, u_rr), equations)
     jump_entropy_potential_x = entropy_potential(u_rr, 1, equations) -
                                entropy_potential(u_ll, 1, equations)
     jump_entropy_potential_y = entropy_potential(u_rr, 2, equations) -
                                entropy_potential(u_ll, 2, equations)
-    @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 1, equations)) ≈
+    @test dot(w_rr - w_ll, flux_chandrashekar(u_ll, u_rr, 1, equations)) ≈
           jump_entropy_potential_x
-    @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 2, equations)) ≈
+    @test dot(w_rr - w_ll, flux_chandrashekar(u_ll, u_rr, 2, equations)) ≈
           jump_entropy_potential_y
 
     normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0)]
@@ -53,6 +53,53 @@ end
                   entropy_potential(u, orientation, equations)
         end
     end
+
+    p_ll = pressure(u_ll, equations)
+    p_rr = pressure(u_rr, equations)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    vel_ll = velocity(u_ll, equations)
+    vel_rr = velocity(u_rr, equations)
+    vel_avg = 0.5f0 * (vel_ll + vel_rr)
+
+    # check that `flux_srinivasan_nadarajah` is entropy conservative in x direction
+    F_x = flux_srinivasan_nadarajah(u_ll, u_rr, 1, equations)
+    tadmor_residual_x = dot(w_rr - w_ll, F_x) - jump_entropy_potential_x
+    atol_ec_x = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_x))
+    @test abs(tadmor_residual_x) < atol_ec_x
+
+    # check Jameson KEP form for `flux_srinivasan_nadarajah` in x direction
+    f_rho_sum_x = sum(@view F_x[4:end])
+    kep_residual_x = @view(F_x[1:2]) - (f_rho_sum_x * vel_avg + p_avg * SVector(1.0, 0.0))
+    atol_kep_x = 100 * eps(Float64) * max(1, norm(@view F_x[1:2]))
+    @test norm(kep_residual_x) < atol_kep_x
+
+    # check that `flux_srinivasan_nadarajah` is entropy conservative in y direction
+    F_y = flux_srinivasan_nadarajah(u_ll, u_rr, 2, equations)
+    tadmor_residual_y = dot(w_rr - w_ll, F_y) - jump_entropy_potential_y
+    atol_ec_y = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_y))
+    @test abs(tadmor_residual_y) < atol_ec_y
+
+    # check Jameson KEP form for `flux_srinivasan_nadarajah` in y direction
+    f_rho_sum_y = sum(@view F_y[4:end])
+    kep_residual_y = @view(F_y[1:2]) - (f_rho_sum_y * vel_avg + p_avg * SVector(0.0, 1.0))
+    atol_kep_y = 100 * eps(Float64) * max(1, norm(@view F_y[1:2]))
+    @test norm(kep_residual_y) < atol_kep_y
+
+    normal_direction_oblique = SVector(0.5, -1.0)
+    jump_entropy_potential_oblique = entropy_potential(u_rr, normal_direction_oblique,
+                                                       equations) -
+                                     entropy_potential(u_ll, normal_direction_oblique,
+                                                       equations)
+    F_oblique = flux_srinivasan_nadarajah(u_ll, u_rr, normal_direction_oblique, equations)
+    tadmor_residual_oblique = dot(w_rr - w_ll, F_oblique) - jump_entropy_potential_oblique
+    atol_ec_oblique = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_oblique))
+    @test abs(tadmor_residual_oblique) < atol_ec_oblique
+
+    f_rho_sum_oblique = sum(@view F_oblique[4:end])
+    kep_residual_oblique = @view(F_oblique[1:2]) -
+                           (f_rho_sum_oblique * vel_avg + p_avg * normal_direction_oblique)
+    atol_kep_oblique = 100 * eps(Float64) * max(1, norm(@view F_oblique[1:2]))
+    @test norm(kep_residual_oblique) < atol_kep_oblique
 end
 
 # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
@@ -180,6 +227,30 @@ end
                             1.054035804988521,
                             0.29347582879608936
                         ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl with flux_srinivasan_nadarajah" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
+                        l2=[
+                            0.05018223615408725,
+                            0.05018989446443491,
+                            0.22587155973051345,
+                            0.06175171559771698
+                        ],
+                        linf=[
+                            0.31081249232844776,
+                            0.31073803899477576,
+                            1.0540358049885197,
+                            0.293475828796089
+                        ],
+                        surface_flux=flux_srinivasan_nadarajah,
+                        volume_flux=flux_srinivasan_nadarajah)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
