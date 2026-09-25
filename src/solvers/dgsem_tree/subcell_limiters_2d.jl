@@ -876,9 +876,6 @@ end
 
 @inline function n_mortar_contributions(mortar::LobattoLegendreMortarIDP, i, j, element,
                                         dg)
-    # if mortar.pure_low_order
-    #     return 0
-    # end
     (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
 
     return n_mortars_per_node[i, j, element]
@@ -1185,10 +1182,11 @@ end
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
 
     (; limiter) = dg.mortar
-    # Same provisional update constant as for the antidiffusive fluxes inside the element; see
-    # `n_antidiffusive_contributions`.
+    (; n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
+
+    # The correction of the volume integral is already applied to `u`. The remaining antidiffusive fluxes at the mortars need to be scaled only with the number of mortars adjacent to the node, i.e., `n_mortars_per_node[i_node, j_node, element]`.
     gamma = min(limiter.gamma_constant_newton,
-                n_antidiffusive_contributions(i_node, j_node, element, dg))
+                n_mortars_per_node[i_node, j_node, element])
 
     flux_high_order = get_node_vars(surface_flux_values_high_order, equations, dg,
                                     surface_node, direction, element)

@@ -726,8 +726,6 @@ end
     n_subcell_interfaces = (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg)) +
                            (k > 1) + (k < nnodes(dg))
 
-    return n_subcell_interfaces +
-           n_mortar_contributions(dg.mortar, i, j, k, element, dg)
+    return n_subcell_interfaces
 end
-@inline n_mortar_contributions(mortar, i, j, k, element, dg) = 0
 end # @muladd
