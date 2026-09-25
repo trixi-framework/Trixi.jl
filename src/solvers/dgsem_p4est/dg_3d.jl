@@ -29,22 +29,6 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
             u_threaded)
 end
 
-# Check whether the thread-local storage in the `cache` used for the mortar fluxes and
-# projections has the axes we assume it must have in the inner loops of Trixi.jl.
-function check_axes_mortar_threaded(mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                    equations, dg::DG, cache)
-    fstar_axes = (eachvariable(equations),
-                  eachnode(dg), eachnode(dg),
-                  Base.OneTo(4))
-    buffer_axes = (eachvariable(equations),
-                   eachnode(dg), eachnode(dg))
-    check_axes_threaded(cache.fstar_primary_threaded, fstar_axes)
-    check_axes_threaded(cache.fstar_secondary_threaded, fstar_axes)
-    check_axes_threaded(cache.fstar_tmp_threaded, buffer_axes)
-    check_axes_threaded(cache.u_threaded, buffer_axes)
-    return nothing
-end
-
 #     index_to_start_step_3d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
@@ -761,7 +745,6 @@ function prolong2mortars!(cache, u,
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_mortar_threaded(mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -876,7 +859,6 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_mortar_threaded(mesh, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
     end

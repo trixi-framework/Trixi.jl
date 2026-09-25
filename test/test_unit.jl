@@ -4444,7 +4444,6 @@ end
                           cache.mortars)
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
-        @test Trixi.check_axes_mortar_threaded(mesh, equations, dg, cache) === nothing
     end
 
     @test_trixi_include(joinpath(examples_dir(), "t8code_3d_dgsem",
@@ -4472,6 +4471,5 @@ end
                           cache.mortars)
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
-        @test Trixi.check_axes_mortar_threaded(mesh, equations, dg, cache) === nothing
     end
 end

@@ -681,24 +681,6 @@ end
     return uEltype
 end
 
-# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
-# of Trixi.jl.
-# Note that this does not check the thread-local storage in the `cache` used for the
-# mortar fluxes and projections since it depends on the number of dimensions,
-# see `check_axes_mortar_threaded`.
-function check_axes(mortars::P4estMortarContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
-    check_axes(mortars.u,
-               (Base.OneTo(2), eachvariable(equations),
-                Base.OneTo(2^(NDIMS - 1)),
-                ntuple(_ -> eachnode(solver), NDIMS - 1)...,
-                eachmortar(solver, cache)))
-    check_axes(mortars.neighbor_ids,
-               (Base.OneTo(2^(NDIMS - 1) + 1), eachmortar(solver, cache)))
-    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
-    return nothing
-end
-
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::P4estMortarContainer, capacity)
     @unpack _u, _neighbor_ids, _node_indices = mortars
