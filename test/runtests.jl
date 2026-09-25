@@ -118,6 +118,26 @@ function dispatch_special_suite(suite)
     else
         error("We should not reach this branch; something is wrong.")
     end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "serial"
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:serial)
+        try
+            run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_serial.jl"))`)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
+        end
+    end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "base_threads"
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:static)
+        try
+            run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_base_threads.jl"))`)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
+        end
+    end
 end
 
 if !isempty(SUITES_TO_DISPATCH)
