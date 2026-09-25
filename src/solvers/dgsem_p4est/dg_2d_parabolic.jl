@@ -47,6 +47,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
                        dg, parabolic_scheme, cache)
     end
 
+    # 3D does currently not have a `GradientBoundaryContainer`
+    # => `prolong_gradients2boundaries!` only available for 2D
     if mesh isa P4estMesh{2}
         prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
                                       mesh, equations_parabolic, dg)
@@ -987,16 +989,6 @@ function calc_boundary_flux_gradient!(cache, t, boundary_conditions, mesh::P4est
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                        equations_parabolic, surface_integral, dg::DG)
-    (; boundary_condition_types, boundary_indices) = boundary_conditions
-
-    calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
-                                Divergence(), mesh, equations_parabolic,
-                                surface_integral, dg)
-    return nothing
-end
-
 function calc_boundary_flux_divergence!(cache, cache_parabolic, t, boundary_conditions,
                                         mesh::P4estMesh,
                                         equations_parabolic, surface_integral, dg::DG)
@@ -1006,42 +998,6 @@ function calc_boundary_flux_divergence!(cache, cache_parabolic, t, boundary_cond
                                 boundary_condition_types, boundary_indices,
                                 Divergence(), mesh, equations_parabolic,
                                 surface_integral, dg)
-    return nothing
-end
-
-# Iterate over tuples of boundary condition types and associated indices
-# in a type-stable way using "lispy tuple programming".
-function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
-                                     BC_indices::NTuple{N, Vector{Int}},
-                                     operator_type,
-                                     mesh::P4estMesh,
-                                     equations_parabolic, surface_integral,
-                                     dg::DG) where {N}
-    # Extract the boundary condition type and index vector
-    boundary_condition = first(BCs)
-    boundary_condition_indices = first(BC_indices)
-    # Extract the remaining types and indices to be processed later
-    remaining_boundary_conditions = Base.tail(BCs)
-    remaining_boundary_condition_indices = Base.tail(BC_indices)
-
-    # process the first boundary condition type
-    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
-                        operator_type, mesh, equations_parabolic, surface_integral, dg)
-
-    # recursively call this method with the unprocessed boundary types
-    calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
-                                remaining_boundary_condition_indices,
-                                operator_type,
-                                mesh, equations_parabolic, surface_integral, dg)
-
-    return nothing
-end
-
-# terminate the type-stable iteration over tuples
-function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type, mesh::P4estMesh,
-                                     equations_parabolic,
-                                     surface_integral, dg::DG)
     return nothing
 end
 
