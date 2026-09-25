@@ -990,9 +990,7 @@ function apply_jacobian!(backend::Nothing, du,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes(inverse_jacobian,
-                   (eachnode(dg), eachnode(dg), eachnode(dg),
-                    eachelement(dg, cache)))
+        check_axes(cache.elements, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
