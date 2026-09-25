@@ -727,7 +727,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{2},
                                         equations_parabolic::AbstractEquationsParabolic,
