@@ -9,13 +9,19 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
+                                equations_hyperbolic::AbstractEquations, dg::DG,
+                                n_elements, n_boundaries, uEltype)
     parabolic_container = init_parabolic_container_2d(nvariables(equations_hyperbolic),
                                                       nnodes(dg), n_elements,
                                                       uEltype)
 
-    cache_parabolic = (; parabolic_container)
+    gradients_at_boundaries_container = init_parabolic_gradient_boundary_container_2d(mesh,
+                                                                                      nvariables(equations_hyperbolic),
+                                                                                      nnodes(dg),
+                                                                                      n_boundaries,
+                                                                                      uEltype)
+
+    cache_parabolic = (; parabolic_container, gradients_at_boundaries_container)
 
     return cache_parabolic
 end
@@ -46,7 +52,16 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(backend, gradients, u_transformed, t, mesh,
                        equations_parabolic, boundary_conditions_parabolic,
-                       dg, parabolic_scheme, cache)
+                       dg, parabolic_scheme, cache, cache_parabolic)
+    end
+
+    # 3D does currently not have a `GradientBoundaryContainer`
+    # => `prolong_gradients2boundaries!` only available for 2D
+    if mesh isa TreeMesh{2}
+        @trixi_timeit timer() "prolong_gradients2boundaries!" begin
+            prolong_gradients2boundaries!(cache_parabolic, cache, gradients,
+                                          mesh, equations_parabolic, dg)
+        end
     end
 
     # Compute and store the parabolic fluxes
@@ -103,7 +118,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # Calculate boundary fluxes.
     # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
+        calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -619,23 +634,7 @@ function get_unsigned_normal_vector_2d(direction)
     end
 end
 
-function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                      equations_parabolic::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                        equations_parabolic::AbstractEquationsParabolic,
-                                        surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_gradient!(cache, t,
+function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{2}, # for dispatch only
                                       equations_parabolic::AbstractEquationsParabolic,
@@ -651,22 +650,22 @@ function calc_boundary_flux_gradient!(cache, t,
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[1],
                                               equations_parabolic, surface_integral,
-                                              dg, cache,
+                                              dg, cache, cache_parabolic,
                                               1, firsts[1], lasts[1])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[2],
                                               equations_parabolic, surface_integral,
-                                              dg, cache,
+                                              dg, cache, cache_parabolic,
                                               2, firsts[2], lasts[2])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[3],
                                               equations_parabolic, surface_integral,
-                                              dg, cache,
+                                              dg, cache, cache_parabolic,
                                               3, firsts[3], lasts[3])
     calc_boundary_flux_by_direction_gradient!(surface_flux_values, t,
                                               boundary_conditions_parabolic[4],
                                               equations_parabolic, surface_integral,
-                                              dg, cache,
+                                              dg, cache, cache_parabolic,
                                               4, firsts[4], lasts[4])
 
     return nothing
@@ -676,11 +675,14 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
                                                                                       4},
                                                    t, boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
-                                                   surface_integral, dg::DG, cache,
+                                                   surface_integral, dg::DG,
+                                                   cache, cache_parabolic,
                                                    direction, first_boundary,
                                                    last_boundary)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack gradients = cache_parabolic.gradients_at_boundaries_container
+    gradients_x, gradients_y = gradients
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -700,8 +702,12 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
                                                    i, boundary)
                 if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                     u_inner = u_ll
+                    gradient_1_inner = @view gradients_x[1, :, i, boundary]
+                    gradient_2_inner = @view gradients_y[1, :, i, boundary]
                 else # Element is on the right, boundary on the left
                     u_inner = u_rr
+                    gradient_1_inner = @view gradients_x[2, :, i, boundary]
+                    gradient_2_inner = @view gradients_y[2, :, i, boundary]
                 end
 
                 # TODO: revisit if we want more general boundary treatments.
@@ -712,6 +718,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
                 x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                     i, boundary)
                 flux = boundary_condition(flux_inner, u_inner,
+                                          (gradient_1_inner, gradient_2_inner),
                                           get_unsigned_normal_vector_2d(direction),
                                           x, t, Gradient(), equations_parabolic)
 
@@ -726,7 +733,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{2},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -1331,7 +1338,8 @@ end
 function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
                         mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
+                        dg::DG, parabolic_scheme, cache, cache_parabolic)
+    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
@@ -1367,7 +1375,7 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, t,
+        calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                      boundary_conditions_parabolic, mesh,
                                      equations_parabolic,
                                      dg.surface_integral, dg)
@@ -1397,6 +1405,64 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
+    end
+
+    return nothing
+end
+
+function prolong_gradients2boundaries!(cache_parabolic, cache, gradients::Tuple,
+                                       mesh::TreeMesh{2},
+                                       equations_parabolic::AbstractEquationsParabolic,
+                                       dg::DG)
+    @unpack gradients_at_boundaries_container = cache_parabolic
+    gradient_1, gradient_2 = gradients_at_boundaries_container.gradients
+
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+
+    gradient_x, gradient_y = gradients
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    gradient_1[1, v, l, boundary] = gradient_x[v, nnodes(dg), l,
+                                                               element]
+                    gradient_2[1, v, l, boundary] = gradient_y[v, nnodes(dg), l,
+                                                               element]
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    gradient_1[2, v, l, boundary] = gradient_x[v, 1, l,
+                                                               element]
+                    gradient_2[2, v, l, boundary] = gradient_y[v, 1, l,
+                                                               element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    gradient_1[1, v, l, boundary] = gradient_y[v, l, nnodes(dg),
+                                                               element]
+                    gradient_2[1, v, l, boundary] = gradient_y[v, l, nnodes(dg),
+                                                               element]
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations_parabolic)
+                    gradient_1[2, v, l, boundary] = gradient_y[v, l, 1,
+                                                               element]
+                    gradient_2[2, v, l, boundary] = gradient_y[v, l, 1,
+                                                               element]
+                end
+            end
+        end
     end
 
     return nothing

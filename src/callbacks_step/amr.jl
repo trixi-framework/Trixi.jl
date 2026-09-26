@@ -651,8 +651,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 partition!(mesh)
                 rebalance_solver!(u_ode, mesh, equations, dg, cache,
                                   old_global_first_quadrant)
-                @unpack parabolic_container = cache_parabolic
+                @unpack parabolic_container, gradients_at_boundaries_container = cache_parabolic
                 resize!(parabolic_container, equations, dg, cache)
+                resize!(gradients_at_boundaries_container, equations, dg, cache)
             end
         end
 

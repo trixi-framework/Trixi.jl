@@ -213,8 +213,9 @@ function refine!(u_ode::AbstractVector, adaptor,
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
-    @unpack parabolic_container = cache_parabolic
+    @unpack parabolic_container, gradients_at_boundaries_container = cache_parabolic
     resize!(parabolic_container, equations, dg, cache)
+    resize!(gradients_at_boundaries_container, equations, dg, cache)
 
     return nothing
 end
@@ -418,8 +419,9 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
-    @unpack parabolic_container = cache_parabolic
+    @unpack parabolic_container, gradients_at_boundaries_container = cache_parabolic
     resize!(parabolic_container, equations, dg, cache)
+    resize!(gradients_at_boundaries_container, equations, dg, cache)
 
     return nothing
 end

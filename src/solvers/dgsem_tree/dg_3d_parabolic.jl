@@ -9,8 +9,8 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
+                                equations_hyperbolic::AbstractEquations, dg::DG,
+                                n_elements, n_boundaries, uEltype)
     parabolic_container = init_parabolic_container_3d(nvariables(equations_hyperbolic),
                                                       nnodes(dg), n_elements,
                                                       uEltype)
@@ -407,15 +407,7 @@ function get_unsigned_normal_vector_3d(direction)
     end
 end
 
-function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                      equations_parabolic::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_divergence!(cache, t,
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -423,7 +415,7 @@ function calc_boundary_flux_divergence!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_gradient!(cache, t,
+function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{3}, # for dispatch only
                                       equations_parabolic::AbstractEquationsParabolic,
@@ -524,7 +516,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{3},
                                         equations_parabolic::AbstractEquationsParabolic,

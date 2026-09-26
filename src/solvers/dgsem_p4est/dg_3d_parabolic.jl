@@ -938,7 +938,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t,
+function calc_boundary_flux!(cache, cache_parabolic, t,
                              boundary_condition_parabolic, # works with Dict types
                              boundary_condition_indices,
                              operator_type, mesh::P4estMesh{3},
