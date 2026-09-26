@@ -190,6 +190,34 @@ than can increase your productivity in the Julia REPL.
   ```
 
 
+## [Enabling bounds checking](@id enabling-bounds-checking)
+Trixi.jl uses `@inbounds` to avoid bounds checking and therefore speed up the code.
+After initial bounds/range/axes checks at a high level (in the callgraph), `@inbounds`
+is applied and then propagated to the lower-level functions. For this propagation
+to work, such a function has to be defined as follows.
+
+Before inbounds access is assumed, the indices should be verified once in an explicit
+`@boundscheck` block. Such a block is removed whenever `@inbounds` is propagated correctly, e.g.,
+```julia
+Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
+                          Val(nvariables(equations))))
+end
+```
+When developing and introducing new functions, kernels or features within Trixi.jl,
+we strongly suggest to enable Julia's explicit bounds checking by starting the REPL
+with
+```bash
+julia --project=path/to/Trixi.jl/run --check-bounds=yes
+```
+to avoid possible silent errors. In this way, Julia ignores `@inbounds` and always
+performs the bounds checks described above, so that out-of-bounds accesses are
+always caught.
+
+
 ## Text editors
 When writing code, the choice of text editor can have a significant impact on
 productivity and developer satisfaction. While using the default text editor
@@ -201,28 +229,17 @@ listed and discussed:
 ### VS Code
 [Visual Studio Code](https://code.visualstudio.com/) is a modern open source
 editor with [good support for Julia](https://github.com/julia-vscode/julia-vscode).
-While [Juno](#Juno) had some better support in the past, the developers of Juno
-and the Julia VS Code plugin are joining forces and concentrating on VS Code
-since support of Atom has been suspended. Basically, all comments on [Juno](#Juno)
-below also apply to VS Code.
-
-### Juno
 If you are new to programming or do not have a preference for a text editor
-yet, [Juno](https://junolab.org) is a good choice for developing Julia code.
-It is based on *Atom*, a sophisticated and widely used editor for software
-developers, and is enhanced with several Julia-specific features. Furthermore
-and especially helpful for novice programmers, it has a MATLAB-like
-appearance with easy and interactive access to the current variables, the
-help system, and a debugger.
+yet, [Visual Studio Code](https://code.visualstudio.com/) is a good choice.
 
 ### Vim or Emacs
 Vim and Emacs are both very popular editors that work great with Julia. One
 of their advantages is that they are text editors without a GUI and as such
 are available for almost any operating system. They also are preinstalled on
-virtually all Unix-like systems.  However, Vim and Emacs come with their own,
+virtually all Unix-like systems. However, Vim and Emacs come with their own,
 steep learning curve if they have never been used before. Therefore, if in doubt, it
 is probably easier to get started with a classic GUI-based text editor (like
-Juno). If you decide to use Vim or Emacs, make sure that you install the
+Visual Studio Code). If you decide to use Vim or Emacs, make sure that you install the
 corresponding Vim plugin
 [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).

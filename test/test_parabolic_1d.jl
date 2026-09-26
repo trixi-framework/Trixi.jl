@@ -568,14 +568,14 @@ end
                                                                cfl_parabolic = 0.1)),
                         adaptive=false,
                         l2=[
-                            3.804624387087144e-5,
-                            4.0776239664045585e-5,
-                            0.0002452796554181002
+                            3.804624387162836e-5,
+                            4.077623966485493e-5,
+                            0.000245279655420226
                         ],
                         linf=[
-                            0.00010899905841177393,
-                            9.108558032178138e-5,
-                            0.0005277952647766426
+                            0.0001089990584250966,
+                            9.108558034398584e-5,
+                            0.000527795264783748
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -699,4 +699,24 @@ end
     # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
     # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
+                        l2=[0.10954500481114468,
+                            0.1417583694046777,
+                            0.4087206508328759],
+                        linf=[
+                            0.17183237920520245,
+                            0.2203023610743297,
+                            0.6347464031934038
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end

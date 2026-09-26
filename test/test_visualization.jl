@@ -762,6 +762,21 @@ end
         end
     end
 
+    @testset "PlotData2D finite volume (polydeg = 0) from 3D solution" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                     "elixir_advection_basic.jl"),
+                            analysis_callback=Trixi.TrivialCallback(),
+                            initial_refinement_level=1,
+                            polydeg=0)
+        for slice in (:xy, :yz, :xz)
+            pd = PlotData2D(sol, slice = slice)
+            @test pd isa Trixi.PlotData2DCartesian
+            @test !pd.point_values
+            @test !isempty(pd.data)
+            @trixi_test_nowarn Plots.plot(pd)
+        end
+    end
+
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_3d_dgsem",
                                  "elixir_advection_basic.jl"))
 
@@ -1065,6 +1080,10 @@ end
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
+
+    # contour plots are only defined for 2D solutions
+    @test_throws ArgumentError Makie.contour(sol)
+    @test_throws ArgumentError Makie.contourf(sol)
 end
 @testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[
     Setup,
@@ -1105,6 +1124,82 @@ end
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
+
+    # Makie.contour(pds) gives title, xlabel, ylabel and colorbar
+    @trixi_test_nowarn Makie.contour(pd["scalar"])
+
+    # kwargs are forwarded to contour!
+    @trixi_test_nowarn Makie.contour(pd["scalar"], levels = 5)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    @trixi_test_nowarn Makie.contourf(pd["scalar"])
+    @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"], levels = 5, color = :white)
+
+    # FV (polydeg = 0): `pd_fv.x`/`.y` are the `length(data)+1` cell edges.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test !pd_fv.point_values
+    @test length(pd_fv.x) == size(pd_fv.data[1], 1) + 1
+
+    _, ax_fv, plt_fv = Makie.plot(pd_fv["scalar"])
+    @test collect(plt_fv[1][]) == pd_fv.x
+    @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
+    @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
+
+    # Contours need one coordinate per value, so they use the cell centers instead.
+    x_centers = 0.5 .* (pd_fv.x[begin:(end - 1)] .+ pd_fv.x[(begin + 1):end])
+    y_centers = 0.5 .* (pd_fv.y[begin:(end - 1)] .+ pd_fv.y[(begin + 1):end])
+    _, _, plt_fv_contour = Makie.contour(pd_fv["scalar"])
+    @test collect(plt_fv_contour[1][]) ≈ x_centers
+    @test collect(plt_fv_contour[2][]) ≈ y_centers
+    @trixi_test_nowarn Makie.contourf(pd_fv["scalar"])
+    @trixi_test_nowarn Makie.contour(pd_fv)
+
+    # Constant variables give a zero-width color range, which Makie only expands if the
+    # color range is passed explicitly. `elixir_acoustics_gauss.jl` has four constant
+    # variables (`v1_mean`, `v2_mean`, `c_mean`, `rho_mean`).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_acoustics_gauss.jl"))
+    pd_const = PlotData2D(sol)
+    fig_const, axes_const = @trixi_test_nowarn Makie.plot(pd_const)
+    Makie.update_state_before_display!(fig_const)
+    for content in fig_const.content
+        content isa Makie.Colorbar || continue
+        limits = content.limits[]
+        @test limits[1] < limits[2]
+    end
+    @trixi_test_nowarn Makie.plot(pd_const["v1_mean"])
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["v1_mean"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["v1_mean"])
+
+    # The seven variables do not fill the 3x3 layout, so the unused cells must still
+    # hold (empty) axes instead of undefined references.
+    @test size(axes_const) == (3, 3)
+    @test all(i -> isassigned(axes_const, i), eachindex(axes_const))
 end
 @testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[
     Setup,
@@ -1165,4 +1260,102 @@ end
                                  "elixir_euler_curved.jl"))
 
     @trixi_test_nowarn Trixi.iplot(sol)
+end
+
+@testitem "Visualization: PlotData2D Finite Volume (polydeg = 0, BlockFV) Examples" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # FV (`polydeg = 0`) with AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_amr.jl"),
+                        polydeg=0)
+    pd_amr = PlotData2D(sol)
+    @test pd_amr isa Trixi.PlotData2DCartesian
+    @test !pd_amr.point_values
+    @test !isempty(pd_amr.data)
+    @trixi_test_nowarn Plots.plot(pd_amr)
+
+    # DG with no AMR (point values, default)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=1)
+    pd_basic = PlotData2D(sol)
+    @test pd_basic isa Trixi.PlotData2DCartesian
+    @test pd_basic.point_values
+    @test !isempty(pd_basic.data)
+    @trixi_test_nowarn Plots.plot(pd_basic)
+
+    # FV (`polydeg = 0`) with no AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test pd_fv isa Trixi.PlotData2DCartesian
+    @test !pd_fv.point_values
+    @test !isempty(pd_fv.data)
+    @trixi_test_nowarn Plots.plot(pd_fv)
+
+    # `nvisnodes` has no effect on finite volume data (nothing to interpolate): every
+    # value gives the native-resolution result
+    for value in (0, 1, 5, 100)
+        pd_fv_other_nvisnodes = PlotData2D(sol; nvisnodes = value)
+        @test pd_fv_other_nvisnodes.x == pd_fv.x
+        @test pd_fv_other_nvisnodes.data == pd_fv.data
+    end
+
+    # The mesh overlay should cover the full domain, not just the region between the
+    # first and last cell center.
+    plt_fv_mesh = Plots.plot(pd_fv)
+    Plots.plot!(plt_fv_mesh, getmesh(pd_fv))
+    @test Plots.xlims(plt_fv_mesh) == (-1.0, 1.0)
+    @test Plots.ylims(plt_fv_mesh) == (-1.0, 1.0)
+
+    # A `TreeMesh` with just a single cell (`initial_refinement_level = 0`)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0, polydeg=0)
+    pd_single_cell = PlotData2D(sol)
+    @test pd_single_cell.x == [-1.0, 1.0]
+    @test pd_single_cell.y == [-1.0, 1.0]
+    @trixi_test_nowarn Plots.plot(pd_single_cell)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0)
+    pd_single_cell_blockfv = PlotData2D(sol)
+    @test extrema(pd_single_cell_blockfv.x) == (-1.0, 1.0)
+    @test extrema(pd_single_cell_blockfv.y) == (-1.0, 1.0)
+    @trixi_test_nowarn Plots.plot(pd_single_cell_blockfv)
+
+    # BlockFV with multiple finite volume cells per element
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        n_nodes=2)
+    pd_blockfv = PlotData2D(sol)
+    @test pd_blockfv isa Trixi.PlotData2DCartesian
+    @test !pd_blockfv.point_values
+    @test !isempty(pd_blockfv.data)
+    @trixi_test_nowarn Plots.plot(pd_blockfv)
+
+    # Unlike point values, cell (mean) values cannot be downsampled by interpolation,
+    # so the native resolution (`n_nodes`) must fit within what `max_supported_level`
+    # allows at the finest refinement level (here: level 4, so `max_supported_level`
+    # must be at least 5 to fit the `n_nodes = 2` cells per element).
+    @test_throws ArgumentError PlotData2D(sol; max_supported_level = 4)
+    @test PlotData2D(sol; max_supported_level = 5) isa Trixi.PlotData2DCartesian
+end
+
+@testitem "Visualization: PlotData2D elixir_advection_finite_volume.jl" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # example elixir for finite volume (`polydeg = 0`) plotting
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_finite_volume.jl"))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+    @test !pd.point_values
+    @test !isempty(pd.data)
+    @trixi_test_nowarn Plots.plot(pd)
 end

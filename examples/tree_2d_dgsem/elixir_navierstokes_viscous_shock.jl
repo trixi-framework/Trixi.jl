@@ -175,7 +175,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 # (which is overly restrictive for this problem),
 # the parabolic CFL restricts the timestep for this problem.
 stepsize_callback = StepsizeCallback(cfl = 0.2,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.025)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
@@ -184,7 +184,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(),
+sol = solve(ode, CKLLSRK95_4S(thread = Trixi.Threaded()),
             adaptive = false,
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

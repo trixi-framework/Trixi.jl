@@ -26,13 +26,12 @@ const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
-                     cross,
-                     normalize, I,
-                     UniformScaling, det
+using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal,
+                     I, UniformScaling,
+                     det, diag, dot, eigvals, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
-                    rowvals, nzrange, nonzeros
+                    rowvals, nzrange, nonzeros, dropzeros!
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -69,7 +68,8 @@ using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
+                          @synchronize, @uniform, get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
@@ -314,6 +314,7 @@ export DG,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
+       HalfSweep, FullSweep, FullSweepGlobal,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,

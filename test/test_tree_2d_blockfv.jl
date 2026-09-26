@@ -183,14 +183,7 @@ end
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # TODO: Investigate why this allocation tests fails.
-    # See https://github.com/trixi-framework/Trixi.jl/pull/3096 for more details.
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Both setups have exactly the same degrees of freedom.
     # Thus, they should return the same errors (up to floating-point precision).

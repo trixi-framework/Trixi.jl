@@ -703,10 +703,14 @@ end
 """
     VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg = flux_central,
-                                  volume_flux_fv = flux_lax_friedrichs)
+                                  volume_flux_fv = flux_lax_friedrichs,
+                                  volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv))
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. The low-order method can be selected with `volume_integral_low_order`;
+by default, the first-order subcell finite volume scheme [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with [`FluxLaxFriedrichs`](@ref) is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides
+a second-order alternative. Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -714,19 +718,29 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
 """
-struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+struct VolumeIntegralSubcellLimiting{VolumeIntegralLowOrder, VolumeFluxDG, Limiter} <:
        AbstractVolumeIntegralSubcell
+    volume_integral_low_order::VolumeIntegralLowOrder
     volume_flux_dg::VolumeFluxDG
-    volume_flux_fv::VolumeFluxFV
     limiter::Limiter
 end
 
 function VolumeIntegralSubcellLimiting(limiter;
                                        volume_flux_dg = flux_central,
-                                       volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                         typeof(limiter)}(volume_flux_dg,
-                                                          volume_flux_fv,
+                                       volume_flux_fv = nothing,
+                                       volume_integral_low_order = nothing)
+    if volume_flux_fv === nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order !== nothing
+        throw(ArgumentError("Both `volume_flux_fv` and `volume_integral_low_order` are specified. Please specify only one of them."))
+    end
+
+    return VolumeIntegralSubcellLimiting{typeof(volume_integral_low_order),
+                                         typeof(volume_flux_dg),
+                                         typeof(limiter)}(volume_integral_low_order,
+                                                          volume_flux_dg,
                                                           limiter)
 end
 
@@ -738,8 +752,10 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume integral low order",
+                     integral.volume_integral_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.volume_integral_low_order)
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
@@ -954,6 +970,57 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
     return nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 end
 
+# Check whether the array `A` has exactly the axes `expected_axes` we assume in the
+# inner loops of Trixi.jl before assuming inbounds access.
+# All other methods of `check_axes` compute the expected axes and call this method.
+@inline function check_axes(A, expected_axes::Tuple)
+    axes(A) == expected_axes || throw_axes_mismatch(axes(A), expected_axes)
+    return nothing
+end
+
+# Keep the error path out of the inlined code above. The lazy string defers
+# formatting the message until it is actually displayed.
+@noinline function throw_axes_mismatch(found_axes, expected_axes)
+    throw(DimensionMismatch(lazy"axes $(found_axes) found, but $(expected_axes) expected"))
+end
+
+# Check whether the array `u` has the axes we assume it must have in the inner loops
+# of Trixi.jl.
+@inline function check_axes(u, mesh::AbstractMesh, equations, solver, cache)
+    return check_axes(u, Val(ndims(mesh)), equations, solver, cache)
+end
+
+@inline function check_axes(u, ::Val{NDIMS}, equations, solver,
+                            cache) where {NDIMS}
+    return check_axes(u,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS)...,
+                       eachelement(solver, cache)))
+end
+
+# Check whether the array `surface_flux_values` has the axes we assume it must have
+# in the inner loops of Trixi.jl.
+@inline function check_axes_surface_flux_values(surface_flux_values::AbstractArray,
+                                                equations::AbstractEquations{NDIMS},
+                                                solver::DG, cache) where {NDIMS}
+    return check_axes(surface_flux_values,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                       Base.OneTo(2 * NDIMS),
+                       eachelement(solver, cache)))
+end
+
+# Check whether the thread-local storage `values` (one array per thread) has one entry
+# per thread and whether each of these arrays has the axes `expected_axes` we assume
+# in the inner loops of Trixi.jl.
+@inline function check_axes_threaded(values, expected_axes::Tuple)
+    check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+    for thread_id in Base.OneTo(Threads.maxthreadid())
+        check_axes(values[thread_id], expected_axes)
+    end
+    return nothing
+end
+
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
 """
     eachnode(dg::DG)
@@ -1042,8 +1109,13 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/88
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
-@inline function get_node_coords(x, equations, solver::DG, indices...)
-    return SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
+Base.@propagate_inbounds function get_node_coords(x, equations, solver::DG,
+                                                  indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(x, 1:ndims(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(idx->@inbounds x[idx, indices...]),
+                          Val(ndims(equations))))
 end
 
 """
@@ -1060,7 +1132,7 @@ i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
 For more details, see the documentation:
 https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
 """
-@inline function get_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
@@ -1071,35 +1143,53 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     # compiler for standard `Array`s but not necessarily for more
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
-    return SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
+                          Val(nvariables(equations))))
 end
 
-@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
+                                                        indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
-    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
-    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
+                          Val(nvariables(equations))))
     return u_ll, u_rr
 end
 
 # As above but dispatches on an type argument
-@inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
-    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
-    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
+                                                        indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
+                          Val(nvariables(equations))))
     return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
+Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
+                                                 indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
     return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
+Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,
+                                                    indices...)
     for v in eachvariable(equations)
         u[v, indices...] += u_node[v]
     end
@@ -1109,8 +1199,9 @@ end
 # Use this function instead of `add_to_node_vars` to speed up
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
-@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG,
-                                            indices...)
+Base.@propagate_inbounds function multiply_add_to_node_vars!(u, factor, u_node,
+                                                             equations, solver::DG,
+                                                             indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u[v, indices...] + factor * u_node[v]
     end
