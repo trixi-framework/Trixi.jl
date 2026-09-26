@@ -1010,6 +1010,17 @@ end
                        eachelement(solver, cache)))
 end
 
+# Check whether the thread-local storage `values` (one array per thread) has one entry
+# per thread and whether each of these arrays has the axes `expected_axes` we assume
+# in the inner loops of Trixi.jl.
+@inline function check_axes_threaded(values, expected_axes::Tuple)
+    check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+    for thread_id in Base.OneTo(Threads.maxthreadid())
+        check_axes(values[thread_id], expected_axes)
+    end
+    return nothing
+end
+
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
 """
     eachnode(dg::DG)

@@ -698,16 +698,11 @@ function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG, cac
     check_axes(mortars.orientations, (eachmortar(solver, cache),))
 
     # Thread-local storage used for the mortar fluxes
-    threaded_values_axes = (eachvariable(equations), eachnode(solver))
-    for values in (cache.fstar_primary_upper_threaded,
-                   cache.fstar_primary_lower_threaded,
-                   cache.fstar_secondary_upper_threaded,
-                   cache.fstar_secondary_lower_threaded)
-        check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
-        for value in values
-            check_axes(value, threaded_values_axes)
-        end
-    end
+    fstar_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, fstar_axes)
     return nothing
 end
 

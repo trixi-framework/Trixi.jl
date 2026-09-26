@@ -71,7 +71,9 @@ end
 # Extract outward-pointing normal direction
 # (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
-@inline function get_normal_direction(direction, contravariant_vectors, indices...)
+Base.@propagate_inbounds function get_normal_direction(direction,
+                                                       contravariant_vectors,
+                                                       indices...)
     orientation = (direction + 1) >> 1
     normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
 
