@@ -75,13 +75,14 @@ function calc_surface_integral_gradient!(gradients, u, scalar_flux_face_values,
                                          mesh, equations::AbstractEquationsParabolic,
                                          dg::DGMulti, cache, cache_parabolic)
     (; gradient_lift_matrix, local_flux_face_values_threaded) = cache_parabolic
+    (; nxyzJ) = mesh.md
     @threaded for e in eachelement(mesh, dg)
         local_flux_values = local_flux_face_values_threaded[Threads.threadid()]
         for dim in eachdim(mesh)
             for i in eachindex(local_flux_values)
                 # compute flux * (nx, ny, nz)
                 local_flux_values[i] = scalar_flux_face_values[i, e] *
-                                       mesh.md.nxyzJ[dim][i, e]
+                                       nxyzJ[dim][i, e]
             end
             apply_to_each_field(mul_by_accum!(gradient_lift_matrix),
                                 view(gradients[dim], :, e), local_flux_values)
@@ -95,13 +96,14 @@ function calc_volume_integral_gradient!(gradients, u, mesh::DGMultiMesh,
                                         equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic)
     (; strong_differentiation_matrices) = cache_parabolic
+    (; rstxyzJ) = mesh.md
 
     # compute volume contributions to gradients
     @threaded for e in eachelement(mesh, dg)
         for i in eachdim(mesh), j in eachdim(mesh)
 
             # We assume each element is affine (e.g., constant geometric terms) here.
-            dxidxhatj = mesh.md.rstxyzJ[i, j][1, e]
+            dxidxhatj = rstxyzJ[i, j][1, e]
 
             apply_to_each_field(mul_by_accum!(strong_differentiation_matrices[j],
                                               dxidxhatj),
@@ -350,11 +352,12 @@ function calc_volume_integral_divergence!(du, u, flux_parabolic, mesh::DGMultiMe
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic)
     (; weak_differentiation_matrices) = cache_parabolic
+    (; rstxyzJ) = mesh.md
 
     # compute volume contributions to divergence
     @threaded for e in eachelement(mesh, dg)
         for i in eachdim(mesh), j in eachdim(mesh)
-            dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # assumes mesh is affine
+            dxidxhatj = rstxyzJ[i, j][1, e] # assumes mesh is affine
             apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
                                 view(du, :, e), view(flux_parabolic[i], :, e))
         end
@@ -514,12 +517,12 @@ end
 # uses quadrature + projection to compute source terms.
 function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                  mesh, equations_parabolic, dg::DGMulti, cache)
-    md = mesh.md
+    (; xyzq) = mesh.md
     @threaded for e in eachelement(mesh, dg, cache)
         for i in eachnode(dg)
             du[i, e] = du[i, e] +
                        source_terms_parabolic(u[i, e], SVector(getindex.(gradients, i, e)),
-                                              SVector(getindex.(md.xyzq, i, e)),
+                                              SVector(getindex.(xyzq, i, e)),
                                               t, equations_parabolic)
         end
     end

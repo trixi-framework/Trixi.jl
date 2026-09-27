@@ -52,10 +52,10 @@ function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
-    @unpack interfaces_u = cache.elements
+    @unpack interfaces_u, left_neighbors = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        left_element = cache.elements.left_neighbors[1, element]
+        left_element = left_neighbors[1, element]
         # => `element` is the right element of the interface
 
         if left_element > 0 # left_element = 0 at boundaries

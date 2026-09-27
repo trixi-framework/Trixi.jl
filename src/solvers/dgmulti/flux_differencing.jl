@@ -497,11 +497,11 @@ end
 # Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
 function calc_sources!(du, u, t, source_terms,
                        mesh, equations, dg::DGMultiFluxDiffSBP, cache)
-    md = mesh.md
+    (; xyzq) = mesh.md
 
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_quad_node(mesh, dg, cache)
-            du[i, e] += source_terms(u[i, e], SVector(getindex.(md.xyzq, i, e)), t,
+            du[i, e] += source_terms(u[i, e], SVector(getindex.(xyzq, i, e)), t,
                                      equations)
         end
     end

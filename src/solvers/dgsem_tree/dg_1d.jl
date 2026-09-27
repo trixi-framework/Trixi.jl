@@ -567,7 +567,8 @@ end
 function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations, dg::DG)
     @unpack boundaries = cache
-    @unpack neighbor_sides = boundaries
+    @unpack neighbor_sides, neighbor_ids = boundaries
+    boundaries_u = boundaries.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -577,18 +578,18 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
-            element = boundaries.neighbor_ids[boundary]
+            element = neighbor_ids[boundary]
 
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
                 for v in eachvariable(equations)
-                    boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
+                    boundaries_u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
                                                                        element]
                 end
             else # Element in +x direction of boundary
                 for v in eachvariable(equations)
-                    boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
+                    boundaries_u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
                 end
             end
         end
@@ -601,8 +602,9 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
-    @unpack neighbor_sides = boundaries
+    @unpack neighbor_sides, neighbor_ids = boundaries
     @unpack boundary_interpolation = dg.basis
+    boundaries_u = boundaries.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -613,7 +615,7 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
-            element = boundaries.neighbor_ids[boundary]
+            element = neighbor_ids[boundary]
 
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
@@ -621,7 +623,7 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                 for v in eachvariable(equations)
                     # Interpolate to the boundaries using a local variable for
                     # the accumulation of values (to reduce global memory operations).
-                    boundary_u_1 = zero(eltype(boundaries.u))
+                    boundary_u_1 = zero(eltype(boundaries_u))
                     for ii in eachnode(dg)
                         # Not += to allow `@muladd` to turn these into FMAs
                         # (see comment at the top of the file)
@@ -629,17 +631,17 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                                         u_or_flux_parabolic[v, ii, element] *
                                         boundary_interpolation[ii, 2])
                     end
-                    boundaries.u[1, v, boundary] = boundary_u_1
+                    boundaries_u[1, v, boundary] = boundary_u_1
                 end
             else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
                 for v in eachvariable(equations)
-                    boundary_u_2 = zero(eltype(boundaries.u))
+                    boundary_u_2 = zero(eltype(boundaries_u))
                     for ii in eachnode(dg)
                         boundary_u_2 = (boundary_u_2 +
                                         u_or_flux_parabolic[v, ii, element] *
                                         boundary_interpolation[ii, 1])
                     end
-                    boundaries.u[2, v, boundary] = boundary_u_2
+                    boundaries_u[2, v, boundary] = boundary_u_2
                 end
             end
         end

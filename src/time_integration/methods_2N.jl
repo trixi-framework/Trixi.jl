@@ -150,10 +150,10 @@ function step!(integrator::SimpleIntegrator2N)
         a_stage = alg.a[stage]
         b_stage_dt = alg.b[stage] * integrator.dt
         @trixi_timeit timer() "Runge-Kutta step" begin
-            @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.du[i] -
-                                      integrator.u_tmp[i] * a_stage
-                integrator.u[i] += integrator.u_tmp[i] * b_stage_dt
+            (; u, du, u_tmp) = integrator
+            @threaded for i in eachindex(u)
+                u_tmp[i] = du[i] - u_tmp[i] * a_stage
+                u[i] += u_tmp[i] * b_stage_dt
             end
         end
     end

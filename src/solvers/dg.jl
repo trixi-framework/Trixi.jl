@@ -1340,10 +1340,11 @@ end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
                                equations, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     element)
+            x_node = get_node_coords(node_coordinates, equations, dg, i, element)
             # Changing the node positions passed to the initial condition by the minimum
             # amount possible with the current type of floating point numbers allows setting
             # discontinuous initial data in a simple way. In particular, a check like `if x < x_jump`

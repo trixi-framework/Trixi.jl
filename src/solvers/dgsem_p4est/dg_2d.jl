@@ -292,6 +292,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = cache.interfaces.u
     # Take for Gauss-Lobatto-Legendre (GLL) the interface normals from the outer volume nodes, i.e.,
     # element data.
     @unpack contravariant_vectors = cache.elements
@@ -311,7 +312,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, interface,
+                                                     interfaces_u, interface,
                                                      neighbor_ids, node_indices,
                                                      contravariant_vectors,
                                                      index_range)
@@ -398,6 +399,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = cache.interfaces.u
     # Take for Gauss-Legendre (GL) the interface normals from the interfaces, i.e.,
     # interface data.
     @unpack normal_directions = cache.interfaces
@@ -416,7 +418,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, interface,
+                                                     interfaces_u, interface,
                                                      neighbor_ids, node_indices,
                                                      normal_directions, index_range)
     end
@@ -627,6 +629,9 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack boundaries = cache
+    @unpack neighbor_ids = boundaries
+    boundaries_u = boundaries.u
+    boundaries_node_indices = boundaries.node_indices
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -639,8 +644,8 @@ function prolong2boundaries!(backend::Nothing, cache, u,
         @inbounds begin
             # Copy solution data from the element using "delayed indexing" with
             # a start value and a step size to get the correct face and orientation.
-            element = boundaries.neighbor_ids[boundary]
-            node_indices = boundaries.node_indices[boundary]
+            element = neighbor_ids[boundary]
+            node_indices = boundaries_node_indices[boundary]
 
             i_node_start, i_node_step = index_to_start_step_2d(node_indices[1],
                                                                index_range)
@@ -651,7 +656,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             j_node = j_node_start
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
+                    boundaries_u[v, i, boundary] = u[v, i_node, j_node, element]
                 end
                 i_node += i_node_step
                 j_node += j_node_step
@@ -677,6 +682,8 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
+    @unpack neighbor_ids = boundaries
+    boundaries_node_indices = boundaries.node_indices
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
 
@@ -695,8 +702,8 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
 
             # Get information on the adjacent element, compute the surface fluxes,
             # and store them
-            element = boundaries.neighbor_ids[boundary]
-            node_indices = boundaries.node_indices[boundary]
+            element = neighbor_ids[boundary]
+            node_indices = boundaries_node_indices[boundary]
             direction = indices2direction(node_indices)
 
             i_node_start, i_node_step = index_to_start_step_2d(node_indices[1],
@@ -924,7 +931,10 @@ function prolong2mortars!(cache, u,
                           equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
+    @unpack u_threaded = cache
     @unpack neighbor_ids, node_indices = cache.mortars
+    mortars_u = cache.mortars.u
+    @unpack forward_lower, forward_upper = mortar_l2
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -950,10 +960,10 @@ function prolong2mortars!(cache, u,
                 element = neighbor_ids[position, mortar]
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u[1, v, position, i, mortar] = u[v,
-                                                                       i_small,
-                                                                       j_small,
-                                                                       element]
+                        mortars_u[1, v, position, i, mortar] = u[v,
+                                                                 i_small,
+                                                                 j_small,
+                                                                 element]
                     end
                     i_small += i_small_step
                     j_small += j_small_step
@@ -962,7 +972,7 @@ function prolong2mortars!(cache, u,
 
             # Buffer to copy solution values of the large element in the correct orientation
             # before interpolating
-            u_buffer = cache.u_threaded[Threads.threadid()]
+            u_buffer = u_threaded[Threads.threadid()]
 
             # Copy solution of large element face to buffer in the
             # correct orientation
@@ -985,11 +995,11 @@ function prolong2mortars!(cache, u,
             end
 
             # Interpolate large element face data from buffer to small face locations
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, mortar),
-                                    mortar_l2.forward_lower,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 1, :, mortar),
+                                    forward_lower,
                                     u_buffer)
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, mortar),
-                                    mortar_l2.forward_upper,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 2, :, mortar),
+                                    forward_upper,
                                     u_buffer)
         end
     end
@@ -1006,6 +1016,7 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack contravariant_vectors = cache.elements
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    @unpack u_threaded = cache
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -1058,7 +1069,7 @@ function calc_mortar_flux!(surface_flux_values,
 
             # Buffer to interpolate flux values of the large element to before
             # copying in the correct orientation
-            u_buffer = cache.u_threaded[Threads.threadid()]
+            u_buffer = u_threaded[Threads.threadid()]
 
             # in calc_interface_flux!, the interface flux is computed once over each
             # interface using the normal from the "primary" element. The result is then

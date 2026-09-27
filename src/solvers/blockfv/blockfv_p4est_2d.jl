@@ -209,6 +209,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     index_range = eachnode(dg)
     index_end = last(index_range)
     n_nodes = nnodes(dg)
+    interfaces_u = cache.interfaces.u
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
 
@@ -246,7 +247,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
-                                 cache.interfaces.u, interface,
+                                 interfaces_u, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
                                  node_secondary,

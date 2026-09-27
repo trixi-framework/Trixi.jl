@@ -724,7 +724,8 @@ end
 function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
     @unpack boundaries = cache
-    @unpack orientations, neighbor_sides = boundaries
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+    boundaries_u = boundaries.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -734,18 +735,18 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
-            element = boundaries.neighbor_ids[boundary]
+            element = neighbor_ids[boundary]
 
             if orientations[boundary] == 1
                 # boundary in x-direction
                 if neighbor_sides[boundary] == 1
                     # element in -x direction of boundary
                     for l in eachnode(dg), v in eachvariable(equations)
-                        boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
+                        boundaries_u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
                     end
                 else # Element in +x direction of boundary
                     for l in eachnode(dg), v in eachvariable(equations)
-                        boundaries.u[2, v, l, boundary] = u[v, 1, l, element]
+                        boundaries_u[2, v, l, boundary] = u[v, 1, l, element]
                     end
                 end
             else # if orientations[boundary] == 2
@@ -753,12 +754,12 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                 if neighbor_sides[boundary] == 1
                     # element in -y direction of boundary
                     for l in eachnode(dg), v in eachvariable(equations)
-                        boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
+                        boundaries_u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
                     end
                 else
                     # element in +y direction of boundary
                     for l in eachnode(dg), v in eachvariable(equations)
-                        boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
+                        boundaries_u[2, v, l, boundary] = u[v, l, 1, element]
                     end
                 end
             end
@@ -772,8 +773,9 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
-    @unpack orientations, neighbor_sides = boundaries
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     @unpack boundary_interpolation = dg.basis
+    boundaries_u = boundaries.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -784,7 +786,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
-            element = boundaries.neighbor_ids[boundary]
+            element = neighbor_ids[boundary]
 
             if orientations[boundary] == 1
                 # boundary in x-direction
@@ -794,7 +796,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                         for v in eachvariable(equations)
                             # Interpolate to the boundaries using a local variable for
                             # the accumulation of values (to reduce global memory operations).
-                            boundary_u = zero(eltype(boundaries.u))
+                            boundary_u = zero(eltype(boundaries_u))
                             for ii in eachnode(dg)
                                 # Not += to allow `@muladd` to turn these into FMAs
                                 # (see comment at the top of the file)
@@ -802,19 +804,19 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                                               u[v, ii, l, element] *
                                               boundary_interpolation[ii, 2])
                             end
-                            boundaries.u[1, v, l, boundary] = boundary_u
+                            boundaries_u[1, v, l, boundary] = boundary_u
                         end
                     end
                 else # element in +x direction of boundary => interpolate to left boundary node (-1)
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            boundary_u = zero(eltype(boundaries.u))
+                            boundary_u = zero(eltype(boundaries_u))
                             for ii in eachnode(dg)
                                 boundary_u = (boundary_u +
                                               u[v, ii, l, element] *
                                               boundary_interpolation[ii, 1])
                             end
-                            boundaries.u[2, v, l, boundary] = boundary_u
+                            boundaries_u[2, v, l, boundary] = boundary_u
                         end
                     end
                 end
@@ -824,25 +826,25 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     # element in -y direction of boundary => interpolate to right boundary node (+1)
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            boundary_u = zero(eltype(boundaries.u))
+                            boundary_u = zero(eltype(boundaries_u))
                             for jj in eachnode(dg)
                                 boundary_u = (boundary_u +
                                               u[v, l, jj, element] *
                                               boundary_interpolation[jj, 2])
                             end
-                            boundaries.u[1, v, l, boundary] = boundary_u
+                            boundaries_u[1, v, l, boundary] = boundary_u
                         end
                     end
                 else # element in +y direction of boundary => interpolate to left boundary node (-1)
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            boundary_u = zero(eltype(boundaries.u))
+                            boundary_u = zero(eltype(boundaries_u))
                             for jj in eachnode(dg)
                                 boundary_u = (boundary_u +
                                               u[v, l, jj, element] *
                                               boundary_interpolation[jj, 1])
                             end
-                            boundaries.u[2, v, l, boundary] = boundary_u
+                            boundaries_u[2, v, l, boundary] = boundary_u
                         end
                     end
                 end
@@ -981,6 +983,10 @@ function prolong2mortars!(cache, u,
                           mortar_l2::Union{LobattoLegendreMortarL2,
                                            UniformFiniteVolumeBasis},
                           dg::Union{DGSEM, BlockFV})
+    @unpack mortars = cache
+    @unpack neighbor_ids, large_sides, orientations = mortars
+    @unpack u_upper, u_lower = mortars
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
@@ -989,82 +995,78 @@ function prolong2mortars!(cache, u,
 
     @threaded for mortar in eachmortar(dg, cache)
         @inbounds begin
-            large_element = cache.mortars.neighbor_ids[3, mortar]
-            upper_element = cache.mortars.neighbor_ids[2, mortar]
-            lower_element = cache.mortars.neighbor_ids[1, mortar]
+            large_element = neighbor_ids[3, mortar]
+            upper_element = neighbor_ids[2, mortar]
+            lower_element = neighbor_ids[1, mortar]
 
             # Copy solution small to small
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if cache.mortars.orientations[mortar] == 1
+            if large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper[2, v, l, mortar] = u[v, 1, l,
-                                                                       upper_element]
-                            cache.mortars.u_lower[2, v, l, mortar] = u[v, 1, l,
-                                                                       lower_element]
+                            u_upper[2, v, l, mortar] = u[v, 1, l, upper_element]
+                            u_lower[2, v, l, mortar] = u[v, 1, l, lower_element]
                         end
                     end
                 else
                     # L2 mortars in y-direction
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper[2, v, l, mortar] = u[v, l, 1,
-                                                                       upper_element]
-                            cache.mortars.u_lower[2, v, l, mortar] = u[v, l, 1,
-                                                                       lower_element]
+                            u_upper[2, v, l, mortar] = u[v, l, 1, upper_element]
+                            u_lower[2, v, l, mortar] = u[v, l, 1, lower_element]
                         end
                     end
                 end
             else # large_sides[mortar] == 2 -> small elements on left side
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l,
-                                                                       upper_element]
-                            cache.mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l,
-                                                                       lower_element]
+                            u_upper[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                         upper_element]
+                            u_lower[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                         lower_element]
                         end
                     end
                 else
                     # L2 mortars in y-direction
                     for l in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg),
-                                                                       upper_element]
-                            cache.mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg),
-                                                                       lower_element]
+                            u_upper[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                         upper_element]
+                            u_lower[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                         lower_element]
                         end
                     end
                 end
             end
 
             # Interpolate large element face data to small interface locations
-            if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+            if large_sides[mortar] == 1 # -> large element on left side
                 leftright = 1
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(u, :, nnodes(dg), :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large)
                 else
                     # L2 mortars in y-direction
                     u_large = view(u, :, :, nnodes(dg), large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large)
                 end
             else # large_sides[mortar] == 2 -> large element on right side
                 leftright = 2
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(u, :, 1, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large)
                 else
                     # L2 mortars in y-direction
                     u_large = view(u, :, :, 1, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large)
                 end
             end

@@ -253,10 +253,11 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         # Try to enable optimizations due to `muladd` by computing this factor only once, see
         # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224529532
         b1dt = alg.b[1] * integrator.dt
-        @threaded for i in eachindex(integrator.u)
-            integrator.direction[i] = b1dt * integrator.du[i]
+        (; u, du, u_tmp, direction, k_prev, dt) = integrator
+        @threaded for i in eachindex(u)
+            direction[i] = b1dt * du[i]
 
-            integrator.k_prev[i] = integrator.du[i] # Faster than broadcasted version (with .=)
+            k_prev[i] = du[i] # Faster than broadcasted version (with .=)
         end
 
         du_wrap = wrap_array(integrator.du, prob.p)
@@ -265,8 +266,8 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
              integrate_w_dot_stage(du_wrap, u_wrap, mesh, equations, dg, cache)
 
         a2_dt = alg.a[2] * integrator.dt
-        @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[i] = integrator.u[i] + a2_dt * integrator.du[i]
+        @threaded for i in eachindex(u)
+            u_tmp[i] = u[i] + a2_dt * du[i]
         end
 
         # Second to last stage
@@ -280,19 +281,17 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
                   integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
 
             bsminus1_minus_as = alg.b[stage - 1] - alg.a[stage]
-            @threaded for i in eachindex(integrator.u)
+            a_stageplus1 = alg.a[stage + 1]
+            @threaded for i in eachindex(u)
                 # Try to enable optimizations due to `muladd` by avoiding `+=`
                 # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224531702
-                integrator.direction[i] = integrator.direction[i] +
-                                          bs_dt * integrator.du[i]
+                direction[i] = direction[i] + bs_dt * du[i]
 
                 # Subtract previous stage contribution from `u_tmp` and add most recent one
-                integrator.u_tmp[i] = integrator.u_tmp[i] +
-                                      integrator.dt *
-                                      (bsminus1_minus_as * integrator.k_prev[i] +
-                                       alg.a[stage + 1] * integrator.du[i])
+                u_tmp[i] = u_tmp[i] +
+                           dt * (bsminus1_minus_as * k_prev[i] + a_stageplus1 * du[i])
 
-                integrator.k_prev[i] = integrator.du[i] # Faster than broadcasted version (with .=)
+                k_prev[i] = du[i] # Faster than broadcasted version (with .=)
             end
         end
 
@@ -304,8 +303,8 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         dS += bs_dt *
               integrate_w_dot_stage(du_wrap, u_tmp_wrap, mesh, equations, dg, cache)
 
-        @threaded for i in eachindex(integrator.u)
-            integrator.direction[i] = integrator.direction[i] + bs_dt * integrator.du[i]
+        @threaded for i in eachindex(u)
+            direction[i] = direction[i] + bs_dt * du[i]
         end
 
         direction_wrap = wrap_array(integrator.direction, prob.p)
@@ -321,9 +320,9 @@ function step!(integrator::vanderHouwenRelaxationIntegrator)
         update_t_relaxation!(integrator)
 
         # Do relaxed update
-        @threaded for i in eachindex(integrator.u)
-            integrator.u[i] = integrator.u[i] +
-                              integrator.gamma * integrator.direction[i]
+        (; gamma) = integrator
+        @threaded for i in eachindex(u)
+            u[i] = u[i] + gamma * direction[i]
         end
     end
 

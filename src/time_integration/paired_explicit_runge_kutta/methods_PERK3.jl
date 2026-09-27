@@ -262,19 +262,18 @@ function step!(integrator::PairedExplicitRK3Integrator)
         end
 
         # We need to store `du` of the S-1 stage in `kS1` for the final update:
-        @threaded for i in eachindex(integrator.u)
-            integrator.kS1[i] = integrator.du[i]
+        (; u, du, k1, kS1, dt) = integrator
+        @threaded for i in eachindex(u)
+            kS1[i] = du[i]
         end
 
         PERK_ki!(integrator, prob.p, alg, alg.num_stages)
 
-        @threaded for i in eachindex(integrator.u)
+        @threaded for i in eachindex(u)
             # "Own" PairedExplicitRK based on SSPRK33.
             # Note that 'kS1' carries the values of K_{S-1}
             # and that we construct 'K_S' "in-place" from 'integrator.du'
-            integrator.u[i] += integrator.dt *
-                               (integrator.k1[i] + integrator.kS1[i] +
-                                4.0 * integrator.du[i]) / 6.0
+            u[i] += dt * (k1[i] + kS1[i] + 4.0 * du[i]) / 6.0
         end
     end
 

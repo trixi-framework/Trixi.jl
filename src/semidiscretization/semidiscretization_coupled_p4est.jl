@@ -439,6 +439,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
                              equations, surface_integral, dg::DG, u_parent) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
+    @unpack neighbor_ids = boundaries
+    boundaries_node_indices = boundaries.node_indices
     index_range = eachnode(dg)
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -447,8 +449,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
 
         # Get information on the adjacent element, compute the surface fluxes,
         # and store them
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
+        element = neighbor_ids[boundary]
+        node_indices = boundaries_node_indices[boundary]
         direction = indices2direction(node_indices)
 
         i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)

@@ -237,14 +237,12 @@ end
 
 # Computes last three stages, i.e., i = S-2, S-1, S
 @inline function PERK4_kS2_to_kS!(integrator::PairedExplicitRK4Integrator, p, alg)
+    (; u, du, u_tmp, k1, dt) = integrator
     for stage in 1:2
-        @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[i] = integrator.u[i] +
-                                  integrator.dt *
-                                  (alg.a_matrix_constant[1, stage] *
-                                   integrator.k1[i] +
-                                   alg.a_matrix_constant[2, stage] *
-                                   integrator.du[i])
+        a1_stage = alg.a_matrix_constant[1, stage]
+        a2_stage = alg.a_matrix_constant[2, stage]
+        @threaded for i in eachindex(u)
+            u_tmp[i] = u[i] + dt * (a1_stage * k1[i] + a2_stage * du[i])
         end
 
         integrator.f(integrator.du, integrator.u_tmp, p,
@@ -253,26 +251,24 @@ end
     end
 
     # Last stage
-    @threaded for i in eachindex(integrator.u)
-        integrator.u_tmp[i] = integrator.u[i] +
-                              integrator.dt *
-                              (alg.a_matrix_constant[1, 3] * integrator.k1[i] +
-                               alg.a_matrix_constant[2, 3] * integrator.du[i])
+    a1_last = alg.a_matrix_constant[1, 3]
+    a2_last = alg.a_matrix_constant[2, 3]
+    @threaded for i in eachindex(u)
+        u_tmp[i] = u[i] + dt * (a1_last * k1[i] + a2_last * du[i])
     end
 
     # Store K_{S-1} in `k1`:
-    @threaded for i in eachindex(integrator.u)
-        integrator.k1[i] = integrator.du[i]
+    @threaded for i in eachindex(u)
+        k1[i] = du[i]
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
-    @threaded for i in eachindex(integrator.u)
+    @threaded for i in eachindex(u)
         # Note that 'k1' carries the values of K_{S-1}
         # and that we construct 'K_S' "in-place" from 'integrator.du'
-        integrator.u[i] += 0.5 * integrator.dt *
-                           (integrator.k1[i] + integrator.du[i])
+        u[i] += 0.5 * dt * (k1[i] + du[i])
     end
 
     return nothing

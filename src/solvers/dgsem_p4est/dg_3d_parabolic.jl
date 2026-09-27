@@ -263,6 +263,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              dg::DG)
     (; interfaces) = cache
     (; contravariant_vectors) = cache.elements
+    (; neighbor_ids, node_indices) = interfaces
+    interfaces_u = interfaces.u
     index_range = eachnode(dg)
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
@@ -272,8 +274,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
         # Note that in the current implementation, the interface will be
         # "aligned at the primary element", i.e., the index of the primary side
         # will always run forwards.
-        primary_element = interfaces.neighbor_ids[1, interface]
-        primary_indices = interfaces.node_indices[1, interface]
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
         primary_direction = indices2direction(primary_indices)
 
         i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
@@ -314,7 +316,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                               k_primary,
                                                               primary_element])
 
-                    interfaces.u[1, v, i, j, interface] = dot(flux_parabolic,
+                    interfaces_u[1, v, i, j, interface] = dot(flux_parabolic,
                                                               normal_direction)
                 end
                 i_primary += i_primary_step_i
@@ -328,8 +330,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
         # Copy solution data from the secondary element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
-        secondary_element = interfaces.neighbor_ids[2, interface]
-        secondary_indices = interfaces.node_indices[2, interface]
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
         secondary_direction = indices2direction(secondary_indices)
 
         i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
@@ -372,7 +374,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                               secondary_element])
                     # store the normal flux with respect to the primary normal direction,
                     # which is the negative of the secondary normal direction
-                    interfaces.u[2, v, i, j, interface] = -dot(flux_parabolic,
+                    interfaces_u[2, v, i, j, interface] = -dot(flux_parabolic,
                                                                normal_direction)
                 end
                 i_secondary += i_secondary_step_i
@@ -394,6 +396,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                               cache)
     (; neighbor_ids, node_indices) = cache.interfaces
     (; contravariant_vectors) = cache.elements
+    interfaces_u = cache.interfaces.u
     index_range = eachnode(dg)
 
     @threaded for interface in eachinterface(dg, cache)
@@ -440,7 +443,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                                         primary_element)
                 # We prolong the parabolic flux dotted with respect the outward normal on the
                 # primary element.
-                parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
+                parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(interfaces_u,
                                                                                            equations_parabolic,
                                                                                            dg,
                                                                                            i,
@@ -485,8 +488,10 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack fstar_tmp_threaded = cache
+    @unpack fstar_tmp_threaded, u_threaded = cache
     @unpack contravariant_vectors = cache.elements
+    mortars_u = cache.mortars.u
+    @unpack forward_lower, forward_upper = mortar_l2
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
@@ -524,8 +529,8 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                  flux_parabolic_z[v, i_small, j_small,
                                                                   k_small, element])
 
-                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_parabolic,
-                                                                            normal_direction)
+                        mortars_u[1, v, position, i, j, mortar] = dot(flux_parabolic,
+                                                                      normal_direction)
                     end
                     i_small += i_small_step_i
                     j_small += j_small_step_i
@@ -539,7 +544,7 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
 
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
 
         # temporary buffer for projections
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
@@ -599,21 +604,21 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
         end
 
         # Interpolate large element face data from buffer to small face locations
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_lower,
+        multiply_dimensionwise!(view(mortars_u, 2, :, 1, :, :, mortar),
+                                forward_lower,
+                                forward_lower,
                                 u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_lower,
+        multiply_dimensionwise!(view(mortars_u, 2, :, 2, :, :, mortar),
+                                forward_upper,
+                                forward_lower,
                                 u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_upper,
+        multiply_dimensionwise!(view(mortars_u, 2, :, 3, :, :, mortar),
+                                forward_lower,
+                                forward_upper,
                                 u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_upper,
+        multiply_dimensionwise!(view(mortars_u, 2, :, 4, :, :, mortar),
+                                forward_upper,
+                                forward_upper,
                                 u_buffer, fstar_tmp)
     end
 
@@ -627,7 +632,8 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                       dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
+    @unpack fstar_primary_threaded, fstar_tmp_threaded, u_threaded = cache
+    mortars_u = cache.mortars.u
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -659,10 +665,10 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                                             element)
 
                     for v in eachvariable(equations_parabolic)
-                        parabolic_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
-                                                                   mortar]
-                        parabolic_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
-                                                                   mortar]
+                        parabolic_flux_normal_ll = mortars_u[1, v, position, i, j,
+                                                             mortar]
+                        parabolic_flux_normal_rr = mortars_u[2, v, position, i, j,
+                                                             mortar]
 
                         flux_ = flux_parabolic(parabolic_flux_normal_ll,
                                                parabolic_flux_normal_rr,
@@ -685,7 +691,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
 
         # Buffer to interpolate flux values of the large element to before
         # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
 
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values, mesh,
@@ -704,6 +710,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
+    @unpack u_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -753,7 +760,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
 
         # Buffer to interpolate flux values of the large element to before
         # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
 
         # in calc_interface_flux!, the interface flux is computed once over each
         # interface using the normal from the "primary" element. The result is then
@@ -886,6 +893,9 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              dg::DG)
     (; boundaries) = cache
     (; contravariant_vectors) = cache.elements
+    (; neighbor_ids) = boundaries
+    boundaries_node_indices = boundaries.node_indices
+    boundaries_u = boundaries.u
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
@@ -893,8 +903,8 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
+        element = neighbor_ids[boundary]
+        node_indices = boundaries_node_indices[boundary]
         direction = indices2direction(node_indices)
 
         i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
@@ -923,7 +933,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                                              flux_parabolic_z[v, i_node, j_node, k_node,
                                                               element])
 
-                    boundaries.u[v, i, j, boundary] = dot(flux_parabolic,
+                    boundaries_u[v, i, j, boundary] = dot(flux_parabolic,
                                                           normal_direction)
                 end
                 i_node += i_node_step_i
@@ -947,6 +957,9 @@ function calc_boundary_flux!(cache, t,
     (; boundaries) = cache
     (; node_coordinates, surface_flux_values) = cache.elements
     (; contravariant_vectors) = cache.elements
+    (; neighbor_ids) = boundaries
+    boundaries_node_indices = boundaries.node_indices
+    boundaries_u = boundaries.u
     index_range = eachnode(dg)
 
     @threaded for local_index in eachindex(boundary_condition_indices)
@@ -955,8 +968,8 @@ function calc_boundary_flux!(cache, t,
 
         # Get information on the adjacent element, compute the surface fluxes,
         # and store them
-        element = boundaries.neighbor_ids[boundary_index]
-        node_indices = boundaries.node_indices[boundary_index]
+        element = neighbor_ids[boundary_index]
+        node_indices = boundaries_node_indices[boundary_index]
         direction_index = indices2direction(node_indices)
 
         i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
@@ -973,7 +986,7 @@ function calc_boundary_flux!(cache, t,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 # Extract solution data from boundary container
-                u_inner = get_node_vars(boundaries.u, equations_parabolic, dg, i, j,
+                u_inner = get_node_vars(boundaries_u, equations_parabolic, dg, i, j,
                                         boundary_index)
 
                 # Outward-pointing normal direction (not normalized)

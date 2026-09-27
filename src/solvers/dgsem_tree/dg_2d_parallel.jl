@@ -566,29 +566,31 @@ function prolong2mpiinterfaces!(cache, u,
                                 mesh::TreeMeshParallel{2},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
+    @unpack local_neighbor_ids, orientations, remote_sides = mpi_interfaces
+    mpi_interfaces_u = mpi_interfaces.u
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        local_element = mpi_interfaces.local_neighbor_ids[interface]
+        local_element = local_neighbor_ids[interface]
 
-        if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
-            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+        if orientations[interface] == 1 # interface in x-direction
+            if remote_sides[interface] == 1 # local element in positive direction
                 for j in eachnode(dg), v in eachvariable(equations)
-                    mpi_interfaces.u[2, v, j, interface] = u[v, 1, j, local_element]
+                    mpi_interfaces_u[2, v, j, interface] = u[v, 1, j, local_element]
                 end
             else # local element in negative direction
                 for j in eachnode(dg), v in eachvariable(equations)
-                    mpi_interfaces.u[1, v, j, interface] = u[v, nnodes(dg), j,
+                    mpi_interfaces_u[1, v, j, interface] = u[v, nnodes(dg), j,
                                                              local_element]
                 end
             end
         else # interface in y-direction
-            if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+            if remote_sides[interface] == 1 # local element in positive direction
                 for i in eachnode(dg), v in eachvariable(equations)
-                    mpi_interfaces.u[2, v, i, interface] = u[v, i, 1, local_element]
+                    mpi_interfaces_u[2, v, i, interface] = u[v, i, 1, local_element]
                 end
             else # local element in negative direction
                 for i in eachnode(dg), v in eachvariable(equations)
-                    mpi_interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg),
+                    mpi_interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg),
                                                              local_element]
                 end
             end
@@ -603,29 +605,31 @@ function prolong2mpimortars!(cache, u,
                              mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
     @unpack mpi_mortars = cache
+    @unpack large_sides, orientations = mpi_mortars
+    @unpack u_upper, u_lower = mpi_mortars
+    mpi_mortars_local_neighbor_ids = mpi_mortars.local_neighbor_ids
+    mpi_mortars_local_neighbor_positions = mpi_mortars.local_neighbor_positions
 
     @threaded for mortar in eachmpimortar(dg, cache)
-        local_neighbor_ids = mpi_mortars.local_neighbor_ids[mortar]
-        local_neighbor_positions = mpi_mortars.local_neighbor_positions[mortar]
+        local_neighbor_ids = mpi_mortars_local_neighbor_ids[mortar]
+        local_neighbor_positions = mpi_mortars_local_neighbor_positions[mortar]
 
         for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
             if position in (1, 2) # Current element is small
                 # Copy solution small to small
-                if mpi_mortars.large_sides[mortar] == 1 # -> small elements on right side
-                    if mpi_mortars.orientations[mortar] == 1
+                if large_sides[mortar] == 1 # -> small elements on right side
+                    if orientations[mortar] == 1
                         # L2 mortars in x-direction
                         if position == 1
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_lower[2, v, l, mortar] = u[v, 1, l,
-                                                                             element]
+                                    u_lower[2, v, l, mortar] = u[v, 1, l, element]
                                 end
                             end
                         else # position == 2
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_upper[2, v, l, mortar] = u[v, 1, l,
-                                                                             element]
+                                    u_upper[2, v, l, mortar] = u[v, 1, l, element]
                                 end
                             end
                         end
@@ -634,36 +638,32 @@ function prolong2mpimortars!(cache, u,
                         if position == 1
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_lower[2, v, l, mortar] = u[v, l, 1,
-                                                                             element]
+                                    u_lower[2, v, l, mortar] = u[v, l, 1, element]
                                 end
                             end
                         else # position == 2
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_upper[2, v, l, mortar] = u[v, l, 1,
-                                                                             element]
+                                    u_upper[2, v, l, mortar] = u[v, l, 1, element]
                                 end
                             end
                         end
                     end
                 else # large_sides[mortar] == 2 -> small elements on left side
-                    if mpi_mortars.orientations[mortar] == 1
+                    if orientations[mortar] == 1
                         # L2 mortars in x-direction
                         if position == 1
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_lower[1, v, l, mortar] = u[v,
-                                                                             nnodes(dg),
-                                                                             l, element]
+                                    u_lower[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                                 element]
                                 end
                             end
                         else # position == 2
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_upper[1, v, l, mortar] = u[v,
-                                                                             nnodes(dg),
-                                                                             l, element]
+                                    u_upper[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                                 element]
                                 end
                             end
                         end
@@ -672,17 +672,15 @@ function prolong2mpimortars!(cache, u,
                         if position == 1
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_lower[1, v, l, mortar] = u[v, l,
-                                                                             nnodes(dg),
-                                                                             element]
+                                    u_lower[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                                 element]
                                 end
                             end
                         else # position == 2
                             for l in eachnode(dg)
                                 for v in eachvariable(equations)
-                                    mpi_mortars.u_upper[1, v, l, mortar] = u[v, l,
-                                                                             nnodes(dg),
-                                                                             element]
+                                    u_upper[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                                 element]
                                 end
                             end
                         end
@@ -690,9 +688,9 @@ function prolong2mpimortars!(cache, u,
                 end
             else # position == 3 -> current element is large
                 # Interpolate large element face data to small interface locations
-                if mpi_mortars.large_sides[mortar] == 1 # -> large element on left side
+                if large_sides[mortar] == 1 # -> large element on left side
                     leftright = 1
-                    if mpi_mortars.orientations[mortar] == 1
+                    if orientations[mortar] == 1
                         # L2 mortars in x-direction
                         u_large = view(u, :, nnodes(dg), :, element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,
@@ -705,7 +703,7 @@ function prolong2mpimortars!(cache, u,
                     end
                 else # large_sides[mortar] == 2 -> large element on right side
                     leftright = 2
-                    if mpi_mortars.orientations[mortar] == 1
+                    if orientations[mortar] == 1
                         # L2 mortars in x-direction
                         u_large = view(u, :, 1, :, element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,

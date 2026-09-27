@@ -287,10 +287,12 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
     # Copy alpha values such that smoothing is independent of the element access order
     alpha_tmp .= alpha
 
+    (; element_to_element_connectivity) = cache
+
     # smooth alpha with its neighboring value
     @threaded for element in eachelement(mesh, dg)
         for face in Base.OneTo(StartUpDG.num_faces(dg.basis.element_type))
-            neighboring_element = cache.element_to_element_connectivity[face, element]
+            neighboring_element = element_to_element_connectivity[face, element]
             alpha_neighbor = alpha_tmp[neighboring_element]
             alpha[element] = max(alpha[element], 0.5f0 * alpha_neighbor)
         end

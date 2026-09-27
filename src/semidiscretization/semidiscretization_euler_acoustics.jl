@@ -100,11 +100,12 @@ function precompute_weights(source_region, weights, coupled_element_ids, equatio
                                     (nnodes(dg), nnodes(dg),
                                      length(coupled_element_ids)))
 
+    @unpack node_coordinates = cache.elements
+
     @threaded for k in eachindex(coupled_element_ids)
         element = coupled_element_ids[k]
         for j in eachnode(dg), i in eachnode(dg)
-            x = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j,
-                                element)
+            x = get_node_coords(node_coordinates, equations, dg, i, j, element)
             acoustic_source_weights[i, j, k] = source_region(x) ? weights(x) :
                                                zero(weights(x))
         end
