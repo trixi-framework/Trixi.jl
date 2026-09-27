@@ -1563,7 +1563,10 @@ end
                             1.2378986724570495e-13,
                             1.7111312367035225e-13,
                             1.5727863456049818e-11
-                        ])
+                        ],
+                        # The errors are pure round-off errors, which are sensitive
+                        # to details of the compiled code (e.g., code coverage in CI)
+                        atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
