@@ -930,7 +930,7 @@ end
 
 # Function barrier for type stability
 function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::NamedTuple,
+                                      boundary_conditions_parabolic,
                                       mesh::P4estMesh,
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
@@ -943,7 +943,7 @@ function calc_boundary_flux_gradient!(cache, t,
 end
 
 function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::NamedTuple,
+                                        boundary_conditions_parabolic,
                                         mesh::P4estMesh,
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
