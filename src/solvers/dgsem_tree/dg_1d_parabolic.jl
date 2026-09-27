@@ -267,8 +267,7 @@ function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
 end
 
 function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
-                                                                           BoundaryConditionDoNothing},
+                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                       mesh::TreeMesh,
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
@@ -276,8 +275,7 @@ function calc_boundary_flux_gradient!(cache, t,
 end
 
 function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
-                                                                             BoundaryConditionDoNothing},
+                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
                                         mesh::TreeMesh,
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
