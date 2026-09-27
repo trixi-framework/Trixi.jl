@@ -928,6 +928,26 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     return nothing
 end
 
+function calc_boundary_flux_gradient!(cache, t,
+                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                           BoundaryConditionDoNothing},
+                                      mesh::P4estMesh,
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+    return nothing
+end
+
+function calc_boundary_flux_divergence!(cache, t,
+                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                             BoundaryConditionDoNothing},
+                                        mesh::P4estMesh,
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+    return nothing
+end
+
 # Function barrier for type stability
 function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic,
