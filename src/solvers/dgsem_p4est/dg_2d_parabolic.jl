@@ -995,6 +995,18 @@ function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
     return nothing
 end
 
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
+                                        boundary_conditions, mesh::P4estMesh,
+                                        equations_parabolic, surface_integral, dg::DG)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions
+
+    calc_boundary_flux_by_type!(cache, cache_parabolic, t,
+                                boundary_condition_types, boundary_indices,
+                                Divergence(), mesh, equations_parabolic,
+                                surface_integral, dg)
+    return nothing
+end
+
 function calc_boundary_flux_by_type!(cache, cache_parabolic, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      operator_type,
