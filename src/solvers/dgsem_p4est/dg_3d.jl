@@ -96,6 +96,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
                              equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = interfaces.u
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
@@ -106,7 +107,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     end
 
     @threaded for interface in eachinterface(dg, cache)
-        @inbounds prolong2interfaces_per_interface!(interfaces.u, u, MeshT, equations,
+        @inbounds prolong2interfaces_per_interface!(interfaces_u, u, MeshT, equations,
                                                     neighbor_ids, node_indices,
                                                     index_range, interface)
     end
@@ -203,7 +204,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -532,6 +533,7 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
     @boundscheck begin
         check_axes(boundaries, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -683,8 +685,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
-        direction_index, element_index] = flux[v] + 0.5f0 *
-                                                    noncons_flux[v]
+        direction_index, element_index] = flux[v] +
+                                          0.5f0 * noncons_flux[v]
     end
 
     return nothing
@@ -860,7 +862,7 @@ function calc_mortar_flux!(surface_flux_values,
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1105,7 +1107,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
