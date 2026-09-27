@@ -266,10 +266,11 @@ function step!(integrator::PairedExplicitRK2Integrator)
             PERK_ki!(integrator, prob.p, alg, stage)
         end
 
-        @threaded for i in eachindex(integrator.u)
-            integrator.u[i] += integrator.dt *
-                               (alg.b1 * integrator.k1[i] +
-                                alg.bS * integrator.du[i])
+        (; u, du, k1, dt) = integrator
+        b1 = alg.b1
+        bS = alg.bS
+        @threaded for i in eachindex(u)
+            u[i] += dt * (b1 * k1[i] + bS * du[i])
         end
     end
 

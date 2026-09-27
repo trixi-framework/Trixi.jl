@@ -196,12 +196,13 @@ function step!(integrator::SimpleIntegrator3Sstar)
         gamma3_stage = alg.gamma3[stage]
         beta_stage_dt = alg.beta[stage] * integrator.dt
         @trixi_timeit timer() "Runge-Kutta step" begin
-            @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp1[i] += delta_stage * integrator.u[i]
-                integrator.u[i] = (gamma1_stage * integrator.u[i] +
-                                   gamma2_stage * integrator.u_tmp1[i] +
-                                   gamma3_stage * integrator.u_tmp2[i] +
-                                   beta_stage_dt * integrator.du[i])
+            (; u, du, u_tmp1, u_tmp2) = integrator
+            @threaded for i in eachindex(u)
+                u_tmp1[i] += delta_stage * u[i]
+                u[i] = (gamma1_stage * u[i] +
+                        gamma2_stage * u_tmp1[i] +
+                        gamma3_stage * u_tmp2[i] +
+                        beta_stage_dt * du[i])
             end
         end
     end

@@ -496,13 +496,14 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
     (; gauss_LIFT, gauss_volume_local_threaded) = cache
+    (; flux_face_values) = cache.solution_container
 
     @threaded for e in eachelement(mesh, dg, cache)
 
         # applies LIFT matrix, output is stored at Gauss nodes
         gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
         apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local,
-                            view(cache.solution_container.flux_face_values, :, e))
+                            view(flux_face_values, :, e))
 
         for i in eachindex(gauss_volume_local)
             du[i, e] = du[i, e] + gauss_volume_local[i]

@@ -267,14 +267,13 @@ end
 
 function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
-    md = mesh.md
+    (; xyzq) = mesh.md
     rd = dg.basis
     (; u_values) = cache.solution_container
 
     # evaluate the initial condition at quadrature points
     @threaded for i in each_quad_node_global(mesh, dg, cache)
-        u_values[i] = initial_condition(SVector(getindex.(md.xyzq, i)),
-                                        t, equations)
+        u_values[i] = initial_condition(SVector(getindex.(xyzq, i)), t, equations)
     end
 
     # multiplying by Pq computes the L2 projection
@@ -771,7 +770,7 @@ end
 function calc_sources!(du, u, t, source_terms,
                        mesh, equations, dg::DGMulti, cache)
     rd = dg.basis
-    md = mesh.md
+    (; xyzq) = mesh.md
     @unpack Pq = rd
     (; u_values, local_values_threaded) = cache.solution_container
     @threaded for e in eachelement(mesh, dg, cache)
@@ -780,7 +779,7 @@ function calc_sources!(du, u, t, source_terms,
         u_e = view(u_values, :, e) # u_values should already be computed from volume integral
 
         for i in each_quad_node(mesh, dg, cache)
-            source_values[i] = source_terms(u_e[i], SVector(getindex.(md.xyzq, i, e)),
+            source_values[i] = source_terms(u_e[i], SVector(getindex.(xyzq, i, e)),
                                             t, equations)
         end
         apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)

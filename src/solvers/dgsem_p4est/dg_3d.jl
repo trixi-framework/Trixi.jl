@@ -195,6 +195,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = cache.interfaces.u
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
@@ -213,7 +214,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, neighbor_ids,
+                                                     interfaces_u, neighbor_ids,
                                                      node_indices,
                                                      contravariant_vectors, index_range,
                                                      interface)
@@ -460,6 +461,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                              equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
+    boundaries_u = boundaries.u
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
@@ -471,7 +473,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds prolong2boundaries_per_boundary!(u, MeshT, equations, dg,
-                                                   index_range, boundaries.u,
+                                                   index_range, boundaries_u,
                                                    neighbor_ids, node_indices,
                                                    boundary)
     end
@@ -526,6 +528,8 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
+    @unpack neighbor_ids = boundaries
+    boundaries_node_indices = boundaries.node_indices
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
 
@@ -544,8 +548,8 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
 
             # Get information on the adjacent element, compute the surface fluxes,
             # and store them
-            element = boundaries.neighbor_ids[boundary]
-            node_indices = boundaries.node_indices[boundary]
+            element = neighbor_ids[boundary]
+            node_indices = boundaries_node_indices[boundary]
             direction = indices2direction(node_indices)
 
             i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
@@ -739,8 +743,10 @@ function prolong2mortars!(cache, u,
                           mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
-    @unpack fstar_tmp_threaded = cache
+    @unpack fstar_tmp_threaded, u_threaded = cache
     @unpack neighbor_ids, node_indices = cache.mortars
+    mortars_u = cache.mortars.u
+    @unpack forward_lower, forward_upper = mortar_l2
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -770,11 +776,11 @@ function prolong2mortars!(cache, u,
                 for j in eachnode(dg)
                     for i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u[1, v, position, i, j, mortar] = u[v,
-                                                                              i_small,
-                                                                              j_small,
-                                                                              k_small,
-                                                                              element]
+                            mortars_u[1, v, position, i, j, mortar] = u[v,
+                                                                        i_small,
+                                                                        j_small,
+                                                                        k_small,
+                                                                        element]
                         end
                         i_small += i_small_step_i
                         j_small += j_small_step_i
@@ -788,7 +794,7 @@ function prolong2mortars!(cache, u,
 
             # Buffer to copy solution values of the large element in the correct orientation
             # before interpolating
-            u_buffer = cache.u_threaded[Threads.threadid()]
+            u_buffer = u_threaded[Threads.threadid()]
             # temporary buffer for projections
             fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
@@ -822,24 +828,24 @@ function prolong2mortars!(cache, u,
             end
 
             # Interpolate large element face data from buffer to small face locations
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
-                                    mortar_l2.forward_lower,
-                                    mortar_l2.forward_lower,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 1, :, :, mortar),
+                                    forward_lower,
+                                    forward_lower,
                                     u_buffer,
                                     fstar_tmp)
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
-                                    mortar_l2.forward_upper,
-                                    mortar_l2.forward_lower,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 2, :, :, mortar),
+                                    forward_upper,
+                                    forward_lower,
                                     u_buffer,
                                     fstar_tmp)
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
-                                    mortar_l2.forward_lower,
-                                    mortar_l2.forward_upper,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 3, :, :, mortar),
+                                    forward_lower,
+                                    forward_upper,
                                     u_buffer,
                                     fstar_tmp)
-            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
-                                    mortar_l2.forward_upper,
-                                    mortar_l2.forward_upper,
+            multiply_dimensionwise!(view(mortars_u, 2, :, 4, :, :, mortar),
+                                    forward_upper,
+                                    forward_upper,
                                     u_buffer,
                                     fstar_tmp)
         end
@@ -856,6 +862,7 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
+    @unpack u_threaded = cache
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -917,7 +924,7 @@ function calc_mortar_flux!(surface_flux_values,
 
             # Buffer to interpolate flux values of the large element to before
             # copying in the correct orientation
-            u_buffer = cache.u_threaded[Threads.threadid()]
+            u_buffer = u_threaded[Threads.threadid()]
 
             # in calc_interface_flux!, the interface flux is computed once over each
             # interface using the normal from the "primary" element. The result is then

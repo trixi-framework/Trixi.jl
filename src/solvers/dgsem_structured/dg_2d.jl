@@ -547,6 +547,7 @@ function calc_interface_flux!(surface_flux_values,
                               have_nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG, cache)
     @unpack elements = cache
+    @unpack left_neighbors = elements
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -560,14 +561,14 @@ function calc_interface_flux!(surface_flux_values,
 
             # Interfaces in x-direction (`orientation` = 1)
             calc_interface_flux!(elements.surface_flux_values,
-                                 elements.left_neighbors[1, element],
+                                 left_neighbors[1, element],
                                  element, 1, mesh,
                                  have_nonconservative_terms, equations,
                                  surface_integral, dg, cache)
 
             # Interfaces in y-direction (`orientation` = 2)
             calc_interface_flux!(elements.surface_flux_values,
-                                 elements.left_neighbors[2, element],
+                                 left_neighbors[2, element],
                                  element, 2, mesh,
                                  have_nonconservative_terms, equations,
                                  surface_integral, dg, cache)

@@ -94,9 +94,10 @@ first_tstop(integrator::AbstractPairedExplicitRKIntegrator) = first(integrator.o
 end
 
 @inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg)
-    @threaded for i in eachindex(integrator.du)
-        integrator.u_tmp[i] = integrator.u[i] +
-                              alg.c[2] * integrator.dt * integrator.k1[i]
+    (; u, du, u_tmp, k1, dt) = integrator
+    c2 = alg.c[2]
+    @threaded for i in eachindex(du)
+        u_tmp[i] = u[i] + c2 * dt * k1[i]
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
@@ -108,11 +109,11 @@ end
 @inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg,
                           stage)
     # Construct current state
-    @threaded for i in eachindex(integrator.u)
-        integrator.u_tmp[i] = integrator.u[i] +
-                              integrator.dt *
-                              (alg.a_matrix[1, stage - 2] * integrator.k1[i] +
-                               alg.a_matrix[2, stage - 2] * integrator.du[i])
+    (; u, du, u_tmp, k1, dt) = integrator
+    a1_stage = alg.a_matrix[1, stage - 2]
+    a2_stage = alg.a_matrix[2, stage - 2]
+    @threaded for i in eachindex(u)
+        u_tmp[i] = u[i] + dt * (a1_stage * k1[i] + a2_stage * du[i])
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,

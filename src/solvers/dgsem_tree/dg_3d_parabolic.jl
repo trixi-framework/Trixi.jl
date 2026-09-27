@@ -193,6 +193,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    interfaces_u = cache.interfaces.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -216,7 +217,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
 
             for j in eachnode(dg), i in eachnode(dg)
                 # Get precomputed fluxes at interfaces
-                flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
+                flux_ll, flux_rr = get_surface_node_vars(interfaces_u,
                                                          equations_parabolic, dg,
                                                          i, j, interface)
 
@@ -639,7 +640,9 @@ function prolong2mortars!(cache, flux_parabolic::Tuple,
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
     # temporary buffer for projections
-    @unpack fstar_tmp1_threaded = cache
+    @unpack fstar_tmp1_threaded, mortars = cache
+    @unpack neighbor_ids, large_sides, orientations = mortars
+    @unpack u_upper_left, u_upper_right, u_lower_left, u_lower_right = mortars
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
@@ -655,210 +658,210 @@ function prolong2mortars!(cache, flux_parabolic::Tuple,
         @inbounds begin
             fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
-            lower_left_element = cache.mortars.neighbor_ids[1, mortar]
-            lower_right_element = cache.mortars.neighbor_ids[2, mortar]
-            upper_left_element = cache.mortars.neighbor_ids[3, mortar]
-            upper_right_element = cache.mortars.neighbor_ids[4, mortar]
-            large_element = cache.mortars.neighbor_ids[5, mortar]
+            lower_left_element = neighbor_ids[1, mortar]
+            lower_right_element = neighbor_ids[2, mortar]
+            upper_left_element = neighbor_ids[3, mortar]
+            upper_right_element = neighbor_ids[4, mortar]
+            large_element = neighbor_ids[5, mortar]
 
             # Copy solution small to small
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if cache.mortars.orientations[mortar] == 1
+            if large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for k in eachnode(dg), j in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[2, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                              1,
-                                                                                              j,
-                                                                                              k,
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[2, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                               1,
-                                                                                               j,
-                                                                                               k,
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[2, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                              1,
-                                                                                              j,
-                                                                                              k,
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[2, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                               1,
-                                                                                               j,
-                                                                                               k,
-                                                                                               lower_right_element]
+                            u_upper_left[2, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                1,
+                                                                                j,
+                                                                                k,
+                                                                                upper_left_element]
+                            u_upper_right[2, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                 1,
+                                                                                 j,
+                                                                                 k,
+                                                                                 upper_right_element]
+                            u_lower_left[2, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                1,
+                                                                                j,
+                                                                                k,
+                                                                                lower_left_element]
+                            u_lower_right[2, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                 1,
+                                                                                 j,
+                                                                                 k,
+                                                                                 lower_right_element]
                         end
                     end
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     for k in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[2, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                              i,
-                                                                                              1,
-                                                                                              k,
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[2, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                               i,
-                                                                                               1,
-                                                                                               k,
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[2, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                              i,
-                                                                                              1,
-                                                                                              k,
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[2, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                               i,
-                                                                                               1,
-                                                                                               k,
-                                                                                               lower_right_element]
+                            u_upper_left[2, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                i,
+                                                                                1,
+                                                                                k,
+                                                                                upper_left_element]
+                            u_upper_right[2, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                 i,
+                                                                                 1,
+                                                                                 k,
+                                                                                 upper_right_element]
+                            u_lower_left[2, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                i,
+                                                                                1,
+                                                                                k,
+                                                                                lower_left_element]
+                            u_lower_right[2, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                 i,
+                                                                                 1,
+                                                                                 k,
+                                                                                 lower_right_element]
                         end
                     end
                 else # orientations[mortar] == 3
                     # L2 mortars in z-direction
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[2, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                              i,
-                                                                                              j,
-                                                                                              1,
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[2, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                               i,
-                                                                                               j,
-                                                                                               1,
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[2, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                              i,
-                                                                                              j,
-                                                                                              1,
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[2, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                               i,
-                                                                                               j,
-                                                                                               1,
-                                                                                               lower_right_element]
+                            u_upper_left[2, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                i,
+                                                                                j,
+                                                                                1,
+                                                                                upper_left_element]
+                            u_upper_right[2, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                 i,
+                                                                                 j,
+                                                                                 1,
+                                                                                 upper_right_element]
+                            u_lower_left[2, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                i,
+                                                                                j,
+                                                                                1,
+                                                                                lower_left_element]
+                            u_lower_right[2, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                 i,
+                                                                                 j,
+                                                                                 1,
+                                                                                 lower_right_element]
                         end
                     end
                 end
             else # large_sides[mortar] == 2 -> small elements on left side
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for k in eachnode(dg), j in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[1, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                              nnodes(dg),
-                                                                                              j,
-                                                                                              k,
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[1, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                               nnodes(dg),
-                                                                                               j,
-                                                                                               k,
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[1, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                              nnodes(dg),
-                                                                                              j,
-                                                                                              k,
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[1, v, j, k, mortar] = flux_parabolic_x[v,
-                                                                                               nnodes(dg),
-                                                                                               j,
-                                                                                               k,
-                                                                                               lower_right_element]
+                            u_upper_left[1, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                nnodes(dg),
+                                                                                j,
+                                                                                k,
+                                                                                upper_left_element]
+                            u_upper_right[1, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                 nnodes(dg),
+                                                                                 j,
+                                                                                 k,
+                                                                                 upper_right_element]
+                            u_lower_left[1, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                nnodes(dg),
+                                                                                j,
+                                                                                k,
+                                                                                lower_left_element]
+                            u_lower_right[1, v, j, k, mortar] = flux_parabolic_x[v,
+                                                                                 nnodes(dg),
+                                                                                 j,
+                                                                                 k,
+                                                                                 lower_right_element]
                         end
                     end
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     for k in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[1, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                              i,
-                                                                                              nnodes(dg),
-                                                                                              k,
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[1, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                               i,
-                                                                                               nnodes(dg),
-                                                                                               k,
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[1, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                              i,
-                                                                                              nnodes(dg),
-                                                                                              k,
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[1, v, i, k, mortar] = flux_parabolic_y[v,
-                                                                                               i,
-                                                                                               nnodes(dg),
-                                                                                               k,
-                                                                                               lower_right_element]
+                            u_upper_left[1, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                i,
+                                                                                nnodes(dg),
+                                                                                k,
+                                                                                upper_left_element]
+                            u_upper_right[1, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                 i,
+                                                                                 nnodes(dg),
+                                                                                 k,
+                                                                                 upper_right_element]
+                            u_lower_left[1, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                i,
+                                                                                nnodes(dg),
+                                                                                k,
+                                                                                lower_left_element]
+                            u_lower_right[1, v, i, k, mortar] = flux_parabolic_y[v,
+                                                                                 i,
+                                                                                 nnodes(dg),
+                                                                                 k,
+                                                                                 lower_right_element]
                         end
                     end
                 else # if cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations_parabolic)
-                            cache.mortars.u_upper_left[1, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                              i,
-                                                                                              j,
-                                                                                              nnodes(dg),
-                                                                                              upper_left_element]
-                            cache.mortars.u_upper_right[1, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                               i,
-                                                                                               j,
-                                                                                               nnodes(dg),
-                                                                                               upper_right_element]
-                            cache.mortars.u_lower_left[1, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                              i,
-                                                                                              j,
-                                                                                              nnodes(dg),
-                                                                                              lower_left_element]
-                            cache.mortars.u_lower_right[1, v, i, j, mortar] = flux_parabolic_z[v,
-                                                                                               i,
-                                                                                               j,
-                                                                                               nnodes(dg),
-                                                                                               lower_right_element]
+                            u_upper_left[1, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                i,
+                                                                                j,
+                                                                                nnodes(dg),
+                                                                                upper_left_element]
+                            u_upper_right[1, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                 i,
+                                                                                 j,
+                                                                                 nnodes(dg),
+                                                                                 upper_right_element]
+                            u_lower_left[1, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                i,
+                                                                                j,
+                                                                                nnodes(dg),
+                                                                                lower_left_element]
+                            u_lower_right[1, v, i, j, mortar] = flux_parabolic_z[v,
+                                                                                 i,
+                                                                                 j,
+                                                                                 nnodes(dg),
+                                                                                 lower_right_element]
                         end
                     end
                 end
             end
 
             # Interpolate large element face data to small interface locations
-            if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+            if large_sides[mortar] == 1 # -> large element on left side
                 leftright = 1
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(flux_parabolic_x, :, nnodes(dg), :, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     u_large = view(flux_parabolic_y, :, :, nnodes(dg), :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 else # cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     u_large = view(flux_parabolic_z, :, :, :, nnodes(dg), large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 end
             else # large_sides[mortar] == 2 -> large element on right side
                 leftright = 2
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(flux_parabolic_x, :, 1, :, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     u_large = view(flux_parabolic_y, :, :, 1, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 else # cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     u_large = view(flux_parabolic_z, :, :, :, 1, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 end
             end
@@ -1091,6 +1094,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    interfaces_u = cache.interfaces.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -1114,7 +1118,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
 
             for j in eachnode(dg), i in eachnode(dg)
                 # Call pointwise Riemann solver
-                u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
+                u_ll, u_rr = get_surface_node_vars(interfaces_u,
                                                    equations_parabolic, dg,
                                                    i, j, interface)
 

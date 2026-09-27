@@ -292,6 +292,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
+    mpi_interfaces_u = cache.mpi_interfaces.u
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -328,9 +329,9 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                 # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
                 # Thus, the `orientation_factor` changes the logic such that the
                 # flux which enters side 1 leaves side 2.
-                cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
-                                                                      dot(flux_visc,
-                                                                          normal_direction)
+                mpi_interfaces_u[local_side, v, i, interface] = orientation_factor *
+                                                                dot(flux_visc,
+                                                                    normal_direction)
             end
 
             i_elem += i_step
@@ -484,6 +485,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     @unpack u = cache.mpi_mortars
+    @unpack u_threaded = cache
     @threaded for mortar in eachmpimortar(dg, cache)
         fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
                          fstar_primary_upper_threaded[Threads.threadid()])
@@ -509,7 +511,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
             end
         end
 
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
         mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                 mesh, equations_parabolic, mortar_l2,
                                                 dg, cache,
@@ -589,13 +591,18 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                         dg::DGSEM)
     @unpack node_indices = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
+    mpi_mortars_local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids
+    mpi_mortars_local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions
+    mpi_mortars_u = cache.mpi_mortars.u
+    @unpack u_threaded = cache
+    @unpack forward_lower, forward_upper = mortar_l2
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
     @threaded for mortar in eachmpimortar(dg, cache)
-        local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
-        local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
+        local_neighbor_ids = mpi_mortars_local_neighbor_ids[mortar]
+        local_neighbor_positions = mpi_mortars_local_neighbor_positions[mortar]
 
         # Small side indexing
         small_indices = node_indices[1, mortar]
@@ -620,7 +627,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                 # =========================
                 # LARGE ELEMENT
                 # =========================
-                u_buffer = cache.u_threaded[Threads.threadid()]
+                u_buffer = u_threaded[Threads.threadid()]
 
                 i_large = i_large_start
                 j_large = j_large_start
@@ -648,10 +655,10 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                     j_large += j_large_step
                 end
 
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, mortar),
-                                        mortar_l2.forward_lower, u_buffer)
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, mortar),
-                                        mortar_l2.forward_upper, u_buffer)
+                multiply_dimensionwise!(view(mpi_mortars_u, 2, :, 1, :, mortar),
+                                        forward_lower, u_buffer)
+                multiply_dimensionwise!(view(mpi_mortars_u, 2, :, 2, :, mortar),
+                                        forward_upper, u_buffer)
 
             else
                 # =========================
@@ -672,8 +679,8 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                             flux_parabolic_y[v, i_small, j_small,
                                                              element])
 
-                        cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_node,
-                                                                             normal_direction)
+                        mpi_mortars_u[1, v, position, i, mortar] = dot(flux_node,
+                                                                       normal_direction)
                     end
 
                     i_small += i_small_step
@@ -692,7 +699,7 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,
                                           dg::DG, parabolic_scheme, cache)
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
     @unpack u = cache.mpi_mortars
     @threaded for mortar in eachmpimortar(dg, cache)
         # Match local 2D structure as one tuple
@@ -719,7 +726,7 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
             end
         end
 
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
 
         # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D
         mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,

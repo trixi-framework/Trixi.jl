@@ -683,7 +683,8 @@ end
 function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{3}, equations, dg::DG)
     @unpack boundaries = cache
-    @unpack orientations, neighbor_sides = boundaries
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+    boundaries_u = boundaries.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -693,7 +694,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
-            element = boundaries.neighbor_ids[boundary]
+            element = neighbor_ids[boundary]
 
             if orientations[boundary] == 1
                 # boundary in x-direction
@@ -702,14 +703,14 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     for k in eachnode(dg), j in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k,
+                        boundaries_u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k,
                                                                element]
                     end
                 else # Element in +x direction of boundary
                     for k in eachnode(dg), j in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[2, v, j, k, boundary] = u[v, 1, j, k, element]
+                        boundaries_u[2, v, j, k, boundary] = u[v, 1, j, k, element]
                     end
                 end
             elseif orientations[boundary] == 2
@@ -719,7 +720,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     for k in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k,
+                        boundaries_u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k,
                                                                element]
                     end
                 else
@@ -727,7 +728,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     for k in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[2, v, i, k, boundary] = u[v, i, 1, k, element]
+                        boundaries_u[2, v, i, k, boundary] = u[v, i, 1, k, element]
                     end
                 end
             else #if orientations[boundary] == 3
@@ -737,7 +738,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     for j in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg),
+                        boundaries_u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg),
                                                                element]
                     end
                 else
@@ -745,7 +746,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     for j in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations)
 
-                        boundaries.u[2, v, i, j, boundary] = u[v, i, j, 1, element]
+                        boundaries_u[2, v, i, j, boundary] = u[v, i, j, 1, element]
                     end
                 end
             end
@@ -837,7 +838,9 @@ function prolong2mortars!(cache, u,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
     # temporary buffer for projections
-    @unpack fstar_tmp1_threaded = cache
+    @unpack fstar_tmp1_threaded, mortars = cache
+    @unpack neighbor_ids, large_sides, orientations = mortars
+    @unpack u_upper_left, u_upper_right, u_lower_left, u_lower_right = mortars
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -849,178 +852,178 @@ function prolong2mortars!(cache, u,
         @inbounds begin
             fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
-            lower_left_element = cache.mortars.neighbor_ids[1, mortar]
-            lower_right_element = cache.mortars.neighbor_ids[2, mortar]
-            upper_left_element = cache.mortars.neighbor_ids[3, mortar]
-            upper_right_element = cache.mortars.neighbor_ids[4, mortar]
-            large_element = cache.mortars.neighbor_ids[5, mortar]
+            lower_left_element = neighbor_ids[1, mortar]
+            lower_right_element = neighbor_ids[2, mortar]
+            upper_left_element = neighbor_ids[3, mortar]
+            upper_right_element = neighbor_ids[4, mortar]
+            large_element = neighbor_ids[5, mortar]
 
             # Copy solution small to small
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if cache.mortars.orientations[mortar] == 1
+            if large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for k in eachnode(dg), j in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[2, v, j, k, mortar] = u[v,
-                                                                               1,
-                                                                               j, k,
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[2, v, j, k, mortar] = u[v,
-                                                                                1,
-                                                                                j, k,
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[2, v, j, k, mortar] = u[v,
-                                                                               1,
-                                                                               j, k,
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[2, v, j, k, mortar] = u[v,
-                                                                                1,
-                                                                                j, k,
-                                                                                lower_right_element]
+                            u_upper_left[2, v, j, k, mortar] = u[v,
+                                                                 1,
+                                                                 j, k,
+                                                                 upper_left_element]
+                            u_upper_right[2, v, j, k, mortar] = u[v,
+                                                                  1,
+                                                                  j, k,
+                                                                  upper_right_element]
+                            u_lower_left[2, v, j, k, mortar] = u[v,
+                                                                 1,
+                                                                 j, k,
+                                                                 lower_left_element]
+                            u_lower_right[2, v, j, k, mortar] = u[v,
+                                                                  1,
+                                                                  j, k,
+                                                                  lower_right_element]
                         end
                     end
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     for k in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[2, v, i, k, mortar] = u[v, i,
-                                                                               1,
-                                                                               k,
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[2, v, i, k, mortar] = u[v, i,
-                                                                                1,
-                                                                                k,
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[2, v, i, k, mortar] = u[v, i,
-                                                                               1,
-                                                                               k,
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[2, v, i, k, mortar] = u[v, i,
-                                                                                1,
-                                                                                k,
-                                                                                lower_right_element]
+                            u_upper_left[2, v, i, k, mortar] = u[v, i,
+                                                                 1,
+                                                                 k,
+                                                                 upper_left_element]
+                            u_upper_right[2, v, i, k, mortar] = u[v, i,
+                                                                  1,
+                                                                  k,
+                                                                  upper_right_element]
+                            u_lower_left[2, v, i, k, mortar] = u[v, i,
+                                                                 1,
+                                                                 k,
+                                                                 lower_left_element]
+                            u_lower_right[2, v, i, k, mortar] = u[v, i,
+                                                                  1,
+                                                                  k,
+                                                                  lower_right_element]
                         end
                     end
                 else # orientations[mortar] == 3
                     # L2 mortars in z-direction
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[2, v, i, j, mortar] = u[v, i, j,
-                                                                               1,
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[2, v, i, j, mortar] = u[v, i, j,
-                                                                                1,
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[2, v, i, j, mortar] = u[v, i, j,
-                                                                               1,
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[2, v, i, j, mortar] = u[v, i, j,
-                                                                                1,
-                                                                                lower_right_element]
+                            u_upper_left[2, v, i, j, mortar] = u[v, i, j,
+                                                                 1,
+                                                                 upper_left_element]
+                            u_upper_right[2, v, i, j, mortar] = u[v, i, j,
+                                                                  1,
+                                                                  upper_right_element]
+                            u_lower_left[2, v, i, j, mortar] = u[v, i, j,
+                                                                 1,
+                                                                 lower_left_element]
+                            u_lower_right[2, v, i, j, mortar] = u[v, i, j,
+                                                                  1,
+                                                                  lower_right_element]
                         end
                     end
                 end
             else # large_sides[mortar] == 2 -> small elements on left side
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     for k in eachnode(dg), j in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[1, v, j, k, mortar] = u[v,
-                                                                               nnodes(dg),
-                                                                               j, k,
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[1, v, j, k, mortar] = u[v,
-                                                                                nnodes(dg),
-                                                                                j, k,
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[1, v, j, k, mortar] = u[v,
-                                                                               nnodes(dg),
-                                                                               j, k,
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[1, v, j, k, mortar] = u[v,
-                                                                                nnodes(dg),
-                                                                                j, k,
-                                                                                lower_right_element]
+                            u_upper_left[1, v, j, k, mortar] = u[v,
+                                                                 nnodes(dg),
+                                                                 j, k,
+                                                                 upper_left_element]
+                            u_upper_right[1, v, j, k, mortar] = u[v,
+                                                                  nnodes(dg),
+                                                                  j, k,
+                                                                  upper_right_element]
+                            u_lower_left[1, v, j, k, mortar] = u[v,
+                                                                 nnodes(dg),
+                                                                 j, k,
+                                                                 lower_left_element]
+                            u_lower_right[1, v, j, k, mortar] = u[v,
+                                                                  nnodes(dg),
+                                                                  j, k,
+                                                                  lower_right_element]
                         end
                     end
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     for k in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[1, v, i, k, mortar] = u[v, i,
-                                                                               nnodes(dg),
-                                                                               k,
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[1, v, i, k, mortar] = u[v, i,
-                                                                                nnodes(dg),
-                                                                                k,
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[1, v, i, k, mortar] = u[v, i,
-                                                                               nnodes(dg),
-                                                                               k,
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[1, v, i, k, mortar] = u[v, i,
-                                                                                nnodes(dg),
-                                                                                k,
-                                                                                lower_right_element]
+                            u_upper_left[1, v, i, k, mortar] = u[v, i,
+                                                                 nnodes(dg),
+                                                                 k,
+                                                                 upper_left_element]
+                            u_upper_right[1, v, i, k, mortar] = u[v, i,
+                                                                  nnodes(dg),
+                                                                  k,
+                                                                  upper_right_element]
+                            u_lower_left[1, v, i, k, mortar] = u[v, i,
+                                                                 nnodes(dg),
+                                                                 k,
+                                                                 lower_left_element]
+                            u_lower_right[1, v, i, k, mortar] = u[v, i,
+                                                                  nnodes(dg),
+                                                                  k,
+                                                                  lower_right_element]
                         end
                     end
                 else # if cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[1, v, i, j, mortar] = u[v, i, j,
-                                                                               nnodes(dg),
-                                                                               upper_left_element]
-                            cache.mortars.u_upper_right[1, v, i, j, mortar] = u[v, i, j,
-                                                                                nnodes(dg),
-                                                                                upper_right_element]
-                            cache.mortars.u_lower_left[1, v, i, j, mortar] = u[v, i, j,
-                                                                               nnodes(dg),
-                                                                               lower_left_element]
-                            cache.mortars.u_lower_right[1, v, i, j, mortar] = u[v, i, j,
-                                                                                nnodes(dg),
-                                                                                lower_right_element]
+                            u_upper_left[1, v, i, j, mortar] = u[v, i, j,
+                                                                 nnodes(dg),
+                                                                 upper_left_element]
+                            u_upper_right[1, v, i, j, mortar] = u[v, i, j,
+                                                                  nnodes(dg),
+                                                                  upper_right_element]
+                            u_lower_left[1, v, i, j, mortar] = u[v, i, j,
+                                                                 nnodes(dg),
+                                                                 lower_left_element]
+                            u_lower_right[1, v, i, j, mortar] = u[v, i, j,
+                                                                  nnodes(dg),
+                                                                  lower_right_element]
                         end
                     end
                 end
             end
 
             # Interpolate large element face data to small interface locations
-            if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+            if large_sides[mortar] == 1 # -> large element on left side
                 leftright = 1
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(u, :, nnodes(dg), :, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     u_large = view(u, :, :, nnodes(dg), :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 else # cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     u_large = view(u, :, :, :, nnodes(dg), large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 end
             else # large_sides[mortar] == 2 -> large element on right side
                 leftright = 2
-                if cache.mortars.orientations[mortar] == 1
+                if orientations[mortar] == 1
                     # L2 mortars in x-direction
                     u_large = view(u, :, 1, :, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
-                elseif cache.mortars.orientations[mortar] == 2
+                elseif orientations[mortar] == 2
                     # L2 mortars in y-direction
                     u_large = view(u, :, :, 1, :, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 else # cache.mortars.orientations[mortar] == 3
                     # L2 mortars in z-direction
                     u_large = view(u, :, :, :, 1, large_element)
-                    element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                    element_solutions_to_mortars!(mortars, mortar_l2, leftright,
                                                   mortar, u_large, fstar_tmp1)
                 end
             end

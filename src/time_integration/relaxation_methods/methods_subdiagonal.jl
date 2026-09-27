@@ -215,8 +215,9 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         # Try to enable optimizations due to `muladd` by computing this factor only once, see
         # https://github.com/trixi-framework/Trixi.jl/pull/2480#discussion_r2224529532
         b1_dt = alg.b[1] * integrator.dt
-        @threaded for i in eachindex(integrator.u)
-            integrator.direction[i] = b1_dt * integrator.du[i]
+        (; u, du, u_tmp, direction) = integrator
+        @threaded for i in eachindex(u)
+            direction[i] = b1_dt * du[i]
         end
 
         du_wrap = wrap_array(integrator.du, prob.p)
@@ -226,15 +227,14 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         # Second to last stage
         for stage in 2:length(alg.c)
             c_dt = alg.c[stage] * integrator.dt
-            @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.u[i] + c_dt * integrator.du[i]
+            @threaded for i in eachindex(u)
+                u_tmp[i] = u[i] + c_dt * du[i]
             end
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
                          integrator.t + alg.c[stage] * integrator.dt)
             b_dt = alg.b[stage] * integrator.dt
-            @threaded for i in eachindex(integrator.u)
-                integrator.direction[i] = integrator.direction[i] +
-                                          b_dt * integrator.du[i]
+            @threaded for i in eachindex(u)
+                direction[i] = direction[i] + b_dt * du[i]
             end
 
             # Entropy change due to current stage
@@ -255,9 +255,9 @@ function step!(integrator::SubDiagonalRelaxationIntegrator)
         update_t_relaxation!(integrator)
 
         # Do relaxed update
-        @threaded for i in eachindex(integrator.u)
-            integrator.u[i] = integrator.u[i] +
-                              integrator.gamma * integrator.direction[i]
+        (; gamma) = integrator
+        @threaded for i in eachindex(u)
+            u[i] = u[i] + gamma * direction[i]
         end
     end
 
