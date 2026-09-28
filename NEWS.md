@@ -35,7 +35,7 @@ for human readability.
   - `StructuredMesh2D` ([#3274])
   - `StructuredMesh3D` ([#3272])
   - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
-  - `P4estMesh3D` and `T8codeMesh3D` ([#3273])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
 
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
