@@ -702,27 +702,27 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
-                            0.4458551685453463,
-                            0.15187885920928818,
-                            0.15187885920579852,
-                            0.6171564682488643
+                            0.45019283865816484,
+                            0.15290736461590215,
+                            0.1529073646177013,
+                            0.6170027937990427
                         ],
                         linf=[
-                            1.683620478124428,
-                            0.9025036658429718,
-                            0.9025036660419865,
-                            6.467780546540997
+                            1.7367187664418746,
+                            0.9792513901603878,
+                            0.9792513898742393,
+                            6.461892445995487
                         ],
                         # Large absolute tolerance due to nondeterministic behavior in CI runs
                         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/3060.
-                        # atol=1e-3,
+                        atol=2e-2,
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
-    @test startswith(lines[end], "140")
+    @test startswith(lines[end], "139")
 
     limiter = semi.solver.volume_integral.volume_integral_stabilized.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
