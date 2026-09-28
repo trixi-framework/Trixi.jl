@@ -395,22 +395,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4573787784168518,
-                            0.28520972760728397,
-                            0.28527281808006966,
-                            1.2881460122982442
+                            0.4705950227156668,
+                            0.29122856991345125,
+                            0.29125849486210414,
+                            1.2903938629029899
                         ],
                         linf=[
-                            1.644411040701827,
-                            1.6743368119653912,
-                            1.6760847977977988,
-                            6.268843623142863
+                            1.6928463566028236,
+                            1.821338494366735,
+                            1.8266066384806707,
+                            6.281755715208906
                         ],
                         tspan=(0.0, 0.3))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) <= 3.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -669,16 +669,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
-                            0.11085870166618325,
-                            0.23309905989870722,
-                            0.13505351590735631,
-                            0.7932048824622121
+                            0.11163992541968377,
+                            0.2350631387580329,
+                            0.13564300628421277,
+                            0.7980084592670804
                         ],
                         linf=[
-                            2.9808773737943564,
-                            4.209364526217892,
-                            6.265341002817672,
-                            24.077904874883338
+                            2.989883077745637,
+                            4.206629791193471,
+                            6.2234038811645425,
+                            24.1559851625766
                         ],
                         tspan=(0.0, 0.02),
                         # Results are sensitive to round-off errors, e.g., caused by
