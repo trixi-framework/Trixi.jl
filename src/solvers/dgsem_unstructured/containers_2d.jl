@@ -65,6 +65,38 @@ function Base.eltype(elements::UnstructuredElementContainer2D)
     return eltype(elements.surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::UnstructuredElementContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.jacobian_matrix,
+               (Base.OneTo(2), Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian,
+               (eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.contravariant_vectors,
+               (Base.OneTo(2), Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.normal_directions,
+               (Base.OneTo(2),
+                eachnode(solver),
+                Base.OneTo(4),
+                eachelement(solver, cache)))
+    check_axes(elements.surface_flux_values,
+               (eachvariable(equations),
+                eachnode(solver),
+                Base.OneTo(4),
+                eachelement(solver, cache)))
+    return nothing
+end
+
 @inline function get_surface_normal(vec, indices...)
     # way to extract the normal vector at the surfaces without allocating
     surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))

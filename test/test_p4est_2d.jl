@@ -749,7 +749,9 @@ end
                             24.077904874883338
                         ],
                         tspan=(0.0, 0.02),
-                        atol=1e-7)
+                        # Results are sensitive to round-off errors, e.g., caused by
+                        # code coverage in CI
+                        atol=5e-7)
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
