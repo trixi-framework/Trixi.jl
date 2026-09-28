@@ -1164,6 +1164,27 @@ end
     return nothing
 end
 
+# At mortars, the bar states of all overlapping node pairs are accumulated with the weights
+# `weight * lambda`. Dividing by the accumulated lambda yields the effective bar state
+# `sum_k w_k lambda_k bar_state_k / sum_k w_k lambda_k` of the low-order mortar update.
+@inline function normalize_mortar_bar_states!(bar_states1, bar_states2,
+                                              lambda1, lambda2, orientation, equations,
+                                              lambda_indices, element)
+    if orientation == 1
+        for v in eachvariable(equations)
+            bar_states1[v, lambda_indices..., element] /= lambda1[lambda_indices...,
+                                                                  element]
+        end
+    else # orientation == 2
+        for v in eachvariable(equations)
+            bar_states2[v, lambda_indices..., element] /= lambda2[lambda_indices...,
+                                                                  element]
+        end
+    end
+
+    return nothing
+end
+
 @inline function calc_lambdas_bar_states_mortar!(u, t, limiter, boundary_conditions,
                                                  mesh::TreeMesh{2}, equations,
                                                  dg, cache; calc_bar_states = true)
@@ -1245,13 +1266,54 @@ end
                     end
                     central_part = u_small + u_large
                     bar_state = 0.5 * (central_part - flux_diff / lambda)
+                    # The low-order mortar update is a convex combination with the
+                    # lambda-weighted mean of the bar states of all overlapping node pairs.
+                    # Therefore, accumulate with `weight * lambda` and normalize afterwards.
                     add_mortar_bar_states!(bar_states1, bar_states2, orientation,
                                            equations, lambda_indices_large,
                                            large_element, lambda_indices_small,
-                                           small_element, bar_state, weight,
+                                           small_element, bar_state, weight * lambda,
                                            mortar_weights_sums[j, 2],
                                            mortar_weights_sums[k, 1])
                 end
+            end
+        end
+    end
+
+    calc_bar_states || return nothing
+
+    # Normalize the accumulated bar states with the accumulated lambdas
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+
+        orientation = cache.mortars.orientations[mortar]
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            lambda_large_node = nnodes(dg) + 1
+            lambda_small_node = 1
+        else # large_sides[mortar] == 2 -> small elements on left side
+            lambda_large_node = 1
+            lambda_small_node = nnodes(dg) + 1
+        end
+
+        for j in eachnode(dg)
+            if orientation == 1
+                # L2 mortars in x-direction
+                lambda_indices_large = (lambda_large_node, j)
+                lambda_indices_small = (lambda_small_node, j)
+            else
+                # L2 mortars in y-direction
+                lambda_indices_large = (j, lambda_large_node)
+                lambda_indices_small = (j, lambda_small_node)
+            end
+
+            normalize_mortar_bar_states!(bar_states1, bar_states2, lambda1, lambda2,
+                                         orientation, equations,
+                                         lambda_indices_large, large_element)
+            for small_element_index in 1:2
+                small_element = cache.mortars.neighbor_ids[small_element_index, mortar]
+                normalize_mortar_bar_states!(bar_states1, bar_states2, lambda1, lambda2,
+                                             orientation, equations,
+                                             lambda_indices_small, small_element)
             end
         end
     end

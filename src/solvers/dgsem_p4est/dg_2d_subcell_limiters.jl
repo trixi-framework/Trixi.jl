@@ -248,67 +248,126 @@ end
                     bar_state = 0.5 * (u_small + u_large) -
                                 0.5 * (flux_large - flux_small) / lambda
 
+                    # The low-order mortar update is a convex combination with the
+                    # lambda-weighted mean of the bar states of all overlapping node pairs.
+                    # Therefore, accumulate with `weight * lambda` (i.e., `lambda_small` and
+                    # `lambda_large`) and normalize afterwards.
                     if small_direction == 1
                         for v in eachvariable(equations)
-                            bar_states1[v, i_small, j_small, small_element] += weight *
-                                                                               bar_state[v] /
-                                                                               mortar_weights_sums[node_small,
-                                                                                                   1]
+                            bar_states1[v, i_small, j_small, small_element] += lambda_small *
+                                                                               bar_state[v]
                         end
                     elseif small_direction == 2
                         for v in eachvariable(equations)
-                            bar_states1[v, i_small + 1, j_small, small_element] += weight *
-                                                                                   bar_state[v] /
-                                                                                   mortar_weights_sums[node_small,
-                                                                                                       1]
+                            bar_states1[v, i_small + 1, j_small, small_element] += lambda_small *
+                                                                                   bar_state[v]
                         end
                     elseif small_direction == 3
                         for v in eachvariable(equations)
-                            bar_states2[v, i_small, j_small, small_element] += weight *
-                                                                               bar_state[v] /
-                                                                               mortar_weights_sums[node_small,
-                                                                                                   1]
+                            bar_states2[v, i_small, j_small, small_element] += lambda_small *
+                                                                               bar_state[v]
                         end
                     else # small_direction == 4
                         for v in eachvariable(equations)
-                            bar_states2[v, i_small, j_small + 1, small_element] += weight *
-                                                                                   bar_state[v] /
-                                                                                   mortar_weights_sums[node_small,
-                                                                                                       1]
+                            bar_states2[v, i_small, j_small + 1, small_element] += lambda_small *
+                                                                                   bar_state[v]
                         end
                     end
 
                     if large_direction == 1
                         for v in eachvariable(equations)
-                            bar_states1[v, i_large, j_large, large_element] += weight *
-                                                                               bar_state[v] /
-                                                                               mortar_weights_sums[node_large,
-                                                                                                   2]
+                            bar_states1[v, i_large, j_large, large_element] += lambda_large *
+                                                                               bar_state[v]
                         end
                     elseif large_direction == 2
                         for v in eachvariable(equations)
-                            bar_states1[v, i_large + 1, j_large, large_element] += weight *
-                                                                                   bar_state[v] /
-                                                                                   mortar_weights_sums[node_large,
-                                                                                                       2]
+                            bar_states1[v, i_large + 1, j_large, large_element] += lambda_large *
+                                                                                   bar_state[v]
                         end
                     elseif large_direction == 3
                         for v in eachvariable(equations)
-                            bar_states2[v, i_large, j_large, large_element] += weight *
-                                                                               bar_state[v] /
-                                                                               mortar_weights_sums[node_large,
-                                                                                                   2]
+                            bar_states2[v, i_large, j_large, large_element] += lambda_large *
+                                                                               bar_state[v]
                         end
                     else # large_direction == 4
                         for v in eachvariable(equations)
-                            bar_states2[v, i_large, j_large + 1, large_element] += weight *
-                                                                                   bar_state[v] /
-                                                                                   mortar_weights_sums[node_large,
-                                                                                                       2]
+                            bar_states2[v, i_large, j_large + 1, large_element] += lambda_large *
+                                                                                   bar_state[v]
                         end
                     end
                 end
             end
+        end
+    end
+
+    calc_bar_states || return nothing
+
+    # Normalize the accumulated bar states with the accumulated lambdas
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for _ in eachnode(dg)
+            for small_element_index in 1:2
+                small_element = neighbor_ids[small_element_index, mortar]
+                normalize_mortar_bar_states!(bar_states1, bar_states2, lambda1, lambda2,
+                                             small_direction, equations,
+                                             i_small, j_small, small_element)
+            end
+            normalize_mortar_bar_states!(bar_states1, bar_states2, lambda1, lambda2,
+                                         large_direction, equations,
+                                         i_large, j_large, large_element)
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
+# At mortars, the bar states of all overlapping node pairs are accumulated with the weights
+# `weight * lambda`. Dividing by the accumulated lambda yields the effective bar state
+# `sum_k w_k lambda_k bar_state_k / sum_k w_k lambda_k` of the low-order mortar update.
+# `(i, j)` are the indices of the face node, which are shifted to the lambda/bar state
+# indices depending on `direction`.
+@inline function normalize_mortar_bar_states!(bar_states1, bar_states2,
+                                              lambda1, lambda2, direction, equations,
+                                              i, j, element)
+    if direction == 1
+        for v in eachvariable(equations)
+            bar_states1[v, i, j, element] /= lambda1[i, j, element]
+        end
+    elseif direction == 2
+        for v in eachvariable(equations)
+            bar_states1[v, i + 1, j, element] /= lambda1[i + 1, j, element]
+        end
+    elseif direction == 3
+        for v in eachvariable(equations)
+            bar_states2[v, i, j, element] /= lambda2[i, j, element]
+        end
+    else # direction == 4
+        for v in eachvariable(equations)
+            bar_states2[v, i, j + 1, element] /= lambda2[i, j + 1, element]
         end
     end
 
