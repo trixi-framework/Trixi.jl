@@ -5,14 +5,19 @@
 @muladd begin
 #! format: noindent
 
-@inline function get_one_sided_surface_node_vars(u, equations, solver::DG, j,
-                                                 indices...)
+Base.@propagate_inbounds function get_one_sided_surface_node_vars(u, equations,
+                                                                  solver::DG, j,
+                                                                  indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
-    u_surface = SVector(ntuple(v -> u[j, v, indices...], Val(nvariables(equations))))
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, j, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    u_surface = SVector(ntuple(@inline(v->@inbounds u[j, v, indices...]),
+                               Val(nvariables(equations))))
     return u_surface
 end
 
