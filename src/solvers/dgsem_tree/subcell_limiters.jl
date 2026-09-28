@@ -26,8 +26,7 @@ end
                       indicator = nothing,
                       bar_states = false,
                       max_iterations_newton = 10,
-                      newton_tolerances = (1.0e-12, 1.0e-14),
-                      gamma_constant_newton = 2 * ndims(equations))
+                      newton_tolerances = (1.0e-12, 1.0e-14))
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -50,13 +49,7 @@ entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_g
 The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
 limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
-`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
-and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
-where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
-For every node, this constant is reduced to the number of antidiffusive fluxes actually contributing
-to its update. That number is smaller than `2*d` at nodes adjacent to an element boundary across
-which the flux is not limited. The update then still is a convex combination of provisional states,
-such that the bounds are preserved, but it is limited less than with the uniform constant.
+`max_iterations_newton` iterations and relative and absolute tolerances of `newton_tolerances`.
 
 Optionally, a smoothness `indicator` such as [`IndicatorHennemannGassner`](@ref) can be passed to
 restrict the local limiting to non-smooth regions. In that case, two blending factors are computed
@@ -72,12 +65,6 @@ computation of the deviations by [`BoundsCheckCallback`](@ref) are skipped.
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
-
-Implementation in 3D:
-In 3D, only the positivity limiter for conservative variables using
-(`positivity_variables_cons`) is implemented and merged for `P4estMesh`.
-`BoundsCheckCallback` is not supported in 3D yet.
-More features will follow soon.
 
 ## References
 
@@ -106,7 +93,6 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
-    gamma_constant_newton::RealT            # Constant for the subcell limiting of convex (nonlinear) constraints
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
@@ -120,8 +106,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            bar_states = false,
                            small_stencil = true,
                            max_iterations_newton = 10,
-                           newton_tolerances = (1.0e-12, 1.0e-14),
-                           gamma_constant_newton = 2 * ndims(equations))
+                           newton_tolerances = (1.0e-12, 1.0e-14))
     local_twosided = (length(local_twosided_variables_cons) > 0)
     local_onesided = (length(local_onesided_variables_nonlinear) > 0)
     positivity = (length(positivity_variables_cons) +
@@ -215,9 +200,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             indicator,
                                             bar_states, small_stencil,
                                             cache,
-                                            max_iterations_newton,
-                                            newton_tolerances,
-                                            gamma_constant_newton)
+                                            max_iterations_newton, newton_tolerances)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
