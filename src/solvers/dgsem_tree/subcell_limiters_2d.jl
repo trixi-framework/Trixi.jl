@@ -1060,9 +1060,13 @@ end
 
     # Compute blending coefficient avoiding division by zero
     # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-    eps_ = eps(typeof(Qp)) * 100 * abs(var_max_node)
-    Qp = abs(Qp) / (abs(Pp) + eps_)
-    Qm = abs(Qm) / (abs(Pm) + eps_)
+    # Without an antidiffusive contribution in one direction, there is nothing to limit in this
+    # direction. Otherwise, a vanishing admissible range, e.g., if the volume correction already
+    # reached the bound, would give `Q = 0` and pure low-order fluxes at the whole mortar.
+    # This happens, e.g., at the corner nodes of the small elements, where the high-order and
+    # low-order mortar fluxes coincide.
+    Qp = iszero(Pp) ? one(Qp) : abs(Qp) / abs(Pp)
+    Qm = iszero(Pm) ? one(Qm) : abs(Qm) / abs(Pm)
 
     return min(one(Qp), Qp, Qm)
 end
@@ -1348,8 +1352,9 @@ end
 
     # Compute blending coefficient avoiding division by zero
     # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-    eps_ = eps(typeof(Qm)) * 100
-    Qm = abs(Qm) / (abs(Pm) + eps_)
+    # Without a negative antidiffusive contribution, there is nothing to limit. Otherwise, a
+    # vanishing admissible range would give `Q = 0` and pure low-order fluxes at the whole mortar.
+    Qm = iszero(Pm) ? one(Qm) : abs(Qm) / abs(Pm)
 
     return min(one(Qm), Qm)
 end
