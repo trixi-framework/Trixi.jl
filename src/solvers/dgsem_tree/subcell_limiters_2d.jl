@@ -542,16 +542,15 @@ end
     isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
     # The updated state is a convex combination of one provisional state per antidiffusive flux
-    # contributing to this node. The antidiffusive fluxes are scaled by the number of contributions
-    # so that the update can be written as this convex combination; limiting each provisional state
-    # separately then ensures that the combination satisfies the bounds. Instead of using the uniform
-    # constant `2 * ndims` for the number of contributions (as in equation (29) of Rueda-Ramírez et al.
-    # (2022)), we use the actual number of contributions to the update of the node `(i, j, element)`.
-    # Nodes at an element boundary get fewer contributions than inner nodes because the flux across
-    # that boundary is not limited.
+    # contributing to this node. Each provisional state is the low-order state plus the
+    # antidiffusive flux scaled by the number of contributions. Limiting each flux such that
+    # its provisional state satisfies the (convex) bounds then ensures that the combination
+    # satisfies them as well. Instead of using the uniform constant `2 * ndims` for the number of
+    # contributions (as in equation (29) of Rueda-Ramírez et al. (2022)), we use the actual number
+    # of contributions to the update of the node `(i, j)`, see `n_antidiffusive_contributions`.
     # In 2D, the number of contributions is 4 for inner nodes, 3 for nodes at an element boundary,
     # and 2 for nodes at an element corner.
-    gamma = n_antidiffusive_contributions(i, j, element, dg)
+    gamma = n_antidiffusive_contributions(i, j, dg)
 
     # negative xi direction
     if i > 1
@@ -599,13 +598,11 @@ end
     return nothing
 end
 
-# Number of antidiffusive flux contributions to the update of the node `(i, j, element)`, i.e., the
+# Number of antidiffusive flux contributions to the update of the node `(i, j)`, i.e., the
 # number of provisional states whose convex combination gives the new state. Nodes at an element
 # boundary get fewer contributions than inner nodes because the flux across that boundary is not
 # limited.
-@inline function n_antidiffusive_contributions(i, j, element, dg)
-    n_subcell_interfaces = (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg))
-
-    return n_subcell_interfaces
+@inline function n_antidiffusive_contributions(i, j, dg)
+    return (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg))
 end
 end # @muladd
