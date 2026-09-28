@@ -4428,7 +4428,20 @@ end
         u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
 
         @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
-        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 
     @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",

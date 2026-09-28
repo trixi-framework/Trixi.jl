@@ -33,6 +33,7 @@ for human readability.
   - `TreeMesh3D` ([#3208], [#3263])
   - `StructuredMesh2D` ([#3274])
   - `StructuredMesh3D` ([#3272])
+  - `UnstructuredMesh2D` ([#3282])
   - `P4estMesh2D` and `T8codeMesh2D` ([#3276])
   - `P4estMesh3D` and `T8codeMesh3D` ([#3273])
 
