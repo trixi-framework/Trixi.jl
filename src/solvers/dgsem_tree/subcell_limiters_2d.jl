@@ -1053,7 +1053,7 @@ end
     Pm = inverse_jacobian_node * Pm
 
     # A node can be on multiple mortars. Scale the antidiffusive flux contribution
-    # to account for this. Similar to scaling with `gamma_constant_newton`.
+    # to account for this. Similar to scaling with `gamma` in Newton methods.
     n_mortars = n_mortars_per_node[i_node, j_node, element]
     Pp = n_mortars * Pp
     Pm = n_mortars * Pm
@@ -1173,8 +1173,7 @@ end
     (; n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
 
     # The correction of the volume integral is already applied to `u`. The remaining antidiffusive fluxes at the mortars need to be scaled only with the number of mortars adjacent to the node, i.e., `n_mortars_per_node[i_node, j_node, element]`.
-    gamma = min(limiter.gamma_constant_newton,
-                n_mortars_per_node[i_node, j_node, element])
+    gamma = n_mortars_per_node[i_node, j_node, element]
 
     flux_high_order = get_node_vars(surface_flux_values_high_order, equations, dg,
                                     surface_node, direction, element)
@@ -1344,7 +1343,7 @@ end
     Pm = inverse_jacobian_node * Pm
 
     # A node can be on multiple mortars. Scale the antidiffusive flux contribution
-    # to account for this. Similar to scaling with `gamma_constant_newton`.
+    # to account for this. Similar to scaling with `gamma` in Newton methods.
     Pm = n_mortars_per_node[i_node, j_node, element] * Pm
 
     # Compute blending coefficient avoiding division by zero
