@@ -138,7 +138,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 
                 # Sign flip for `local_side = 2` required for divergence calculation since
                 # the divergence interface flux involves the normal direction.
-                # `local_side=2` is thus flipped (opposite of primary side)                          
+                # `local_side=2` is thus flipped (opposite of primary side)
                 orientation_factor = (local_side == 1) ? 1 : -1
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i_surface, j_surface,
