@@ -22,10 +22,12 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = false)
 
 # Refine bottom front left cell
-# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
+# This setup is identical to the one for the `TreeMesh`, allowing for error comparison.
 function refine_fn(p4est, which_tree, quadrant)
     quadrant_obj = unsafe_load(quadrant)
-    if quadrant_obj.x == -1.0 && quadrant_obj.y == -0.5 && quadrant_obj.z == -0.5 &&
+    # The quadrant coordinates are integer coordinates relative to the tree,
+    # i.e., the bottom front left corner of the tree has the coordinates (0, 0, 0).
+    if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
        quadrant_obj.level < 4
         # return true (refine)
         return Cint(1)
