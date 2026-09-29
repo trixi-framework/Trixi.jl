@@ -237,8 +237,7 @@ function calc_interface_flux!(surface_flux_values,
                                                       0.5f0 * noncons_primary[v])
                     surface_flux_values[v, secondary_index,
                     secondary_side, secondary_element] = -(flux[v] +
-                                                           0.5f0 *
-                                                           noncons_secondary[v])
+                                                           0.5f0 * noncons_secondary[v])
                 end
 
                 # increment the index of the coordinate system in the secondary element
@@ -457,9 +456,9 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, node_index,
-        side_index, element_index] = flux[v] +
-                                     0.5f0 * noncons_flux[v]
+        surface_flux_values[v, node_index, side_index, element_index] = flux[v] +
+                                                                        0.5f0 *
+                                                                        noncons_flux[v]
     end
 
     return nothing

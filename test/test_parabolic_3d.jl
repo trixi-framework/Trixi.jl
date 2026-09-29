@@ -607,6 +607,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonconforming.jl"),
                         l2=[0.00098089913839922], linf=[0.017326216776220663])
+    # Make sure that the mesh is actually nonconforming
+    @test Trixi.nmortars(solver, semi.cache) > 0
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -619,11 +621,59 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonconforming.jl"),
-                        l2=[0.0009808996243281306], linf=[0.017326215591354437])
+                        l2=[0.0009808991383992679], linf=[0.01732621677622055])
+    # Make sure that the mesh is actually nonconforming
+    @test Trixi.nmortars(solver, semi.cache) > 0
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic3D: TreeMesh3D/P4estMesh3D: elixir_advection_diffusion_nonconforming.jl (linear solution)" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    # The parabolic terms must vanish for a linear solution, in particular
+    # at nonconforming interfaces (mortars)
+    initial_condition_linear(x, t, equations) = SVector(1 + x[1] + 2 * x[2] + 3 * x[3])
+
+    function max_abs_rhs_parabolic(semi, ode)
+        u_ode = copy(ode.u0)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return maximum(abs, du_ode)
+    end
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_nonconforming.jl"),
+                        initial_condition=initial_condition_linear,
+                        tspan=(0.0, 0.0))
+    @test Trixi.nmortars(solver, semi.cache) > 0
+    @test max_abs_rhs_parabolic(semi, ode) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_nonconforming.jl"),
+                        initial_condition=initial_condition_linear,
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        tspan=(0.0, 0.0))
+    @test Trixi.nmortars(solver, semi.cache) > 0
+    @test max_abs_rhs_parabolic(semi, ode) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_diffusion_nonconforming.jl"),
+                        initial_condition=initial_condition_linear,
+                        tspan=(0.0, 0.0))
+    @test Trixi.nmortars(solver, semi.cache) > 0
+    @test max_abs_rhs_parabolic(semi, ode) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_diffusion_nonconforming.jl"),
+                        initial_condition=initial_condition_linear,
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        tspan=(0.0, 0.0))
+    @test Trixi.nmortars(solver, semi.cache) > 0
+    @test max_abs_rhs_parabolic(semi, ode) < 1.0e-9
 end
 
 @testitem "Parabolic3D: P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" setup=[
@@ -647,7 +697,7 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_amr_curved.jl"),
-                        l2=[0.000683123952524889], linf=[0.023601069354373894])
+                        l2=[0.0006785557451556785], linf=[0.023547876662300293])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -661,7 +711,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_amr_curved.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
-                        l2=[0.0006853004145232737], linf=[0.02352694543085776])
+                        l2=[0.0006785619715702293], linf=[0.023550427965182474])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -805,18 +855,18 @@ end
                                                  adapt_initial_condition = true,
                                                  adapt_initial_condition_only_refine = true),
                         l2=[
-                            0.001716903538135598,
-                            0.2566781540081305,
-                            0.2566781540081202,
-                            0.22556320347015937,
-                            0.33779107381452556
+                            0.0017167669946571002,
+                            0.25670455385258795,
+                            0.2567045538525803,
+                            0.2255912288283278,
+                            0.3378130286554089
                         ],
                         linf=[
-                            0.01139265672066836,
-                            1.4145605813055888,
-                            1.4145605813076223,
-                            1.070081196321056,
-                            3.332907472310012
+                            0.011370240443015156,
+                            1.4141643771912993,
+                            1.414164377192597,
+                            1.070137850656524,
+                            3.3320778231597785
                         ])
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
@@ -852,18 +902,18 @@ end
                                  "elixir_navierstokes_blast_wave_amr.jl"),
                         tspan=(0.0, 0.01),
                         l2=[
-                            0.009449115832266491,
-                            0.0017932092857965453,
-                            0.0017932092857965449,
-                            0.001793209285796548,
-                            0.02432855189940458
+                            0.009449128357291949,
+                            0.0017931928932586325,
+                            0.0017931928932586338,
+                            0.0017931928932586317,
+                            0.0243286083201861
                         ],
                         linf=[
-                            0.6811440777026873,
-                            0.17744074602770776,
-                            0.17744074602770762,
-                            0.1774407460277074,
-                            1.7402299022804495
+                            0.6811442563137919,
+                            0.17743743207940846,
+                            0.17743743207940837,
+                            0.17743743207940813,
+                            1.7402302034258548
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
