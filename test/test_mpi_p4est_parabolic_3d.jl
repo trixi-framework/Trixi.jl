@@ -1,81 +1,58 @@
-module TestExamplesMPIP4estMesh2DParabolic
+@testsnippet MPIP4estMesh3DParabolic begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
-
-@testset "P4estMesh MPI 3D Parabolic" begin
-    @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
-        if Sys.isapple() && (Sys.ARCH === :aarch64)
-            # Show a hint in the test summary that there is a broken test
-            @test_skip false
-        else
-            @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                         "elixir_navierstokes_taylor_green_vortex_amr.jl"),
-                                initial_refinement_level=0,
-                                max_level=2,
-                                tspan=(0.0, 0.1),
-                                l2=[
-                                    0.0011069115461970517,
-                                    0.013872454764036899,
-                                    0.013872454764036934,
-                                    0.012060120516483785,
-                                    0.14491993697252206
-                                ],
-                                linf=[
-                                    0.004408900543641403,
-                                    0.05154019471576565,
-                                    0.051540194715650245,
-                                    0.035283556918085636,
-                                    0.6804810816393854
-                                ])
-            # Ensure that we do not have excessive memory allocations
-            # (e.g., from type instabilities)
-            @test_allocations(Trixi.rhs!, semi, sol, 1500)
-            @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
-        end
-    end
-
-    @trixi_testset "P4estMesh3D: elixir_advection_diffusion_amr_curved.jl" begin
-        if Sys.isapple() && (Sys.ARCH === :aarch64)
-            # Show a hint in the test summary that there is a broken test
-            @test_skip false
-        else
-            @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                         "elixir_advection_diffusion_amr_curved.jl"),
-                                l2=[0.000683123952524889], linf=[0.023601069354373894])
-            # Ensure that we do not have excessive memory allocations
-            # (e.g., from type instabilities)
-            @test_allocations(Trixi.rhs!, semi, sol, 1500)
-            @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
-        end
-    end
-
-    @trixi_testset "P4estMesh3D: elixir_navierstokes_freestream_boundaries.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_navierstokes_freestream_boundaries.jl"),
-                            tspan=(0.0, 0.1),
+@testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_taylor_green_vortex.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                    "elixir_navierstokes_taylor_green_vortex.jl"),
+                            initial_refinement_level=2, tspan=(0.0, 0.25),
+                            surface_flux=FluxHLL(min_max_speed_naive),
                             l2=[
-                                1.050376383380673e-16,
-                                1.0175313793753473e-16,
-                                1.158489273890016e-16,
-                                2.0654608507933775e-16,
-                                3.3590256030698164e-15
+                                0.0001547509861140407,
+                                0.015637861347119624,
+                                0.015637861347119687,
+                                0.022024699158522523,
+                                0.009711013505930812
                             ],
                             linf=[
-                                1.7763568394002505e-15,
-                                1.0130785099704553e-15,
-                                1.3322676295501878e-15,
-                                2.4424906541753444e-15,
-                                4.263256414560601e-14
+                                0.0006696415247340326,
+                                0.03442565722527785,
+                                0.03442565722577423,
+                                0.06295407168705314,
+                                0.032857472756916195
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1500)
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
-end #Testset
-end # module
+
+@testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_freestream_boundaries.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                    "elixir_navierstokes_freestream_boundaries.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            1.050376383380673e-16,
+                            1.0175313793753473e-16,
+                            1.158489273890016e-16,
+                            2.0654608507933775e-16,
+                            3.3590256030698164e-15
+                        ],
+                        linf=[
+                            1.7763568394002505e-15,
+                            1.0130785099704553e-15,
+                            1.3322676295501878e-15,
+                            2.4424906541753444e-15,
+                            4.263256414560601e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
