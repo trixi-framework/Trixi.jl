@@ -244,7 +244,7 @@ plot(sol)
 
 # First, one needs an indicator that tells the AMR callback which cells to refine or coarsen.
 # We can re-use the `indicator_sc` from above for this.
-# Next, a so-called controller is required that specifies the different levels of refinement and 
+# Next, a so-called controller is required that specifies the different levels of refinement and
 # refinement thresholds.
 amr_controller = ControllerThreeLevel(semi, indicator_sc,
                                       base_level = 3,

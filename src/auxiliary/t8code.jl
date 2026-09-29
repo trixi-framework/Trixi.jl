@@ -83,7 +83,7 @@ end
 # form a family and we decide whether this family should be coarsened
 # or only the first element should be refined.
 # Otherwise `is_family` must equal zero and we consider the first entry
-# of the element array for refinement. 
+# of the element array for refinement.
 # Entries of the element array beyond the first `num_elements` are undefined.
 # \param [in] forest       The forest to which the new elements belong.
 # \param [in] forest_from  The forest that is adapted.

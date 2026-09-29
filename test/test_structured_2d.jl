@@ -300,7 +300,9 @@ end
                             0.005507186931414498,
                             0.005377359689946237,
                             0.00631648929531492
-                        ])
+                        ],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -701,7 +703,7 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) <= 7.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

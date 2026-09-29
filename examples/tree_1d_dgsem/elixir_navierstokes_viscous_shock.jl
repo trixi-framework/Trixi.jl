@@ -137,8 +137,8 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
 # We use by default the Bassi-Rebay 1 scheme.
-# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence. 
-# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes. 
+# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence.
+# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes.
 # The LDG scheme can be used by specifying the keyword
 # solver_parabolic = ParabolicFormulationLocalDG()
 # in the semidiscretization call below.
@@ -167,5 +167,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             dt = 1e-3, ode_default_options()..., callback = callbacks)

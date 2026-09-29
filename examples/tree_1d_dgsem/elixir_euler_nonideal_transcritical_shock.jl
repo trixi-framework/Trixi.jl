@@ -7,7 +7,7 @@ using Trixi
 eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme 
+# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme
 # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
 function initial_condition_transcritical_shock(x, t,
@@ -75,6 +75,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

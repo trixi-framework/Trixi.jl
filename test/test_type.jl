@@ -922,7 +922,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion1D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations1D{Float32}
     end
 end
@@ -1054,7 +1055,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion2D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations2D{Float32}
     end
 end
@@ -1192,7 +1194,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion3D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations3D{Float32}
     end
 end

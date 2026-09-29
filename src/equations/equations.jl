@@ -327,7 +327,7 @@ combined with certain solvers (e.g., subcell limiting).
 function n_nonconservative_terms end
 
 """
-	Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)
+    Trixi.combine_conservative_and_nonconservative_fluxes(flux, equations)
 
 Trait function indicating whether the given `flux` and `equations` support
 fusing the computation of conservative fluxes with nonconservative fluxes.

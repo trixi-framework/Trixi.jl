@@ -13,12 +13,12 @@ given by the pressure and internal energy relations
 ```math
 p = \frac{\rho R T}{1 - \rho b} - a \rho^2, \quad e_{\text{internal}} = c_v T - a \rho
 ```
-with ``c_v = \frac{R}{\gamma - 1}``. This corresponds to the "simple 
-van der Waals" fluid with constant `c_v`, which can be found on p28 of 
-<https://math.berkeley.edu/~evans/entropy.and.PDE.pdf>. 
+with ``c_v = \frac{R}{\gamma - 1}``. This corresponds to the "simple
+van der Waals" fluid with constant `c_v`, which can be found on p28 of
+<https://math.berkeley.edu/~evans/entropy.and.PDE.pdf>.
 
-See also "An oscillation free shock-capturing method for compressible van 
-der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017). 
+See also "An oscillation free shock-capturing method for compressible van
+der Waals supercritical fluid flows" by Pantano, Saurel, and Schmitt (2017).
 <https://doi.org/10.1016/j.jcp.2017.01.057>
 """
 struct VanDerWaals{RealT <: Real} <: AbstractEquationOfState
@@ -83,15 +83,15 @@ end
 function entropy_specific(V, T, eos::VanDerWaals)
     (; cv, b, R) = eos
 
-    # The specific entropy is defined up to some reference value. The value 
+    # The specific entropy is defined up to some reference value. The value
     # s0 = -319.1595051898981 recovers the specific entropy defined in Clapeyron.jl
     s = cv * log(T) + R * log(V - b)
     return s
 end
 
-# This formula is taken from (A.26) in the paper "An oscillation free 
-# shock-capturing method for compressible van der Waals supercritical 
-# fluid flows" by Pantano, Saurel, and Schmitt (2017). 
+# This formula is taken from (A.26) in the paper "An oscillation free
+# shock-capturing method for compressible van der Waals supercritical
+# fluid flows" by Pantano, Saurel, and Schmitt (2017).
 # https://doi.org/10.1016/j.jcp.2017.01.057
 function speed_of_sound(V, T, eos::VanDerWaals)
     (; a, b, gamma) = eos
@@ -101,9 +101,9 @@ function speed_of_sound(V, T, eos::VanDerWaals)
     return sqrt(c2)
 end
 
-# This is not a required interface function, but specializing it 
+# This is not a required interface function, but specializing it
 # if an explicit function is available can improve performance.
-# For general EOS, this is calculated via a Newton solve. 
+# For general EOS, this is calculated via a Newton solve.
 function temperature(V, e_internal, eos::VanDerWaals)
     (; cv, a) = eos
     rho = inv(V)
@@ -111,7 +111,7 @@ function temperature(V, e_internal, eos::VanDerWaals)
     return T
 end
 
-# This is not a required interface function, but specializing it 
+# This is not a required interface function, but specializing it
 # if an explicit function is available can improve performance.
 function calc_pressure_derivatives(V, T, eos::VanDerWaals)
     (; a, b, R) = eos
