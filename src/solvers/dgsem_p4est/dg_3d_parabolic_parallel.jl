@@ -165,6 +165,38 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
     return nothing
 end
 
+function prolong2mpimortars_divergence!(cache, flux_parabolic,
+                                        mesh::Union{P4estMeshParallel{3},
+                                                    T8codeMeshParallel{3}},
+                                        equations_parabolic,
+                                        mortar_l2::LobattoLegendreMortarL2,
+                                        dg::DGSEM)
+
+    @assert nmpimortars(dg, cache) == 0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+    return nothing
+end
+
+function calc_mpi_mortar_flux_divergence!(surface_flux_values,
+                                          mesh::Union{P4estMeshParallel{3},
+                                                      T8codeMeshParallel{3}},
+                                          equations_parabolic,
+                                          mortar_l2::LobattoLegendreMortarL2,
+                                          dg::DG, parabolic_scheme, cache)
+
+    @assert nmpimortars(dg, cache) == 0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+    return nothing
+end
+
+function calc_mpi_mortar_flux_gradient!(surface_flux_values,
+                                        mesh::Union{P4estMeshParallel{3},
+                                                    T8codeMeshParallel{3}},
+                                        equations_parabolic,
+                                        mortar_l2::LobattoLegendreMortarL2,
+                                        dg::DG, parabolic_scheme, cache)
+    @assert nmpimortars(dg, cache) == 0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+    return nothing
+end
+
 function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                 mesh::Union{P4estMeshParallel{3},
                                             T8codeMeshParallel{3}},
