@@ -6,8 +6,8 @@ end
     Setup,
     MPIP4estMesh3DParabolic
 ] tags=[:mpi, :mpi_skip_windows] begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                    "elixir_navierstokes_taylor_green_vortex.jl"),
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_navierstokes_taylor_green_vortex.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.25),
                             surface_flux=FluxHLL(min_max_speed_naive),
                             l2=[
@@ -35,7 +35,7 @@ end
     MPIP4estMesh3DParabolic
 ] tags=[:mpi, :mpi_skip_windows] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                    "elixir_navierstokes_freestream_boundaries.jl"),
+                                 "elixir_navierstokes_freestream_boundaries.jl"),
                         tspan=(0.0, 0.1),
                         l2=[
                             1.050376383380673e-16,
