@@ -171,8 +171,8 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DGSEM)
-
     @assert nmpimortars(dg, cache)==0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+
     return nothing
 end
 
@@ -182,8 +182,8 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,
                                           dg::DG, parabolic_scheme, cache)
-
     @assert nmpimortars(dg, cache)==0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+
     return nothing
 end
 
@@ -194,6 +194,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DG, parabolic_scheme, cache)
     @assert nmpimortars(dg, cache)==0 "Mortars are not yet implemented for 3D parabolic p4est simulations"
+
     return nothing
 end
 
