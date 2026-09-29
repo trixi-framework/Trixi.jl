@@ -659,6 +659,144 @@ end
     @test isnothing(display(c3d))
 end
 
+@testitem "Unit: TreeMesh nonconservative mortar fluxes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # On the same Cartesian, nonconforming mesh, the DGSEM discretizations on
+    # `TreeMesh` and `P4estMesh` coincide. We compare their right-hand sides for
+    # element-wise discontinuous data such that the nonconservative surface terms
+    # at the mortars do not vanish. Since the domain is periodic and only the
+    # element at the origin is refined, there are mortars with the large element
+    # on the left and on the right side in each coordinate direction.
+    function max_rhs_difference(mesh_tree, mesh_p4est, equations, solver, func)
+        results = map((mesh_tree, mesh_p4est)) do mesh
+            semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                initial_condition_constant, solver;
+                                                boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi)
+            u = Trixi.wrap_array(u_ode, semi)
+            (; node_coordinates) = semi.cache.elements
+            ndims_ = ndims(mesh)
+            node_indices = CartesianIndices(ntuple(_ -> Trixi.nnodes(solver), ndims_))
+            for element in Trixi.eachelement(solver, semi.cache)
+                # The element center is used to make the data discontinuous
+                x_center = SVector(ntuple(d -> sum(node_coordinates[d, Tuple(I)...,
+                                                                    element]
+                                                   for I in node_indices) /
+                                               length(node_indices), ndims_))
+                for I in node_indices
+                    x = SVector(ntuple(d -> node_coordinates[d, Tuple(I)..., element],
+                                       ndims_))
+                    u[:, Tuple(I)..., element] .= func(x, x_center, equations)
+                end
+            end
+            du_ode = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+            return copy(Trixi.wrap_array(du_ode, semi)), copy(node_coordinates)
+        end
+        (du_tree, x_tree), (du_p4est, x_p4est) = results
+        @test size(du_tree) == size(du_p4est)
+
+        # The element ordering differs, so we match elements by their node coordinates
+        max_difference = zero(eltype(du_tree))
+        for element_tree in axes(du_tree, ndims(du_tree))
+            x_element = selectdim(x_tree, ndims(x_tree), element_tree)
+            element_p4est = findfirst(axes(du_p4est, ndims(du_p4est))) do element
+                return isapprox(selectdim(x_p4est, ndims(x_p4est), element), x_element)
+            end
+            @test !isnothing(element_p4est)
+            max_difference = max(max_difference,
+                                 maximum(abs,
+                                         selectdim(du_tree, ndims(du_tree),
+                                                   element_tree) -
+                                         selectdim(du_p4est, ndims(du_p4est),
+                                                   element_p4est)))
+        end
+        return max_difference, maximum(abs, du_tree)
+    end
+
+    @testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations2D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2]) + h, 0.1 + h, -0.2, 0.1,
+                           1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h, 0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0), (2.0, 2.0), initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0),
+                               coordinates_max = (2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p4est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p4est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+
+    @testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations3D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2] - 2 * x_center[3])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2] - x[3]) + h, 0.1 + h, -0.2,
+                           0.1 - h, 1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h,
+                           0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0, 0.0), (2.0, 2.0, 2.0),
+                             initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0, 0.0),
+                               coordinates_max = (2.0, 2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p8est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.z == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p8est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+end
+
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     capacity = 42
     n_variables = 9

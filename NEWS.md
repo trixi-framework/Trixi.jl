@@ -54,6 +54,11 @@ for human readability.
   fluxes of the large elements at mortars were computed with the wrong normal direction
   and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
   (e.g., with AMR) change.
+- Fixes a bug in the nonconservative surface terms at mortars of `TreeMesh2D`s and
+  `TreeMesh3D`s: The nonconservative fluxes of the small and the large elements were
+  swapped, i.e., each element received the nonconservative term of its neighbor.
+  Thus, results of simulations with nonconservative terms (e.g., ideal GLM-MHD with
+  `flux_nonconservative_powell`) on nonconforming `TreeMesh`es (e.g., with AMR) change.
 
 
 ## Changes when updating to v0.17 from v0.16.x
