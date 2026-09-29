@@ -20,7 +20,7 @@ end
 initial_condition = initial_condition_density_wave_high_density
 initial_condition = initial_condition_density_wave
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -30,7 +30,11 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
-                                max_iterations_newton = 50)
+                                # local_twosided_variables_cons = ["rho"],
+                                # local_onesided_variables_nonlinear = [(entropy_guermond_etal,
+                                #                                        min)],
+                                max_iterations_newton = 50,
+                                bar_states = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -70,7 +74,7 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-stepsize_callback = StepsizeCallback(cfl = 0.7)
+stepsize_callback = StepsizeCallback(cfl = 0.95, bar_states = true)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
