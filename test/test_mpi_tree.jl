@@ -45,6 +45,27 @@ end
                         linf=[0.008446655719187679])
 end
 
+@testitem "TreeMesh MPI 2D: check_axes" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    # Refine the upper half of the domain to get MPI mortars for 2 and 3 MPI ranks
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
+                        refinement_patches=((type = "box",
+                                             coordinates_min = (-1.0, 0.0),
+                                             coordinates_max = (1.0, 1.0)),),
+                        maxiters=1)
+    mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+    u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+    @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+    # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +, Trixi.mpi_comm()) > 0
+    for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                      cache.boundaries, cache.mortars, cache.mpi_mortars)
+        @test Trixi.check_axes(container, equations, dg, cache) === nothing
+    end
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_amr.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the serial test!
