@@ -72,13 +72,13 @@ end
 # of Trixi.jl.
 function check_axes(elements::TreeElementContainer2D, equations, solver::DG, cache)
     check_axes(elements.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(2),
                 eachnode(solver), eachnode(solver),
                 eachelement(solver, cache)))
     check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
     check_axes(elements.cell_ids, (eachelement(solver, cache),))
-    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
-                                   cache)
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(2), equations,
+                                   solver, cache)
     return nothing
 end
 
@@ -385,7 +385,7 @@ function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG, 
                 eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(2),
                 eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
@@ -698,16 +698,11 @@ function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG, cac
     check_axes(mortars.orientations, (eachmortar(solver, cache),))
 
     # Thread-local storage used for the mortar fluxes
-    threaded_values_axes = (eachvariable(equations), eachnode(solver))
-    for values in (cache.fstar_primary_upper_threaded,
-                   cache.fstar_primary_lower_threaded,
-                   cache.fstar_secondary_upper_threaded,
-                   cache.fstar_secondary_lower_threaded)
-        check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
-        for value in values
-            check_axes(value, threaded_values_axes)
-        end
-    end
+    fstar_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, fstar_axes)
     return nothing
 end
 
