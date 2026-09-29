@@ -204,7 +204,7 @@ function _precompile_manual_()
                                                                                           NNODES
                                                                                           }
         # SurfaceFluxValues, see `unsafe_wrap_storage`:
-        # [variables, i, (j,) direction, elements]
+        # [variables, i, ..., direction, elements]
         N = NDIMS + 2
         surface_flux_values_type = PtrArray{uEltype, N, ntuple(identity, N),
                                             Tuple{StaticInt{NVARS},
