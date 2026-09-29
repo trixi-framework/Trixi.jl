@@ -923,6 +923,20 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
                                                 remote_sides, _u)
 end
 
+# Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations, solver::DG,
+                    cache)
+    check_axes(mpi_interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver),
+                eachmpiinterface(solver, cache)))
+    check_axes(mpi_interfaces.local_neighbor_ids, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.orientations, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.remote_sides, (eachmpiinterface(solver, cache),))
+    return nothing
+end
+
 # Create MPI interface container and initialize MPI interface data in `elements`.
 function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
                              elements::TreeElementContainer2D)
@@ -1110,6 +1124,29 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
                                                local_neighbor_positions,
                                                large_sides, orientations,
                                                _u_upper, _u_lower)
+end
+
+# Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations, solver::DG,
+                    cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver),
+                     eachmpimortar(solver, cache))
+    check_axes(mpi_mortars.u_upper, u_mortar_axes)
+    check_axes(mpi_mortars.u_lower, u_mortar_axes)
+    check_axes(mpi_mortars.local_neighbor_ids, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.local_neighbor_positions, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.large_sides, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.orientations, (eachmpimortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes
+    fstar_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, fstar_axes)
+    return nothing
 end
 
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
