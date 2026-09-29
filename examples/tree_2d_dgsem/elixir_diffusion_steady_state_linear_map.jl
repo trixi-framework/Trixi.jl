@@ -79,7 +79,8 @@ callbacks = CallbackSet(summary_callback,
 # Choice of ODE Solver does not matter here
 using OrdinaryDiffEqLowStorageRK
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1e-4,
             ode_default_options()..., callback = callbacks);
 

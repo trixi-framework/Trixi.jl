@@ -61,8 +61,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # resolves this by redistributing cell averages to satisfy positivity constraints.
 # Note the threshold is significantly larger than implied by the initial condition
 # to stress-test the limiter.
-# 
-# For scalar equations, the projection to the admissible set assumes that 
+#
+# For scalar equations, the projection to the admissible set assumes that
 # `variables = (first,)` for the Liu-Zhang limiter.
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
                                                      variables = (first,))
@@ -72,6 +72,6 @@ global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
 sol = solve(ode,
             CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
                                  step_limiter! = global_limiter!,
-                                 williamson_condition = false);
+                                 williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

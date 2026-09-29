@@ -76,17 +76,17 @@ end
 #
 # Here, `mesh.md.FToF` is a `(num_faces_per_element × num_elements)` array where
 # `FToF[f, e]` stores the global face index of the neighbor of local face `f` on
-# element `e`. 
+# element `e`.
 #
 # Global face indices are laid out as
 #
 #   global_face_index = (element_index - 1) * num_faces + local_face_index,
-# 
+#
 # so that the element index can be recovered by integer division:
 #
 #   element_index = (global_face_index - 1) ÷ num_faces + 1.
-# 
-# For a non-periodic boundary face, `FToF[f, e]` points back to face `f` of element 
+#
+# For a non-periodic boundary face, `FToF[f, e]` points back to face `f` of element
 # `e` itself, so boundary elements are listed as their own neighbor.
 function build_element_to_element_connectivity(mesh::DGMultiMesh, dg::DGMulti)
     face_to_face_connectivity = mesh.md.FToF
@@ -129,7 +129,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
-    # this calls the `create_cache` for the shock capturing volume integral                          
+    # this calls the `create_cache` for the shock capturing volume integral
     volume_integral_cache = create_cache(mesh, equations, dg.volume_integral,
                                          dg, RealT, uEltype)
 
@@ -291,13 +291,13 @@ end
 # where ref_entries[d] = Qrst_skew[d][i,j].
 # This fuses the NDIMS per-dimension flux
 # evaluations of the old dimension-by-dimension loop into a single evaluation per pair.
-# Essentially, instead of calculating 
+# Essentially, instead of calculating
 #   volume_flux(u_i, u_j, 1, equations) * Qx[i, j] + volume_flux(u_i, u_j, 2, equations) * Qy[i, j] + ...
 # where Qx[i, j] = dr/dx * Qr[i, j] + ds/dx * Qs[i, j], we can expand out and evaluate
-#   volume_flux(u_i, u_j, [dr/dx, dr/dy] * Qr[i, j], equations) + 
+#   volume_flux(u_i, u_j, [dr/dx, dr/dy] * Qr[i, j], equations) +
 #   volume_flux(u_i, u_j, [ds/dx, ds/dy] * Qs[i, j], equations)
-# which is slightly faster. 
-# 
+# which is slightly faster.
+#
 # For dense operators (SBP on Line/Tri/Tet), we do not use this sum factorization trick.
 @inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::False,
@@ -350,9 +350,9 @@ end
                 du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
             end
             # Non-conservative terms use the full (non-symmetric) loop.
-            # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
-            # fluxes based on the interpretation of global SBP operators.  
-            # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+            # The 0.5f0 factor on the normal direction is necessary for the nonconservative
+            # fluxes based on the interpretation of global SBP operators.
+            # See also `calc_interface_flux!` with `have_nonconservative_terms::True`
             # in src/solvers/dgsem_tree/dg_1d.jl
             f_nc = flux_nonconservative(u_i, u_local[j], 0.5f0 * normal_direction,
                                         equations)
@@ -426,9 +426,9 @@ end
                     du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
-                # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
-                # fluxes based on the interpretation of global SBP operators.  
-                # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+                # The 0.5f0 factor on the normal direction is necessary for the nonconservative
+                # fluxes based on the interpretation of global SBP operators.
+                # See also `calc_interface_flux!` with `have_nonconservative_terms::True`
                 # in src/solvers/dgsem_tree/dg_1d.jl
                 f_nc = flux_nonconservative(u_i, u_j, 0.5f0 * normal_direction_ij,
                                             equations)

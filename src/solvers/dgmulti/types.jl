@@ -48,6 +48,16 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
+# `DGMulti` solvers based on 1D SBP derivative operators from
+# SummationByPartsOperators.jl, which are used in a tensor product fashion
+const DGMultiFDSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
+                                                   SurfaceIntegral,
+                                                   VolumeIntegral} where {NDIMS, ElemType,
+                                                                          ApproxType <:
+                                                                          AbstractDerivativeOperator,
+                                                                          SurfaceIntegral,
+                                                                          VolumeIntegral}
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -59,6 +69,15 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
 polydeg(dg::DGMulti) = dg.basis.N
 function Base.summary(io::IO, dg::DG) where {DG <: DGMulti}
     print(io, "DGMulti(polydeg=$(polydeg(dg)))")
+    return nothing
+end
+
+# For SBP operators from SummationByPartsOperators.jl, `polydeg(dg)` is the accuracy
+# order of the derivative operator and not the degree of a polynomial ansatz, so
+# printing it as `polydeg` is misleading. Instead, we print a summary of the derivative
+# operator itself, as done for the `FDSBP` solver on tree-type meshes.
+function Base.summary(io::IO, dg::DG) where {DG <: DGMultiFDSBP}
+    print(io, "DGMulti(", summary(dg.basis.approximation_type), ")")
     return nothing
 end
 

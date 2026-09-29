@@ -144,7 +144,7 @@ function max_dt(u, t, mesh::StructuredMesh{1},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-# Note: `max_dt` is not implemented for `StructuredMesh{1}` and `equations_parabolic` since 
+# Note: `max_dt` is not implemented for `StructuredMesh{1}` and `equations_parabolic` since
 # for the `StructuredMesh` type there is no support of parabolic terms (yet), see the overview in the docs:
 # https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations
 

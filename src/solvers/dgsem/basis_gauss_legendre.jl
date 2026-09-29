@@ -105,7 +105,7 @@ end
     eachnode(basis::GaussLegendreBasis)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `basis`. 
+for the nodes in `basis`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(basis::GaussLegendreBasis) = Base.OneTo(nnodes(basis))
@@ -283,7 +283,7 @@ end
     eachnode(analyzer::GaussLegendreAnalyzer)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `analyzer`. 
+for the nodes in `analyzer`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(analyzer::GaussLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))

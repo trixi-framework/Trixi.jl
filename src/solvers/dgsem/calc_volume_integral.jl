@@ -8,10 +8,11 @@
 # The following `volume_integral_kernel!` and `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralWeakForm,
-                                         dg, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralWeakForm,
+                                                          dg, cache, alpha = true)
     weak_form_kernel!(du, u, element, MeshT,
                       have_nonconservative_terms, equations,
                       dg, cache, alpha)
@@ -19,10 +20,11 @@
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralFluxDifferencing,
-                                         dg, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralFluxDifferencing,
+                                                          dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
 
     flux_differencing_kernel!(du, u, element, MeshT,
@@ -109,16 +111,16 @@ end
     @unpack alpha = indicator.cache
     du_element_threaded = indicator.cache.volume_integral_values_threaded
 
-    # run default volume integral 
+    # run default volume integral
     volume_integral_kernel!(du, u, element, MeshT,
                             have_nonconservative_terms, equations,
                             volume_integral_default, dg, cache)
 
-    # Check entropy production of "high order" volume integral. 
-    # 
+    # Check entropy production of "high order" volume integral.
+    #
     # Note that, for `TreeMesh`, `dS_volume_integral` and `dS_true` are calculated
     # on the reference element. For other mesh types, because ``dS_volume_integral`
-    # incorporates the scaled contravariant vectors, `dS_true` should 
+    # incorporates the scaled contravariant vectors, `dS_true` should
     # be calculated on the physical element instead.
     #
     # Minus sign because of the flipped sign of the volume term in the DG RHS.
@@ -132,8 +134,8 @@ end
     dS_true = surface_integral_reference_element(entropy_potential, u, element,
                                                  MeshT, equations, dg, cache)
 
-    # This quantity should be ≤ 0 for an entropy stable volume integral, and 
-    # exactly zero for an entropy conservative volume integral. 
+    # This quantity should be ≤ 0 for an entropy stable volume integral, and
+    # exactly zero for an entropy conservative volume integral.
     entropy_residual = dS_volume_integral - dS_true
 
     if entropy_residual > 0
@@ -141,7 +143,7 @@ end
         du_FD_element = du_element_threaded[Threads.threadid()]
         @views du_FD_element .= du[.., element]
 
-        # Reset pure flux-differencing volume integral 
+        # Reset pure flux-differencing volume integral
         # Note that this assumes that the volume terms are computed first,
         # before any surface terms are added.
         du[.., element] .= zero(eltype(du))
@@ -158,18 +160,18 @@ end
                                                                           cache)
 
         # Calculate difference between high and low order FV entropy production;
-        # this should provide positive entropy dissipation if `entropy_residual > 0`, 
+        # this should provide positive entropy dissipation if `entropy_residual > 0`,
         # assuming the stabilized volume integral is entropy stable.
         entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
-        # Calculate DG-FV blending factor 
+        # Calculate DG-FV blending factor
         ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
         alpha_element = min(1, scaling * ratio) # TODO: replacing this with a differentiable version of `min`
 
         # Save blending coefficient for visualization
         alpha[element] = alpha_element
 
-        # Blend the high order method back in 
+        # Blend the high order method back in
         @views du[.., element] .= alpha_element .* du[.., element] .+
                                   (1 - alpha_element) .* du_FD_element
     end
@@ -180,11 +182,20 @@ end
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    # We explicitly check whether the input arrays have the assumed sizes so
+    # that we can use `@inbounds` below to improve the performance.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, equations,
-                                volume_integral, dg, cache)
+        @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                          have_nonconservative_terms, equations,
+                                          volume_integral, dg, cache)
     end
 
     return nothing
@@ -200,8 +211,8 @@ end
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
                                                         dg, cache)
 
-    # These tolerances for "active" shock capturing alpha values are copied 
-    # from the `calc_volume_integral!` implementation for 
+    # These tolerances for "active" shock capturing alpha values are copied
+    # from the `calc_volume_integral!` implementation for
     # `VolumeIntegralShockCapturingHGType`
 
     # For `Float64`, this gives 1.8189894035458565e-12
@@ -349,24 +360,24 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                                                               cache)
 
             # Calculate difference between high and low order FV entropy production;
-            # this should provide positive entropy dissipation if `entropy_residual > 0`, 
+            # this should provide positive entropy dissipation if `entropy_residual > 0`,
             # assuming the stabilized volume integral is entropy stable.
             entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
-            # Calculate DG-FV blending factor as the maximum between the entropy correction 
-            # indicator and shock capturing indicator. 
+            # Calculate DG-FV blending factor as the maximum between the entropy correction
+            # indicator and shock capturing indicator.
             # TODO: replace this with a differentiable version of `max` and `min`
 
-            # max(0, entropy_residual) avoids activating entropy correction if 
+            # max(0, entropy_residual) avoids activating entropy correction if
             # shock capturing is active but there is no entropy violation.
             ratio = regularized_ratio(-max(0, entropy_residual), entropy_dissipation)
             alpha_element = max(alpha_shock_capturing_element, min(1, scaling * ratio))
 
-            # Save blending coefficient for visualization. Note that we overwrite the data 
-            # in `alpha_shock_capturing[element]`. 
+            # Save blending coefficient for visualization. Note that we overwrite the data
+            # in `alpha_shock_capturing[element]`.
             alpha_shock_capturing[element] = alpha_element
 
-            # Blend the high order method back in 
+            # Blend the high order method back in
             @views du[.., element] .= alpha_element .* du[.., element] .+
                                       (1 - alpha_element) .* du_FD_element
         end
