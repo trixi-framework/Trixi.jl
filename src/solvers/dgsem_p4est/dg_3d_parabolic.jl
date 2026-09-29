@@ -11,14 +11,16 @@
 # contravariant vectors) along large/small elements across a non-conforming
 # interface in 2D) and flip the sign when storing the mortar fluxes back
 # into `surface_flux_values`.
-@inline function mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                                     mesh::P4estMesh{3},
-                                                     equations_parabolic::AbstractEquationsParabolic,
-                                                     mortar_l2::LobattoLegendreMortarL2,
-                                                     dg::DGSEM, cache, mortar,
-                                                     fstar_primary,
-                                                     fstar_secondary, u_buffer,
-                                                     fstar_tmp)
+Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                                      mesh::P4estMesh{3},
+                                                                      equations_parabolic::AbstractEquationsParabolic,
+                                                                      mortar_l2::LobattoLegendreMortarL2,
+                                                                      dg::DGSEM, cache,
+                                                                      mortar,
+                                                                      fstar_primary,
+                                                                      fstar_secondary,
+                                                                      u_buffer,
+                                                                      fstar_tmp)
     @unpack neighbor_ids, node_indices = cache.mortars
     index_range = eachnode(dg)
     # Copy solution small to small
@@ -29,10 +31,8 @@
         element = neighbor_ids[position, mortar]
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v,
-                                                                                       i,
-                                                                                       j,
-                                                                                       position]
+                surface_flux_values[v, i, j,
+                small_direction, element] = fstar_primary[v, i, j, position]
             end
         end
     end
@@ -72,9 +72,8 @@
     for j in eachnode(dg)
         for i in eachnode(dg)
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, i_large, j_large, large_direction, large_element] = u_buffer[v,
-                                                                                                    i,
-                                                                                                    j]
+                surface_flux_values[v, i_large, j_large,
+                large_direction, large_element] = u_buffer[v, i, j]
             end
             i_large += i_large_step_i
             j_large += j_large_step_i
@@ -94,69 +93,81 @@ function calc_interface_flux_gradient!(surface_flux_values,
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        # Get element and side information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
+        @inbounds begin
+            # Get element and side information on the primary element
+            primary_element = neighbor_ids[1, interface]
+            primary_indices = node_indices[1, interface]
+            primary_direction = indices2direction(primary_indices)
 
-        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
-                                                                                     index_range)
-        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
-                                                                                     index_range)
-        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
-                                                                                     index_range)
+            i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                         index_range)
+            j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                         index_range)
+            k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        k_primary = k_primary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            k_primary = k_primary_start
 
-        # Get element and side information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
-        secondary_surface_indices = surface_indices(secondary_indices)
+            # Get element and side information on the secondary element
+            secondary_element = neighbor_ids[2, interface]
+            secondary_indices = node_indices[2, interface]
+            secondary_direction = indices2direction(secondary_indices)
+            secondary_surface_indices = surface_indices(secondary_indices)
 
-        # Get the surface indexing on the secondary element.
-        # Note that the indices of the primary side will always run forward but
-        # the secondary indices might need to run backwards for flipped sides.
-        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
-                                                                                           index_range)
-        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
-                                                                                           index_range)
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            # Get the surface indexing on the secondary element.
+            # Note that the indices of the primary side will always run forward but
+            # the secondary indices might need to run backwards for flipped sides.
+            i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                               index_range)
+            j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                               index_range)
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
 
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                normal_direction = get_normal_direction(primary_direction,
-                                                        contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
-                                                        primary_element)
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            i_primary, j_primary,
+                                                            k_primary,
+                                                            primary_element)
 
-                calc_interface_flux_gradient!(surface_flux_values, mesh,
-                                              equations_parabolic,
-                                              dg, parabolic_scheme, cache,
-                                              interface, normal_direction, i, j,
-                                              primary_direction, primary_element,
-                                              i_secondary, j_secondary,
-                                              secondary_direction, secondary_element)
+                    calc_interface_flux_gradient!(surface_flux_values, mesh,
+                                                  equations_parabolic,
+                                                  dg, parabolic_scheme, cache,
+                                                  interface, normal_direction, i, j,
+                                                  primary_direction, primary_element,
+                                                  i_secondary, j_secondary,
+                                                  secondary_direction,
+                                                  secondary_element)
 
+                    # Increment the primary element indices
+                    i_primary += i_primary_step_i
+                    j_primary += j_primary_step_i
+                    k_primary += k_primary_step_i
+                    # Increment the secondary element surface indices
+                    i_secondary += i_secondary_step_i
+                    j_secondary += j_secondary_step_i
+                end
                 # Increment the primary element indices
-                i_primary += i_primary_step_i
-                j_primary += j_primary_step_i
-                k_primary += k_primary_step_i
+                i_primary += i_primary_step_j
+                j_primary += j_primary_step_j
+                k_primary += k_primary_step_j
                 # Increment the secondary element surface indices
-                i_secondary += i_secondary_step_i
-                j_secondary += j_secondary_step_i
+                i_secondary += i_secondary_step_j
+                j_secondary += j_secondary_step_j
             end
-            # Increment the primary element indices
-            i_primary += i_primary_step_j
-            j_primary += j_primary_step_j
-            k_primary += k_primary_step_j
-            # Increment the secondary element surface indices
-            i_secondary += i_secondary_step_j
-            j_secondary += j_secondary_step_j
         end
     end
 
@@ -164,18 +175,22 @@ function calc_interface_flux_gradient!(surface_flux_values,
 end
 
 # This version is used for parabolic gradient computations
-@inline function calc_interface_flux_gradient!(surface_flux_values, mesh::P4estMesh{3},
-                                               equations_parabolic,
-                                               dg::DG, parabolic_scheme, cache,
-                                               interface_index, normal_direction,
-                                               primary_i_node_index,
-                                               primary_j_node_index,
-                                               primary_direction_index,
-                                               primary_element_index,
-                                               secondary_i_node_index,
-                                               secondary_j_node_index,
-                                               secondary_direction_index,
-                                               secondary_element_index)
+Base.@propagate_inbounds function calc_interface_flux_gradient!(surface_flux_values,
+                                                                mesh::P4estMesh{3},
+                                                                equations_parabolic,
+                                                                dg::DG,
+                                                                parabolic_scheme,
+                                                                cache,
+                                                                interface_index,
+                                                                normal_direction,
+                                                                primary_i_node_index,
+                                                                primary_j_node_index,
+                                                                primary_direction_index,
+                                                                primary_element_index,
+                                                                secondary_i_node_index,
+                                                                secondary_j_node_index,
+                                                                secondary_direction_index,
+                                                                secondary_element_index)
     @unpack u = cache.interfaces
 
     u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
@@ -186,10 +201,12 @@ end
                            equations_parabolic, parabolic_scheme)
 
     for v in eachvariable(equations_parabolic)
-        surface_flux_values[v, primary_i_node_index, primary_j_node_index, primary_direction_index, primary_element_index] = flux_[v]
+        surface_flux_values[v, primary_i_node_index, primary_j_node_index,
+        primary_direction_index, primary_element_index] = flux_[v]
         # No sign flip required for gradient calculation because for parabolic terms,
         # the normals are not embedded in `flux_` for gradient computations.
-        surface_flux_values[v, secondary_i_node_index, secondary_j_node_index, secondary_direction_index, secondary_element_index] = flux_[v]
+        surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
+        secondary_direction_index, secondary_element_index] = flux_[v]
     end
 
     return nothing
@@ -205,47 +222,61 @@ function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{3},
     (; contravariant_vectors) = cache.elements
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        # Calculate volume terms in one element
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
-                                  i, j, k, element)
-            flux2 = get_node_vars(flux_parabolic_y, equations_parabolic, dg,
-                                  i, j, k, element)
-            flux3 = get_node_vars(flux_parabolic_z, equations_parabolic, dg,
-                                  i, j, k, element)
+        @inbounds begin
+            # Calculate volume terms in one element
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
+                                      i, j, k, element)
+                flux2 = get_node_vars(flux_parabolic_y, equations_parabolic, dg,
+                                      i, j, k, element)
+                flux3 = get_node_vars(flux_parabolic_z, equations_parabolic, dg,
+                                      i, j, k, element)
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # first contravariant vector Ja^1 and the flux vector
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
-                                                        i, j, k, element)
-            contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[ii, i],
-                                           contravariant_flux1,
-                                           equations_parabolic, dg, ii, j, k, element)
-            end
+                # Compute the contravariant flux by taking the scalar product of the
+                # first contravariant vector Ja^1 and the flux vector
+                Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                            i, j, k, element)
+                contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+                for ii in eachnode(dg)
+                    multiply_add_to_node_vars!(du, derivative_hat[ii, i],
+                                               contravariant_flux1,
+                                               equations_parabolic, dg,
+                                               ii, j, k, element)
+                end
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # second contravariant vector Ja^2 and the flux vector
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
-                                                        i, j, k, element)
-            contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-            for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[jj, j],
-                                           contravariant_flux2,
-                                           equations_parabolic, dg, i, jj, k, element)
-            end
+                # Compute the contravariant flux by taking the scalar product of the
+                # second contravariant vector Ja^2 and the flux vector
+                Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                            i, j, k, element)
+                contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+                for jj in eachnode(dg)
+                    multiply_add_to_node_vars!(du, derivative_hat[jj, j],
+                                               contravariant_flux2,
+                                               equations_parabolic, dg,
+                                               i, jj, k, element)
+                end
 
-            # Compute the contravariant flux by taking the scalar product of the
-            # second contravariant vector Ja^2 and the flux vector
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
-                                                        i, j, k, element)
-            contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-            for kk in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[kk, k],
-                                           contravariant_flux3,
-                                           equations_parabolic, dg, i, j, kk, element)
+                # Compute the contravariant flux by taking the scalar product of the
+                # second contravariant vector Ja^2 and the flux vector
+                Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                            i, j, k, element)
+                contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
+                for kk in eachnode(dg)
+                    multiply_add_to_node_vars!(du, derivative_hat[kk, k],
+                                               contravariant_flux3,
+                                               equations_parabolic, dg,
+                                               i, j, kk, element)
+                end
             end
         end
     end
@@ -255,7 +286,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::P4estMesh{3},
@@ -266,122 +297,130 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     index_range = eachnode(dg)
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(interfaces, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        # Copy solution data from the primary element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        # Note that in the current implementation, the interface will be
-        # "aligned at the primary element", i.e., the index of the primary side
-        # will always run forwards.
-        primary_element = interfaces.neighbor_ids[1, interface]
-        primary_indices = interfaces.node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
+        @inbounds begin
+            # Copy solution data from the primary element using "delayed indexing" with
+            # a start value and a step size to get the correct face and orientation.
+            # Note that in the current implementation, the interface will be
+            # "aligned at the primary element", i.e., the index of the primary side
+            # will always run forwards.
+            primary_element = interfaces.neighbor_ids[1, interface]
+            primary_indices = interfaces.node_indices[1, interface]
+            primary_direction = indices2direction(primary_indices)
 
-        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
-                                                                                     index_range)
-        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
-                                                                                     index_range)
-        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
-                                                                                     index_range)
+            i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                         index_range)
+            j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                         index_range)
+            k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        k_primary = k_primary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            k_primary = k_primary_start
 
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # this is the outward normal direction on the primary element
-                normal_direction = get_normal_direction(primary_direction,
-                                                        contravariant_vectors,
-                                                        i_primary, j_primary,
-                                                        k_primary,
-                                                        primary_element)
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    # this is the outward normal direction on the primary element
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            i_primary, j_primary,
+                                                            k_primary,
+                                                            primary_element)
 
-                for v in eachvariable(equations_parabolic)
-                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic = SVector(flux_parabolic_x[v,
-                                                              i_primary,
-                                                              j_primary,
-                                                              k_primary,
-                                                              primary_element],
-                                             flux_parabolic_y[v,
-                                                              i_primary,
-                                                              j_primary,
-                                                              k_primary,
-                                                              primary_element],
-                                             flux_parabolic_z[v,
-                                                              i_primary,
-                                                              j_primary,
-                                                              k_primary,
-                                                              primary_element])
+                    for v in eachvariable(equations_parabolic)
+                        # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                        flux_parabolic = SVector(flux_parabolic_x[v,
+                                                                  i_primary, j_primary,
+                                                                  k_primary,
+                                                                  primary_element],
+                                                 flux_parabolic_y[v,
+                                                                  i_primary, j_primary,
+                                                                  k_primary,
+                                                                  primary_element],
+                                                 flux_parabolic_z[v,
+                                                                  i_primary, j_primary,
+                                                                  k_primary,
+                                                                  primary_element])
 
-                    interfaces.u[1, v, i, j, interface] = dot(flux_parabolic,
-                                                              normal_direction)
+                        interfaces.u[1, v, i, j, interface] = dot(flux_parabolic,
+                                                                  normal_direction)
+                    end
+                    i_primary += i_primary_step_i
+                    j_primary += j_primary_step_i
+                    k_primary += k_primary_step_i
                 end
-                i_primary += i_primary_step_i
-                j_primary += j_primary_step_i
-                k_primary += k_primary_step_i
+                i_primary += i_primary_step_j
+                j_primary += j_primary_step_j
+                k_primary += k_primary_step_j
             end
-            i_primary += i_primary_step_j
-            j_primary += j_primary_step_j
-            k_primary += k_primary_step_j
-        end
 
-        # Copy solution data from the secondary element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        secondary_element = interfaces.neighbor_ids[2, interface]
-        secondary_indices = interfaces.node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
+            # Copy solution data from the secondary element using "delayed indexing" with
+            # a start value and a step size to get the correct face and orientation.
+            secondary_element = interfaces.neighbor_ids[2, interface]
+            secondary_indices = interfaces.node_indices[2, interface]
+            secondary_direction = indices2direction(secondary_indices)
 
-        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
-                                                                                           index_range)
-        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
-                                                                                           index_range)
-        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
-                                                                                           index_range)
+            i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                               index_range)
+            j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                               index_range)
+            k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                               index_range)
 
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
-        k_secondary = k_secondary_start
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # This is the outward normal direction on the secondary element.
-                # Here, we assume that normal_direction on the secondary element is
-                # the negative of normal_direction on the primary element.
-                normal_direction = get_normal_direction(secondary_direction,
-                                                        contravariant_vectors,
-                                                        i_secondary, j_secondary,
-                                                        k_secondary,
-                                                        secondary_element)
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
+            k_secondary = k_secondary_start
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    # This is the outward normal direction on the secondary element.
+                    # Here, we assume that normal_direction on the secondary element is
+                    # the negative of normal_direction on the primary element.
+                    normal_direction = get_normal_direction(secondary_direction,
+                                                            contravariant_vectors,
+                                                            i_secondary, j_secondary,
+                                                            k_secondary,
+                                                            secondary_element)
 
-                for v in eachvariable(equations_parabolic)
-                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic = SVector(flux_parabolic_x[v,
-                                                              i_secondary,
-                                                              j_secondary,
-                                                              k_secondary,
-                                                              secondary_element],
-                                             flux_parabolic_y[v,
-                                                              i_secondary,
-                                                              j_secondary,
-                                                              k_secondary,
-                                                              secondary_element],
-                                             flux_parabolic_z[v,
-                                                              i_secondary,
-                                                              j_secondary,
-                                                              k_secondary,
-                                                              secondary_element])
-                    # store the normal flux with respect to the primary normal direction,
-                    # which is the negative of the secondary normal direction
-                    interfaces.u[2, v, i, j, interface] = -dot(flux_parabolic,
-                                                               normal_direction)
+                    for v in eachvariable(equations_parabolic)
+                        # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                        flux_parabolic = SVector(flux_parabolic_x[v,
+                                                                  i_secondary,
+                                                                  j_secondary,
+                                                                  k_secondary,
+                                                                  secondary_element],
+                                                 flux_parabolic_y[v,
+                                                                  i_secondary,
+                                                                  j_secondary,
+                                                                  k_secondary,
+                                                                  secondary_element],
+                                                 flux_parabolic_z[v,
+                                                                  i_secondary,
+                                                                  j_secondary,
+                                                                  k_secondary,
+                                                                  secondary_element])
+                        # store the normal flux with respect to the primary normal direction,
+                        # which is the negative of the secondary normal direction
+                        interfaces.u[2, v, i, j, interface] = -dot(flux_parabolic,
+                                                                   normal_direction)
+                    end
+                    i_secondary += i_secondary_step_i
+                    j_secondary += j_secondary_step_i
+                    k_secondary += k_secondary_step_i
                 end
-                i_secondary += i_secondary_step_i
-                j_secondary += j_secondary_step_i
-                k_secondary += k_secondary_step_i
+                i_secondary += i_secondary_step_j
+                j_secondary += j_secondary_step_j
+                k_secondary += k_secondary_step_j
             end
-            i_secondary += i_secondary_step_j
-            j_secondary += j_secondary_step_j
-            k_secondary += k_secondary_step_j
         end
     end
 
@@ -396,84 +435,97 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction_index = indices2direction(primary_indices)
+        @inbounds begin
+            # Get element and side index information on the primary element
+            primary_element = neighbor_ids[1, interface]
+            primary_indices = node_indices[1, interface]
+            primary_direction_index = indices2direction(primary_indices)
 
-        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
-                                                                                     index_range)
-        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
-                                                                                     index_range)
-        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
-                                                                                     index_range)
+            i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                         index_range)
+            j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                         index_range)
+            k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        k_primary = k_primary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            k_primary = k_primary_start
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction_index = indices2direction(secondary_indices)
-        secondary_surface_indices = surface_indices(secondary_indices)
+            # Get element and side index information on the secondary element
+            secondary_element = neighbor_ids[2, interface]
+            secondary_indices = node_indices[2, interface]
+            secondary_direction_index = indices2direction(secondary_indices)
+            secondary_surface_indices = surface_indices(secondary_indices)
 
-        # Initiate the secondary index to be used in the surface for loop.
-        # This index on the primary side will always run forward but
-        # the secondary index might need to run backwards for flipped sides.
-        # Get the surface indexing on the secondary element.
-        # Note that the indices of the primary side will always run forward but
-        # the secondary indices might need to run backwards for flipped sides.
-        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
-                                                                                           index_range)
-        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
-                                                                                           index_range)
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            # Initiate the secondary index to be used in the surface for loop.
+            # This index on the primary side will always run forward but
+            # the secondary index might need to run backwards for flipped sides.
+            # Get the surface indexing on the secondary element.
+            # Note that the indices of the primary side will always run forward but
+            # the secondary indices might need to run backwards for flipped sides.
+            i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                               index_range)
+            j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                               index_range)
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
 
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                normal_direction = get_normal_direction(primary_direction_index,
-                                                        contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
-                                                        primary_element)
-                # We prolong the parabolic flux dotted with respect the outward normal on the
-                # primary element.
-                parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
-                                                                                           equations_parabolic,
-                                                                                           dg,
-                                                                                           i,
-                                                                                           j,
-                                                                                           interface)
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(primary_direction_index,
+                                                            contravariant_vectors,
+                                                            i_primary, j_primary,
+                                                            k_primary,
+                                                            primary_element)
+                    # We prolong the parabolic flux dotted with respect the outward normal on the
+                    # primary element.
+                    parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
+                                                                                               equations_parabolic,
+                                                                                               dg,
+                                                                                               i,
+                                                                                               j,
+                                                                                               interface)
 
-                flux_ = flux_parabolic(parabolic_flux_normal_ll,
-                                       parabolic_flux_normal_rr,
-                                       normal_direction, Divergence(),
-                                       equations_parabolic, parabolic_scheme)
+                    flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                           parabolic_flux_normal_rr,
+                                           normal_direction, Divergence(),
+                                           equations_parabolic, parabolic_scheme)
 
-                for v in eachvariable(equations_parabolic)
-                    surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux_[v]
-                    # Sign flip required for divergence calculation since the flux for the
-                    # divergence involves the normal direction.
-                    surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux_[v]
+                    for v in eachvariable(equations_parabolic)
+                        surface_flux_values[v, i, j,
+                        primary_direction_index, primary_element] = flux_[v]
+                        # Sign flip required for divergence calculation since the flux for the
+                        # divergence involves the normal direction.
+                        surface_flux_values[v, i_secondary, j_secondary,
+                        secondary_direction_index, secondary_element] = -flux_[v]
+                    end
+
+                    # Increment the primary element indices
+                    i_primary += i_primary_step_i
+                    j_primary += j_primary_step_i
+                    k_primary += k_primary_step_i
+                    # Increment the secondary element surface indices
+                    i_secondary += i_secondary_step_i
+                    j_secondary += j_secondary_step_i
                 end
-
                 # Increment the primary element indices
-                i_primary += i_primary_step_i
-                j_primary += j_primary_step_i
-                k_primary += k_primary_step_i
+                i_primary += i_primary_step_j
+                j_primary += j_primary_step_j
+                k_primary += k_primary_step_j
                 # Increment the secondary element surface indices
-                i_secondary += i_secondary_step_i
-                j_secondary += j_secondary_step_i
+                i_secondary += i_secondary_step_j
+                j_secondary += j_secondary_step_j
             end
-            # Increment the primary element indices
-            i_primary += i_primary_step_j
-            j_primary += j_primary_step_j
-            k_primary += k_primary_step_j
-            # Increment the secondary element surface indices
-            i_secondary += i_secondary_step_j
-            j_secondary += j_secondary_step_j
         end
     end
 
@@ -491,130 +543,146 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.mortars, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for mortar in eachmortar(dg, cache)
-        # Copy solution data from the small elements using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        small_indices = node_indices[1, mortar]
-        direction_index = indices2direction(small_indices)
+        @inbounds begin
+            # Copy solution data from the small elements using "delayed indexing" with
+            # a start value and a step size to get the correct face and orientation.
+            small_indices = node_indices[1, mortar]
+            direction_index = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                                               index_range)
-        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                                               index_range)
-        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                                               index_range)
+            i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                                   index_range)
+            j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                                   index_range)
+            k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                                   index_range)
 
-        for position in 1:4 # Loop over small elements
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
+            for position in 1:4 # Loop over small elements
+                i_small = i_small_start
+                j_small = j_small_start
+                k_small = k_small_start
+                element = neighbor_ids[position, mortar]
+                for j in eachnode(dg)
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(direction_index,
+                                                                contravariant_vectors,
+                                                                i_small, j_small,
+                                                                k_small,
+                                                                element)
+
+                        for v in eachvariable(equations_parabolic)
+                            flux_parabolic = SVector(flux_parabolic_x[v,
+                                                                      i_small, j_small,
+                                                                      k_small,
+                                                                      element],
+                                                     flux_parabolic_y[v,
+                                                                      i_small, j_small,
+                                                                      k_small,
+                                                                      element],
+                                                     flux_parabolic_z[v,
+                                                                      i_small, j_small,
+                                                                      k_small,
+                                                                      element])
+
+                            cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_parabolic,
+                                                                                normal_direction)
+                        end
+                        i_small += i_small_step_i
+                        j_small += j_small_step_i
+                        k_small += k_small_step_i
+                    end
+                    i_small += i_small_step_j
+                    j_small += j_small_step_j
+                    k_small += k_small_step_j
+                end
+            end
+
+            # Buffer to copy solution values of the large element in the correct orientation
+            # before interpolating
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            # temporary buffer for projections
+            fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+
+            # Copy solution of large element face to buffer in the
+            # correct orientation
+            large_indices = node_indices[2, mortar]
+
+            i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                                   index_range)
+            j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                                   index_range)
+            k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                                   index_range)
+
+            i_large = i_large_start
+            j_large = j_large_start
+            k_large = k_large_start
+            element = neighbor_ids[5, mortar] # Large element
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(direction_index,
                                                             contravariant_vectors,
-                                                            i_small, j_small, k_small,
+                                                            i_large, j_large, k_large,
                                                             element)
 
                     for v in eachvariable(equations_parabolic)
-                        flux_parabolic = SVector(flux_parabolic_x[v, i_small, j_small,
-                                                                  k_small, element],
-                                                 flux_parabolic_y[v, i_small, j_small,
-                                                                  k_small, element],
-                                                 flux_parabolic_z[v, i_small, j_small,
-                                                                  k_small, element])
+                        flux_parabolic = SVector(flux_parabolic_x[v,
+                                                                  i_large, j_large,
+                                                                  k_large,
+                                                                  element],
+                                                 flux_parabolic_y[v,
+                                                                  i_large, j_large,
+                                                                  k_large,
+                                                                  element],
+                                                 flux_parabolic_z[v,
+                                                                  i_large, j_large,
+                                                                  k_large,
+                                                                  element])
 
-                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_parabolic,
-                                                                            normal_direction)
+                        # We prolong the parabolic flux dotted with respect the outward normal
+                        # on the small element. We scale by -1/2 here because the normal
+                        # direction on the large element is negative 2x that of the small
+                        # element (these normal directions are "scaled" by the surface Jacobian)
+                        u_buffer[v, i, j] = -0.5f0 *
+                                            dot(flux_parabolic, normal_direction)
                     end
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
+                    i_large += i_large_step_i
+                    j_large += j_large_step_i
+                    k_large += k_large_step_i
                 end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
+                i_large += i_large_step_j
+                j_large += j_large_step_j
+                k_large += k_large_step_j
             end
+
+            # Interpolate large element face data from buffer to small face locations
+            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
+                                    mortar_l2.forward_lower,
+                                    mortar_l2.forward_lower,
+                                    u_buffer, fstar_tmp)
+            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
+                                    mortar_l2.forward_upper,
+                                    mortar_l2.forward_lower,
+                                    u_buffer, fstar_tmp)
+            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
+                                    mortar_l2.forward_lower,
+                                    mortar_l2.forward_upper,
+                                    u_buffer, fstar_tmp)
+            multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
+                                    mortar_l2.forward_upper,
+                                    mortar_l2.forward_upper,
+                                    u_buffer, fstar_tmp)
         end
-
-        # Buffer to copy solution values of the large element in the correct orientation
-        # before interpolating
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        # temporary buffer for projections
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
-
-        # Copy solution of large element face to buffer in the
-        # correct orientation
-        large_indices = node_indices[2, mortar]
-
-        i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
-                                                                               index_range)
-        j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
-                                                                               index_range)
-        k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
-                                                                               index_range)
-
-        i_large = i_large_start
-        j_large = j_large_start
-        k_large = k_large_start
-        element = neighbor_ids[5, mortar] # Large element
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                normal_direction = get_normal_direction(direction_index,
-                                                        contravariant_vectors,
-                                                        i_large, j_large, k_large,
-                                                        element)
-
-                for v in eachvariable(equations_parabolic)
-                    flux_parabolic = SVector(flux_parabolic_x[v,
-                                                              i_large,
-                                                              j_large,
-                                                              k_large,
-                                                              element],
-                                             flux_parabolic_y[v,
-                                                              i_large,
-                                                              j_large,
-                                                              k_large,
-                                                              element],
-                                             flux_parabolic_z[v,
-                                                              i_large,
-                                                              j_large,
-                                                              k_large,
-                                                              element])
-
-                    # We prolong the parabolic flux dotted with respect the outward normal
-                    # on the small element. We scale by -1/2 here because the normal
-                    # direction on the large element is negative 2x that of the small
-                    # element (these normal directions are "scaled" by the surface Jacobian)
-                    u_buffer[v, i, j] = -0.5f0 * dot(flux_parabolic, normal_direction)
-                end
-                i_large += i_large_step_i
-                j_large += j_large_step_i
-                k_large += k_large_step_i
-            end
-            i_large += i_large_step_j
-            j_large += j_large_step_j
-            k_large += k_large_step_j
-        end
-
-        # Interpolate large element face data from buffer to small face locations
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_lower,
-                                u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_lower,
-                                u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_upper,
-                                u_buffer, fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_upper,
-                                u_buffer, fstar_tmp)
     end
 
     return nothing
@@ -630,68 +698,80 @@ function calc_mortar_flux_divergence!(surface_flux_values,
     @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mortars, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar = fstar_primary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        @inbounds begin
+            # Choose thread-specific pre-allocated container
+            fstar = fstar_primary_threaded[Threads.threadid()]
+            fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
+            # Get index information on the small elements
+            small_indices = node_indices[1, mortar]
+            small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                                               index_range)
-        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                                               index_range)
-        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                                               index_range)
+            i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                                   index_range)
+            j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                                   index_range)
+            k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                                   index_range)
 
-        for position in 1:4 # Loop over small elements
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    normal_direction = get_normal_direction(small_direction,
-                                                            contravariant_vectors,
-                                                            i_small, j_small, k_small,
-                                                            element)
+            for position in 1:4 # Loop over small elements
+                i_small = i_small_start
+                j_small = j_small_start
+                k_small = k_small_start
+                element = neighbor_ids[position, mortar]
+                for j in eachnode(dg)
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(small_direction,
+                                                                contravariant_vectors,
+                                                                i_small, j_small,
+                                                                k_small,
+                                                                element)
 
-                    for v in eachvariable(equations_parabolic)
-                        parabolic_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
-                                                                   mortar]
-                        parabolic_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
-                                                                   mortar]
+                        for v in eachvariable(equations_parabolic)
+                            parabolic_flux_normal_ll = cache.mortars.u[1, v, position,
+                                                                       i, j, mortar]
+                            parabolic_flux_normal_rr = cache.mortars.u[2, v, position,
+                                                                       i, j, mortar]
 
-                        flux_ = flux_parabolic(parabolic_flux_normal_ll,
-                                               parabolic_flux_normal_rr,
-                                               normal_direction, Divergence(),
-                                               equations_parabolic, parabolic_scheme)
+                            flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                                   parabolic_flux_normal_rr,
+                                                   normal_direction, Divergence(),
+                                                   equations_parabolic,
+                                                   parabolic_scheme)
 
-                        # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
-                        fstar[v, i, j, position] = flux_
+                            # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
+                            fstar[v, i, j, position] = flux_
+                        end
+
+                        i_small += i_small_step_i
+                        j_small += j_small_step_i
+                        k_small += k_small_step_i
                     end
-
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
+                    i_small += i_small_step_j
+                    j_small += j_small_step_j
+                    k_small += k_small_step_j
                 end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
             end
+
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
+            mortar_fluxes_to_elements!(surface_flux_values, mesh,
+                                       equations_parabolic, mortar_l2, dg, cache,
+                                       mortar, fstar, fstar, u_buffer,
+                                       fstar_tmp)
         end
-
-        # Buffer to interpolate flux values of the large element to before
-        # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
-        mortar_fluxes_to_elements!(surface_flux_values, mesh,
-                                   equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar, fstar, u_buffer,
-                                   fstar_tmp)
     end
 
     return nothing
@@ -706,65 +786,76 @@ function calc_mortar_flux_gradient!(surface_flux_values,
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mortars, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar_primary = fstar_primary_threaded[Threads.threadid()]
-        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        @inbounds begin
+            # Choose thread-specific pre-allocated container
+            fstar_primary = fstar_primary_threaded[Threads.threadid()]
+            fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+            fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
+            # Get index information on the small elements
+            small_indices = node_indices[1, mortar]
+            small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                                               index_range)
-        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                                               index_range)
-        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                                               index_range)
+            i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                                   index_range)
+            j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                                   index_range)
+            k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                                   index_range)
 
-        for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    normal_direction = get_normal_direction(small_direction,
-                                                            contravariant_vectors,
-                                                            i_small, j_small, k_small,
-                                                            element)
+            for position in 1:4
+                i_small = i_small_start
+                j_small = j_small_start
+                k_small = k_small_start
+                element = neighbor_ids[position, mortar]
+                for j in eachnode(dg)
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(small_direction,
+                                                                contravariant_vectors,
+                                                                i_small, j_small,
+                                                                k_small,
+                                                                element)
 
-                    calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
-                                               mesh, equations_parabolic,
-                                               dg, parabolic_scheme, cache,
-                                               mortar, position, normal_direction,
-                                               i, j)
+                        calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                                   mesh, equations_parabolic,
+                                                   dg, parabolic_scheme, cache,
+                                                   mortar, position, normal_direction,
+                                                   i, j)
 
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
+                        i_small += i_small_step_i
+                        j_small += j_small_step_i
+                        k_small += k_small_step_i
+                    end
+                    i_small += i_small_step_j
+                    j_small += j_small_step_j
+                    k_small += k_small_step_j
                 end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
             end
+
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            # in calc_interface_flux!, the interface flux is computed once over each
+            # interface using the normal from the "primary" element. The result is then
+            # passed back to the "secondary" element, flipping the sign to account for the
+            # change in the normal direction. For mortars, this sign flip occurs in
+            # "mortar_fluxes_to_elements_gradient!" instead.
+            mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                mesh, equations_parabolic, mortar_l2,
+                                                dg, cache,
+                                                mortar, fstar_primary, fstar_secondary,
+                                                u_buffer, fstar_tmp)
         end
-
-        # Buffer to interpolate flux values of the large element to before
-        # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        # in calc_interface_flux!, the interface flux is computed once over each
-        # interface using the normal from the "primary" element. The result is then
-        # passed back to the "secondary" element, flipping the sign to account for the
-        # change in the normal direction. For mortars, this sign flip occurs in
-        # "mortar_fluxes_to_elements_gradient!" instead.
-        mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                            mesh, equations_parabolic, mortar_l2,
-                                            dg, cache,
-                                            mortar, fstar_primary, fstar_secondary,
-                                            u_buffer, fstar_tmp)
     end
 
     return nothing
@@ -775,13 +866,16 @@ end
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a parabolic conservative "flux") and thus no
 # non-conservative terms are present.
-@inline function calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
-                                            mesh::P4estMesh{3},
-                                            equations_parabolic,
-                                            dg::DG, parabolic_scheme, cache,
-                                            mortar_index, position_index,
-                                            normal_direction,
-                                            i_node_index, j_node_index)
+Base.@propagate_inbounds function calc_mortar_flux_gradient!(fstar_primary,
+                                                             fstar_secondary,
+                                                             mesh::P4estMesh{3},
+                                                             equations_parabolic,
+                                                             dg::DG, parabolic_scheme,
+                                                             cache,
+                                                             mortar_index,
+                                                             position_index,
+                                                             normal_direction,
+                                                             i_node_index, j_node_index)
     @unpack u = cache.mortars
 
     u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, position_index,
@@ -808,69 +902,80 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     @unpack contravariant_vectors = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        # Calculate volume terms in one element,
-        # corresponds to `kernel` functions for the hyperbolic part of the flux
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                                   i, j, k, element)
+        @inbounds begin
+            # Calculate volume terms in one element,
+            # corresponds to `kernel` functions for the hyperbolic part of the flux
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, j, k, element)
 
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
-                                           u_node, equations_parabolic, dg,
-                                           ii, j, k, element)
+                for ii in eachnode(dg)
+                    multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
+                                               u_node, equations_parabolic, dg,
+                                               ii, j, k, element)
+                end
+
+                for jj in eachnode(dg)
+                    multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
+                                               u_node, equations_parabolic, dg,
+                                               i, jj, k, element)
+                end
+
+                for kk in eachnode(dg)
+                    multiply_add_to_node_vars!(gradients_z, derivative_hat[kk, k],
+                                               u_node, equations_parabolic, dg,
+                                               i, j, kk, element)
+                end
             end
 
-            for jj in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
-                                           u_node, equations_parabolic, dg,
-                                           i, jj, k, element)
+            # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
+            # using the contravariant vectors
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                            i, j, k, element)
+                Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                            i, j, k, element)
+                Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                            i, j, k, element)
+
+                gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic,
+                                                      dg, i, j, k, element)
+                gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic,
+                                                      dg, i, j, k, element)
+                gradients_reference_3 = get_node_vars(gradients_z, equations_parabolic,
+                                                      dg, i, j, k, element)
+
+                # note that the contravariant vectors are transposed compared with computations of flux
+                # divergences in `calc_volume_integral!`. See
+                # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
+                # for a more detailed discussion.
+                gradient_x_node = Ja11 * gradients_reference_1 +
+                                  Ja21 * gradients_reference_2 +
+                                  Ja31 * gradients_reference_3
+                gradient_y_node = Ja12 * gradients_reference_1 +
+                                  Ja22 * gradients_reference_2 +
+                                  Ja32 * gradients_reference_3
+                gradient_z_node = Ja13 * gradients_reference_1 +
+                                  Ja23 * gradients_reference_2 +
+                                  Ja33 * gradients_reference_3
+
+                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                               i, j, k, element)
+                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                               i, j, k, element)
+                set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
+                               i, j, k, element)
             end
-
-            for kk in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_z, derivative_hat[kk, k],
-                                           u_node, equations_parabolic, dg,
-                                           i, j, kk, element)
-            end
-        end
-
-        # now that the reference coordinate gradients are computed, transform them node-by-node to physical gradients
-        # using the contravariant vectors
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
-                                                        i, j, k, element)
-            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
-                                                        i, j, k, element)
-            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
-                                                        i, j, k, element)
-
-            gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic, dg,
-                                                  i, j, k, element)
-            gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic, dg,
-                                                  i, j, k, element)
-            gradients_reference_3 = get_node_vars(gradients_z, equations_parabolic, dg,
-                                                  i, j, k, element)
-
-            # note that the contravariant vectors are transposed compared with computations of flux
-            # divergences in `calc_volume_integral!`. See
-            # https://github.com/trixi-framework/Trixi.jl/pull/1490#discussion_r1213345190
-            # for a more detailed discussion.
-            gradient_x_node = Ja11 * gradients_reference_1 +
-                              Ja21 * gradients_reference_2 +
-                              Ja31 * gradients_reference_3
-            gradient_y_node = Ja12 * gradients_reference_1 +
-                              Ja22 * gradients_reference_2 +
-                              Ja32 * gradients_reference_3
-            gradient_z_node = Ja13 * gradients_reference_1 +
-                              Ja23 * gradients_reference_2 +
-                              Ja33 * gradients_reference_3
-
-            set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
-                           i, j, k, element)
-            set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
-                           i, j, k, element)
-            set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
-                           i, j, k, element)
         end
     end
 
@@ -878,7 +983,7 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
 end
 
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::P4estMesh{3},
@@ -890,49 +995,67 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(boundaries, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for boundary in eachboundary(dg, cache)
-        # Copy solution data from the element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
-        direction = indices2direction(node_indices)
+        @inbounds begin
+            # Copy solution data from the element using "delayed indexing" with
+            # a start value and a step size to get the correct face and orientation.
+            element = boundaries.neighbor_ids[boundary]
+            node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
 
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
+            i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                                index_range)
+            j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                                index_range)
+            k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                                index_range)
 
-        i_node = i_node_start
-        j_node = j_node_start
-        k_node = k_node_start
+            i_node = i_node_start
+            j_node = j_node_start
+            k_node = k_node_start
 
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # this is the outward normal direction on the primary element
-                normal_direction = get_normal_direction(direction,
-                                                        contravariant_vectors,
-                                                        i_node, j_node, k_node, element)
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    # this is the outward normal direction on the primary element
+                    normal_direction = get_normal_direction(direction,
+                                                            contravariant_vectors,
+                                                            i_node, j_node, k_node,
+                                                            element)
 
-                for v in eachvariable(equations_parabolic)
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_node, j_node, k_node,
-                                                              element],
-                                             flux_parabolic_y[v, i_node, j_node, k_node,
-                                                              element],
-                                             flux_parabolic_z[v, i_node, j_node, k_node,
-                                                              element])
+                    for v in eachvariable(equations_parabolic)
+                        flux_parabolic = SVector(flux_parabolic_x[v,
+                                                                  i_node, j_node,
+                                                                  k_node,
+                                                                  element],
+                                                 flux_parabolic_y[v,
+                                                                  i_node, j_node,
+                                                                  k_node,
+                                                                  element],
+                                                 flux_parabolic_z[v,
+                                                                  i_node, j_node,
+                                                                  k_node,
+                                                                  element])
 
-                    boundaries.u[v, i, j, boundary] = dot(flux_parabolic,
-                                                          normal_direction)
+                        boundaries.u[v, i, j, boundary] = dot(flux_parabolic,
+                                                              normal_direction)
+                    end
+                    i_node += i_node_step_i
+                    j_node += j_node_step_i
+                    k_node += k_node_step_i
                 end
-                i_node += i_node_step_i
-                j_node += j_node_step_i
-                k_node += k_node_step_i
+                i_node += i_node_step_j
+                j_node += j_node_step_j
+                k_node += k_node_step_j
             end
-            i_node += i_node_step_j
-            j_node += j_node_step_j
-            k_node += k_node_step_j
         end
     end
     return nothing
@@ -949,64 +1072,76 @@ function calc_boundary_flux!(cache, t,
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(boundaries, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for local_index in eachindex(boundary_condition_indices)
-        # Use the local index to get the global boundary index from the pre-sorted list
-        boundary_index = boundary_condition_indices[local_index]
+        @inbounds begin
+            # Use the local index to get the global boundary index from the
+            # pre-sorted list
+            boundary_index = boundary_condition_indices[local_index]
 
-        # Get information on the adjacent element, compute the surface fluxes,
-        # and store them
-        element = boundaries.neighbor_ids[boundary_index]
-        node_indices = boundaries.node_indices[boundary_index]
-        direction_index = indices2direction(node_indices)
+            # Get information on the adjacent element, compute the surface fluxes,
+            # and store them
+            element = boundaries.neighbor_ids[boundary_index]
+            node_indices = boundaries.node_indices[boundary_index]
+            direction_index = indices2direction(node_indices)
 
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
+            i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                                index_range)
+            j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                                index_range)
+            k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                                index_range)
 
-        i_node = i_node_start
-        j_node = j_node_start
-        k_node = k_node_start
+            i_node = i_node_start
+            j_node = j_node_start
+            k_node = k_node_start
 
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # Extract solution data from boundary container
-                u_inner = get_node_vars(boundaries.u, equations_parabolic, dg, i, j,
-                                        boundary_index)
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    # Extract solution data from boundary container
+                    u_inner = get_node_vars(boundaries.u, equations_parabolic, dg,
+                                            i, j, boundary_index)
 
-                # Outward-pointing normal direction (not normalized)
-                normal_direction = get_normal_direction(direction_index,
-                                                        contravariant_vectors,
-                                                        i_node, j_node, k_node, element)
+                    # Outward-pointing normal direction (not normalized)
+                    normal_direction = get_normal_direction(direction_index,
+                                                            contravariant_vectors,
+                                                            i_node, j_node, k_node,
+                                                            element)
 
-                # TODO: revisit if we want more general boundary treatments.
-                # This assumes the gradient numerical flux at the boundary is the gradient variable,
-                # which is consistent with BR1, LDG.
-                flux_inner = u_inner
+                    # TODO: revisit if we want more general boundary treatments.
+                    # This assumes the gradient numerical flux at the boundary is the gradient variable,
+                    # which is consistent with BR1, LDG.
+                    flux_inner = u_inner
 
-                # Coordinates at boundary node
-                x = get_node_coords(node_coordinates, equations_parabolic, dg,
-                                    i_node, j_node, k_node, element)
+                    # Coordinates at boundary node
+                    x = get_node_coords(node_coordinates, equations_parabolic, dg,
+                                        i_node, j_node, k_node, element)
 
-                flux_ = boundary_condition_parabolic(flux_inner, u_inner,
-                                                     normal_direction,
-                                                     x, t, operator_type,
-                                                     equations_parabolic)
+                    flux_ = boundary_condition_parabolic(flux_inner, u_inner,
+                                                         normal_direction,
+                                                         x, t, operator_type,
+                                                         equations_parabolic)
 
-                # Copy flux to element storage in the correct orientation
-                for v in eachvariable(equations_parabolic)
-                    surface_flux_values[v, i, j, direction_index, element] = flux_[v]
+                    # Copy flux to element storage in the correct orientation
+                    for v in eachvariable(equations_parabolic)
+                        surface_flux_values[v, i, j, direction_index, element] = flux_[v]
+                    end
+
+                    i_node += i_node_step_i
+                    j_node += j_node_step_i
+                    k_node += k_node_step_i
                 end
-
-                i_node += i_node_step_i
-                j_node += j_node_step_i
-                k_node += k_node_step_i
+                i_node += i_node_step_j
+                j_node += j_node_step_j
+                k_node += k_node_step_j
             end
-            i_node += i_node_step_j
-            j_node += j_node_step_j
-            k_node += k_node_step_j
         end
     end
 
@@ -1021,13 +1156,26 @@ function calc_surface_integral_gradient!(gradients,
     @unpack surface_flux_values = cache.elements
     @unpack contravariant_vectors = cache.elements
 
+    gradients_x, gradients_y, gradients_z = gradients
+
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg), m in eachnode(dg)
-            for v in eachvariable(equations_parabolic)
-                for dim in 1:3
+        @inbounds begin
+            for l in eachnode(dg), m in eachnode(dg)
+                for v in eachvariable(equations_parabolic), dim in 1:3
                     grad = gradients[dim]
                     # surface at -x
                     normal_direction = get_normal_direction(1, contravariant_vectors,
@@ -1123,12 +1271,20 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{3},
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = inverse_jacobian[i, j, k, element]
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
 
-            for v in eachvariable(equations_parabolic)
-                du[v, i, j, k, element] *= factor
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                factor = inverse_jacobian[i, j, k, element]
+
+                for v in eachvariable(equations_parabolic)
+                    du[v, i, j, k, element] *= factor
+                end
             end
         end
     end

@@ -8,7 +8,7 @@
 """
     SemidiscretizationParabolic
 
-A struct containing everything needed to describe a spatial semidiscretization of a purely 
+A struct containing everything needed to describe a spatial semidiscretization of a purely
 parabolic PDE.
 """
 mutable struct SemidiscretizationParabolic{Mesh, Equations, InitialCondition,

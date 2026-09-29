@@ -128,7 +128,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 2.7,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.08)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -139,7 +139,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(),
+sol = solve(ode, CKLLSRK95_4S(thread = Trixi.Threaded()),
             adaptive = false,
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

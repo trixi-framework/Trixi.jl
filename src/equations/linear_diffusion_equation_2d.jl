@@ -13,7 +13,7 @@ The linear diffusion equation (or heat equation) in two space dimensions with co
 \partial_t u = \partial_1 \left( \kappa \partial_1 u \right)
              + \partial_2 \left( \kappa \partial_2 u \right).
 ```
-Unlike [`LaplaceDiffusion2D`](@ref), which represents the parabolic part of a 
+Unlike [`LaplaceDiffusion2D`](@ref), which represents the parabolic part of a
 hyperbolic-parabolic equation, `LinearDiffusionEquation2D` represents a purely parabolic
 equation without any hyperbolic part.
 """

@@ -557,7 +557,8 @@ end
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::SemidiscretizationEulerGravity,
                                     solution_callback,
-                                    element_variables = Dict{Symbol, Any}();
+                                    element_variables = Dict{Symbol, Any}(),
+                                    node_variables = Dict{Symbol, Any}();
                                     system = "")
     # If this is called already as part of a multi-system setup (i.e., system is non-empty),
     # we build a combined system name
@@ -569,16 +570,21 @@ end
         system_gravity = "gravity"
     end
 
+    # The `element_variables` and `node_variables` are computed for the Euler system since
+    # `mesh_equations_solver_cache(semi)` returns the data of `semi.semi_euler`. We store
+    # them in both files since they are defined on the same mesh.
     u_euler = wrap_array_native(u_ode, semi.semi_euler)
     filename_euler = save_solution_file(u_euler, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_euler)...,
                                         solution_callback, element_variables,
+                                        node_variables,
                                         system = system_euler)
 
     u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
     filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                           mesh_equations_solver_cache(semi.semi_gravity)...,
                                           solution_callback, element_variables,
+                                          node_variables,
                                           system = system_gravity)
 
     return filename_euler, filename_gravity

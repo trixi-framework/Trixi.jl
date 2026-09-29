@@ -303,10 +303,18 @@ end
     end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-    save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
-                       solution_callback,
-                       element_variables,
-                       node_variables; system = system)
+    # `u` is an `unsafe_wrap`-based view into `u_ode`'s memory (see the "Segfaults"
+    # warning in the definition of `wrap_array` in src/solvers/dg.j).
+    # When `backend !== nothing`, `u_ode` was just
+    # rebound to a fresh host `Array` with no other reference anywhere, so without
+    # `GC.@preserve` the GC is free to collect it while `u` is still in use below,
+    # leaving `u` dangling and causing a segfault instead of a catchable error.
+    GC.@preserve u_ode begin
+        save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
+                           solution_callback,
+                           element_variables,
+                           node_variables; system = system)
+    end
 
     return nothing
 end

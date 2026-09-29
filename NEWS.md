@@ -5,10 +5,51 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-
-## Changes when updating to v0.17 from v0.16.x
+## Changes in the v0.17 lifecycle
 
 #### Added
+- Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
+- TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
+  When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
+  toggles the bars visualizing the fraction of time and allocations spent in
+  each section of the timer output of the `SummaryCallback`. The bars are
+  disabled by default.
+- `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
+  kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
+- The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
+  `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
+  while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
+- `PlotData2D` now visualizes finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or
+  `BlockFV`) as distinct cells instead of interpolating between neighboring cell values,
+  for both `Plots.jl` and `Makie.jl` ([#3150]).
+- The GPU kernel of `VolumeIntegralFluxDifferencing` on `P4estMesh{3}`/`T8codeMesh{3}`
+  can now be chosen via the new keyword argument `flux_differencing_kernel` of
+  `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
+  `FullSweepGlobal` ([#3206]).
+- Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
+  which substitutes `@inline` to correctly propagate inbounds access for
+  - `TreeMesh1D` ([#3267], [#3268])
+  - `TreeMesh2D` ([#3262], [#3266])
+  - `TreeMesh3D` ([#3208], [#3263])
+  - `StructuredMesh1D` ([#3283])
+  - `StructuredMesh2D` ([#3274])
+  - `StructuredMesh3D` ([#3272])
+  - `UnstructuredMesh2D` ([#3282])
+  - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
+
+  Moreover, explicit bounds check are added before assuming inbounds access.
+  This improves the performance in common cases; developers are encouraged to
+  start Julia with `julia --check-bounds=yes` during development in case of issues.
+
+#### Changed
+- The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
+  The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
+  Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
+  a reduction factor of `2.5`.
+
+
+## Changes when updating to v0.17 from v0.16.x
 
 #### Changed
 - The `NonConservativeJump` terms now require `normal_direction_ll` and
@@ -60,6 +101,7 @@ for human readability.
 - Added `PositivityPreservingLimiterLiuZhang` for `TreeMesh`, which enforces global positivity of cell averages through an iterative algorithm ([#3063]). Currently only implemented for `LinearScalarAdvectionEquation`.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
+- The `BlockFV` solver now supports conforming `P4estMesh`es in 2D ([#3128]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in

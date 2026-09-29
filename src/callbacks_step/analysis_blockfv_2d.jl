@@ -6,7 +6,7 @@
 #! format: noindent
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                    equations, dg::BlockFV, cache;
                    normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
@@ -17,7 +17,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{2}, StructuredMesh{2}}, equations,
+                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}}, equations,
                  dg::BlockFV, cache)
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, element, equations, dg, du

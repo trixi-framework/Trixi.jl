@@ -1,5 +1,6 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
+using TrixiData # for the mesh file
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -30,9 +31,8 @@ solver = FDSBP(D_SBP,
                volume_integral = VolumeIntegralStrongForm())
 
 ###############################################################################
-# Get the curved quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/2c6440b5f8a57db131061ad7aa78ee2b/raw/1f89fdf2c874ff678c78afb6fe8dc784bdfd421f/mesh_gingerbread_man.mesh",
-                           joinpath(@__DIR__, "mesh_gingerbread_man.mesh"))
+# Get the curved quad mesh from a file (downloaded by TrixiData.jl if not available locally)
+mesh_file = mesh_gingerbread_man()
 
 mesh = UnstructuredMesh2D(mesh_file)
 

@@ -500,22 +500,21 @@ end
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 2.3,
-                                                               cfl_parabolic = 0.4)),
+                                                               cfl_parabolic = 0.2)),
                         adaptive=false, # respect CFL
-                        ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.0001022410497625877,
-                            0.04954975879887512,
-                            0.049549758798875056,
-                            0.005853983721675305,
-                            0.09161121143324424
+                            0.00010224058587038077,
+                            0.0495497587993557,
+                            0.049549758799355706,
+                            0.005853982640046797,
+                            0.0916112529095154
                         ],
                         linf=[
-                            0.00039284994602417633,
-                            0.14026307274342587,
-                            0.14026307274350203,
-                            0.017003338595870714,
-                            0.2823457296549634
+                            0.0003928487183817442,
+                            0.14026305742660394,
+                            0.14026305742644074,
+                            0.01700334211890316,
+                            0.28234595971707677
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -971,6 +970,32 @@ end
                             113004.34493505303
                         ],
                         tspan=(0.0, 1e-10))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic3D: TreeMesh3D: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
+                        l2=[
+                            0.013299230512542162,
+                            0.0073025819009651,
+                            0.007302581900965106,
+                            0.007300042097573285,
+                            0.04888085245959731
+                        ],
+                        linf=[
+                            0.31714843611640464,
+                            0.23586839231625517,
+                            0.23586839231625506,
+                            0.23698123351744782,
+                            1.1174271158464726
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

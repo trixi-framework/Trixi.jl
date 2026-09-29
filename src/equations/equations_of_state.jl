@@ -9,7 +9,7 @@
     AbstractEquationOfState
 
 The interface for an `AbstractEquationOfState` requires specifying
-the following four functions: 
+the following four functions:
 - `pressure(V, T, eos)`
 - `energy_internal_specific(V, T, eos)`, the specific internal energy
 - `entropy_specific(V, T, eos)`, the specific entropy
@@ -18,9 +18,9 @@ the following four functions:
 where `eos = equations.equation_of_state`.
 `entropy_specific` is required to calculate the mathematical entropy and entropy variables,
 and `speed_of_sound` is required to calculate wavespeed estimates for e.g., [`FluxLaxFriedrichs`](@ref).
-    
-Additional functions can also be specialized to particular equations of state to improve 
-efficiency. 
+
+Additional functions can also be specialized to particular equations of state to improve
+efficiency.
 """
 abstract type AbstractEquationOfState end
 
@@ -78,7 +78,7 @@ include("equation_of_state_helmholtz_ideal_gas.jl")
 #######################################################
 #
 # Some general fallback routines are provided below
-# 
+#
 #######################################################
 
 function gibbs_free_energy(V, T, eos)
@@ -101,8 +101,8 @@ function calc_pressure_derivatives(V, T, eos)
     return dpdT_V, dpdV_T
 end
 
-# relative tolerance, initial guess, and maximum number of iterations 
-# for the Newton solver for temperature. 
+# relative tolerance, initial guess, and maximum number of iterations
+# for the Newton solver for temperature.
 eos_newton_tol(eos::AbstractEquationOfState) = 10 * eps()
 eos_initial_temperature(V, e_internal, eos::AbstractEquationOfState) = 1
 eos_newton_maxiter(eos) = 20
@@ -129,13 +129,13 @@ end
 
 """
     Trixi.temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
-                               initial_T = eos_initial_temperature(V, e_internal, eos), 
+                               initial_T = eos_initial_temperature(V, e_internal, eos),
                                tol = eos_newton_tol(eos),
                                maxiter = eos_newton_maxiter(eos))
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
 by using Newton's method to determine `T` such that `energy_internal_specific(V, T, eos) = e`.
-Note that the tolerance may need to be adjusted based on the specific equation of state. 
+Note that the tolerance may need to be adjusted based on the specific equation of state.
 """
 function temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
                               initial_T = eos_initial_temperature(V, e_internal, eos),
@@ -147,7 +147,7 @@ function temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
     while abs(de) > tol * abs(e_internal) && iter < maxiter
         de = energy_internal_specific(V, T, eos) - e_internal
 
-        # for thermodynamically admissible states, c_v = de_dT_V > 0, which should 
+        # for thermodynamically admissible states, c_v = de_dT_V > 0, which should
         # guarantee convergence of this iteration.
         de_dT_V = heat_capacity_constant_volume(V, T, eos)
 
@@ -200,7 +200,7 @@ end
     e_internal = energy_internal_specific(V, T, eos)
 
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
-    dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2. 
+    dpdrho_T = dpdV_T * (-V / rho) # V = inv(rho), so dVdrho = -1/rho^2 = -V^2.
     de_dV_T = T * dpdT_V - pressure(V, T, eos)
     drho_e_internal_drho_T = e_internal + rho * de_dV_T * (-V / rho) # d(rho_e)/drho_|T = e + rho * de_dV|T * dVdrho
 
