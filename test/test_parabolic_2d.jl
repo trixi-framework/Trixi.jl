@@ -464,7 +464,7 @@ end
 
     # The specific gas constant only changes the conversion from pressure to
     # temperature. Thus, the solution in conserved variables must be independent
-    # of R.
+    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -534,7 +534,7 @@ end
 
     # The specific gas constant only changes the conversion from pressure to
     # temperature. Thus, the solution in conserved variables must be independent
-    # of R.
+    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
