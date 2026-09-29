@@ -621,7 +621,8 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonconforming.jl"),
-                        l2=[0.0009808991383992679], linf=[0.01732621677622055])
+                        # same errors as for TreeMesh3D
+                        l2=[0.00098089913839922], linf=[0.017326216776220663])
     # Make sure that the mesh is actually nonconforming
     @test Trixi.nmortars(solver, semi.cache) > 0
     # Ensure that we do not have excessive memory allocations
