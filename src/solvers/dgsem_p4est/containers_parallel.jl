@@ -47,6 +47,20 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     return nothing
 end
 
+# Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_interfaces::P4estMPIInterfaceContainer{NDIMS}, equations,
+                    solver::DG, cache) where {NDIMS}
+    check_axes(mpi_interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                eachmpiinterface(solver, cache)))
+    check_axes(mpi_interfaces.local_neighbor_ids, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.node_indices, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.local_sides, (eachmpiinterface(solver, cache),))
+    return nothing
+end
+
 # Create MPI interface container and initialize interface data
 function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                              equations, basis, elements)
