@@ -42,9 +42,9 @@ function Base.resize!(elements::TreeElementContainer3D, capacity)
                                              Int(n_nodes), capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    elements.surface_flux_values = PtrArray(pointer(_surface_flux_values),
-                                            (n_variables, n_nodes, n_nodes,
-                                             StaticInt(2 * 3), capacity))
+    elements.surface_flux_values = unsafe_wrap_storage(_surface_flux_values,
+                                                       (n_variables, n_nodes, n_nodes,
+                                                        StaticInt(2 * 3), capacity))
 
     resize!(cell_ids, capacity)
 
@@ -67,9 +67,9 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     _surface_flux_values = fill(nan_uEltype,
                                 n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    surface_flux_values = PtrArray(pointer(_surface_flux_values),
-                                   (n_variables, n_nodes, n_nodes, StaticInt(2 * 3),
-                                    capacity))
+    surface_flux_values = unsafe_wrap_storage(_surface_flux_values,
+                                              (n_variables, n_nodes, n_nodes,
+                                               StaticInt(2 * 3), capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
@@ -177,8 +177,9 @@ function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * n_nodes * capacity)
-    interfaces.u = PtrArray(pointer(_u),
-                            (StaticInt(2), n_variables, n_nodes, n_nodes, capacity))
+    interfaces.u = unsafe_wrap_storage(_u,
+                                       (StaticInt(2), n_variables, n_nodes, n_nodes,
+                                        capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
@@ -195,8 +196,8 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u = PtrArray(pointer(_u),
-                 (StaticInt(2), n_variables, n_nodes, n_nodes, capacity))
+    u = unsafe_wrap_storage(_u,
+                            (StaticInt(2), n_variables, n_nodes, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
