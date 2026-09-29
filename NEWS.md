@@ -28,7 +28,16 @@ for human readability.
   `FullSweepGlobal` ([#3206]).
 - Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
   which substitutes `@inline` to correctly propagate inbounds access for
-  `TreeMesh2D` ([#3262]) and `TreeMesh3D` ([#3208]).
+  - `TreeMesh1D` ([#3267], [#3268])
+  - `TreeMesh2D` ([#3262], [#3266])
+  - `TreeMesh3D` ([#3208], [#3263])
+  - `StructuredMesh1D` ([#3283])
+  - `StructuredMesh2D` ([#3274])
+  - `StructuredMesh3D` ([#3272])
+  - `UnstructuredMesh2D` ([#3282])
+  - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
+
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.

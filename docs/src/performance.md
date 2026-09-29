@@ -42,7 +42,15 @@ For example, the following steps were used to benchmark the changes introduced i
 [PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
 
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
-2. Start `julia --threads=1 --check-bounds=no`.
+2. Start `julia --threads=1`.
+   Back then, Julia was started with the additional flag `--check-bounds=no` to
+   disable bounds checking globally. Nowadays, this flag should not be used anymore,
+   since it can make the code significantly slower for Julia versions before v1.13,
+   see [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
+   [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+   Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
+   to make it fast by default, as described in the list above and in more detail
+   in the section on [enabling bounds checking](@ref enabling-bounds-checking).
 3. Execute the following code in the REPL to benchmark the `rhs!` call at the final state.
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
@@ -127,16 +135,11 @@ To benchmark the changes made in a PR, please proceed as follows:
 This will take some hours to complete and requires at least 8 GiB of RAM. When everything is finished, some
 output files will be created in the `benchmark` directory of Trixi.jl.
 
-!!! warning
-    Please note that the benchmark scripts use `--check-bounds=no` at the moment.
-    Thus, they will not work in any useful way for Julia v1.10 (and newer?), see
-    [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
-
 You can also run a standard set of benchmarks manually via
 ```julia
 julia> using PkgBenchmark, Trixi
 
-julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`))
+julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`))
 
 julia> export_markdown(pkgdir(Trixi, "benchmark", "single_benchmark.md"), results)
 ```
@@ -145,8 +148,18 @@ This will save a markdown file with a summary of the benchmark results similar t
 Note that this will take quite some time. Additional options are described in the
 [docs of PkgBenchmark.jl](https://juliaci.github.io/PkgBenchmark.jl/stable).
 A particularly useful option is to specify a `BenchmarkConfig` including Julia
-command line options affecting the performance such as disabling bounds-checking
-and setting the number of threads.
+command line options affecting the performance such as the number of threads.
+
+!!! warning "Do not disable bounds checking globally"
+    Do not start Julia with `--check-bounds=no` for benchmarking or production runs.
+    For Julia versions before v1.13, this can make the code significantly
+    slower instead of faster, see
+    [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
+    [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+    Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
+    to make it fast by default, see the section on
+    [enabling bounds checking](@ref enabling-bounds-checking).
+    Thus, disabling bounds checking globally is not necessary to obtain good performance.
 
 A useful feature when developing Trixi.jl is to compare the performance of Trixi.jl's
 current state vs. the `main` branch. This can be achieved by executing
@@ -154,8 +167,8 @@ current state vs. the `main` branch. This can be achieved by executing
 julia> using PkgBenchmark, Trixi
 
 julia> results = judge(Trixi,
-             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`), # target
-             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`, id="main") # baseline
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`), # target
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`, id="main") # baseline
        )
 
 julia> export_markdown(pkgdir(Trixi, "benchmark", "results.md"), results)

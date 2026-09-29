@@ -592,7 +592,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -635,7 +635,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -799,7 +799,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(3), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -816,8 +817,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                     u_inner = u_rr
                 end
                 x = get_node_coords(node_coordinates, equations, dg, i, j, boundary)
-                flux = boundary_condition(u_inner, orientations[boundary], direction, x,
-                                          t,
+                flux = boundary_condition(u_inner, orientations[boundary], direction,
+                                          x, t,
                                           surface_flux, equations)
 
                 # Copy flux to left and right element storage
@@ -860,17 +861,21 @@ function prolong2mortars!(cache, u,
                     # L2 mortars in x-direction
                     for k in eachnode(dg), j in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[2, v, j, k, mortar] = u[v, 1, j,
-                                                                               k,
+                            cache.mortars.u_upper_left[2, v, j, k, mortar] = u[v,
+                                                                               1,
+                                                                               j, k,
                                                                                upper_left_element]
-                            cache.mortars.u_upper_right[2, v, j, k, mortar] = u[v, 1, j,
-                                                                                k,
+                            cache.mortars.u_upper_right[2, v, j, k, mortar] = u[v,
+                                                                                1,
+                                                                                j, k,
                                                                                 upper_right_element]
-                            cache.mortars.u_lower_left[2, v, j, k, mortar] = u[v, 1, j,
-                                                                               k,
+                            cache.mortars.u_lower_left[2, v, j, k, mortar] = u[v,
+                                                                               1,
+                                                                               j, k,
                                                                                lower_left_element]
-                            cache.mortars.u_lower_right[2, v, j, k, mortar] = u[v, 1, j,
-                                                                                k,
+                            cache.mortars.u_lower_right[2, v, j, k, mortar] = u[v,
+                                                                                1,
+                                                                                j, k,
                                                                                 lower_right_element]
                         end
                     end
@@ -878,16 +883,20 @@ function prolong2mortars!(cache, u,
                     # L2 mortars in y-direction
                     for k in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            cache.mortars.u_upper_left[2, v, i, k, mortar] = u[v, i, 1,
+                            cache.mortars.u_upper_left[2, v, i, k, mortar] = u[v, i,
+                                                                               1,
                                                                                k,
                                                                                upper_left_element]
-                            cache.mortars.u_upper_right[2, v, i, k, mortar] = u[v, i, 1,
+                            cache.mortars.u_upper_right[2, v, i, k, mortar] = u[v, i,
+                                                                                1,
                                                                                 k,
                                                                                 upper_right_element]
-                            cache.mortars.u_lower_left[2, v, i, k, mortar] = u[v, i, 1,
+                            cache.mortars.u_lower_left[2, v, i, k, mortar] = u[v, i,
+                                                                               1,
                                                                                k,
                                                                                lower_left_element]
-                            cache.mortars.u_lower_right[2, v, i, k, mortar] = u[v, i, 1,
+                            cache.mortars.u_lower_right[2, v, i, k, mortar] = u[v, i,
+                                                                                1,
                                                                                 k,
                                                                                 lower_right_element]
                         end
@@ -1056,7 +1065,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1119,7 +1128,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1171,7 +1180,8 @@ function calc_mortar_flux!(surface_flux_values,
                                                                              mortar)
                     u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
                                                                                equations,
-                                                                               dg, i, j,
+                                                                               dg,
+                                                                               i, j,
                                                                                mortar)
                     u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
                                                                              equations,
@@ -1180,7 +1190,8 @@ function calc_mortar_flux!(surface_flux_values,
                                                                              mortar)
                     u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
                                                                                equations,
-                                                                               dg, i, j,
+                                                                               dg,
+                                                                               i, j,
                                                                                mortar)
                     # Call pointwise nonconservative term
                     noncons_primary_upper_left = nonconservative_flux(u_upper_left_ll,
@@ -1251,7 +1262,8 @@ function calc_mortar_flux!(surface_flux_values,
                                                                              mortar)
                     u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
                                                                                equations,
-                                                                               dg, i, j,
+                                                                               dg,
+                                                                               i, j,
                                                                                mortar)
                     u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
                                                                              equations,
@@ -1260,7 +1272,8 @@ function calc_mortar_flux!(surface_flux_values,
                                                                              mortar)
                     u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
                                                                                equations,
-                                                                               dg, i, j,
+                                                                               dg,
+                                                                               i, j,
                                                                                mortar)
                     # Call pointwise nonconservative term
                     noncons_primary_upper_left = nonconservative_flux(u_upper_left_rr,
@@ -1469,7 +1482,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)

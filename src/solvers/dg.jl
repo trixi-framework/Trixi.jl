@@ -1000,14 +1000,34 @@ end
 
 # Check whether the array `surface_flux_values` has the axes we assume it must have
 # in the inner loops of Trixi.jl.
-@inline function check_axes_surface_flux_values(surface_flux_values::AbstractArray,
-                                                equations::AbstractEquations{NDIMS},
-                                                solver::DG, cache) where {NDIMS}
+# Note that the number of spatial dimensions is taken from the `mesh`, since it can
+# differ from the one of the `equations`, e.g., for 2D manifolds in 3D space in
+# TrixiAtmo.jl (`P4estMesh{2}` with `AbstractEquations{3}`).
+@inline function check_axes_surface_flux_values(surface_flux_values, mesh::AbstractMesh,
+                                                equations, solver, cache)
+    return check_axes_surface_flux_values(surface_flux_values, Val(ndims(mesh)),
+                                          equations, solver, cache)
+end
+
+@inline function check_axes_surface_flux_values(surface_flux_values, ::Val{NDIMS},
+                                                equations, solver,
+                                                cache) where {NDIMS}
     return check_axes(surface_flux_values,
                       (eachvariable(equations),
                        ntuple(_ -> eachnode(solver), NDIMS - 1)...,
                        Base.OneTo(2 * NDIMS),
                        eachelement(solver, cache)))
+end
+
+# Check whether the thread-local storage `values` (one array per thread) has one entry
+# per thread and whether each of these arrays has the axes `expected_axes` we assume
+# in the inner loops of Trixi.jl.
+@inline function check_axes_threaded(values, expected_axes::Tuple)
+    check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+    for thread_id in Base.OneTo(Threads.maxthreadid())
+        check_axes(values[thread_id], expected_axes)
+    end
+    return nothing
 end
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
