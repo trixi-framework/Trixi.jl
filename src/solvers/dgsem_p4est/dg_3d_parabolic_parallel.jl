@@ -19,7 +19,6 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
         local_element = local_neighbor_ids[interface]
         local_indices = node_indices[interface]
         local_direction = indices2direction(local_indices)
-        #local_side = local_sides[interface]
 
         # Create the local i,j,k indexing on the local element used to pull normal direction information
         i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
@@ -51,9 +50,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                                         local_element)
 
                 u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                                   i,
-                                                   j,
-                                                   interface)
+                                                   i, j, interface)
 
                 flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                                        equations_parabolic, parabolic_scheme)
