@@ -37,6 +37,9 @@ for human readability.
   - `UnstructuredMesh2D` ([#3282])
   - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
   - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
+  - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
+    `P4estMesh2D` ([#3289])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
