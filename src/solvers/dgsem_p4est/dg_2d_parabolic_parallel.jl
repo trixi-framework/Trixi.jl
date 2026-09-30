@@ -461,40 +461,14 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             i_element = i_element_start
             j_element = j_element_start
 
-        # Initiate the node index to be used in the surface for loop,
-        # the surface flux storage must be indexed in alignment with the local element indexing
-        if :i_backward in local_indices
-            surface_node = index_end
-            surface_node_step = -1
-        else
-            surface_node = 1
-            surface_node_step = 1
-        end
-
-        for i in eachnode(dg)
-            normal_direction = get_normal_direction(local_direction,
-                                                    contravariant_vectors,
-                                                    i_element, j_element,
-                                                    local_element)
-
-            parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(u,
-                                                                                       equations_parabolic,
-                                                                                       dg,
-                                                                                       i,
-                                                                                       interface)
-
-            # Sign flip for `local_side = 2` required for divergence calculation since
-            # the divergence interface flux involves the normal direction.
-            # `local_side=2` is thus flipped (opposite of primary side)
-            orientation_factor = local_side == 1 ? 1 : -1
-            flux_ = flux_parabolic(parabolic_flux_normal_ll,
-                                   parabolic_flux_normal_rr,
-                                   orientation_factor * normal_direction, Divergence(),
-                                   equations_parabolic, parabolic_scheme)
-
-            for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, surface_node,
-                local_direction, local_element] = orientation_factor * flux_[v]
+            # Initiate the node index to be used in the surface for loop,
+            # the surface flux storage must be indexed in alignment with the local element indexing
+            if :i_backward in local_indices
+                surface_node = index_end
+                surface_node_step = -1
+            else
+                surface_node = 1
+                surface_node_step = 1
             end
 
             for i in eachnode(dg)
