@@ -37,6 +37,34 @@
     return mpi_interfaces
 end
 
+# Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_mortars::P4estMPIMortarContainer{2}, equations, solver::DG,
+                    cache)
+    check_axes(mpi_mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(2),
+                eachnode(solver),
+                eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.local_neighbor_ids, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.local_neighbor_positions, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.node_indices, (Base.OneTo(2), eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.normal_directions,
+               (Base.OneTo(2),
+                eachnode(solver),
+                Base.OneTo(2),
+                eachmpimortar(solver, cache)))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    buffer_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
 # Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize
 # them for locally available small elements.
 function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2},
