@@ -81,6 +81,7 @@ boundary_condition_bottom = BoundaryConditionNavierStokesWall(velocity_bc_bottom
 # On right end: Just copy the state/gradients
 @inline function boundary_condition_copy(flux_inner,
                                          u_inner,
+                                         gradients_inner,
                                          normal::AbstractVector,
                                          x, t,
                                          operator_type::Trixi.Gradient,
@@ -89,6 +90,7 @@ boundary_condition_bottom = BoundaryConditionNavierStokesWall(velocity_bc_bottom
 end
 @inline function boundary_condition_copy(flux_inner,
                                          u_inner,
+                                         gradients_inner,
                                          normal::AbstractVector,
                                          x, t,
                                          operator_type::Trixi.Divergence,

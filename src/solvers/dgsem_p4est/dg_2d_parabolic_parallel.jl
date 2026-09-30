@@ -129,7 +129,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     calc_interfaces_local!(cache, flux_parabolic, mesh, equations_parabolic,
                            dg, parabolic_scheme)
 
-    calc_boundaries_local!(cache, flux_parabolic, t, mesh, equations_parabolic,
+    calc_boundaries_local!(cache, cache_parabolic, flux_parabolic, t, mesh, equations_parabolic,
                            boundary_conditions_parabolic, dg)
 
     calc_mortars_local!(cache, flux_parabolic, mesh, equations_parabolic,
@@ -192,7 +192,7 @@ function calc_interfaces_local!(cache, flux_parabolic,
     return nothing
 end
 
-function calc_boundaries_local!(cache, flux_parabolic, t,
+function calc_boundaries_local!(cache, cache_parabolic, flux_parabolic, t,
                                 mesh::P4estMeshParallel, equations_parabolic,
                                 boundary_conditions_parabolic, dg::DG)
     @trixi_timeit timer() "prolong2boundaries" begin
@@ -200,7 +200,7 @@ function calc_boundaries_local!(cache, flux_parabolic, t,
     end
 
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
+        calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -265,7 +265,7 @@ function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, t, boundary_conditions_parabolic,
+        calc_boundary_flux_gradient!(cache, cache_parabolic, t, boundary_conditions_parabolic,
                                      mesh, equations_parabolic, dg.surface_integral,
                                      dg)
     end

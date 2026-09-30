@@ -173,6 +173,15 @@ function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
 end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
+@inline function nboundaries(dg::DGMulti, cache, mesh::DGMultiMesh)
+    n_boundary_faces = 0
+    for boundary_face in mesh.boundary_faces
+        n_boundary_faces += length(boundary_face)
+    end
+
+    return n_boundary_faces
+end
+
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}

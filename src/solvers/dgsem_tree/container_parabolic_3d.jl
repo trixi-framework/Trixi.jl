@@ -1,3 +1,4 @@
+# Container is for both `TreeMesh` and `P4estMesh`
 mutable struct ParabolicContainer3D{uEltype <: Real}
     # [variables, nodes, nodes, nodes, elements]
     u_transformed::Array{uEltype, 5}
