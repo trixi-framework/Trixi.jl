@@ -263,5 +263,4 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
 
     return nothing
 end
-
 end # @muladd
