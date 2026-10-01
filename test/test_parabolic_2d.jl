@@ -743,7 +743,7 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer.jl"),
-                        R = 2.0, T_ref() = 40.0,
+                        R=2.0, T_ref()=40.0,
                         l2=[
                             0.0003588629975695495,
                             0.09679169095152979,
