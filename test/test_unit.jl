@@ -2517,6 +2517,73 @@ end
                                                         equations)))
     end
 
+    @timed_testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
+
+        normal_directions = (SVector(1.0, 0.0), SVector(0.0, 1.0))
+
+        # Different left and right states are required since the estimates
+        # coincide for `u_ll == u_rr`
+        u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+            SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1)]
+
+        for min_max_speed in (min_max_speed_naive, min_max_speed_davis),
+            u_ll in u_values, u_rr in u_values
+
+            for orientation in 1:2
+                @test all(isapprox(x, y)
+                          for (x, y) in zip(min_max_speed(u_ll, u_rr, orientation,
+                                                          equations),
+                                            min_max_speed(u_ll, u_rr,
+                                                          normal_directions[orientation],
+                                                          equations)))
+            end
+
+            # The estimates scale linearly with the (positive) length of the normal
+            normal_direction = SVector(-1.2, 0.3)
+            @test all(isapprox(x, 2.5 * y)
+                      for (x, y) in zip(min_max_speed(u_ll, u_rr, 2.5 * normal_direction,
+                                                      equations),
+                                        min_max_speed(u_ll, u_rr, normal_direction,
+                                                      equations)))
+        end
+    end
+
+    @timed_testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
+
+        normal_directions = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                             SVector(0.0, 0.0, 1.0))
+
+        # Different left and right states are required since the estimates
+        # coincide for `u_ll == u_rr`
+        u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+            SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1)]
+
+        for min_max_speed in (min_max_speed_naive, min_max_speed_davis),
+            u_ll in u_values, u_rr in u_values
+
+            for orientation in 1:3
+                @test all(isapprox(x, y)
+                          for (x, y) in zip(min_max_speed(u_ll, u_rr, orientation,
+                                                          equations),
+                                            min_max_speed(u_ll, u_rr,
+                                                          normal_directions[orientation],
+                                                          equations)))
+            end
+
+            # The estimates scale linearly with the (positive) length of the normal
+            normal_direction = SVector(-1.2, 0.3, 0.7)
+            @test all(isapprox(x, 2.5 * y)
+                      for (x, y) in zip(min_max_speed(u_ll, u_rr, 2.5 * normal_direction,
+                                                      equations),
+                                        min_max_speed(u_ll, u_rr, normal_direction,
+                                                      equations)))
+        end
+    end
+
     @timed_testset "Maxwell 1D" begin
         equations = MaxwellEquations1D()
 
@@ -4118,7 +4185,7 @@ end
                                            refinement_level = 2)
 end
 
-@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
@@ -4300,5 +4367,356 @@ end
         @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
         @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
+    end
+end
+
+@testitem "Unit: check_axes with explicit axes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    A = zeros(2, 3)
+    @test Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(3))) === nothing
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(4)))
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2),))
+    # The error message reports both the axes found and the axes expected
+    err = try
+        Trixi.check_axes(A, (Base.OneTo(3), Base.OneTo(3)))
+    catch e
+        e
+    end
+    @test err isa DimensionMismatch
+    @test occursin(string(axes(A)), err.msg)
+    @test occursin(string((Base.OneTo(3), Base.OneTo(3))), err.msg)
+
+    # Thread-local storage with one array per thread
+    for values in ([zeros(2, 3) for _ in 1:Threads.maxthreadid()],
+                   Trixi.VecOfArrays([zeros(2, 3) for _ in 1:Threads.maxthreadid()]))
+        @test Trixi.check_axes_threaded(values, (Base.OneTo(2), Base.OneTo(3))) ===
+              nothing
+        @test_throws DimensionMismatch Trixi.check_axes_threaded(values,
+                                                                 (Base.OneTo(3),
+                                                                  Base.OneTo(3)))
+    end
+    too_few_values = [zeros(2, 3) for _ in 1:(Threads.maxthreadid() - 1)]
+    @test_throws DimensionMismatch Trixi.check_axes_threaded(too_few_values,
+                                                             (Base.OneTo(2),
+                                                              Base.OneTo(3)))
+end
+
+@testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{1}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_euler_mortar.jl"), maxiters=1)
+
+    @testset "TreeMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "structured_1d_dgsem",
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        maxiters=1)
+
+    @testset "StructuredMesh{1}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+        @test Trixi.check_axes_surface_flux_values(cache.elements.surface_flux_values,
+                                                   mesh, equations,
+                                                   dg, cache) === nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        maxiters=1)
+
+    @testset "StructuredMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
+                                 "elixir_euler_basic.jl"),
+                        maxiters=1)
+
+    @testset "UnstructuredMesh2D" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
+                                 "elixir_euler_source_terms_nonperiodic_curved.jl"),
+                        maxiters=1)
+
+    @testset "StructuredMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        maxiters=1)
+
+    @testset "P4estMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        @test Trixi.nmortars(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+
+        # The number of dimensions of the mesh determines the expected axes of
+        # `surface_flux_values`, e.g., for 2D manifolds in 3D space as in TrixiAtmo.jl
+        (; surface_flux_values) = cache.elements
+        @test Trixi.check_axes_surface_flux_values(surface_flux_values, mesh,
+                                                   equations, dg, cache) === nothing
+        equations_3d = CompressibleEulerEquations3D(1.4)
+        surface_flux_values_3d = similar(surface_flux_values,
+                                         nvariables(equations_3d),
+                                         size(surface_flux_values)[2:end]...)
+        @test Trixi.check_axes_surface_flux_values(surface_flux_values_3d, mesh,
+                                                   equations_3d, dg, cache) === nothing
+        @test_throws DimensionMismatch Trixi.check_axes_surface_flux_values(surface_flux_values_3d,
+                                                                            Val(3),
+                                                                            equations_3d,
+                                                                            dg, cache)
+        @test_throws DimensionMismatch Trixi.check_axes_surface_flux_values(surface_flux_values,
+                                                                            mesh,
+                                                                            equations_3d,
+                                                                            dg, cache)
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        maxiters=1)
+
+    @testset "T8codeMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        @test Trixi.nmortars(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
+                        maxiters=1)
+
+    @testset "P4estMesh{2}, parabolic" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic, cache_parabolic) = semi
+        (; u_transformed, gradients, flux_parabolic) = cache_parabolic.parabolic_container
+
+        for array in (u_transformed, gradients..., flux_parabolic...)
+            @test Trixi.check_axes(array, mesh, equations_parabolic, dg, cache) ===
+                  nothing
+        end
+
+        u_too_few = similar(u_transformed, size(u_transformed)[1:(end - 1)]...,
+                            size(u_transformed, ndims(u_transformed)) - 1)
+        u_too_many = similar(u_transformed, size(u_transformed)[1:(end - 1)]...,
+                             size(u_transformed, ndims(u_transformed)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh,
+                                                        equations_parabolic, dg, cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh,
+                                                        equations_parabolic, dg, cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        @test Trixi.nmortars(dg, cache) > 0
+        # The parabolic terms reuse the containers of the hyperbolic `cache`
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations_parabolic, dg, cache) ===
+                  nothing
+        end
+        @test Trixi.check_axes_surface_flux_values(cache.elements.surface_flux_values,
+                                                   mesh, equations_parabolic,
+                                                   dg, cache) === nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        maxiters=1)
+
+    @testset "P4estMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        @test Trixi.nmortars(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "t8code_3d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        maxiters=1)
+
+    @testset "T8codeMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        # Make sure that the elixir has all kinds of surfaces
+        @test Trixi.ninterfaces(dg, cache) > 0
+        @test Trixi.nboundaries(dg, cache) > 0
+        @test Trixi.nmortars(dg, cache) > 0
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 end
