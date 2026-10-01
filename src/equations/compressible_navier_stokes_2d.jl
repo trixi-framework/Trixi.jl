@@ -118,7 +118,8 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
     kappa_over_mu = gamma * inv_gamma_minus_one * R / Pr
 
     # See eq (3.25) from https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
-    # and the relation (gamma - 1) * kappa = gamma * mu / Pr
+    # and the relation (gamma - 1) * kappa = gamma * mu * R / Pr
+    # which follows from Pr = c_p * mu / kappa and c_p = gamma * R / (gamma - 1)
     gamma_over_Pr = gamma / Pr
     max_visc_cond = max(4 / 3, gamma_over_Pr)
 
