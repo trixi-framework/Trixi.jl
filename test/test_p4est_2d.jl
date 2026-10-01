@@ -724,16 +724,16 @@ end
 @testitem "P4estMesh2D: elixir_euler_double_mach_MCL.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
                         l2=[
-                            0.8887316275665462,
-                            6.644244953884147,
+                            0.8887316108902812,
+                            6.644244699117549,
                             3.449004719784639,
                             76.2706476520857
                         ],
                         linf=[
                             11.047531178706233,
-                            121.96650277677288,
+                            121.96649938887913,
                             35.74266968217143,
-                            1370.2362955295687
+                            1370.236264978748
                         ],
                         initial_refinement_level=1,
                         tspan=(0.0, 0.05))
