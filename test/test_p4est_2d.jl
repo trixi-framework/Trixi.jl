@@ -797,7 +797,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh2D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+@testitem "P4estMesh2D: elixir_mhd_alfven_wave_curved_sc.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_curved_sc.jl"),
                         l2=[
                             8.734161001340276e-5,
