@@ -712,6 +712,57 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_shearlayer.jl"),
+                        l2=[
+                            0.0003588629975695495,
+                            0.09679169095152979,
+                            0.02016350767451026,
+                            0.08926942734274035
+                        ],
+                        linf=[
+                            0.001389809911103601,
+                            0.7556236253978281,
+                            0.06288444501194647,
+                            0.36751558085282454
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer.jl (R = 2)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_shearlayer.jl"),
+                        R = 2.0, T_ref() = 40.0,
+                        l2=[
+                            0.0003588629975695495,
+                            0.09679169095152979,
+                            0.02016350767451026,
+                            0.08926942734274035
+                        ],
+                        linf=[
+                            0.001389809911103601,
+                            0.7556236253978281,
+                            0.06288444501194647,
+                            0.36751558085282454
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" setup=[
     Setup,
     Parabolic2D
