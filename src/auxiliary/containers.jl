@@ -139,48 +139,6 @@ function move!(c::AbstractContainer, from::Int, destination::Int)
     return move!(c, from, from, destination)
 end
 
-# Default implementation for moving a single element
-function move_connectivity!(c::AbstractContainer, from::Int, destination::Int)
-    return move_connectivity!(c, from, from, destination)
-end
-
-# Default implementation for invalidating a single element
-function invalidate!(c::AbstractContainer, id::Int)
-    return invalidate!(c, id, id)
-end
-
-# Insert blank elements in container, shifting the following elements back.
-#
-# After a call to insert!, the range `position:position + count - 1` will be available for use.
-# TODO: Shall we extend Base.insert! ?
-function insert!(c::AbstractContainer, position::Int, count::Int)
-    @assert 1<=position<=length(c)+1 "Insert position out of range"
-    @assert count>=0 "Count must be non-negative"
-    @assert count + length(c)<=capacity(c) "New length would exceed capacity"
-
-    # Return if insertation would be a no-op
-    if count == 0
-        return c
-    end
-
-    # Append and return if insertion is beyond last current element
-    if position == length(c) + 1
-        resize!(c, length(c) + count)
-        return c
-    end
-
-    # Increase length
-    c.length += count
-
-    # Move original cells that currently occupy the insertion region, unless
-    # insert position is one beyond previous length
-    if position <= length(c) - count
-        move!(c, position, length(c) - count, position + count)
-    end
-
-    return c
-end
-
 # Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
     @assert 1<=first<=length(c) "First cell out of range"
@@ -221,13 +179,6 @@ end
 # Helpful overloads for `raw_copy`
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
     return raw_copy!(c, c, first, last, destination)
-end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
-                   destination::Int)
-    return raw_copy!(target, source, from, from, destination)
-end
-function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-    return raw_copy!(c, c, from, from, destination)
 end
 
 # Trixi storage types must implement these two Adapt.jl methods

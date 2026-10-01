@@ -172,7 +172,8 @@ end
 
 function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                          semi, mesh::P4estMesh{3})
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
@@ -211,13 +212,10 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
 
         for j in eachnode(dg)
             for i in eachnode(dg)
-                var_primary = variable(get_node_vars(u, equations, dg, i_primary,
-                                                     j_primary, k_primary,
-                                                     primary_element), equations)
-                var_secondary = variable(get_node_vars(u, equations, dg, i_secondary,
-                                                       j_secondary, k_secondary,
-                                                       secondary_element),
-                                         equations)
+                var_primary = variable_values[i_primary, j_primary, k_primary,
+                                              primary_element]
+                var_secondary = variable_values[i_secondary, j_secondary, k_secondary,
+                                                secondary_element]
 
                 var_minmax[i_primary, j_primary, k_primary, primary_element] = minmax(var_minmax[i_primary,
                                                                                                  j_primary,
