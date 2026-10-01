@@ -49,6 +49,37 @@
     return mpi_interfaces
 end
 
+# Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_mortars::P4estMPIMortarContainer{3}, equations, solver::DG,
+                    cache)
+    check_axes(mpi_mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(4),
+                eachnode(solver), eachnode(solver),
+                eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.local_neighbor_ids, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.local_neighbor_positions, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.node_indices, (Base.OneTo(2), eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.normal_directions,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver),
+                Base.OneTo(4),
+                eachmpimortar(solver, cache)))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver),
+                  Base.OneTo(4))
+    buffer_axes = (eachvariable(equations),
+                   eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
 # Initialize node_indices of MPI mortar container. Works the same as for its serial counterpart.
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars::P4estMPIMortarContainer{3},
