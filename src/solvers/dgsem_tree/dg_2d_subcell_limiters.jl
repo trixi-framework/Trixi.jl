@@ -138,12 +138,15 @@ end
                                        dg::DGSEM, cache, t, boundary_conditions)
     @unpack limiter = volume_integral
 
-    # Compute lambdas and bar states
-    calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms, equations, limiter,
-                             dg, cache, boundary_conditions)
-    # Compute local bounds
-    calc_variable_bounds!(u, mesh, have_nonconservative_terms, equations, limiter,
-                          dg, cache, limiter.small_stencil)
+    # Compute lambdas, bar states, and bounds only when needed for local bounds
+    if limiter.local_twosided || limiter.local_onesided
+        # Compute lambdas and bar states
+        calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms, equations,
+                                 limiter, dg, cache, boundary_conditions)
+        # Compute local bounds
+        calc_variable_bounds!(u, mesh, have_nonconservative_terms, equations, limiter,
+                              dg, cache, limiter.small_stencil)
+    end
 
     @threaded for element in eachelement(dg, cache)
         volume_integral_kernel!(du, u, element, typeof(mesh),
