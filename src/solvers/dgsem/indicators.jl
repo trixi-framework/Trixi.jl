@@ -389,7 +389,8 @@ end
 
 """
     IndicatorEntropyCorrection(equations::AbstractEquations, basis;
-                               scaling=true)
+                               scaling=true,
+                               alpha_smooth=false)
 
 Indicator used for entropy correction using subcell FV schemes, where the
 blending is determined so that the volume integral entropy production is the
@@ -406,6 +407,10 @@ by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., 
 This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed
 here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
+If `alpha_smooth` is `true`, the entropy correction blending factor is diffused across
+neighboring elements using the same smoothing procedure as
+[`IndicatorHennemannGassner`](@ref).
+
 The use of `IndicatorEntropyCorrection` requires either
 `entropy_potential(u, orientation, equations)` for TreeMesh, or
 `entropy_potential(u, normal_direction, equations)` for other mesh types
@@ -415,14 +420,17 @@ to be defined.
 struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
     scaling::ScalingT # either Bool or Real
+    alpha_smooth::Bool
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorEntropyCorrection(equations::AbstractEquations,
                                     basis::LobattoLegendreBasis;
-                                    scaling = true) # true = 1 in floating point multiplication
+                                    scaling = true, # true = 1 in floating point multiplication
+                                    alpha_smooth = false)
     cache = create_cache(IndicatorEntropyCorrection, equations, basis)
-    return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
+    return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling,
+                                                                      alpha_smooth)
 end
 
 # this method is used when the indicator is constructed as for
@@ -440,19 +448,26 @@ function create_cache(::Type{IndicatorEntropyCorrection},
 
     # stores the blending coefficients
     alpha = Vector{uEltype}()
+    # alpha_tmp is temporary storage for blending coefficients
+    # in order to facilitate smoothing. 
+    alpha_tmp = similar(alpha)
 
-    return (; alpha, volume_integral_values_threaded)
+    return (; alpha, alpha_tmp, volume_integral_values_threaded)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)
     @nospecialize indicator # reduce precompilation time
     print(io, "IndicatorEntropyCorrection")
+    print(io, ", alpha_smooth=", indicator.alpha_smooth)
     return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrection)
     @nospecialize indicator # reduce precompilation time
-    summary_box(io, "IndicatorEntropyCorrection")
+    setup = [
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no")
+    ]
+    summary_box(io, "IndicatorEntropyCorrection", setup)
     return nothing
 end
 
