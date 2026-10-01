@@ -7,9 +7,9 @@
 
 # This version is called during `calc_gradients!` and must be specialized because the
 # MAGNITUDE of the flux does NOT depend on the outward normal.
-# Thus, you don't need to scale by 2 (e.g., the scaling factor in the normals (and in the
+# Thus, you don't need to scale by 4 (e.g., the scaling factor in the normals (and in the
 # contravariant vectors) along large/small elements across a non-conforming
-# interface in 2D) and flip the sign when storing the mortar fluxes back
+# interface in 3D) and flip the sign when storing the mortar fluxes back
 # into `surface_flux_values`.
 Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                                       mesh::P4estMesh{3},
@@ -616,6 +616,7 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
             # Copy solution of large element face to buffer in the
             # correct orientation
             large_indices = node_indices[2, mortar]
+            direction_index = indices2direction(large_indices)
 
             i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
                                                                                    index_range)
@@ -650,10 +651,10 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                                   element])
 
                         # We prolong the parabolic flux dotted with respect the outward normal
-                        # on the small element. We scale by -1/2 here because the normal
-                        # direction on the large element is negative 2x that of the small
+                        # on the small element. We scale by -1/4 here because the normal
+                        # direction on the large element is negative 4x that of the small
                         # element (these normal directions are "scaled" by the surface Jacobian)
-                        u_buffer[v, i, j] = -0.5f0 *
+                        u_buffer[v, i, j] = -0.25f0 *
                                             dot(flux_parabolic, normal_direction)
                     end
                     i_large += i_large_step_i
@@ -748,7 +749,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                                    equations_parabolic,
                                                    parabolic_scheme)
 
-                            # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
+                            # Sign flip (and scaling by 0.25) already handled above in `prolong2mortars_divergence!`
                             fstar[v, i, j, position] = flux_
                         end
 
