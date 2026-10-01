@@ -71,7 +71,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-alg = CarpenterKennedy2N54(williamson_condition = false)
+alg = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 sol = solve(ode, alg;
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks,

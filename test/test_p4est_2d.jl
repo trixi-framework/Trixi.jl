@@ -681,7 +681,9 @@ end
                             24.077904874883338
                         ],
                         tspan=(0.0, 0.02),
-                        atol=1e-7)
+                        # Results are sensitive to round-off errors, e.g., caused by
+                        # code coverage in CI
+                        atol=5e-7)
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
@@ -795,7 +797,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh2D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+@testitem "P4estMesh2D: elixir_mhd_alfven_wave_curved_sc.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_curved_sc.jl"),
                         l2=[
                             8.734161001340276e-5,
