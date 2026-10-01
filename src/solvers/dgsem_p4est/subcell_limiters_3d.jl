@@ -24,6 +24,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Only update a side during the pass
+            # for its own axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue
@@ -87,20 +90,18 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                                                                                 var_primary)
                     end
 
-                    # Increment the primary element indices
+                    # Increment the element indices
                     i_primary += i_primary_step_i
                     j_primary += j_primary_step_i
                     k_primary += k_primary_step_i
-                    # Increment the secondary element surface indices
                     i_secondary += i_secondary_step_i
                     j_secondary += j_secondary_step_i
                     k_secondary += k_secondary_step_i
                 end
-                # Increment the primary element indices
+                # Increment the element indices
                 i_primary += i_primary_step_j
                 j_primary += j_primary_step_j
                 k_primary += k_primary_step_j
-                # Increment the secondary element surface indices
                 i_secondary += i_secondary_step_j
                 j_secondary += j_secondary_step_j
                 k_secondary += k_secondary_step_j
@@ -205,6 +206,9 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Only update a side during the pass
+            # for its own axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue
@@ -258,20 +262,18 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                                                                                       var_primary)
                     end
 
-                    # Increment the primary element indices
+                    # Increment the element indices
                     i_primary += i_primary_step_i
                     j_primary += j_primary_step_i
                     k_primary += k_primary_step_i
-                    # Increment the secondary element surface indices
                     i_secondary += i_secondary_step_i
                     j_secondary += j_secondary_step_i
                     k_secondary += k_secondary_step_i
                 end
-                # Increment the primary element indices
+                # Increment the element indices
                 i_primary += i_primary_step_j
                 j_primary += j_primary_step_j
                 k_primary += k_primary_step_j
-                # Increment the secondary element surface indices
                 i_secondary += i_secondary_step_j
                 j_secondary += j_secondary_step_j
                 k_secondary += k_secondary_step_j

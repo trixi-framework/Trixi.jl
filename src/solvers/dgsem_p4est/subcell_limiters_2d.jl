@@ -24,6 +24,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Only update a side during the pass
+            # for its own axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue
@@ -71,7 +74,7 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                                                                var_primary)
                 end
 
-                # Increment primary element indices
+                # Increment the element indices
                 i_primary += i_primary_step
                 j_primary += j_primary_step
                 i_secondary += i_secondary_step
@@ -160,6 +163,9 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Only update a side during the pass
+            # for its own axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue
@@ -200,7 +206,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                                                                      var_primary)
                 end
 
-                # Increment primary element indices
+                # Increment the element indices
                 i_primary += i_primary_step
                 j_primary += j_primary_step
                 i_secondary += i_secondary_step
