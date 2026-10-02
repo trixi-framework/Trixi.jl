@@ -6,7 +6,7 @@
 #! format: noindent
 
 function rhs_parabolic!(backend::Nothing, du, u, t,
-                        mesh::P4estMeshParallel,
+                        mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -227,7 +227,7 @@ function calc_mortars_local!(cache, flux_parabolic,
 end
 
 function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
-                              mesh::P4estMeshParallel,
+                              mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
 

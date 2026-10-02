@@ -26,7 +26,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -53,6 +53,6 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
