@@ -81,9 +81,12 @@ end
     _, _, dg, cache = mesh_equations_solver_cache(semi)
     (; orientations, neighbor_ids) = cache.interfaces
 
-    # Process x-, y-, and z-oriented interfaces separately. Interfaces with the
-    # same orientation update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces with different orientations in separate passes. Within
+    # one pass, only the two opposite faces of each element in that orientation
+    # are updated, e.g., the left and right faces for orientation 1.
+    # These faces share no nodes and each face belongs to at most one interface,
+    # so all updates are disjoint. Faces of different orientations share corner
+    # nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:3
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue
@@ -273,9 +276,12 @@ end
     (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
     n_nodes = nnodes(dg)
 
-    # Process x-, y-, and z-oriented interfaces separately. Interfaces with the
-    # same orientation update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces with different orientations in separate passes. Within
+    # one pass, only the two opposite faces of each element in that orientation
+    # are updated, e.g., the left and right faces for orientation 1.
+    # These faces share no nodes and each face belongs to at most one interface,
+    # so all updates are disjoint. Faces of different orientations share corner
+    # nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:3
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue

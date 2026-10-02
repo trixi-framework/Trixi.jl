@@ -12,21 +12,26 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Process interfaces on different axes separately. Interfaces on the
-    # same axis update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces on different axes in separate passes. Within one pass,
+    # only the two opposite faces of each element on that axis are updated, e.g.,
+    # directions (1, 2) for axis 1. These faces share no nodes and each face
+    # belongs to at most one interface, so all updates are disjoint. Faces on
+    # different axes share corner nodes; the barrier between passes prevents
+    # races there.
     for axis in 1:ndims(mesh)
         @threaded for interface in eachinterface(dg, cache)
             # Get side index information on the elements
             primary_indices = node_indices[1, interface]
             secondary_indices = node_indices[2, interface]
 
+            # Convert indices to direction and then to the axis:
+            # directions (1, 2) -> axis 1, (3, 4) -> axis 2.
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
             # With unstructured meshes, the two sides of an interface can lie on
-            # different axes of their elements. Only update a side during the pass
-            # for its own axis, and skip the interface if neither side matches.
+            # different axes of their elements. Update only the side whose face is on
+            # the current axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue
@@ -151,21 +156,26 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Process interfaces on different axes separately. Interfaces on the
-    # same axis update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces on different axes in separate passes. Within one pass,
+    # only the two opposite faces of each element on that axis are updated, e.g.,
+    # directions (1, 2) for axis 1. These faces share no nodes and each face
+    # belongs to at most one interface, so all updates are disjoint. Faces on
+    # different axes share corner nodes; the barrier between passes prevents
+    # races there.
     for axis in 1:ndims(mesh)
         @threaded for interface in eachinterface(dg, cache)
             # Get side index information on the elements
             primary_indices = node_indices[1, interface]
             secondary_indices = node_indices[2, interface]
 
+            # Convert indices to direction and then to the axis:
+            # directions (1, 2) -> axis 1, (3, 4) -> axis 2, (5, 6) -> axis 3.
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 
             # With unstructured meshes, the two sides of an interface can lie on
-            # different axes of their elements. Only update a side during the pass
-            # for its own axis, and skip the interface if neither side matches.
+            # different axes of their elements. Update only the side whose face is on
+            # the current axis, and skip the interface if neither side matches.
             update_primary = primary_axis == axis
             update_secondary = secondary_axis == axis
             (update_primary || update_secondary) || continue

@@ -9,7 +9,12 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                          semi, mesh::StructuredMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Process x- and y-oriented interfaces separately. Within one loop each face is written by exactly one element iteration; the barrier between the loops prevents races at element corners.
+    # Process x- and y-oriented interfaces in separate loops. Within one loop,
+    # each element updates its own left (lower) face and the opposite face of its
+    # left (lower) neighbor. These faces share no nodes and each face is updated
+    # by exactly one element iteration, so all updates are disjoint. Faces of
+    # different orientations share corner nodes; the barrier between the loops
+    # prevents races there.
     @threaded for element in eachelement(dg, cache)
         # Get neighboring element id
         left = cache.elements.left_neighbors[1, element]
@@ -148,9 +153,12 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
     n_nodes = nnodes(dg)
 
-    # Process x- and y-oriented interfaces separately. Interfaces with the
-    # same orientation update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process x- and y-oriented interfaces in separate loops. Within one loop,
+    # each element updates its own left (lower) face and the opposite face of its
+    # left (lower) neighbor. These faces share no nodes and each face is updated
+    # by exactly one element iteration, so all updates are disjoint. Faces of
+    # different orientations share corner nodes; the barrier between the loops
+    # prevents races there.
     @threaded for element in eachelement(dg, cache)
         # Get neighboring element id
         left = cache.elements.left_neighbors[1, element]

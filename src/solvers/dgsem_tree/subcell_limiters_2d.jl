@@ -70,9 +70,12 @@ end
 
     (; neighbor_ids, orientations) = cache.interfaces
 
-    # Process x- and y-oriented interfaces separately. Interfaces with the
-    # same orientation update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces with different orientations in separate passes. Within
+    # one pass, only the two opposite faces of each element in that orientation
+    # are updated, e.g., the left and right faces for orientation 1.
+    # These faces share no nodes and each face belongs to at most one interface,
+    # so all updates are disjoint. Faces of different orientations share corner
+    # nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:2
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue
@@ -228,9 +231,12 @@ end
 
     (; neighbor_ids, orientations) = cache.interfaces
 
-    # Process x- and y-oriented interfaces separately. Interfaces with the
-    # same orientation update disjoint faces of each element. The barrier
-    # between these loops prevents races at element corners.
+    # Process interfaces with different orientations in separate passes. Within
+    # one pass, only the two opposite faces of each element in that orientation
+    # are updated, e.g., the left and right faces for orientation 1.
+    # These faces share no nodes and each face belongs to at most one interface,
+    # so all updates are disjoint. Faces of different orientations share corner
+    # nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:2
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue
