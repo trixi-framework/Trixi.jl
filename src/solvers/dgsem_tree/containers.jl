@@ -74,30 +74,51 @@ end
 
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
 mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1,
+                                          AlphaLocal, AlphaLocalStorage,
                                           VariableValues, VariableValuesStorage} <:
                AbstractContainer
     alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    alpha_local::AlphaLocal
     variable_values::VariableValues # Reusable nodal values of a nonlinear variable
     variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
+    n_mortars_per_node::Array{Int, NDIMSP1}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
+    _alpha_local::AlphaLocalStorage # Internal storage for `alpha_local`
     _variable_values::VariableValuesStorage # Internal storage for `variable_values`
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
+    _n_mortars_per_node::Vector{Int}
 end
 
 function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
                                                     bound_keys,
-                                                    cache_variable_values = false) where {
-                                                                                          NDIMS,
-                                                                                          uEltype <:
-                                                                                          Real
-                                                                                          }
+                                                    cache_variable_values = false,
+                                                    cache_alpha_local = false) where {
+                                                                                      NDIMS,
+                                                                                      uEltype <:
+                                                                                      Real
+                                                                                      }
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
     _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
     alpha = unsafe_wrap(Array, pointer(_alpha),
                         (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
+    _n_mortars_per_node = fill(zero(Int), prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+    n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
+                                     (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
+    if cache_alpha_local
+        # Initialize caching variable for the computation of the alphas with smoothness indicator
+        _alpha_local = fill(nan_uEltype,
+                            prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+        alpha_local = unsafe_wrap(Array, pointer(_alpha_local),
+                                  (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+    else
+        _alpha_local = nothing
+        alpha_local = nothing
+    end
 
     if cache_variable_values
         # Initialize caching variable for the computation of the bounds of nonlinear variables
@@ -120,12 +141,16 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     end
 
     return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1,
+                                      typeof(alpha_local), typeof(_alpha_local),
                                       typeof(variable_values),
-                                      typeof(_variable_values)}(alpha, variable_values,
+                                      typeof(_variable_values)}(alpha, alpha_local,
+                                                                variable_values,
                                                                 variable_bounds,
-                                                                _alpha,
+                                                                n_mortars_per_node,
+                                                                _alpha, _alpha_local,
                                                                 _variable_values,
-                                                                _variable_bounds)
+                                                                _variable_bounds,
+                                                                _n_mortars_per_node)
 end
 
 @inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
@@ -146,6 +171,14 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
                                   (ntuple(_ -> n_nodes, n_dims)..., capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
 
+    (; _alpha_local) = container
+    if !isnothing(_alpha_local)
+        resize!(_alpha_local, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+        container.alpha_local = unsafe_wrap(Array, pointer(_alpha_local),
+                                            (ntuple(_ -> n_nodes, n_dims)...,
+                                             capacity))
+    end
+
     (; _variable_values) = container
     if !isnothing(_variable_values)
         resize!(_variable_values, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
@@ -162,6 +195,12 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
                                                      (ntuple(_ -> n_nodes, n_dims)...,
                                                       capacity))
     end
+
+    (; _n_mortars_per_node) = container
+    resize!(_n_mortars_per_node, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    container.n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
+                                               (ntuple(_ -> n_nodes, n_dims)...,
+                                                capacity))
 
     return nothing
 end

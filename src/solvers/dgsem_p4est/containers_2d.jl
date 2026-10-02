@@ -245,6 +245,31 @@ function check_axes(mortars::P4estMortarContainer{2}, equations, solver::DG, cac
     return nothing
 end
 
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::P4estIDPMortarContainer{2}, equations, solver::DG, cache)
+    check_axes(mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(2),
+                eachnode(solver),
+                eachmortar(solver, cache)))
+    check_axes(mortars.u_large,
+               (eachvariable(equations), eachnode(solver), eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(3), eachmortar(solver, cache)))
+    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+    check_axes(mortars.limiting_factor, (eachmortar(solver, cache),))
+    check_axes(mortars.limiting_factor_local, (eachmortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    buffer_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars, faces, orientation, mortar_id)
