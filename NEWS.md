@@ -12,6 +12,7 @@ for human readability.
 - For the `CompressibleNavierStokesDiffusion1D` equations, the stress "tensor" `tau_xx` is now computed as
   `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`.
   Here, `mu` is the user-given dynamic viscosity.
+  This way, now also "bulk stress" is included besides shear stress.
 
 ## Changes in the v0.17 lifecycle
 
