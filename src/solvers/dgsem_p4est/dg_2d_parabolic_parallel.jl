@@ -509,8 +509,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 end
 
 function calc_mpi_mortar_flux_gradient!(surface_flux_values,
-                                        mesh::Union{P4estMeshParallel{2},
-                                                    T8codeMeshParallel{2}},
+                                        mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DG, parabolic_scheme, cache)
@@ -566,8 +565,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
 end
 
 Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                                                          mesh::Union{P4estMeshParallel{2},
-                                                                                      T8codeMeshParallel{2}},
+                                                                          mesh::P4estMeshParallel{2},
                                                                           equations_parabolic,
                                                                           mortar_l2::LobattoLegendreMortarL2,
                                                                           dg::DGSEM,
@@ -629,8 +627,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
 end
 
 function prolong2mpimortars_divergence!(cache, flux_parabolic,
-                                        mesh::Union{P4estMeshParallel{2},
-                                                    T8codeMeshParallel{2}},
+                                        mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DGSEM)
@@ -746,8 +743,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
 end
 
 function calc_mpi_mortar_flux_divergence!(surface_flux_values,
-                                          mesh::Union{P4estMeshParallel{2},
-                                                      T8codeMeshParallel{2}},
+                                          mesh::P4estMeshParallel{2},
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,
                                           dg::DG, parabolic_scheme, cache)
