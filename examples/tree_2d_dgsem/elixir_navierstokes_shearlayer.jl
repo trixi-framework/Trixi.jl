@@ -64,7 +64,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_condition_periodic,
-                                                                                          boundary_condition_periodic)
+                                                                    boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
