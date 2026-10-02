@@ -45,16 +45,17 @@ end
         local_indices = node_indices[interface]
 
         i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                index_range)
+                                                                 index_range)
         j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                index_range)
+                                                                 index_range)
 
         i_element = i_element_start
         j_element = j_element_start
         for i in index_range
             for v in variables_range
-                mpi_interfaces_u[local_side, v, i, interface] = u[v, i_element, j_element,
-                                                                local_element]
+                mpi_interfaces_u[local_side, v, i, interface] = u[v, i_element,
+                                                                  j_element,
+                                                                  local_element]
             end
             i_element += i_element_step
             j_element += j_element_step
@@ -113,9 +114,9 @@ end
 
         # Create the local i,j indexing on the local element used to pull normal direction information
         i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                index_range)
+                                                                 index_range)
         j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                index_range)
+                                                                 index_range)
 
         i_element = i_element_start
         j_element = j_element_start
@@ -139,11 +140,11 @@ end
                                                     i_element, j_element, local_element)
 
             calc_mpi_interface_flux!(surface_flux_values, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    surface_integral, SolverT,
-                                    u_mpi_interfaces, interface, normal_direction,
-                                    node, local_side, surface_node, local_direction,
-                                    local_element)
+                                     have_nonconservative_terms, equations,
+                                     surface_integral, SolverT,
+                                     u_mpi_interfaces, interface, normal_direction,
+                                     node, local_side, surface_node, local_direction,
+                                     local_element)
 
             # Increment local element indices to pull the normal direction
             i_element += i_element_step
