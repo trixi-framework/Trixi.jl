@@ -40,7 +40,7 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 # Use weak form as default volume integral
-volume_integral_default = VolumeIntegralWeakForm()
+volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
 
 # Setup stabilized volume integral
 limiter_idp = SubcellLimiterIDP(equations, basis;
@@ -50,7 +50,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 # Default parameters are not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 70,
-                                newton_tolerances = (1.0e-13, 1.0e-15))
+                                newton_tolerances = (1.0e-13, 1.0e-14))
 volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
                                                            volume_flux_dg = volume_flux,
                                                            volume_flux_fv = surface_flux)
@@ -58,7 +58,7 @@ volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
                                       alpha_min = 0.05, # governs when subcell limiting is considered
-                                      alpha_smooth = false,
+                                      alpha_smooth = true,
                                       variable = density_pressure)
 
 # Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
