@@ -1046,18 +1046,13 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     return nothing
 end
 
-function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_condition::Union{BoundaryConditionPeriodic,
-                                                                BoundaryConditionDoNothing},
-                                      mesh::P4estMesh,
-                                      equations_parabolic, surface_integral, dg::DG)
-    @assert isempty(eachboundary(dg, cache))
-end
-
 # Function barrier for type stability
-function calc_boundary_flux_gradient!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                      equations_parabolic, surface_integral, dg::DG)
-    (; boundary_condition_types, boundary_indices) = boundary_conditions
+function calc_boundary_flux_gradient!(cache, t,
+                                      boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
+                                      mesh::P4estMesh,
+                                      equations_parabolic::AbstractEquationsParabolic,
+                                      surface_integral, dg::DG)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions_parabolic
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
                                 Gradient(), mesh, equations_parabolic, surface_integral,
@@ -1065,9 +1060,12 @@ function calc_boundary_flux_gradient!(cache, t, boundary_conditions, mesh::P4est
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t, boundary_conditions, mesh::P4estMesh,
-                                        equations_parabolic, surface_integral, dg::DG)
-    (; boundary_condition_types, boundary_indices) = boundary_conditions
+function calc_boundary_flux_divergence!(cache, t,
+                                        boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
+                                        mesh::P4estMesh,
+                                        equations_parabolic::AbstractEquationsParabolic,
+                                        surface_integral, dg::DG)
+    (; boundary_condition_types, boundary_indices) = boundary_conditions_parabolic
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
                                 Divergence(), mesh, equations_parabolic,
