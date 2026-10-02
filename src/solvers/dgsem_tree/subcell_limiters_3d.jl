@@ -456,14 +456,14 @@ end
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            eps_ = eps(typeof(Qp)) * 100 * abs(var_max[i, j, k, element])
-            Qp = abs(Qp) / (abs(Pp) + eps_)
-            Qm = abs(Qm) / (abs(Pm) + eps_)
+            # Compute blending coefficient
+            # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+            # Note: `Pp` and `Qp` are nonnegative.
+            Qp = Pp > Qp ? Qp / Pp : one(Qp)
+            Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
             # Calculate alpha at nodes
-            alpha[i, j, k, element] = max(alpha[i, j, k, element], 1 - min(1, Qp, Qm))
+            alpha[i, j, k, element] = max(alpha[i, j, k, element], 1 - min(Qp, Qm))
         end
     end
 
@@ -574,9 +574,9 @@ end
                                                     mesh, i, j, k, element)
             Pm = inverse_jacobian * Pm
 
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+            # Compute blending coefficient
+            # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+            Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
             # Calculate alpha
             alpha[i, j, k, element] = max(alpha[i, j, k, element], 1 - Qm)

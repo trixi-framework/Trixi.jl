@@ -599,14 +599,14 @@ end
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            eps_ = eps(typeof(Qp)) * 100 * abs(var_max[i, j, element])
-            Qp = abs(Qp) / (abs(Pp) + eps_)
-            Qm = abs(Qm) / (abs(Pm) + eps_)
+            # Compute blending coefficient
+            # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+            # Note: `Pp` and `Qp` are nonnegative.
+            Qp = Pp > Qp ? Qp / Pp : one(Qp)
+            Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
             # Calculate alpha at nodes
-            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(Qp, Qm))
         end
     end
 
@@ -736,10 +736,9 @@ end
                                                     mesh, i, j, element)
             Pm = inverse_jacobian * Pm
 
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            eps_ = eps(typeof(Qm)) * 100
-            Qm = abs(Qm) / (abs(Pm) + eps_)
+            # Compute blending coefficient
+            # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+            Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
             # Calculate alpha
             alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
@@ -1058,17 +1057,13 @@ end
     Pp = n_mortars * Pp
     Pm = n_mortars * Pm
 
-    # Compute blending coefficient avoiding division by zero
-    # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-    # Without an antidiffusive contribution in one direction, there is nothing to limit in this
-    # direction. Otherwise, a vanishing admissible range, e.g., if the volume correction already
-    # reached the bound, would give `Q = 0` and pure low-order fluxes at the whole mortar.
-    # This happens, e.g., at the corner nodes of the small elements, where the high-order and
-    # low-order mortar fluxes coincide.
-    Qp = iszero(Pp) ? one(Qp) : abs(Qp) / abs(Pp)
-    Qm = iszero(Pm) ? one(Qm) : abs(Qm) / abs(Pm)
+    # Compute blending coefficient
+    # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+    # Note: `Pp` and `Qp` are nonnegative.
+    Qp = Pp > Qp ? Qp / Pp : one(Qp)
+    Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
-    return min(one(Qp), Qp, Qm)
+    return min(Qp, Qm)
 end
 
 ##############################################################################
@@ -1350,13 +1345,11 @@ end
     # to account for this. Similar to scaling with `gamma` in Newton methods.
     Pm = n_mortars_per_node[i_node, j_node, element] * Pm
 
-    # Compute blending coefficient avoiding division by zero
-    # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-    # Without a negative antidiffusive contribution, there is nothing to limit. Otherwise, a
-    # vanishing admissible range would give `Q = 0` and pure low-order fluxes at the whole mortar.
-    Qm = iszero(Pm) ? one(Qm) : abs(Qm) / abs(Pm)
+    # Compute blending coefficient
+    # If `|P| <= |Q|`, no limiting is needed and therefore `Q = 1`.
+    Qm = abs(Pm) > abs(Qm) ? abs(Qm) / abs(Pm) : one(Qm)
 
-    return min(one(Qm), Qm)
+    return Qm
 end
 
 ##############################################################################
