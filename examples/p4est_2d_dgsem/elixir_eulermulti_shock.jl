@@ -55,7 +55,8 @@ basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho" * string(i)
-                                                             for i in eachcomponent(equations)])
+                                                             for i in eachcomponent(equations)],
+                                bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
