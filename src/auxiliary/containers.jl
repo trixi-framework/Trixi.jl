@@ -296,6 +296,17 @@ function unsafe_wrap_or_alloc(to, vector, size)
     end
 end
 
+# Wrap the internal storage `vector` of a container in a multi-dimensional array.
+# We use `PtrArray`s whenever possible since they allow the compiler to generate more
+# efficient code, in particular when some sizes are `StaticInt`s.
+@inline function unsafe_wrap_storage(vector, size)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(vector)
+        return PtrArray(pointer(vector), size)
+    else
+        return unsafe_wrap(Array, pointer(vector), map(Int, size))
+    end
+end
+
 struct TrixiAdaptor{Storage, RealT} end
 
 """
