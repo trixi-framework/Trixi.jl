@@ -153,11 +153,12 @@ function prolong2interfaces!(backend::Nothing, cache, u,
                              equations, dg::BlockFV)
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = interfaces.u
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
-        prolong2interfaces_per_interface!(interfaces.u, u, interface,
+        prolong2interfaces_per_interface!(interfaces_u, u, interface,
                                           MeshT, equations,
                                           neighbor_ids, node_indices, index_range)
     end
