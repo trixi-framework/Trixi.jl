@@ -312,6 +312,40 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
     return dt
 end
 
+function max_dt(u, t, mesh::P4estMeshParallel{2},
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
+    dt = invoke(max_dt,
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_diffusivity), typeof(equations),
+                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
+                dg, cache)
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
+
+    return dt
+end
+
+function max_dt(u, t, mesh::P4estMeshParallel{2},
+                constant_diffusivity::True, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
+    dt = invoke(max_dt,
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_diffusivity), typeof(equations),
+                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
+                dg, cache)
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
+
+    return dt
+end
+
 function max_dt(u, t, mesh::T8codeMeshParallel{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`

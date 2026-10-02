@@ -68,6 +68,60 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 2D Parabolic: elixir_advection_diffusion_nonperiodic_curved.jl (LDG)" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The LDG interface fluxes depend on the direction of the normal vector. Thus,
+    # both sides of an MPI interface must use the same (primary) normal direction
+    # to obtain the same results as in serial.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        trees_per_dimension=(1, 1), initial_refinement_level=2,
+                        tspan=(0.0, 0.5),
+                        l2=[0.00912383895722383],
+                        linf=[0.14071539996402677])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
+@testitem "P4estMesh MPI 2D Parabolic: parabolic time step" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The parabolic time step restriction must be identical on all MPI ranks
+    # and coincide with the one of a serial simulation.
+    function max_dt_parabolic(semi, ode)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic) = semi
+        u = Trixi.wrap_array(ode.u0, semi)
+        return Trixi.max_dt(u, first(ode.tspan), mesh,
+                            Trixi.have_constant_diffusivity(equations_parabolic),
+                            equations, equations_parabolic, solver, cache)
+    end
+    is_identical_on_all_ranks(x) = Trixi.MPI.Allreduce(x, min, Trixi.mpi_comm()) ==
+                                   Trixi.MPI.Allreduce(x, max, Trixi.mpi_comm())
+
+    # Constant diffusivity on a curved mesh
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        tspan=(0.0, 0.0))
+    dt = max_dt_parabolic(semi, ode)
+    @test is_identical_on_all_ranks(dt)
+    @test isapprox(dt, 0.005600668213814502, rtol = 1.0e-12)
+
+    # Solution-dependent diffusivity
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_nonperiodic.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.0))
+    dt = max_dt_parabolic(semi, ode)
+    @test is_identical_on_all_ranks(dt)
+    @test isapprox(dt, 0.6026785714285666, rtol = 1.0e-12)
+end
+
 @testitem "P4estMesh MPI 2D Parabolic: elixir_advection_diffusion_periodic.jl" setup=[
     Setup,
     MPIP4estMesh2DParabolic

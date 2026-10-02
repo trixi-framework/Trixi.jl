@@ -44,6 +44,7 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- The parabolic terms on conforming `P4estMesh3D`s now support MPI parallelization ([#3291]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
@@ -54,6 +55,12 @@ for human readability.
   fluxes of the large elements at mortars were computed with the wrong normal direction
   and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
   (e.g., with AMR) change.
+- Fixes two bugs in the MPI-parallel parabolic terms of `P4estMesh2D`s ([#3291]):
+  The gradient fluxes at MPI interfaces were computed with the normal direction of the
+  local instead of the primary element. Thus, results of MPI-parallel simulations with
+  `ParabolicFormulationLocalDG` change and now agree with serial simulations.
+  Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
+  is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
 
 
 ## Changes when updating to v0.17 from v0.16.x
