@@ -245,6 +245,84 @@ corresponding Vim plugin
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 
+## [AI coding agents](@id ai-coding-agents)
+Instructions for AI coding agents such as Claude Code, Codex, Copilot, or Cursor
+are collected in the file
+[`AGENTS.md`](https://github.com/trixi-framework/Trixi.jl/blob/main/AGENTS.md)
+in the root directory of the repository. Most agents read this file
+automatically; Claude Code reads it via `CLAUDE.md`, which imports `AGENTS.md`.
+Among other things, it instructs agents to never run the full test suite
+(which is done in CI), but only individual test items related to their changes
+(see [Testing](@ref)). To do so, agents create and reuse the local Julia project
+`run_agents/` in the repository, which develops the local version of Trixi.jl
+and contains all test dependencies. This directory is ignored by git. No setup
+is required on your side for this basic workflow.
+
+If you use an agent to prepare a pull request, please follow the guidelines on
+LLM/AI usage in
+[`CONTRIBUTING.md`](https://github.com/trixi-framework/Trixi.jl/blob/main/CONTRIBUTING.md).
+
+### Optional: persistent Julia sessions for agents
+By default, agents start a new Julia process for every command, which means that
+Trixi.jl and the test dependencies have to be loaded (and partially compiled)
+again each time. This overhead can be avoided with the MCP server
+[julia-mcp](https://github.com/aplavin/julia-mcp), which provides agents with
+persistent Julia sessions. Repeated test runs are then much faster, and changes
+to the source code are picked up automatically via
+[Revise.jl](https://github.com/timholy/Revise.jl). `AGENTS.md` describes how agents
+use these sessions; agents without access to the MCP server fall back to the
+standard workflow. To set up julia-mcp, follow these steps (see the
+[README of julia-mcp](https://github.com/aplavin/julia-mcp) for further details
+and other clients):
+
+1. Install [uv](https://docs.astral.sh/uv/), e.g., via `brew install uv` on
+   macOS or as described in its documentation.
+2. Make sure that `julia` is available in your `PATH` (e.g., via
+   [juliaup](https://github.com/JuliaLang/juliaup)) and install Revise.jl in your
+   global Julia environment, which is loaded automatically in the sessions:
+   ```shell
+   julia -e 'using Pkg; Pkg.add("Revise")'
+   ```
+3. Clone julia-mcp to some directory outside of the Trixi.jl repository, e.g.,
+   ```shell
+   git clone https://github.com/aplavin/julia-mcp.git ~/some/directory/julia-mcp
+   ```
+4. Register the MCP server with your agent. We recommend to start Julia with a
+   single thread (as most CI jobs do, which is relevant, e.g., for tests of
+   memory allocations) and with bounds checking enabled (as `Pkg.test` does,
+   see [Enabling bounds checking](@ref enabling-bounds-checking)). Since custom
+   Julia flags replace the default flags of julia-mcp, `--startup-file=no` is
+   also passed explicitly.
+   - Claude Code (user-wide, i.e., for all projects):
+     ```shell
+     claude mcp add --scope user julia -- uv run --directory ~/some/directory/julia-mcp python server.py --threads=1 --check-bounds=yes --startup-file=no
+     ```
+   - Codex:
+     ```shell
+     codex mcp add julia -- uv run --directory ~/some/directory/julia-mcp server.py --threads=1 --check-bounds=yes --startup-file=no
+     ```
+     This adds the following entry to `~/.codex/config.toml`, which you can also
+     create manually (with the absolute path of your clone of julia-mcp):
+     ```toml
+     [mcp_servers.julia]
+     command = "uv"
+     args = ["run", "--directory", "/path/to/julia-mcp", "server.py", "--threads=1", "--check-bounds=yes", "--startup-file=no"]
+     ```
+   The extensions of Claude Code and Codex for VS Code ship their own
+   executables, which are not added to your `PATH`. Thus, the commands `claude`
+   and `codex` used above may not be available in your shell if you only
+   installed these extensions. In this case, install the command line tools
+   (e.g., via `brew install --cask claude-code` and `brew install --cask codex`
+   on macOS) or edit the configuration files directly. The command line tools
+   and the VS Code extensions share their configuration, so an MCP server
+   registered once is available in both.
+5. Restart your agent (or VS Code) and check that the MCP server is available,
+   e.g., via `/mcp` in Claude Code. Then, ask the agent to run a test item,
+   e.g., `"TreeMesh2D Advection: elixir_advection_basic.jl"`, using the Julia
+   MCP tool. The first run takes a while because of compilation; repeated runs
+   in the same session are much faster.
+
+
 ## Debugging
 Julia offers several options for debugging. A classical debugger is available with the
 [Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) package or in the
