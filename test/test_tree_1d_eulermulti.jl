@@ -38,6 +38,35 @@ end
                              entropy_potential(u_ll, 1, equations)
     @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 1, equations)) ≈
           jump_entropy_potential
+
+    # check that `flux_srinivasan_nadarajah` is entropy conservative for heterogeneous mixtures
+    tadmor_residual = dot(v_rr - v_ll,
+                          flux_srinivasan_nadarajah(u_ll, u_rr, 1, equations)) -
+                      jump_entropy_potential
+    atol = 100 * eps(Float64) * max(1, abs(jump_entropy_potential))
+    @test abs(tadmor_residual) < atol
+
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    v1_ll = u_ll[1] / rho_ll
+    v1_rr = u_rr[1] / rho_rr
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    p_ll = pressure(u_ll, equations)
+    p_rr = pressure(u_rr, equations)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+
+    # check Jameson KEP form for `flux_srinivasan_nadarajah`
+    F = flux_srinivasan_nadarajah(u_ll, u_rr, 1, equations)
+    f_rho_sum = sum(@view F[3:end])
+    kep_residual = F[1] - (f_rho_sum * v1_avg + p_avg)
+    atol_kep = 100 * eps(Float64) * max(1, abs(F[1]))
+    @test abs(kep_residual) < atol_kep
+
+    # `flux_chandrashekar` is EC but not KEP under the arithmetic-pressure Jameson form
+    F_ch = flux_chandrashekar(u_ll, u_rr, 1, equations)
+    f_rho_sum_ch = sum(@view F_ch[3:end])
+    kep_residual_ch = F_ch[1] - (f_rho_sum_ch * v1_avg + p_avg)
+    @test abs(kep_residual_ch) > atol_kep
 end
 
 @testitem "TreeMesh1D EulerMulti: elixir_eulermulti_ec.jl" setup=[
@@ -51,6 +80,24 @@ end
                         linf=[0.29130548795961864, 0.8847009003152357,
                             0.034686525099975274, 0.06937305019995055,
                             0.1387461003999011])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_ec.jl with flux_srinivasan_nadarajah" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
+                        l2=[0.15330089521538687, 0.4417674632047314,
+                            0.0168885105102824, 0.0337770210205648,
+                            0.0675540420411296],
+                        linf=[0.29130548795961825, 0.8847009003152451,
+                            0.03468652509997572, 0.06937305019995144,
+                            0.13874610039990287],
+                        surface_flux=flux_srinivasan_nadarajah,
+                        volume_flux=flux_srinivasan_nadarajah)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
