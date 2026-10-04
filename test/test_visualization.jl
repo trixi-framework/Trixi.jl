@@ -121,7 +121,7 @@ end
                 for property in propertynames(spd_function)
                     if property == :data
                         @test spd_no_function.data.data ≈ spd_function.data.data
-                    elseif property == :variable_names
+                    elseif property in (:variable_names, :point_data)
                         @test getproperty(spd_no_function, property) ==
                               getproperty(spd_function, property)
                     else
@@ -1247,6 +1247,7 @@ end
 
     # Makie.contour(pds) uses tricontour with title, xlabel, ylabel and colorbar
     @test pd.point_values
+    @test isnothing(pd.point_data)
     _, _, plt = @trixi_test_nowarn Makie.contour(pd["rho"])
     @test plt isa Makie.Tricontour
 
@@ -1302,14 +1303,29 @@ end
     @test !pd.point_values
 
     # Each cell holds a single value on its own copy of the cell corners, so every
-    # triangle is constant. Contours need point values, so coincident corners are merged
-    # and get the mean value of the adjacent cells: 64 x 64 cells have 65 x 65 corners.
-    TrixiMakieExt = Base.get_extension(Trixi, :TrixiMakieExt)
-    x, y, z, triangles = TrixiMakieExt._tricontour_arguments(pd["scalar"])
-    @test length(x) == length(y) == length(z) == 65^2
-    @test size(triangles) == (3, 2 * 64^2)
-    u = StructArrays.component(pd.data, 1)
-    @test minimum(u) <= minimum(z) && maximum(z) <= maximum(u)
+    # triangle is constant. Contours need point values, so the cell values are also
+    # averaged onto the cell corners. On this Cartesian mesh, the corners of neighboring
+    # cells coincide exactly, so the four nodes at each interior corner must get the mean
+    # value of the four adjacent cells.
+    x, y = vec(pd.x), vec(pd.y)
+    u = vec(StructArrays.component(pd.data, 1))
+    u_point = vec(StructArrays.component(pd.point_data, 1))
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, (x[i], y[i])), i)
+    end
+    interior_corners = filter(==(4) ∘ length, collect(values(nodes)))
+    @test length(interior_corners) == 63^2
+    @test all(n -> all(u_point[n] .≈ sum(u[n]) / 4), interior_corners)
+    @test minimum(u) <= minimum(u_point) && maximum(u_point) <= maximum(u)
+
+    # The corners are found with the mesh connectivity. Since the domain is periodic, the
+    # corners on opposite sides of the domain are the same and get the same value.
+    on_boundary(side) = Dict(round(y[i]; digits = 10) => u_point[i]
+                             for i in eachindex(x) if x[i] ≈ side)
+    left, right = on_boundary(-1), on_boundary(1)
+    @test keys(left) == keys(right)
+    @test all(k -> left[k] ≈ right[k], keys(left))
 
     _, _, plt = @trixi_test_nowarn Makie.contour(pd["scalar"])
     @test !isempty(plt.plots[1][1][])
@@ -1318,17 +1334,19 @@ end
     @trixi_test_nowarn Makie.contour(sol)
 
     # On curved meshes, corners shared by neighboring elements only coincide up to
-    # round-off errors. If they are merged, the triangulation of the square domain is
-    # connected and has the Euler characteristic V - E + F = 1.
+    # round-off errors. The mesh connectivity still gives all of them the same value.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
                                  "elixir_advection_unstructured_flag.jl"),
                         tspan=(0.0, 0.1))
     pd = PlotData2D(sol)
-    x, _, _, triangles = TrixiMakieExt._tricontour_arguments(pd["scalar"])
-    @test length(x) < length(unique(zip(vec(pd.x), vec(pd.y))))
-    edges = Set(minmax(triangles[a, k], triangles[b, k])
-                for k in axes(triangles, 2) for (a, b) in ((1, 2), (2, 3), (3, 1)))
-    @test length(x) - length(edges) + size(triangles, 2) == 1
+    x, y = vec(pd.x), vec(pd.y)
+    u_point = vec(StructArrays.component(pd.point_data, 1))
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, round.((x[i], y[i]); digits = 10)), i)
+    end
+    @test length(nodes) < length(unique(zip(x, y)))
+    @test all(n -> all(==(u_point[first(n)]), u_point[n]), values(nodes))
 end
 @testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
     Setup,

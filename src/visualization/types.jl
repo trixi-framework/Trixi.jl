@@ -88,7 +88,7 @@ end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
-                              VariableNames, PlottingTriangulation} <:
+                              VariableNames, PlottingTriangulation, PointDataType} <:
        AbstractPlotData{2}
     x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
     y::NodeType
@@ -99,6 +99,9 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     face_data::FaceDataType
     variable_names::VariableNames
     point_values::Bool # `false` for cell (mean) values, e.g., for `BlockFV`
+    # For cell (mean) values: the values averaged onto the nodes, which contour plots need.
+    # `nothing` for point values.
+    point_data::PointDataType
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -405,7 +408,8 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                                                         nvisnodes = nvisnodes)
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data,
-                                  variable_names, true)
+                                  variable_names, visualize_point_values(mesh, dg),
+                                  nothing)
 end
 
 # One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
@@ -477,7 +481,7 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     transform_to_solution_variables!(ufp, solution_variables_, equations)
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names,
-                                  true)
+                                  visualize_point_values(mesh, dg), nothing)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
@@ -558,7 +562,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
 
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
-                                  x_face, y_face, face_data, variable_name, true)
+                                  x_face, y_face, face_data, variable_name,
+                                  visualize_point_values(mesh, dg), nothing)
 end
 
 function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
@@ -599,7 +604,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
 
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
-                                  x_face, y_face, face_data, variable_name, true)
+                                  x_face, y_face, face_data, variable_name,
+                                  visualize_point_values(mesh, dg), nothing)
 end
 
 """
@@ -790,11 +796,13 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
     n_cells = n^2 * n_elements
 
     corners_x, corners_y = calc_fv_cell_corners(mesh, dg, cache)
+    corner_groups = calc_fv_corner_groups(mesh, dg, cache)
 
     x = Array{Float64}(undef, 4, n_cells)
     y = similar(x)
     data = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype, 4, n_cells),
                                                        nvars))
+    groups = Array{Int}(undef, 4, n_cells)
 
     cell = 0
     for element in 1:n_elements
@@ -808,6 +816,10 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
             y[2, cell] = corners_y[i + 1, j, element]
             y[3, cell] = corners_y[i + 1, j + 1, element]
             y[4, cell] = corners_y[i, j + 1, element]
+            groups[1, cell] = corner_groups[i, j, element]
+            groups[2, cell] = corner_groups[i + 1, j, element]
+            groups[3, cell] = corner_groups[i + 1, j + 1, element]
+            groups[4, cell] = corner_groups[i, j + 1, element]
 
             u_node = solution_variables_(get_node_vars(u, equations, dg, i, j, element),
                                          equations)
@@ -824,8 +836,13 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
 
     x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
 
+    # Contour plots need point values, so the cell values are also averaged onto the cell
+    # corners.
+    point_data = calc_group_means(data, groups)
+
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
-                                  variable_names, false)
+                                  variable_names, visualize_point_values(mesh, dg),
+                                  point_data)
 end
 
 # unwrap u if it is VectorOfArray
