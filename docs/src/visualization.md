@@ -570,8 +570,8 @@ plot!(getmesh(pd))
 
 ### Contour plots
 
-For solutions on all meshes, Trixi.jl also supports unfilled contour lines (`contour`, `contour!`) and filled contour bands
-(`contourf`). Contour lines for a single variable:
+Trixi.jl also supports unfilled contour lines (`contour`, `contour!`) and filled contour bands (`contourf`).
+Contour lines for a single variable:
 ```@example makie-2d
 Makie.contour(pd["rho"])
 ```
