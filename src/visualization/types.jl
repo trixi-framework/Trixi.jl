@@ -915,7 +915,8 @@ function PlotData2D(u::StructArray,
             interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
                                                          reference_coordinates...) /
                                    vandermonde_factorization
-            apply_to_each_field(mul_by!(interpolation_matrix), u_slice, view(u, :, element))
+            apply_to_each_field(mul_by!(interpolation_matrix), u_slice,
+                                view(u, :, element))
             apply_to_each_field(mul_by!(rd_slice.Vp), view(u_plot, :, slice_element),
                                 u_slice)
             transform_to_solution_variables!(view(u_plot, :, slice_element),

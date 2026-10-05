@@ -674,7 +674,8 @@ end
 
 # Sample each polygon's mesh lines in physical coordinates and solution variables.
 function slice_plotting_wireframe(u, intersection_polygons, rd, orientations,
-                                  reference_vertex_coordinates, vandermonde_factorization,
+                                  reference_vertex_coordinates,
+                                  vandermonde_factorization,
                                   equations, solution_variables; nvisnodes)
     RealT = real(rd)
     orientation_x, orientation_y = orientations
