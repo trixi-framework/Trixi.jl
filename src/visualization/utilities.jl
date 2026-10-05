@@ -728,16 +728,11 @@ end
 function intersect_tetrahedron_with_plane(vertex_coordinates::NTuple{3,
                                                                      SVector{4, RealT}},
                                           slice_dimension, slice_coordinate;
-                                          tolerance = nothing) where {RealT <: Real}
+                                          tolerance) where {RealT <: Real}
     plane_coordinates = vertex_coordinates[slice_dimension]
     slice_coordinate_ = convert(RealT, slice_coordinate)
     distances = plane_coordinates .- slice_coordinate_
-
-    if tolerance === nothing
-        tolerance_ = slice_plane_tolerance(extrema(plane_coordinates)..., slice_coordinate_)
-    else
-        tolerance_ = convert(RealT, tolerance)
-    end
+    tolerance_ = convert(RealT, tolerance)
 
     # In-plane directions in ascending order, matching `_get_orientations`.
     orientation_x, orientation_y = filter(!=(slice_dimension), (1, 2, 3))
