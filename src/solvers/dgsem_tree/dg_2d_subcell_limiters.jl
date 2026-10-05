@@ -1528,7 +1528,84 @@ end
         end
     end
 
+    if limiter.merge_interface_bounds
+        merge_interface_bounds!(limiter, mesh, dg, cache)
+    end
+
     return nothing
+end
+
+# Merge the local bounds of collocated nodes at element interfaces.
+# On LGL nodes, the boundary nodes of two neighboring elements share the same physical location.
+# The bar state at the interface between them is computed from (nearly) identical states (for
+# smooth solutions) and therefore does not add information to the bounds. In particular, the
+# bounds of the boundary nodes lack the information of the neighboring element, which a
+# high-order update legitimately uses. Taking the union of the bounds of collocated nodes adds
+# the bar states of the subcell faces of the neighboring element adjacent to the interface.
+# This only widens the bounds, so the low-order solution still fulfills them.
+# Note: Bounds at mortars are not merged.
+@inline function merge_interface_bounds!(limiter, mesh::TreeMesh{2}, dg, cache)
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+
+    if limiter.local_twosided
+        for v in limiter.local_twosided_variables_cons
+            v_string = string(v)
+            merge_interface_bounds!(variable_bounds[Symbol(v_string, "_min")], min,
+                                    mesh, dg, cache)
+            merge_interface_bounds!(variable_bounds[Symbol(v_string, "_max")], max,
+                                    mesh, dg, cache)
+        end
+    end
+    if limiter.local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            var_minmax = variable_bounds[Symbol(string(variable), "_",
+                                                string(min_or_max))]
+            merge_interface_bounds!(var_minmax, min_or_max, mesh, dg, cache)
+        end
+    end
+
+    return nothing
+end
+
+@inline function merge_interface_bounds!(var_minmax, min_or_max, mesh::TreeMesh{2},
+                                         dg, cache)
+    (; neighbor_ids, orientations) = cache.interfaces
+
+    # Process x- and y-oriented interfaces separately. Interfaces with the same orientation
+    # update disjoint nodes of each element. The barrier between these loops is also required
+    # to pass the bounds around element corners: After both passes, all four collocated nodes at
+    # an element corner hold the union of their bounds.
+    for selected_orientation in 1:2
+        @threaded for interface in eachinterface(dg, cache)
+            orientations[interface] == selected_orientation || continue
+
+            # Get neighboring element ids
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
+
+            for i in eachnode(dg)
+                # Define node indices for left and right element based on the interface orientation
+                if selected_orientation == 1
+                    index_left = (nnodes(dg), i)
+                    index_right = (1, i)
+                else # if orientation == 2
+                    index_left = (i, nnodes(dg))
+                    index_right = (i, 1)
+                end
+
+                var = min_or_max(var_minmax[index_left..., left_element],
+                                 var_minmax[index_right..., right_element])
+                var_minmax[index_left..., left_element] = var
+                var_minmax[index_right..., right_element] = var
+            end
+        end
+    end
+
+    return nothing
+end
+
+function merge_interface_bounds!(limiter, mesh, dg, cache)
+    error("Merging the local bounds at interfaces is only implemented for `TreeMesh{2}`.")
 end
 
 @inline function calc_variable_bounds!(u, mesh::AbstractMesh{2}, nonconservative_terms,

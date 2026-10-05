@@ -25,6 +25,8 @@ end
                       local_onesided_variables_nonlinear = [],
                       indicator = nothing,
                       bar_states = false,
+                      small_stencil = true,
+                      merge_interface_bounds = false,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14))
 
@@ -46,7 +48,10 @@ For local one-sided limiting pass the variable function combined with the reques
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
 entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
-The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
+The bounds can be calculated using the `bar_states` or the low-order FV solution. With
+`merge_interface_bounds = true` (only for `bar_states = true` and `small_stencil = true` on a 2D
+[`TreeMesh`](@ref)), the bounds of collocated nodes at element interfaces are merged. Otherwise,
+the bounds of these nodes lack the information of the neighboring element. The positivity
 limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations and relative and absolute tolerances of `newton_tolerances`.
@@ -90,6 +95,7 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     indicator::Indicator
     bar_states::BarStates
     small_stencil::SmallStencil             # Use small stencil for computation of bar state bounds
+    merge_interface_bounds::Bool            # Merge bounds of collocated nodes at element interfaces
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
@@ -105,6 +111,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            indicator = nothing,
                            bar_states = false,
                            small_stencil = true,
+                           merge_interface_bounds = false,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14))
     local_twosided = (length(local_twosided_variables_cons) > 0)
@@ -114,6 +121,15 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     if !isnothing(indicator) && ndims(equations) != 2
         error("The smoothness indicator is only implemented in 2D.")
+    end
+
+    if merge_interface_bounds
+        if ndims(equations) != 2
+            error("Merging the local bounds at interfaces is only implemented in 2D.")
+        end
+        if !(bar_states == true && small_stencil == true)
+            error("Merging the local bounds at interfaces requires `bar_states = true` and `small_stencil = true`.")
+        end
     end
 
     # The MPI-parallel `rhs!` implementations do not call the `calc_volume_integral!` method
@@ -199,6 +215,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             local_onesided_variables_nonlinear_,
                                             indicator,
                                             bar_states, small_stencil,
+                                            merge_interface_bounds,
                                             cache,
                                             max_iterations_newton, newton_tolerances)
 end
@@ -267,6 +284,9 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                                           "FV solution"))
             if limiter.small_stencil == false
                 push!(setup, "" => "Large stencil for bar state bounds")
+            end
+            if limiter.merge_interface_bounds
+                push!(setup, "" => "Merged bounds at element interfaces")
             end
         end
         summary_box(io, "SubcellLimiterIDP", setup)
