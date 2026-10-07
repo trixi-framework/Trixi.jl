@@ -4390,6 +4390,7 @@ end
     end
 
     @testset "3D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations3D(1.4)
         u = SVector(0.5, 0.5, 1.0, -2.0, 0.1)
         lower_bounds = (1.0, 0.1)
         variables = (density, energy_internal)
