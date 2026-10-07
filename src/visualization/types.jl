@@ -181,7 +181,7 @@ getmesh(pd::AbstractPlotData) = PlotMesh(pd)
                slice=:xy, point=(0.0, 0.0, 0.0))
 
 Create a `PlotData2D` object for visualizing 2D data or slices of 3D solution data `u`
-with `Plots.jl` or `Makie.jl`. Geometrical information is extracted from the semidiscretization
+with Plots.jl or Makie.jl. Geometrical information is extracted from the semidiscretization
 `semi`. By default, the primitive variables (if available) or the conservative variables (otherwise)
 from the solution are used for plotting. This can be changed by passing an appropriate conversion
 function to `solution_variables`.
