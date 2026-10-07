@@ -764,7 +764,8 @@ end
 
                 # Mesh lines sample the same polynomial at the requested resolution.
                 finite = isfinite.(pd_slice.x_face)
-                @test count(finite) == num_edges * (2 * nnodes(dg) - 1) + 1
+                @test count(finite) ==
+                      num_edges * (2 * (Trixi.polydeg(dg) + 1) - 1) + 1
                 expected_face = solution_variables.(state.(pd_slice.x_face[finite],
                                                            pd_slice.y_face[finite],
                                                            coordinate),

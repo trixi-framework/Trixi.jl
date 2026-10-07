@@ -854,7 +854,7 @@ function PlotData2D(u::StructArray,
                     dg::DGMulti{3, Tet},
                     cache;
                     solution_variables = nothing,
-                    nvisnodes = 2 * nnodes(dg),
+                    nvisnodes = 2 * (polydeg(dg) + 1),
                     slice = :xy,
                     point = (0.0, 0.0, 0.0))
     if slice !== :yz && slice !== :xz && slice !== :xy

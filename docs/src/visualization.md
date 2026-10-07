@@ -270,7 +270,7 @@ Curved meshes and non-tetrahedral elements are not supported by this method and 
 Set `Nplot` when constructing [`DGMulti`](@ref), for example
 `DGMulti(polydeg = 3, element_type = Tet(), Nplot = 15)`, to control surface sampling.
 As in 2D DGMulti plots, `nvisnodes` controls the number of points along each mesh edge
-and defaults to `2 * nnodes(dg)`. For example, use `PlotData2D(sol; nvisnodes = 12)`
+and defaults to `2 * (polydeg(dg) + 1)`. For example, use `PlotData2D(sol; nvisnodes = 12)`
 to sample each edge at 12 points, or `nvisnodes = 0` to omit mesh lines.
 
 For example,
