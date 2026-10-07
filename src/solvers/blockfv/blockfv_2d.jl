@@ -132,7 +132,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
         #
         # At an internal x-face i (between cells (i-1,j) and (i,j)), high-order
         # reconstruction needs up to four neighboring cell averages along the
-        # row j (refernce the same stencil as in 1D :
+        # row j (reference the stencil in 1D since it is the same).
         #
         #            u_ll        u_lr   |   u_rl        u_rr
         #              ·          ·     |     ·          ·
