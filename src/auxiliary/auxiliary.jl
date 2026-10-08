@@ -207,6 +207,9 @@ julia> Trixi.get_name(Val(:test))
 get_name(x) = string(x)
 get_name(::Val{x}) where {x} = string(x)
 
+# Whether a `Threads.@threads` loop is running anywhere, see `Base.Threads.threading_run`
+@inline in_threaded_region() = ccall(:jl_in_threaded_region, Cint, ()) != 0
+
 """
     @threaded for ... end
 
@@ -240,9 +243,12 @@ macro threaded(expr)
         # to reduce some overhead (and allocations) for serial execution.
         # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
         # for loops that do not yet support GPU execution.
+        # Inside another threaded region (e.g., when the right-hand sides of several
+        # semidiscretizations are evaluated in parallel tasks), `@threads :static`
+        # would throw an error, so we also run serially there.
         quote
             let
-                if $Threads.nthreads() == 1
+                if $Threads.nthreads() == 1 || $in_threaded_region()
                     $(expr)
                 else
                     $Threads.@threads :static $(expr)

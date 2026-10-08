@@ -6,6 +6,31 @@ end
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
+@testitem "KernelAbstractions: nested @threaded loops" setup=[Setup] tags=[:kernelabstractions] begin
+    # `@threaded` falls back to `Threads.@threads :static` for this backend, which
+    # throws when it is used inside another threaded region. In this case, `@threaded`
+    # runs the loop serially.
+    function double!(y, x)
+        Trixi.@threaded for i in eachindex(y, x)
+            y[i] = 2 * x[i]
+        end
+        return y
+    end
+
+    xs = [collect(range(k, length = 100)) for k in 1:(2 * Threads.nthreads())]
+    ys = [similar(x) for x in xs]
+    Threads.@threads for k in eachindex(xs, ys)
+        double!(ys[k], xs[k])
+    end
+    @test ys == 2 .* xs
+
+    fill!.(ys, 0)
+    Trixi.@threaded for k in eachindex(xs, ys)
+        double!(ys[k], xs[k])
+    end
+    @test ys == 2 .* xs
+end
+
 @testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl" setup=[
     Setup,
     KernelAbstractionsExamples
