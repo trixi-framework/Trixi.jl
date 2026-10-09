@@ -332,15 +332,15 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                                         local_element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem,
-                                                         local_element],
-                                        flux_parabolic_y[v, i_elem, j_elem,
-                                                         local_element])
+                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_elem, j_elem,
+                                                                   local_element],
+                                                  flux_parabolic_y[v, i_elem, j_elem,
+                                                                   local_element])
                     # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
                     # Thus, the `orientation_factor` changes the logic such that the
                     # flux which enters side 1 leaves side 2.
                     cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
-                                                                          dot(flux_visc,
+                                                                          dot(flux_parabolic_node,
                                                                               normal_direction)
                 end
 
@@ -509,8 +509,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 end
 
 function calc_mpi_mortar_flux_gradient!(surface_flux_values,
-                                        mesh::Union{P4estMeshParallel{2},
-                                                    T8codeMeshParallel{2}},
+                                        mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DG, parabolic_scheme, cache)
@@ -566,8 +565,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
 end
 
 Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                                                          mesh::Union{P4estMeshParallel{2},
-                                                                                      T8codeMeshParallel{2}},
+                                                                          mesh::P4estMeshParallel{2},
                                                                           equations_parabolic,
                                                                           mortar_l2::LobattoLegendreMortarL2,
                                                                           dg::DGSEM,
@@ -629,8 +627,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
 end
 
 function prolong2mpimortars_divergence!(cache, flux_parabolic,
-                                        mesh::Union{P4estMeshParallel{2},
-                                                    T8codeMeshParallel{2}},
+                                        mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DGSEM)
@@ -688,16 +685,19 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_large, j_large,
-                                                                 element],
-                                                flux_parabolic_y[v, i_large, j_large,
-                                                                 element])
+                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_large,
+                                                                           j_large,
+                                                                           element],
+                                                          flux_parabolic_y[v, i_large,
+                                                                           j_large,
+                                                                           element])
 
                             # Same convention as local 2D code:
                             # prolong flux dotted with outward normal on the small element.
                             # The large-element normal is -2x the small-element normal,
                             # hence the factor -1/2 here.
-                            u_buffer[v, i] = -0.5f0 * dot(flux_node, normal_direction)
+                            u_buffer[v, i] = -0.5f0 *
+                                             dot(flux_parabolic_node, normal_direction)
                         end
 
                         i_large += i_large_step
@@ -725,12 +725,14 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_small, j_small,
-                                                                 element],
-                                                flux_parabolic_y[v, i_small, j_small,
-                                                                 element])
+                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_small,
+                                                                           j_small,
+                                                                           element],
+                                                          flux_parabolic_y[v, i_small,
+                                                                           j_small,
+                                                                           element])
 
-                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_node,
+                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_parabolic_node,
                                                                                  normal_direction)
                         end
 
@@ -746,8 +748,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
 end
 
 function calc_mpi_mortar_flux_divergence!(surface_flux_values,
-                                          mesh::Union{P4estMeshParallel{2},
-                                                      T8codeMeshParallel{2}},
+                                          mesh::P4estMeshParallel{2},
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,
                                           dg::DG, parabolic_scheme, cache)

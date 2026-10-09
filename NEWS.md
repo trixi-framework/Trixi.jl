@@ -54,6 +54,14 @@ for human readability.
   fluxes of the large elements at mortars were computed with the wrong normal direction
   and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
   (e.g., with AMR) change.
+- Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
+  `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
+  in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
+  `normal_direction` used both states instead of only the left state for the minimum
+  wave speed estimate (inconsistent with `min_max_speed_naive` with an `orientation`).
+  Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
+  e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
+  meshes, change.
 
 
 ## Changes when updating to v0.17 from v0.16.x

@@ -174,6 +174,9 @@ end
         # Blend the high order method back in
         @views du[.., element] .= alpha_element .* du[.., element] .+
                                   (1 - alpha_element) .* du_FD_element
+    else
+        # No entropy correction needed, i.e., pure default volume integral
+        alpha[element] = zero(eltype(alpha))
     end
 
     return nothing

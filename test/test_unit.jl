@@ -2517,6 +2517,73 @@ end
                                                         equations)))
     end
 
+    @timed_testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
+
+        normal_directions = (SVector(1.0, 0.0), SVector(0.0, 1.0))
+
+        # Different left and right states are required since the estimates
+        # coincide for `u_ll == u_rr`
+        u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+            SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1)]
+
+        for min_max_speed in (min_max_speed_naive, min_max_speed_davis),
+            u_ll in u_values, u_rr in u_values
+
+            for orientation in 1:2
+                @test all(isapprox(x, y)
+                          for (x, y) in zip(min_max_speed(u_ll, u_rr, orientation,
+                                                          equations),
+                                            min_max_speed(u_ll, u_rr,
+                                                          normal_directions[orientation],
+                                                          equations)))
+            end
+
+            # The estimates scale linearly with the (positive) length of the normal
+            normal_direction = SVector(-1.2, 0.3)
+            @test all(isapprox(x, 2.5 * y)
+                      for (x, y) in zip(min_max_speed(u_ll, u_rr, 2.5 * normal_direction,
+                                                      equations),
+                                        min_max_speed(u_ll, u_rr, normal_direction,
+                                                      equations)))
+        end
+    end
+
+    @timed_testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
+
+        normal_directions = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                             SVector(0.0, 0.0, 1.0))
+
+        # Different left and right states are required since the estimates
+        # coincide for `u_ll == u_rr`
+        u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+            SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+            SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1)]
+
+        for min_max_speed in (min_max_speed_naive, min_max_speed_davis),
+            u_ll in u_values, u_rr in u_values
+
+            for orientation in 1:3
+                @test all(isapprox(x, y)
+                          for (x, y) in zip(min_max_speed(u_ll, u_rr, orientation,
+                                                          equations),
+                                            min_max_speed(u_ll, u_rr,
+                                                          normal_directions[orientation],
+                                                          equations)))
+            end
+
+            # The estimates scale linearly with the (positive) length of the normal
+            normal_direction = SVector(-1.2, 0.3, 0.7)
+            @test all(isapprox(x, 2.5 * y)
+                      for (x, y) in zip(min_max_speed(u_ll, u_rr, 2.5 * normal_direction,
+                                                      equations),
+                                        min_max_speed(u_ll, u_rr, normal_direction,
+                                                      equations)))
+        end
+    end
+
     @timed_testset "Maxwell 1D" begin
         equations = MaxwellEquations1D()
 
@@ -4118,7 +4185,7 @@ end
                                            refinement_level = 2)
 end
 
-@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
