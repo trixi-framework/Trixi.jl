@@ -264,31 +264,28 @@ Kaimon.jl server is running.
 - Always pass `q = false` (the default `q = true` does not return the result)
   and `ses = "<key>"`.
 - `ex` returns the value of the last expression or the error, together with
-  output written to `stdout` and `stderr` in the session. However, the output
-  of Test.jl (test summaries and details of failures) is not returned; for
-  failures, you only get an error such as `Some tests did not pass: ...`.
-  Depending on its version and settings, Kaimon.jl may also remove calls such
-  as `println` from your code. Thus, write the output of test items to a log
-  file and inspect this file with your usual tools afterward, e.g.,
+  the output printed to `stdout` and `stderr` (e.g., test summaries and
+  details of failures). However, no printed output is returned if the code
+  contains `using` or `import`. Thus, load packages in a separate call first,
+  e.g., `ex(e = "using TestItemRunner", q = false, ses = "<key>")`, and then
+  run test items in another call such as
   ```julia
-  using TestItemRunner
-  log_file = tempname()
-  open(log_file, "w") do io
-      redirect_stdio(stdout = io, stderr = io) do
-          try
-              cd("/path/to/Trixi.jl/test") do
-                  @run_package_tests filter = ti -> ti.name in (
-                      "TreeMesh2D Advection: elixir_advection_basic.jl",
-                      "Unit: Spectral analysis",
-                  )
-              end
-          catch err
-              showerror(io, err)
-          end
-      end
-  end
-  log_file
+  cd("/path/to/Trixi.jl/test") do
+      @run_package_tests filter = ti -> ti.name in (
+          "TreeMesh2D Advection: elixir_advection_basic.jl",
+          "Unit: Spectral analysis",
+      )
+  end;
   ```
+  ending with `;` to avoid printing the returned test set.
+- Pass `max_output = 25000` (the maximum; the default is 6000 characters) when
+  running test items. Longer output is truncated in the middle, keeping its
+  beginning and end (including the test summary). Since a single test item
+  running an elixir can print more than 10000 characters, run only a few test
+  items per call and rerun failed test items individually if their details
+  were truncated.
+- Kaimon.jl may remove calls such as `println` from your code; use the value
+  of the last expression to return results instead.
 - The session belongs to the developer. Do not restart or shut it down, do not
   add or remove packages, do not start new sessions, and avoid persistent
   changes to its global state (e.g., use `cd(...) do ... end` instead of
@@ -303,7 +300,7 @@ Kaimon.jl server is running.
   test items, which includes compilation), `ex` returns a job ID (`eval_id`)
   before the evaluation is finished. In this case, wait at least 30 seconds and
   call `check_eval(eval_id = "<id>")` until its status is `completed` or
-  `failed`; then, the result (e.g., the path of the log file above) is shown.
+  `failed`; then, the output and the result are shown.
   Do not start other evaluations in the same session while a job is running.
 - If an evaluation does not produce any output for 10 minutes, Kaimon.jl
   reports a timeout, but the evaluation may still be running in the session.

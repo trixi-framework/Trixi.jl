@@ -34,12 +34,18 @@ const FORMATTER_VERSION = "1.0.60"
 
 parse_toml(file) = isfile(file) ? TOML.parsefile(file) : Dict{String, Any}()
 
-# Check whether all entries of `section` in `required` are contained in `project`.
-# Additional entries are allowed, e.g., compat bounds of packages added by developers.
+# Check whether all entries of `required` are contained in `actual`, recursively for
+# nested tables such as `[preferences.HostCPUFeatures]`. Additional entries are allowed,
+# e.g., compat bounds of packages or preferences added by developers.
+contains_entries(actual, required) = actual == required
+function contains_entries(actual::AbstractDict, required::AbstractDict)
+    return all(haskey(actual, key) && contains_entries(actual[key], value)
+               for (key, value) in required)
+end
+
 function contains_section(project, required, section)
-    project_entries = get(project, section, Dict{String, Any}())
-    return all(get(project_entries, key, nothing) == value
-               for (key, value) in get(required, section, Dict{String, Any}()))
+    return contains_entries(get(project, section, Dict{String, Any}()),
+                            get(required, section, Dict{String, Any}()))
 end
 
 function setup_run_agents()
