@@ -3165,6 +3165,10 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
 
+    # Deterministic parts of the Butcher tableau (default `bS = 1` and `cS = 0.5`)
+    @test isapprox(ode_algorithm.c, range(0, 0.5, length = 6); atol = 1e-14)
+    @test ode_algorithm.b1 == 0
+    @test ode_algorithm.bS == 1
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.12405417889682908 0.07594582110317093
                     0.16178873711001726 0.13821126288998273
@@ -3178,6 +3182,24 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
+    # The coefficients are computed by a bisection in the time step `dt` (up to 1e-9)
+    # combined with an optimization of the stability polynomial (Convex.jl and ECOS.jl,
+    # with tolerances 1e-9). Thus, the results depend on round-off, e.g., on the CPU
+    # architecture (different results on AMD EPYC 7763 and 9V45 CPUs of GitHub runners).
+    # In particular, the decisions in the last bisection steps are made by comparing
+    # values that differ from 1 by approximately the solver tolerance, so they can change
+    # due to round-off. This changes `dt_opt` and the coefficients by multiples of 1e-9.
+    # Thus, we use tolerances of 1e-7 for these quantities. The spectrum and the number
+    # of stages are chosen such that the optimization problem is well-conditioned;
+    # otherwise, the results can differ much more. We also check properties of the
+    # Butcher tableau that hold up to machine precision by construction.
+    @test isapprox(ode_algorithm.c, range(0, 0.5, length = 12); atol = 1e-14)
+    @test ode_algorithm.b1 == 0
+    @test ode_algorithm.bS == 1
+    @test isapprox(ode_algorithm.dt_opt, 0.6250278064981103; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:end]; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.06453812656711647 0.02637096434197444
                     0.09470601372274887 0.041657622640887494
@@ -3188,7 +3210,7 @@ end
                     0.20523340226247055 0.1584029613738931
                     0.20734890429023528 0.20174200480067384
                     0.1913514234997008 0.26319403104575373
-                    0.13942836392866081 0.3605716360713392], atol = 1e-13)
+                    0.13942836392866081 0.3605716360713392], atol = 1e-7)
 end
 
 @testitem "Unit: PERK Single p3 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3198,6 +3220,10 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
+    # Deterministic parts of the Butcher tableau (default `cS2 = 1`). Since the default
+    # value is `1.0f0`, `c` is currently computed in `Float32`, so we use `atol = 1e-7`.
+    c_expected = [0, 0.2, 0.4, 0.6, 0.8, 1, 1, 0.5]
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-7)
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.33551678438002486 0.06448322158043965
                     0.49653494442225443 0.10346507941960345
@@ -3206,46 +3232,61 @@ end
                     0.7522972036571336 0.2477027963428664
                     0.31192569908571666 0.18807430091428337], atol = 1e-13)
 
-    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
-                   joinpath(path_coeff_file, "spectrum.txt"))
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, vec(eig_vals))
 
+    # The coefficients depend on round-off, see the comment in the test of the
+    # second-order method above. We also check the third-order condition.
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-7)
+    @test isapprox(ode_algorithm.dt_opt, 0.3911191849038005; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:end]; atol = 1e-14)
+    @test isapprox(4 * ode_algorithm.a_matrix[2, end] + ode_algorithm.a_matrix[2, end - 1],
+                   1; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.19121164778938382 0.008788355190848427
-                    0.28723462747227385 0.012765384448655121
-                    0.38017717196008227 0.019822834000382223
-                    0.4706748928843403 0.029325107115659724
-                    0.557574833668358 0.04242519017349991
-                    0.6390917512034328 0.06090823687563831
-                    0.7124876770174374 0.08751233490349149
-                    0.7736369992226316 0.12636297693551043
-                    0.8161315324169078 0.1838684675830921
-                    0.7532704453316061 0.2467295546683939
-                    0.31168238866709846 0.18831761133290154], atol = 1e-8)
+                   [0.33591884693426466 0.06408115902619979
+                    0.49546131851830355 0.10453870532355437
+                    0.6479106823753369 0.152089329545592
+                    0.7874547563378256 0.2125452436621744
+                    0.7518594097920634 0.24814059020793658
+                    0.31203514755198414 0.18796485244801586], atol = 1e-7)
 end
 
 @testitem "Unit: PERK Single p4 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
-    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
-                   joinpath(path_coeff_file, "spectrum.txt"))
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK4(8, tspan, vec(eig_vals))
 
+    # Deterministic parts of the Butcher tableau (default `cS3 = 1`). The columns of
+    # `a_matrix_constant` must sum to the last three entries of `c`.
+    @test isapprox(ode_algorithm.c,
+                   [0, 1, 1, 1, 1, 0.479274057836310, 0.5 + sqrt(3) / 6, 0.5 - sqrt(3) / 6];
+                   atol = 1e-14)
+    @test isapprox(ode_algorithm.a_matrix_constant,
+                   [0.364422246578869 0.1397682537005989 0.1830127018922191
+                    0.114851811257441 0.648906880894214 0.028312163512968]; atol = 1e-14)
+    @test isapprox(vec(sum(ode_algorithm.a_matrix_constant, dims = 1)),
+                   ode_algorithm.c[(end - 2):end]; atol = 1e-14)
+
+    # The coefficients depend on round-off, see the comment in the test of the
+    # second-order method above.
+    @test isapprox(ode_algorithm.dt_opt, 0.2943810084834695; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:(end - 3)]; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.9935765040401348 0.0064234959598652
-                    0.9849926812139576 0.0150073187860425
-                    0.9731978940975923 0.0268021059024077
-                    0.9564664284695985 0.0435335715304015
-                    0.9319632992510594 0.0680367007489407
-                    0.8955171743167522 0.1044828256832478
-                    0.8443975130657495 0.1556024869342504
-                    0.7922561745278265 0.2077438254721735
-                    0.7722324105428290 0.2277675894571710], atol = 1e-13)
+                   [0.947627488354466 0.05237251164553399
+                    0.8906758884452134 0.10932411155478663
+                    0.8282838115377149 0.17171618846228512], atol = 1e-7)
 end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
