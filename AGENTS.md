@@ -131,7 +131,7 @@ The script works from any directory and is idempotent: if `run_agents/` is up to
 date with `test/Project.toml` and still points to this checkout, it reuses the
 environment; otherwise, it recreates the project. Similarly, it only
 (re-)creates `run_agents/formatter/` if JuliaFormatter.jl v1.0.60 is not pinned
-there. The first setup may take several minutes; afterwards, it takes only a few
+there. The first setup may take several minutes; afterward, it takes only a few
 seconds unless packages need to be precompiled again.
 
 The setup script does not check the dependencies of Trixi.jl itself (in the
@@ -198,7 +198,7 @@ Notes:
   session), this is the parent of the current working directory. From the
   repository root, it would search the parent directory of the repository
   (e.g., failing with `UndefVarError: Trixi not defined`). The `do` block
-  restores the previous working directory afterwards. Output files of test
+  restores the previous working directory afterward. Output files of test
   items are written to `test/out/`, as in `Pkg.test`.
 - Do not use `julia --project=.` (the package environment lacks the test
   dependencies) or `julia --project=test` (the test environment lacks
@@ -269,7 +269,7 @@ Kaimon.jl server is running.
   failures, you only get an error such as `Some tests did not pass: ...`.
   Depending on its version and settings, Kaimon.jl may also remove calls such
   as `println` from your code. Thus, write the output of test items to a log
-  file and inspect this file with your usual tools afterwards, e.g.,
+  file and inspect this file with your usual tools afterward, e.g.,
   ```julia
   using TestItemRunner
   log_file = tempname()
@@ -326,7 +326,7 @@ starts the Julia sessions itself.
   the session**. Pass a generous `timeout` (e.g., `1800`) for the first call
   (`using Trixi, TestItemRunner`) and for the first run of test items or
   elixirs, which include compilation.
-- Afterwards, repeat `@run_package_tests` calls with different filters in
+- Afterward, repeat `@run_package_tests` calls with different filters in
   the same session. Revise.jl is loaded automatically (if it is installed in
   the global environment), so changes to files in `src/` are picked up without
   restarting; test files are re-read by TestItemRunner.

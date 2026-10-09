@@ -462,7 +462,7 @@ possible to step into further calls or access other function scopes.
   These entries will also be checked regularly by CompatHelper (once a day). Hence,
   if everything was released correctly, you should only need to do these checks manually
   if new minor versions with changes in the docs of Trixi2Vtk were released
-  but no new version of Trixi.jl was released afterwards.
+  but no new version of Trixi.jl was released afterward.
 
 
 

@@ -14,7 +14,7 @@ is tested by GitHub Actions is controlled by the workflow file
 In Trixi.jl and its related repositories, tests are triggered by
 * each `git push` to `main` and
 * each `git push` to any pull request.
-Besides checking functionality, we also analyse the [Test coverage](@ref) to
+Besides checking functionality, we also analyze the [Test coverage](@ref) to
 ensure that we do not miss important parts during testing.
 
 !!! note "Test and coverage requirements"
@@ -64,7 +64,7 @@ julia> # Run every test tagged `:tree_part1`
 The macro `@run_package_tests` searches for test items in the parent directory of
 the file it is called from. In the REPL, this is the parent directory of the current
 working directory, which is why we change to the `test` directory above. To return
-to the previous working directory automatically afterwards, you can also use
+to the previous working directory automatically afterward, you can also use
 ```julia
 julia> cd("path/to/Trixi.jl/test") do
            @run_package_tests filter = ti -> occursin("elixir_advection_basic.jl", ti.name)
