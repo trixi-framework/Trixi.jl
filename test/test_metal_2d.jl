@@ -152,3 +152,106 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "Metal 2D: elixir_euler_source_terms.jl Flux Differencing Float32 / Metal" setup=[
+    Setup,
+    Metal2DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                        l2=Float32[2.7905685982444506e-6,
+                                   2.7719663804722356e-6,
+                                   2.862595247100584e-6,
+                                   6.59779451858695e-6],
+                        linf=Float32[1.904964447030366e-5,
+                                     2.1734684234164803e-5,
+                                     1.988410949715913e-5,
+                                     5.9757232666157734e-5],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray,
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa MtlArray
+    @test semi.solver.basis.derivative_matrix isa MtlArray
+
+    @test Trixi.storage_type(semi.cache.elements) === MtlArray
+    @test Trixi.storage_type(semi.cache.interfaces) === MtlArray
+    @test Trixi.storage_type(semi.cache.boundaries) === MtlArray
+    @test Trixi.storage_type(semi.cache.mortars) === MtlArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "Metal 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / Metal" setup=[
+    Setup,
+    Metal2DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=Float32[8.281976064899433e-5,
+                                   6.674408302881695e-5,
+                                   6.693536534139316e-5,
+                                   0.00011717744999013579,
+                                   6.889569500245608e-5,
+                                   7.78292854879118e-5,
+                                   7.820255919638926e-5,
+                                   0.00011506970727212514,
+                                   5.3791801822110654e-5],
+                        linf=Float32[0.00043082237243652344,
+                                     0.0005365351910699076,
+                                     0.0005327751111221801,
+                                     0.0009163264949127586,
+                                     0.00042850648667691615,
+                                     0.0005048022425613308,
+                                     0.0005058775894211109,
+                                     0.0008949209768577965,
+                                     0.00018917795326144592],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa MtlArray
+    @test semi.solver.basis.derivative_matrix isa MtlArray
+
+    @test Trixi.storage_type(semi.cache.elements) === MtlArray
+    @test Trixi.storage_type(semi.cache.interfaces) === MtlArray
+    @test Trixi.storage_type(semi.cache.boundaries) === MtlArray
+    @test Trixi.storage_type(semi.cache.mortars) === MtlArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
