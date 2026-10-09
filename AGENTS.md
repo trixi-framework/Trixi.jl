@@ -316,6 +316,9 @@ starts the Julia sessions itself.
 - Always pass the **absolute path** of the `run_agents` directory as
   `env_path` (e.g., `/path/to/Trixi.jl/run_agents`). Do not call
   `Pkg.activate` in the code.
+- `julia_eval` returns only the output printed to `stdout` and `stderr`, not
+  the value of the last expression. Use `println(...)` or `display(...)` to see
+  results, e.g., `println(format([...]))` for the formatter.
 - The working directory of the session is `run_agents/`, not the repository
   root. Use absolute paths, e.g., wrap `@run_package_tests` in
   `cd("/path/to/Trixi.jl/test") do ... end` to run test items.
