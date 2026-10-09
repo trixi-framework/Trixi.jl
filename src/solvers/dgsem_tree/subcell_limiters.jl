@@ -94,6 +94,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
                            gamma_constant_newton = 2 * ndims(equations))
+    # With a single node, there are no subcell interfaces to limit.
+    @assert nnodes(basis)>1 "Subcell limiting requires `polydeg > 0`."
+
     local_twosided = (length(local_twosided_variables_cons) > 0)
     local_onesided = (length(local_onesided_variables_nonlinear) > 0)
     positivity = (length(positivity_variables_cons) +
