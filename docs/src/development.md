@@ -353,7 +353,7 @@ further details):
    after an update.
 2. Start the Kaimon.jl server by running `kaimon` in a terminal. On the first
    run, a setup wizard asks for a security mode, an API key, and a port. Then,
-   open the configuration tab of the dashboard by pressing `c` and press `i` to
+   open the configuration tab of the dashboard by pressing `6` and press `i` to
    register the MCP server with your agent (e.g., Claude Code). Keep the default
    (user) scope: the project scope writes the file `.mcp.json` including your
    API key to the current directory, which must not be committed. The server

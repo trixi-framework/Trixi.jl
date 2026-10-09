@@ -137,8 +137,8 @@ seconds unless packages need to be precompiled again.
 The setup script does not check the dependencies of Trixi.jl itself (in the
 root `Project.toml`). If they changed (e.g., after you added a dependency to
 Trixi.jl or pulled such a change from `main`), loading Trixi.jl fails with an
-error such as `ArgumentError: Package Trixi does not have X in its
-dependencies`. Only in this case, run
+error such as `ArgumentError: Package Trixi does not have X in its dependencies`.
+Only in this case, run
 `julia --project=run_agents -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'`.
 Do not run `Pkg.resolve()` routinely, since it takes some time.
 
@@ -263,11 +263,13 @@ Kaimon.jl server is running.
   julia-mcp or the shell instead.
 - Always pass `q = false` (the default `q = true` does not return the result)
   and `ses = "<key>"`.
-- `ex` returns only the value of the last expression or the error. Printed
-  output (e.g., test summaries and failures) only appears in the REPL of the
-  developer, and Kaimon.jl even removes calls such as `println` from your code.
-  Thus, write the output of test items to a log file and inspect this file
-  with your usual tools afterwards, e.g.,
+- `ex` returns the value of the last expression or the error, together with
+  output written to `stdout` and `stderr` in the session. However, the output
+  of Test.jl (test summaries and details of failures) is not returned; for
+  failures, you only get an error such as `Some tests did not pass: ...`.
+  Depending on its version and settings, Kaimon.jl may also remove calls such
+  as `println` from your code. Thus, write the output of test items to a log
+  file and inspect this file with your usual tools afterwards, e.g.,
   ```julia
   using TestItemRunner
   log_file = tempname()
@@ -297,8 +299,14 @@ Kaimon.jl server is running.
 - Do not use the Kaimon.jl tools `run_tests` (not designed for the test items
   of Trixi.jl, may run the complete test suite) and `format_code` (see
   [Code style](#code-style) for the formatter).
-- If an evaluation does not produce any output for 10 minutes, `ex` returns a
-  timeout error, but the evaluation may still be running in the session.
+- If an evaluation takes longer than about 30 seconds (e.g., the first run of
+  test items, which includes compilation), `ex` returns a job ID (`eval_id`)
+  before the evaluation is finished. In this case, wait at least 30 seconds and
+  call `check_eval(eval_id = "<id>")` until its status is `completed` or
+  `failed`; then, the result (e.g., the path of the log file above) is shown.
+  Do not start other evaluations in the same session while a job is running.
+- If an evaluation does not produce any output for 10 minutes, Kaimon.jl
+  reports a timeout, but the evaluation may still be running in the session.
 - `trixi_include` writes its output files to `out/` in the working directory of
   the session (check it with `pwd()`).
 

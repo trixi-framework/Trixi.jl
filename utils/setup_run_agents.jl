@@ -34,6 +34,14 @@ const FORMATTER_VERSION = "1.0.60"
 
 parse_toml(file) = isfile(file) ? TOML.parsefile(file) : Dict{String, Any}()
 
+# Check whether all entries of `section` in `required` are contained in `project`.
+# Additional entries are allowed, e.g., compat bounds of packages added by developers.
+function contains_section(project, required, section)
+    project_entries = get(project, section, Dict{String, Any}())
+    return all(get(project_entries, key, nothing) == value
+               for (key, value) in get(required, section, Dict{String, Any}()))
+end
+
 function setup_run_agents()
     mkpath(RUN_AGENTS_DIR)
     test_project = TOML.parsefile(joinpath(REPO_DIR, "test", "Project.toml"))
@@ -42,12 +50,12 @@ function setup_run_agents()
     manifest = parse_toml(joinpath(RUN_AGENTS_DIR, "Manifest.toml"))
 
     # Reuse the environment only if it still contains all test dependencies with the
-    # same compat bounds etc. and develops this checkout of Trixi.jl
+    # same compat bounds etc. and develops this checkout of Trixi.jl. Additional
+    # dependencies and corresponding entries are allowed.
     deps = get(project, "deps", Dict{String, Any}())
     trixi_entries = get(get(manifest, "deps", Dict{String, Any}()), "Trixi", [])
     test_deps_present = issubset(keys(test_project["deps"]), keys(deps))
-    sections_match = all(get(project, section, nothing) ==
-                         get(test_project, section, nothing)
+    sections_match = all(contains_section(project, test_project, section)
                          for section in ("compat", "extras", "preferences", "targets"))
     local_trixi = haskey(deps, "Trixi") &&
                   any(haskey(entry, "path") &&
