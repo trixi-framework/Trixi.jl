@@ -119,55 +119,22 @@ be installed in `run_agents/` since its dependencies are incompatible with those
 of Trixi.jl. Thus, it lives in the separate project `run_agents/formatter/`,
 where it is pinned to this version.
 
-Create or update both projects by running the following command from the root
-of the repository **before running tests or the formatter**. It is idempotent:
-if `run_agents/` is up to date with `test/Project.toml` and still points to this
-checkout, it reuses the environment; otherwise, it recreates the project.
-Similarly, it only (re-)creates `run_agents/formatter/` if JuliaFormatter.jl
-v1.0.60 is not pinned there. The first setup may take several minutes.
+Create or update both projects by running the script
+`utils/setup_run_agents.jl` **before running tests or the formatter**, e.g.,
+from the root of the repository,
 
 ```bash
-julia -e '
-using Pkg, TOML
-mkpath("run_agents")
-test_project = TOML.parsefile(joinpath("test", "Project.toml"))
-project_file = joinpath("run_agents", "Project.toml")
-manifest_file = joinpath("run_agents", "Manifest.toml")
-project = isfile(project_file) ? TOML.parsefile(project_file) : Dict{String, Any}()
-manifest = isfile(manifest_file) ? TOML.parsefile(manifest_file) : Dict{String, Any}()
-deps = get(project, "deps", Dict{String, Any}())
-trixi_entries = get(get(manifest, "deps", Dict{String, Any}()), "Trixi", [])
-test_deps_present = issubset(keys(test_project["deps"]), keys(deps))
-sections_match = all(get(project, section, nothing) ==
-                     get(test_project, section, nothing)
-                     for section in ("compat", "extras", "preferences", "targets"))
-local_trixi = haskey(deps, "Trixi") &&
-              any(get(entry, "path", nothing) == ".." for entry in trixi_entries)
-up_to_date = test_deps_present && sections_match && local_trixi
-Pkg.activate("run_agents")
-if !up_to_date
-    cp(joinpath("test", "Project.toml"), project_file; force = true)
-    Pkg.develop(path = ".")
-end
-Pkg.instantiate()
-formatter_dir = joinpath("run_agents", "formatter")
-formatter_manifest_file = joinpath(formatter_dir, "Manifest.toml")
-formatter_manifest = isfile(formatter_manifest_file) ?
-                     TOML.parsefile(formatter_manifest_file) : Dict{String, Any}()
-formatter_entries = get(get(formatter_manifest, "deps", Dict{String, Any}()),
-                        "JuliaFormatter", [])
-formatter_pinned = any(get(entry, "version", nothing) == "1.0.60" &&
-                       get(entry, "pinned", false) for entry in formatter_entries)
-formatter_pinned || rm(formatter_dir; force = true, recursive = true)
-Pkg.activate(formatter_dir)
-if !formatter_pinned
-    Pkg.add(name = "JuliaFormatter", version = "1.0.60")
-    Pkg.pin("JuliaFormatter")
-end
-Pkg.instantiate()'
+julia utils/setup_run_agents.jl
 ```
 
-The setup command does not check the dependencies of Trixi.jl itself (in the
+The script works from any directory and is idempotent: if `run_agents/` is up to
+date with `test/Project.toml` and still points to this checkout, it reuses the
+environment; otherwise, it recreates the project. Similarly, it only
+(re-)creates `run_agents/formatter/` if JuliaFormatter.jl v1.0.60 is not pinned
+there. The first setup may take several minutes; afterwards, it takes only a few
+seconds unless packages need to be precompiled again.
+
+The setup script does not check the dependencies of Trixi.jl itself (in the
 root `Project.toml`). If they changed (e.g., after you added a dependency to
 Trixi.jl or pulled such a change from `main`), loading Trixi.jl fails with an
 error such as `ArgumentError: Package Trixi does not have X in its
@@ -182,8 +149,8 @@ Note that they are removed when the project is re-created after a change of
 unless this is part of the actual task. Temporary scripts can be stored in
 `run_agents/` as well.
 
-`run_agents/Manifest.toml` pins resolved package versions, and the setup command
-above does not upgrade them. CI uses the latest compatible versions, so the
+`run_agents/Manifest.toml` pins resolved package versions, and the setup script
+does not upgrade them. CI uses the latest compatible versions, so the
 local environment can fall behind. When investigating CI failures or numerical
 differences, compare the package versions in the CI logs with
 `julia --project=run_agents -e 'using Pkg; Pkg.status()'` before attributing a
@@ -194,15 +161,19 @@ versions so that the usual `run_agents/` setup remains reproducible.
 
 ### Running selected test items
 
-From the root of the repository, run, e.g.,
+From the root of the repository, run, e.g., the following command (or the same
+Julia code in a persistent session via MCP if available, see
+[below](#optional-persistent-julia-session-via-mcp)):
 
 ```bash
 julia --project=run_agents -e '
 using TestItemRunner
-TestItemRunner.run_tests(pwd(); filter = ti -> ti.name in (
-    "TreeMesh2D Advection: elixir_advection_basic.jl",
-    "Unit: Spectral analysis",
-))'
+cd("test") do
+    @run_package_tests filter = ti -> ti.name in (
+        "TreeMesh2D Advection: elixir_advection_basic.jl",
+        "Unit: Spectral analysis",
+    )
+end'
 ```
 
 Useful filters (`ti` has the fields `name`, `filename`, and `tags`):
@@ -221,11 +192,14 @@ Notes:
 - If a persistent Julia session is available, prefer it (see
   [the next section](#optional-persistent-julia-session-via-mcp)). Otherwise,
   batch related test items into one call to avoid repeated startup costs.
-- `TestItemRunner.run_tests(pwd(); ...)` works from the repository root.
-  `@run_package_tests filter = ...` (as used in `docs/src/testing.md`) only
-  works when the current directory is `test/` (e.g., after `cd("test")`); from
-  the repository root, `Trixi` is not loaded inside the test items
-  (`UndefVarError: Trixi not defined`).
+- Always call `@run_package_tests` inside `cd(".../test") do ... end` as
+  above. The macro searches for test items in the parent directory of the file
+  it is called from; outside of a file (e.g., in `julia -e` or an MCP
+  session), this is the parent of the current working directory. From the
+  repository root, it would search the parent directory of the repository
+  (e.g., failing with `UndefVarError: Trixi not defined`). The `do` block
+  restores the previous working directory afterwards. Output files of test
+  items are written to `test/out/`, as in `Pkg.test`.
 - Do not use `julia --project=.` (the package environment lacks the test
   dependencies) or `julia --project=test` (the test environment lacks
   Trixi.jl), and do not stack environments via `JULIA_LOAD_PATH` (e.g.,
@@ -261,7 +235,7 @@ Some developers configure the MCP server
 `julia_eval` to run Julia code such as tests and elixirs: the Julia session
 persists between calls, so packages are loaded and compiled only once. If the
 tools are not available, use the shell commands described above; everything
-else in this file applies unchanged. Run the `run_agents` setup command in the
+else in this file applies unchanged. Run the `run_agents` setup script in the
 shell in any case, even if the description of `julia_eval` tells you to never
 run Julia via the command line.
 
@@ -269,16 +243,16 @@ run Julia via the command line.
   `env_path` (e.g., `/path/to/Trixi.jl/run_agents`). Do not call
   `Pkg.activate` in the code.
 - The working directory of the session is `run_agents/`, not the repository
-  root. Use absolute paths, e.g.,
-  `TestItemRunner.run_tests("/path/to/Trixi.jl"; filter = ...)`.
+  root. Use absolute paths, e.g., wrap `@run_package_tests` in
+  `cd("/path/to/Trixi.jl/test") do ... end` to run test items.
 - The default `timeout` is 60 seconds, and a call exceeding its timeout **kills
   the session**. Pass a generous `timeout` (e.g., `1800`) for the first call
   (`using Trixi, TestItemRunner`) and for the first run of test items or
   elixirs, which include compilation.
-- Afterwards, repeat `TestItemRunner.run_tests(...)` calls with different
-  filters in the same session. Revise.jl is loaded automatically (if it is
-  installed in the global environment), so changes to files in `src/` are
-  picked up without restarting; test files are re-read by TestItemRunner.
+- Afterwards, repeat `@run_package_tests` calls with different filters in
+  the same session. Revise.jl is loaded automatically (if it is installed in
+  the global environment), so changes to files in `src/` are picked up without
+  restarting; test files are re-read by TestItemRunner.
 - Call `julia_restart` with the same `env_path` after changing type
   definitions (e.g., fields of a `struct`), which Revise cannot handle, after
   re-creating or updating `run_agents`, or if the session is in a broken state.
@@ -314,18 +288,30 @@ run Julia via the command line.
 - Regression tests via `@test_trixi_include` compare `l2`/`linf` errors with
   reference values. If a change intentionally modifies results, inspect the
   actual values and relevant numerical behavior first, and check that the change
-  is plausible; for example, errors of smooth test cases should not increase
-  after a bug fix. Then run the affected test items once, take the actual values
-  from the `Evaluated: isapprox(expected, actual; ...)` lines of the failures,
-  replace the reference values **only within the affected test items**, rerun
-  them, and explain the change in the PR.
+  is plausible; for example, errors of smooth test cases with an analytical
+  solution (e.g., convergence tests with manufactured solutions) should usually
+  not increase after a bug fix. Otherwise, the errors are computed with respect
+  to the initial condition evaluated at the final time, which is in general not
+  the exact solution, so they may change in either direction. Then run the
+  affected test items once, take the actual values from the
+  `Evaluated: isapprox(expected, actual; ...)` lines of the failures, replace
+  the reference values **only within the affected test items**, rerun them, and
+  explain the change in the PR.
 - Never loosen tolerances (`atol`, `rtol`) just to make a failing test pass.
   A local, commented tolerance is acceptable only for small differences whose
   cause is understood and outside Trixi.jl (e.g., adaptive time stepping in a
   new dependency version); mention it to the user.
-- Unit tests for numerical fluxes and wave speed estimates should use
-  *different* left and right states: many copy-paste bugs are invisible for
-  `u_ll == u_rr`.
+- When adding a numerical flux or wave speed estimate, add unit tests to
+  `test/test_unit.jl` (see the existing `"Unit: Consistency check for ..."`
+  and `"Unit: Equivalent ..."` test items). For a conservative numerical flux
+  `f`, check consistency with the physical flux, i.e.,
+  `f(u, u, orientation, equations) ≈ flux(u, orientation, equations)` and the
+  same with `normal_direction`. For all fluxes and wave speed estimates with
+  `normal_direction` methods, check agreement with the `orientation` methods
+  for axis-aligned unit normals.
+- Except for consistency checks, unit tests for numerical fluxes and wave speed
+  estimates should use *different* left and right states: many copy-paste bugs
+  are invisible for `u_ll == u_rr`.
 
 ## Code style
 

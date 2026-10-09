@@ -254,8 +254,9 @@ automatically; Claude Code reads it via `CLAUDE.md`, which imports `AGENTS.md`.
 Among other things, it instructs agents to never run the full test suite
 (which is done in CI), but only individual test items related to their changes
 (see [Testing](@ref)). To do so, agents create and reuse the local Julia project
-`run_agents/` in the repository, which develops the local version of Trixi.jl
-and contains all test dependencies. This directory is ignored by git. No setup
+`run_agents/` in the repository (via the script `utils/setup_run_agents.jl`),
+which develops the local version of Trixi.jl and contains all test
+dependencies. This directory is ignored by git. No setup
 is required on your side for this basic workflow.
 
 If you use an agent to prepare a pull request, please follow the guidelines on

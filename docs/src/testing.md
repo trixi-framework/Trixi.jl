@@ -61,6 +61,15 @@ julia> @run_package_tests filter = ti -> occursin("TreeMesh2D Advection: elixir_
 julia> # Run every test tagged `:tree_part1`
        @run_package_tests filter = ti -> :tree_part1 in ti.tags
 ```
+The macro `@run_package_tests` searches for test items in the parent directory of
+the file it is called from. In the REPL, this is the parent directory of the current
+working directory, which is why we change to the `test` directory above. To return
+to the previous working directory automatically afterwards, you can also use
+```julia
+julia> cd("path/to/Trixi.jl/test") do
+           @run_package_tests filter = ti -> occursin("elixir_advection_basic.jl", ti.name)
+       end
+```
 
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to reduce
 the waiting time until all tests are finished. Each job runs a subset of the tests,
