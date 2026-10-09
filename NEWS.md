@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `boundary_condition_slip_wall` and the less diffusive wave speed estimate
+  `max_abs_speed` are now available for `PassiveTracerEquations`.
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`

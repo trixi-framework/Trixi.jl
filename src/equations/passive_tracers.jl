@@ -217,6 +217,16 @@ end
                                flow_equations)
 end
 
+# Less diffusive estimate of the maximum wave speed, using only the flow equations.
+@inline function max_abs_speed(u_ll, u_rr, orientation_or_normal,
+                               tracer_equations::PassiveTracerEquations)
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+
+    @unpack flow_equations = tracer_equations
+    return max_abs_speed(u_flow_ll, u_flow_rr, orientation_or_normal, flow_equations)
+end
+
 @inline function max_abs_speeds(u, tracer_equations::PassiveTracerEquations)
     u_flow = flow_variables(u, tracer_equations)
 
@@ -249,6 +259,26 @@ end
     flux_tracer = 0.5f0 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
                                  Val(ntracers(tracer_equations))))
     flux_tracer = flux_rho * flux_tracer
+    return SVector(flux_flow..., flux_tracer...)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 tracer_equations::PassiveTracerEquations)
+
+Slip wall boundary condition for the flow equations, see
+[`boundary_condition_slip_wall`](@ref) of the flow equations. The tracer fluxes are
+the mass flux of the flow equations (which vanishes at the wall) times the inner tracer values.
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t, surface_flux_function,
+                                              tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    flux_flow = boundary_condition_slip_wall(u_flow, normal_direction, x, t,
+                                             surface_flux_function, flow_equations)
+    flux_rho = density(flux_flow, flow_equations)
+    flux_tracer = flux_rho * tracers(u_inner, tracer_equations)
     return SVector(flux_flow..., flux_tracer...)
 end
 end # muladd

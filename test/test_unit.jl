@@ -2682,6 +2682,10 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+            @test max_abs_speed(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(Trixi.flow_variables(u_ll, equations),
+                                Trixi.flow_variables(u_rr, equations), 1,
+                                flow_equations)
         end
     end
 
@@ -4719,4 +4723,46 @@ end
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
     end
+end
+
+@testitem "Unit: PassiveTracerEquations slip wall and Lax-Friedrichs flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    using Random: MersenneTwister
+    rng = MersenneTwister(42)
+
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    u_inner = prim2cons(SVector(0.5 + rand(rng), randn(rng), randn(rng), 0.5 + rand(rng),
+                                randn(rng), randn(rng)), equations)
+    normal_direction = SVector(0.3, 0.8)
+    x = SVector(0.0, 0.0)
+
+    # The mass flux and thus the tracer fluxes vanish at the wall
+    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, 0.0,
+                                             flux_lax_friedrichs, equations)
+    @test flux_wall[1] == 0
+    @test flux_wall[5] == 0
+    @test flux_wall[6] == 0
+    # The flow fluxes are those of the slip wall of the flow equations
+    @test flux_wall[2:4] ≈
+          boundary_condition_slip_wall(Trixi.flow_variables(u_inner, equations),
+                                       normal_direction, x, 0.0, flux_lax_friedrichs,
+                                       equations.flow_equations)[2:4]
+
+    # The Lax-Friedrichs flux uses the wave speed estimate `max_abs_speed`
+    # of the flow equations. For these states (fast flow with a small speed of sound
+    # on the left, slow flow with a large speed of sound on the right),
+    # `max_abs_speed` is smaller than `max_abs_speed_naive`.
+    u_ll = prim2cons(SVector(1.0, 2.0, 0.0, 0.1, 0.3, -0.2), equations)
+    u_rr = prim2cons(SVector(1.0, 0.0, 0.1, 2.0, 0.7, 0.4), equations)
+    normal_direction = SVector(0.6, 0.8)
+    u_flow_ll = Trixi.flow_variables(u_ll, equations)
+    u_flow_rr = Trixi.flow_variables(u_rr, equations)
+    @test max_abs_speed(u_ll, u_rr, normal_direction, equations) ≈
+          max_abs_speed(u_flow_ll, u_flow_rr, normal_direction, equations.flow_equations) <
+          max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)
+    @test flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations)[1:4] ≈
+          flux_lax_friedrichs(u_flow_ll, u_flow_rr, normal_direction,
+                              equations.flow_equations)
 end
