@@ -266,13 +266,26 @@ LLM/AI usage in
 ### Optional: persistent Julia sessions for agents
 By default, agents start a new Julia process for every command, which means that
 Trixi.jl and the test dependencies have to be loaded (and partially compiled)
-again each time. This overhead can be avoided with the MCP server
-[julia-mcp](https://github.com/aplavin/julia-mcp), which provides agents with
+again each time. This overhead can be avoided with MCP servers providing
 persistent Julia sessions. Repeated test runs are then much faster, and changes
 to the source code are picked up automatically via
-[Revise.jl](https://github.com/timholy/Revise.jl). `AGENTS.md` describes how agents
-use these sessions; agents without access to the MCP server fall back to the
-standard workflow. To set up julia-mcp, follow these steps (see the
+[Revise.jl](https://github.com/timholy/Revise.jl). `AGENTS.md` describes how
+agents use the following two MCP servers:
+
+- [julia-mcp](https://github.com/aplavin/julia-mcp) starts and manages Julia
+  sessions for the agent automatically, in the environment `run_agents/`.
+- [Kaimon.jl](https://github.com/kahliburke/Kaimon.jl) connects agents to Julia
+  sessions (REPLs) started by you. You see the code the agent runs in your REPL,
+  and you and the agent share the state of the session. Kaimon.jl requires
+  Julia v1.12 or newer.
+
+If a Kaimon.jl session loading Trixi.jl from the current checkout of the
+repository is available, agents use it. Otherwise, they use julia-mcp if
+available and the standard workflow (new Julia processes) otherwise. You can
+install one of these MCP servers or both.
+
+#### julia-mcp
+To set up julia-mcp, follow these steps (see the
 [README of julia-mcp](https://github.com/aplavin/julia-mcp) for further details
 and other clients):
 
@@ -322,6 +335,60 @@ and other clients):
    e.g., `"TreeMesh2D Advection: elixir_advection_basic.jl"`, using the Julia
    MCP tool. The first run takes a while because of compilation; repeated runs
    in the same session are much faster.
+
+#### Kaimon.jl
+To set up Kaimon.jl, follow these steps (see the
+[documentation of Kaimon.jl](https://kahliburke.github.io/Kaimon.jl/dev/) for
+further details):
+
+1. Install Kaimon.jl with Julia v1.12 or newer, e.g., the latest stable
+   release of Julia via `julia +release` with
+   [juliaup](https://github.com/JuliaLang/juliaup), in the package REPL mode via
+   ```julia-repl
+   pkg> app add Kaimon
+   ```
+   This installs the executable `kaimon` in `~/.julia/bin`, which needs to be in
+   your `PATH`. This executable uses the exact Julia binary used for the
+   installation. Thus, repeat the installation if juliaup removed this binary
+   after an update.
+2. Start the Kaimon.jl server by running `kaimon` in a terminal. On the first
+   run, a setup wizard asks for a security mode, an API key, and a port. Then,
+   open the configuration tab of the dashboard by pressing `c` and press `i` to
+   register the MCP server with your agent (e.g., Claude Code). Keep the default
+   (user) scope: the project scope writes the file `.mcp.json` including your
+   API key to the current directory, which must not be committed. The server
+   needs to be running whenever agents should use Kaimon.jl.
+3. Create a Julia project with the test dependencies that develops your local
+   clone of Trixi.jl, e.g., in the directory `run_kaimon/`, which is ignored by
+   git, and add the packages needed for the session:
+   ```shell
+   julia +release utils/setup_run_agents.jl run_kaimon
+   julia +release --project=run_kaimon -e 'using Pkg; Pkg.add(["KaimonGate", "Revise"])'
+   ```
+   We recommend not to use `run_agents/` for this purpose if you use it with
+   another version of Julia (e.g., via julia-mcp), since a manifest should only
+   be used with the Julia version it was resolved for. Running the script
+   `utils/setup_run_agents.jl` again checks whether `run_kaimon/` is still up to
+   date. It never modifies an existing project in a directory passed as
+   argument but throws an error if the project needs to be updated or was
+   resolved with another Julia version, e.g., after `release` started to point
+   to a new version of Julia. In this case, remove `run_kaimon/` and repeat
+   this step.
+4. Start a Julia session in this project from the root directory of your clone
+   of Trixi.jl, e.g., with the same flags as recommended for julia-mcp,
+   ```shell
+   julia +release --project=run_kaimon --threads=1 --check-bounds=yes
+   ```
+   and connect it to the Kaimon.jl server via
+   ```julia-repl
+   julia> using Revise; using Trixi; using KaimonGate; KaimonGate.serve()
+   ```
+   Loading Revise.jl before Trixi.jl ensures that changes to the source code
+   are picked up in the session.
+5. Restart your agent (or VS Code) and check that the MCP server is available,
+   e.g., via `/mcp` in Claude Code. Then, ask the agent to run a test item,
+   e.g., `"TreeMesh2D Advection: elixir_advection_basic.jl"`, using the Kaimon.jl
+   session. You will see the code of the agent in your REPL.
 
 
 ## Debugging

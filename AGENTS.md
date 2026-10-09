@@ -161,9 +161,9 @@ versions so that the usual `run_agents/` setup remains reproducible.
 
 ### Running selected test items
 
-From the root of the repository, run, e.g., the following command (or the same
-Julia code in a persistent session via MCP if available, see
-[below](#optional-persistent-julia-session-via-mcp)):
+From the root of the repository, run, e.g., the following command (or, if
+available, the corresponding Julia code in a persistent session via MCP, see
+[below](#optional-persistent-julia-sessions-via-mcp)):
 
 ```bash
 julia --project=run_agents -e '
@@ -190,7 +190,7 @@ Notes:
   that the number of passed tests is plausible, and copy test item names
   exactly from the `@testitem "..."` lines.
 - If a persistent Julia session is available, prefer it (see
-  [the next section](#optional-persistent-julia-session-via-mcp)). Otherwise,
+  [the next section](#optional-persistent-julia-sessions-via-mcp)). Otherwise,
   batch related test items into one call to avoid repeated startup costs.
 - Always call `@run_package_tests` inside `cd(".../test") do ... end` as
   above. The macro searches for test items in the parent directory of the file
@@ -226,18 +226,87 @@ Notes:
 - When developing new kernels, run Julia with `--check-bounds=yes` so that
   out-of-bounds accesses are caught despite `@inbounds`.
 
-### Optional: persistent Julia session via MCP
+### Optional: persistent Julia sessions via MCP
 
-Some developers configure the MCP server
-[julia-mcp](https://github.com/aplavin/julia-mcp), which provides the tools
-`julia_eval`, `julia_restart`, and `julia_list_sessions` (in Claude Code, e.g.,
-`mcp__julia__julia_eval`). **Only if these tools are available to you**, use
-`julia_eval` to run Julia code such as tests and elixirs: the Julia session
-persists between calls, so packages are loaded and compiled only once. If the
-tools are not available, use the shell commands described above; everything
-else in this file applies unchanged. Run the `run_agents` setup script in the
-shell in any case, even if the description of `julia_eval` tells you to never
-run Julia via the command line.
+Some developers configure MCP servers providing persistent Julia sessions, in
+which packages are loaded and compiled only once. **Only if the corresponding
+tools are available to you**, use them to run Julia code such as tests and
+elixirs, in the following order of preference:
+
+1. a [Kaimon.jl](https://github.com/kahliburke/Kaimon.jl) session started by
+   the developer that loads Trixi.jl from this checkout (see
+   [below](#kaimonjl)), otherwise
+2. a session of [julia-mcp](https://github.com/aplavin/julia-mcp) (see
+   [below](#julia-mcp)), otherwise
+3. the shell commands described above.
+
+Everything else in this file applies unchanged. Run the `run_agents` setup
+script in the shell in any case (e.g., for the formatter), even if the
+description of an MCP tool tells you to never run Julia via the command line.
+Sessions may run with non-default Julia flags chosen by the developer (e.g.,
+`--threads=1 --check-bounds=yes`). Check them with `Threads.nthreads()` and
+`Base.JLOptions().check_bounds` (`1` means bounds checking is enabled) if they
+matter, e.g., for timings or allocation tests.
+
+#### Kaimon.jl
+
+Kaimon.jl connects agents to Julia sessions (REPLs) started by the developer,
+who sees the code you run in their REPL. Its tools include `ping` and `ex`
+(in Claude Code, e.g., `mcp__kaimon__ex`). They are only available while the
+Kaimon.jl server is running.
+
+- Call `ping` to list the connected sessions with their 8-character keys. Use
+  a session only if
+  `ex(e = "using Trixi; pkgdir(Trixi)", q = false, ses = "<key>")` returns the
+  absolute path of the root of this repository. Otherwise (e.g., for sessions
+  of other packages, clones, or worktrees, or if no session is connected), use
+  julia-mcp or the shell instead.
+- Always pass `q = false` (the default `q = true` does not return the result)
+  and `ses = "<key>"`.
+- `ex` returns only the value of the last expression or the error. Printed
+  output (e.g., test summaries and failures) only appears in the REPL of the
+  developer, and Kaimon.jl even removes calls such as `println` from your code.
+  Thus, write the output of test items to a log file and inspect this file
+  with your usual tools afterwards, e.g.,
+  ```julia
+  using TestItemRunner
+  log_file = tempname()
+  open(log_file, "w") do io
+      redirect_stdio(stdout = io, stderr = io) do
+          try
+              cd("/path/to/Trixi.jl/test") do
+                  @run_package_tests filter = ti -> ti.name in (
+                      "TreeMesh2D Advection: elixir_advection_basic.jl",
+                      "Unit: Spectral analysis",
+                  )
+              end
+          catch err
+              showerror(io, err)
+          end
+      end
+  end
+  log_file
+  ```
+- The session belongs to the developer. Do not restart or shut it down, do not
+  add or remove packages, do not start new sessions, and avoid persistent
+  changes to its global state (e.g., use `cd(...) do ... end` instead of
+  `cd(...)`). If the session cannot be used (e.g., missing packages, Revise.jl
+  not loaded so that changes in `src/` are not picked up, or a restart is
+  required after changing type definitions), ask the developer or use
+  julia-mcp or the shell instead.
+- Do not use the Kaimon.jl tools `run_tests` (not designed for the test items
+  of Trixi.jl, may run the complete test suite) and `format_code` (see
+  [Code style](#code-style) for the formatter).
+- If an evaluation does not produce any output for 10 minutes, `ex` returns a
+  timeout error, but the evaluation may still be running in the session.
+- `trixi_include` writes its output files to `out/` in the working directory of
+  the session (check it with `pwd()`).
+
+#### julia-mcp
+
+julia-mcp provides the tools `julia_eval`, `julia_restart`, and
+`julia_list_sessions` (in Claude Code, e.g., `mcp__julia__julia_eval`) and
+starts the Julia sessions itself.
 
 - Always pass the **absolute path** of the `run_agents` directory as
   `env_path` (e.g., `/path/to/Trixi.jl/run_agents`). Do not call
@@ -256,11 +325,6 @@ run Julia via the command line.
 - Call `julia_restart` with the same `env_path` after changing type
   definitions (e.g., fields of a `struct`), which Revise cannot handle, after
   re-creating or updating `run_agents`, or if the session is in a broken state.
-- The session may run with non-default Julia flags chosen by the developer
-  (recommended: `--threads=1 --check-bounds=yes --startup-file=no`). Check
-  them with `Threads.nthreads()` and `Base.JLOptions().check_bounds` (`1` means
-  bounds checking is enabled) if they matter, e.g., for timings or allocation
-  tests.
 - `trixi_include` writes its output files to `out/` in the working directory,
   i.e., to `run_agents/out/`.
 - Run the formatter (see [Code style](#code-style)) in a separate session with
@@ -324,8 +388,8 @@ run Julia via the command line.
   ```bash
   julia --project=run_agents/formatter -e 'using JuliaFormatter; format(["src/file.jl", "test/test_file.jl"])'
   ```
-  or via the MCP server if available (see
-  [above](#optional-persistent-julia-session-via-mcp)). `format` returns `true`
+  or via julia-mcp if available (see
+  [above](#julia-mcp)). `format` returns `true`
   if all files were already formatted; otherwise, it formats them in place and
   returns `false`. Pass only the files you changed. (Human developers often use
   `utils/trixi-format-file.jl`, which installs the formatter in a temporary
