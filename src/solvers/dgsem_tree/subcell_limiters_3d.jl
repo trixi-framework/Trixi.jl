@@ -85,8 +85,8 @@ end
     # one pass, only the two opposite faces of each element in that orientation
     # are updated, e.g., the left and right faces for orientation 1.
     # These faces share no nodes and each face belongs to at most one interface,
-    # so all updates are disjoint. Faces of different orientations share corner
-    # nodes; the barrier between passes prevents races there.
+    # so all updates are disjoint. Faces of different orientations share edge
+    # and corner nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:3
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue
@@ -280,8 +280,8 @@ end
     # one pass, only the two opposite faces of each element in that orientation
     # are updated, e.g., the left and right faces for orientation 1.
     # These faces share no nodes and each face belongs to at most one interface,
-    # so all updates are disjoint. Faces of different orientations share corner
-    # nodes; the barrier between passes prevents races there.
+    # so all updates are disjoint. Faces of different orientations share edge
+    # and corner nodes; the barrier between passes prevents races there.
     for selected_orientation in 1:3
         @threaded for interface in eachinterface(dg, cache)
             orientations[interface] == selected_orientation || continue

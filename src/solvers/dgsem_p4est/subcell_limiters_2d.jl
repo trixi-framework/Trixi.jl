@@ -169,7 +169,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
             secondary_indices = node_indices[2, interface]
 
             # Convert indices to direction and then to the axis:
-            # directions (1, 2) -> axis 1, (3, 4) -> axis 2, (5, 6) -> axis 3.
+            # directions (1, 2) -> axis 1, (3, 4) -> axis 2.
             primary_axis = cld(indices2direction(primary_indices), 2)
             secondary_axis = cld(indices2direction(secondary_indices), 2)
 

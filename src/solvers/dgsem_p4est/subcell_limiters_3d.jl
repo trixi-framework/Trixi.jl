@@ -16,8 +16,8 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     # only the two opposite faces of each element on that axis are updated, e.g.,
     # directions (1, 2) for axis 1. These faces share no nodes and each face
     # belongs to at most one interface, so all updates are disjoint. Faces on
-    # different axes share corner nodes; the barrier between passes prevents
-    # races there.
+    # different axes share edge and corner nodes; the barrier between passes
+    # prevents races there.
     for axis in 1:ndims(mesh)
         @threaded for interface in eachinterface(dg, cache)
             # Get side index information on the elements
@@ -203,8 +203,8 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     # only the two opposite faces of each element on that axis are updated, e.g.,
     # directions (1, 2) for axis 1. These faces share no nodes and each face
     # belongs to at most one interface, so all updates are disjoint. Faces on
-    # different axes share corner nodes; the barrier between passes prevents
-    # races there.
+    # different axes share edge and corner nodes; the barrier between passes
+    # prevents races there.
     for axis in 1:ndims(mesh)
         @threaded for interface in eachinterface(dg, cache)
             # Get side index information on the elements
