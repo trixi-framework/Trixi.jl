@@ -8,6 +8,11 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Experimental support for the compressible RANS equations with the negative
+  Spalart-Allmaras turbulence model (SA-neg) in 2D: `CompressibleRANSDiffusion2D` with
+  `SpalartAllmarasNeg` as the parabolic part of `PassiveTracerEquations` of the
+  compressible Euler equations, and `SourceTermsSpalartAllmaras` for the model
+  source terms.
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).

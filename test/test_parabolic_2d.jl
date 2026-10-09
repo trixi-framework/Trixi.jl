@@ -1710,3 +1710,30 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
+
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_rans_sa_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_rans_sa_convergence.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.00040858461961591546,
+                            0.0008327631429324419,
+                            0.0007554353394634402,
+                            0.003224292302640684,
+                            3.2704390315040255e-5
+                        ],
+                        linf=[
+                            0.002723829224757335,
+                            0.005143119882620395,
+                            0.003414305206649204,
+                            0.02312483564268497,
+                            0.00011273109512793811
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
