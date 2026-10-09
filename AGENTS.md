@@ -265,10 +265,10 @@ Kaimon.jl server is running.
   and `ses = "<key>"`.
 - `ex` returns the value of the last expression or the error, together with
   the output printed to `stdout` and `stderr` (e.g., test summaries and
-  details of failures). However, no printed output is returned if the code
-  contains `using` or `import`. Thus, load packages in a separate call first,
-  e.g., `ex(e = "using TestItemRunner", q = false, ses = "<key>")`, and then
-  run test items in another call such as
+  details of failures). However, output capture may be bypassed for code that
+  loads packages via `using` or `import`. Thus, load packages in a separate
+  call first, e.g., `ex(e = "using TestItemRunner", q = false, ses = "<key>")`,
+  and then run test items in another call such as
   ```julia
   cd("/path/to/Trixi.jl/test") do
       @run_package_tests filter = ti -> ti.name in (
