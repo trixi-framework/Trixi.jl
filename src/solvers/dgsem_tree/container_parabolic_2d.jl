@@ -1,37 +1,38 @@
-mutable struct ParabolicContainer2D{uEltype <: Real}
+mutable struct ParabolicContainer2D{uEltype <: Real,
+                                    ArrayuEltype4D <: AbstractArray{uEltype, 4},
+                                    VectoruEltype <: AbstractVector{uEltype}}
     # [variables, nodes, nodes, elements]
-    u_transformed::Array{uEltype, 4}
+    u_transformed::ArrayuEltype4D
     # ([variables, nodes, nodes, elements],
     #  [variables, nodes, nodes, elements])
-    gradients::NTuple{2, Array{uEltype, 4}}
+    gradients::NTuple{2, ArrayuEltype4D}
     # ([variables, nodes, nodes, elements],
     #  [variables, nodes, nodes, elements])
-    flux_parabolic::NTuple{2, Array{uEltype, 4}}
+    flux_parabolic::NTuple{2, ArrayuEltype4D}
 
     # internal `resize!`able storage
-    _u_transformed::Vector{uEltype}
+    _u_transformed::VectoruEltype
     # Use Tuple for outer, fixed-size datastructure
-    _gradients::Tuple{Vector{uEltype}, Vector{uEltype}}
-    _flux_parabolic::Tuple{Vector{uEltype}, Vector{uEltype}}
+    _gradients::Tuple{VectoruEltype, VectoruEltype}
+    _flux_parabolic::Tuple{VectoruEltype, VectoruEltype}
+end
 
-    function ParabolicContainer2D{uEltype}(n_vars::Integer, n_nodes::Integer,
-                                           n_elements::Integer) where {uEltype <: Real}
-        return new(Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements), # `u_transformed`
-                   # `gradients`
-                   (Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements),
-                    Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements)),
-                   # `flux_parabolic`
-                   (Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements),
-                    Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements)),
-                   # `_u_transformed`
-                   Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
-                   # `_gradients`
-                   (Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
-                    Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)),
-                   # `_flux_parabolic`
-                   (Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements),
-                    Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)))
-    end
+function ParabolicContainer2D{uEltype}(n_vars::Integer, n_nodes::Integer,
+                                       n_elements::Integer) where {uEltype <: Real}
+    new_array() = Array{uEltype, 4}(undef, n_vars, n_nodes, n_nodes, n_elements)
+    new_vector() = Vector{uEltype}(undef, n_vars * n_nodes^2 * n_elements)
+
+    u_transformed = new_array()
+    gradients = (new_array(), new_array())
+    flux_parabolic = (new_array(), new_array())
+    _u_transformed = new_vector()
+    _gradients = (new_vector(), new_vector())
+    _flux_parabolic = (new_vector(), new_vector())
+
+    return ParabolicContainer2D{uEltype, Array{uEltype, 4},
+                                Vector{uEltype}}(u_transformed, gradients,
+                                                 flux_parabolic, _u_transformed,
+                                                 _gradients, _flux_parabolic)
 end
 
 function init_parabolic_container_2d(n_vars::Integer, n_nodes::Integer,
@@ -86,4 +87,25 @@ function Base.resize!(parabolic_container::ParabolicContainer2D, equations, dg, 
     parabolic_container.flux_parabolic = (flux_parabolic_1, flux_parabolic_2)
 
     return nothing
+end
+
+# Adapt the parabolic container to a different storage type (e.g., for GPUs)
+# and/or real type. The (scratch) data of the multi-dimensional arrays is not
+# preserved. Instead, they are re-created by wrapping the adapted internal storage,
+# similar to the other containers.
+function Adapt.adapt_structure(to, parabolic_container::ParabolicContainer2D)
+    _u_transformed = adapt(to, parabolic_container._u_transformed)
+    _gradients = map(x -> adapt(to, x), parabolic_container._gradients)
+    _flux_parabolic = map(x -> adapt(to, x), parabolic_container._flux_parabolic)
+
+    array_size = size(parabolic_container.u_transformed)
+    u_transformed = unsafe_wrap_or_alloc(to, _u_transformed, array_size)
+    gradients = map(x -> unsafe_wrap_or_alloc(to, x, array_size), _gradients)
+    flux_parabolic = map(x -> unsafe_wrap_or_alloc(to, x, array_size), _flux_parabolic)
+
+    return ParabolicContainer2D{eltype(_u_transformed), typeof(u_transformed),
+                                typeof(_u_transformed)}(u_transformed, gradients,
+                                                        flux_parabolic,
+                                                        _u_transformed, _gradients,
+                                                        _flux_parabolic)
 end

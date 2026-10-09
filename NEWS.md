@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
+  arguments `storage_type`, `real_type`, and `flux_differencing_kernel`.
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).

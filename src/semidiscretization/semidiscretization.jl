@@ -117,6 +117,42 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
+    semi, tspan = adapt_semidiscretization(semi, tspan; storage_type, real_type,
+                                           flux_differencing_kernel)
+
+    u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+    rhs_semi! = default_rhs(semi)
+
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling `rhs_semi!`
+    specialize = SciMLBase.FullSpecialize # specialize on `rhs_semi!` and parameters (semi)
+
+    # Check if Jacobian prototype is provided for sparse Jacobian
+    if jac_prototype !== nothing
+        # Convert `jac_prototype` to real type, as seen here:
+        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
+        ode = SciMLBase.ODEFunction(rhs_semi!,
+                                    jac_prototype = convert.(eltype(u0_ode),
+                                                             jac_prototype),
+                                    colorvec = colorvec) # coloring vector is optional
+
+        return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
+    else
+        # We could also construct an `ODEFunction` explicitly without the Jacobian here,
+        # but we stick to the lean direct in-place function `rhs_semi!` and
+        # let OrdinaryDiffEq.jl handle the rest
+        return ODEProblem{iip, specialize}(rhs_semi!, u0_ode, tspan, semi)
+    end
+end
+
+# Adapt the semidiscretization `semi` to the given `storage_type` and `real_type`
+# and select the `flux_differencing_kernel` used for GPU backends.
+# Returns the (possibly) adapted semidiscretization and time span.
+function adapt_semidiscretization(semi::AbstractSemidiscretization, tspan;
+                                  storage_type = nothing, real_type = nothing,
+                                  flux_differencing_kernel = nothing)
     if !(storage_type === nothing && real_type === nothing)
         if storage_type === nothing
             storage_type = Array
@@ -147,31 +183,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
     end
 
-    u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
-    rhs_semi! = default_rhs(semi)
-
-    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
-    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
-    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling `rhs_semi!`
-    specialize = SciMLBase.FullSpecialize # specialize on `rhs_semi!` and parameters (semi)
-
-    # Check if Jacobian prototype is provided for sparse Jacobian
-    if jac_prototype !== nothing
-        # Convert `jac_prototype` to real type, as seen here:
-        # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-        ode = SciMLBase.ODEFunction(rhs_semi!,
-                                    jac_prototype = convert.(eltype(u0_ode),
-                                                             jac_prototype),
-                                    colorvec = colorvec) # coloring vector is optional
-
-        return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
-    else
-        # We could also construct an `ODEFunction` explicitly without the Jacobian here,
-        # but we stick to the lean direct in-place function `rhs_semi!` and
-        # let OrdinaryDiffEq.jl handle the rest
-        return ODEProblem{iip, specialize}(rhs_semi!, u0_ode, tspan, semi)
-    end
+    return semi, tspan
 end
 
 """
