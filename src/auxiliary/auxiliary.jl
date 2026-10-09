@@ -207,8 +207,24 @@ julia> Trixi.get_name(Val(:test))
 get_name(x) = string(x)
 get_name(::Val{x}) where {x} = string(x)
 
+# `jl_in_threaded_region` is internal to Julia and may be removed in a future version,
+# see https://github.com/JuliaLang/julia/pull/62751. If it is not available, we keep
+# the previous behavior, i.e., nested `@threaded` loops throw an error for the
+# `:static` and `:kernelabstractions` backends.
+const HAS_JL_IN_THREADED_REGION = try
+    cglobal(:jl_in_threaded_region) != C_NULL
+catch
+    false
+end
+
 # Whether a `Threads.@threads` loop is running anywhere, see `Base.Threads.threading_run`
-@inline in_threaded_region() = ccall(:jl_in_threaded_region, Cint, ()) != 0
+@inline function in_threaded_region()
+    if HAS_JL_IN_THREADED_REGION
+        return ccall(:jl_in_threaded_region, Cint, ()) != 0
+    else
+        return false
+    end
+end
 
 """
     @threaded for ... end
