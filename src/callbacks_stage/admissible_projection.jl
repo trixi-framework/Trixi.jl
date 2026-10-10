@@ -36,3 +36,4 @@ end
 
 include("admissible_projection_euler_1d.jl")
 include("admissible_projection_euler_2d.jl")
+include("admissible_projection_euler_3d.jl")

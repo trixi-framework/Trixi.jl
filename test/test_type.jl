@@ -2955,13 +2955,42 @@ end
                                                                    variables, equations_2d)) ==
                   RealT
 
+            # 3D compressible Euler
+            equations_3d = CompressibleEulerEquations3D(RealT(5 / 3))
+
+            u_admissible = prim2cons(SVector(RealT(1), zero(RealT), zero(RealT),
+                                             zero(RealT), RealT(1)),
+                                     equations_3d)
+            u_violation = SVector(rho_floor / 100, zero(RealT), zero(RealT), zero(RealT),
+                                  RealT(1)) # violate density lower bound
+            @test typeof(@inferred Trixi.state_is_admissible(u_admissible, lower_bounds,
+                                                             variables, equations_3d)) ==
+                  Bool
+            @test typeof(@inferred Trixi.state_is_admissible(u_violation, lower_bounds,
+                                                             variables, equations_3d)) ==
+                  Bool
+
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_admissible,
+                                                                   lower_bounds,
+                                                                   variables, equations_3d)) ==
+                  RealT
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_violation,
+                                                                   lower_bounds,
+                                                                   variables, equations_3d)) ==
+                  RealT
+
             # check type of constructor and fields
             solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs, RealT = RealT)
             for (coordinates_min, coordinates_max, equations) in ((RealT(-1), RealT(1),
                                                                    equations_1d),
                                                                   ((RealT(-1), RealT(-1)),
                                                                    (RealT(1), RealT(1)),
-                                                                   equations_2d))
+                                                                   equations_2d),
+                                                                  ((RealT(-1), RealT(-1),
+                                                                    RealT(-1)),
+                                                                   (RealT(1), RealT(1),
+                                                                    RealT(1)),
+                                                                   equations_3d))
                 mesh = TreeMesh(coordinates_min, coordinates_max,
                                 initial_refinement_level = 2, periodicity = true,
                                 RealT = RealT)

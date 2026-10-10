@@ -46,7 +46,8 @@ end
                                         has_candidate,
                                         u_candidate, u,
                                         equations::Union{CompressibleEulerEquations1D,
-                                                         CompressibleEulerEquations2D})
+                                                         CompressibleEulerEquations2D,
+                                                         CompressibleEulerEquations3D})
     dist_squared = sum(abs2, u_candidate - u)
 
     # if the new candidate is closer than the current best candidate (or if there is no
