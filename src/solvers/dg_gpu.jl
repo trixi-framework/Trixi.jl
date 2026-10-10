@@ -41,10 +41,11 @@ end
 # `where {MeshT}` or `where {Source}`) or a type annotation matching all methods of the
 # called functions (e.g., `MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}}`) to
 # avoid this. GPU backends always specialize fully.
-@kernel function volume_integral_KAkernel!(du, u, ::Type{MeshT},
-                                           have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM,
-                                           cache) where {MeshT}
+@kernel inbounds=true function volume_integral_KAkernel!(du, u, ::Type{MeshT},
+                                                         have_nonconservative_terms,
+                                                         equations,
+                                                         volume_integral, dg::DGSEM,
+                                                         cache) where {MeshT}
     element = @index(Global)
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                             equations, volume_integral, dg, cache)
