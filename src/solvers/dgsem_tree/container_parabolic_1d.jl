@@ -14,15 +14,21 @@ end
 
 function ParabolicContainer1D{uEltype}(n_vars::Integer, n_nodes::Integer,
                                        n_elements::Integer) where {uEltype <: Real}
-    new_array() = Array{uEltype, 3}(undef, n_vars, n_nodes, n_elements)
     new_vector() = Vector{uEltype}(undef, n_vars * n_nodes * n_elements)
+    # Wrap the internal storage to avoid allocating the memory twice. For element types
+    # that are not bits types (e.g., the tracers of SparseConnectivityTracer.jl),
+    # stores through such an alias would bypass the write barrier of the garbage
+    # collector, so we allocate separate arrays for them.
+    wrap(vector) = isbitstype(uEltype) ?
+                   unsafe_wrap_or_alloc(Array, vector, (n_vars, n_nodes, n_elements)) :
+                   similar(vector, (n_vars, n_nodes, n_elements))
 
-    u_transformed = new_array()
-    gradients = new_array()
-    flux_parabolic = new_array()
     _u_transformed = new_vector()
     _gradients = new_vector()
     _flux_parabolic = new_vector()
+    u_transformed = wrap(_u_transformed)
+    gradients = wrap(_gradients)
+    flux_parabolic = wrap(_flux_parabolic)
 
     return ParabolicContainer1D{uEltype, Array{uEltype, 3},
                                 Vector{uEltype}}(u_transformed, gradients,
