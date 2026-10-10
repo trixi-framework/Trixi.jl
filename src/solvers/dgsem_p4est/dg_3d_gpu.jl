@@ -1738,6 +1738,11 @@ end
 # (shared) memory. Then, each work-item adds up the volume terms of its node and writes
 # `du` once. On the CPU backend of KernelAbstractions.jl, and if the local memory or the
 # workgroup would be too large, we use the per-element kernel instead.
+# Similar kernels are, e.g., `volumeterm!` of Raven.jl
+# (https://github.com/HorribleSanity/Raven.jl/blob/4e7669105207851aa05928158a0bdd9a5358e909/src/balancelaws/dgsem.jl)
+# and `volumerhs!` in the benchmarks of CUDA.jl
+# (https://github.com/JuliaGPU/CUDA.jl/blob/4a98b2a715577e23d71a3c166ce11579f53c3850/perf/volumerhs.jl),
+# which keeps one direction in registers to need less local memory for high polynomial degrees.
 function calc_volume_integral!(backend::Backend, du, u,
                                mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                have_nonconservative_terms::False, equations,
