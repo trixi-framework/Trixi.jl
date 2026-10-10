@@ -7,12 +7,12 @@
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
 function PERK3_compute_c_coeffs(num_stages, cS2)
-    c = zeros(eltype(cS2), num_stages)
+    c = zeros(num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in Section 3.3 of
     # https://doi.org/10.1016/j.jcp.2024.113223
-    c[num_stages - 1] = one(cS2)
-    c[num_stages] = convert(eltype(cS2), 0.5)
+    c[num_stages - 1] = 1
+    c[num_stages] = 0.5
 
     # Linear increasing timestep for remainder
     for i in 2:(num_stages - 2)
@@ -34,7 +34,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     a_unknown = zeros(num_stages - 2)
 
     dtmax = tspan[2] - tspan[1]
-    dteps = 1.0f-9
+    dteps = 1.0e-9
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
@@ -96,11 +96,11 @@ end
 
 @doc raw"""
     PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString, dt_opt = nothing;
-                      cS2 = 1.0f0)
+                      cS2 = 1.0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-                      verbose = false, cS2 = 1.0f0)
+                      verbose = false, cS2 = 1.0)
     PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                      verbose = false, cS2 = 1.0f0)
+                      verbose = false, cS2 = 1.0)
 
 The following structures and methods provide an implementation of
 the third-order paired explicit Runge-Kutta (PERK) method
@@ -129,7 +129,7 @@ The original paper is
     equation has been semidiscretized.
 - `verbose` (`Bool`, optional): Verbosity flag, default is false.
 - `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
-    $S$ is the number of stages. Default is `1.0f0`.
+    $S$ is the number of stages. Default is `1.0`.
 
 !!! note
     To use this integrator, the user must import the
@@ -150,7 +150,7 @@ end
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt = nothing;
-                           cS2 = 1.0f0)
+                           cS2 = 1.0)
     @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                             base_path_a_coeffs;
@@ -161,7 +161,7 @@ end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-                           verbose = false, cS2 = 1.0f0)
+                           verbose = false, cS2 = 1.0)
     @assert num_stages>=3 "PERK3 requires at least three stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
@@ -170,7 +170,7 @@ end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                           verbose = false, cS2 = 1.0f0)
+                           verbose = false, cS2 = 1.0)
     @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
