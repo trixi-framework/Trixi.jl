@@ -139,7 +139,7 @@ function initial_condition_weak_blast_wave(x, t,
     v3 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(theta)
     p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
-    prim = zero(MVector{nvariables(equations), real(equations)})
+    prim = zero(MVector{nvariables(equations), RealT})
     prim[1] = 1
     prim[2] = 1
     prim[3] = 1
@@ -685,7 +685,7 @@ The term is composed of four individual non-conservative terms:
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-    total_electron_charge = zero(real(equations))
+    total_electron_charge = zero(eltype(u_ll))
     for k in eachcomponent(equations)
         rho_k = u_ll[3 + (k - 1) * 5 + 1]
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -1498,9 +1498,9 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations3D)
-    v1 = zero(real(equations))
-    v2 = zero(real(equations))
-    v3 = zero(real(equations))
+    v1 = zero(eltype(u))
+    v2 = zero(eltype(u))
+    v3 = zero(eltype(u))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u, equations)
         rho_inv = 1 / rho
@@ -1526,7 +1526,7 @@ end
     B1, B2, B3 = magnetic_field(cons, equations)
     psi = divergence_cleaning_field(cons, equations)
 
-    c_f = zero(real(equations))
+    c_f = zero(eltype(cons))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
@@ -1577,7 +1577,7 @@ end
                     normal_direction[2] * normal_direction[2] +
                     normal_direction[3] * normal_direction[3])
 
-    c_f = zero(real(equations))
+    c_f = zero(eltype(cons))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
