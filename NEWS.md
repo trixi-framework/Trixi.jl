@@ -46,6 +46,9 @@ for human readability.
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 
 #### Changed
+- With the threading backends `:static` and `:kernelabstractions`, `@threaded` loops
+  that are executed inside another threaded region (e.g., in parallel tasks) now run
+  serially instead of throwing an error ([#3307]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
