@@ -606,6 +606,11 @@ function calc_volume_integral!(backend::Backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+    if !use_gpu_volume_kernels(backend)
+        return calc_volume_integral_per_element!(backend, du, u, mesh,
+                                                 have_nonconservative_terms, equations,
+                                                 volume_integral, dg, cache)
+    end
     nelements(dg, cache) == 0 && return nothing
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin

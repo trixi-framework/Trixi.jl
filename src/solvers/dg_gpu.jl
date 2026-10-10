@@ -3,14 +3,33 @@
     return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
 end
 
+# The volume integral kernels shared with the CPU code (`volume_integral_kernel!`) handle
+# one element per work-item and update `du` with many read-modify-write accesses per node.
+# On GPUs, these global memory accesses are not coalesced across work-items and they make
+# the kernels slow. Thus, we use GPU-specific kernels on GPUs, i.e., one work-item per
+# node for the weak form volume integral on `P4estMesh`es, see
+# src/solvers/dgsem_p4est/dg_2d_gpu.jl and src/solvers/dgsem_p4est/dg_3d_gpu.jl,
+# and accumulation of the volume terms of an element in work-item local storage in the
+# general fallback below. On KernelAbstractions' CPU backend, the kernels shared with the
+# CPU code are faster.
+@inline use_gpu_volume_kernels(backend::Backend) = !(backend isa KernelAbstractions.CPU)
+
+function calc_volume_integral!(backend::Backend, du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral, dg::DGSEM, cache)
+    return calc_volume_integral_per_element!(backend, du, u, mesh,
+                                             have_nonconservative_terms, equations,
+                                             volume_integral, dg, cache)
+end
+
 # This is a general fallback for volume integral kernels, parallelizing across
 # elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
 # for flux differencing, parallelize across the individual solution nodes
 # and are contained in the files src/solvers/dgsem_p4est/dg_2d_gpu.jl and
 # src/solvers/dgsem_p4est/dg_3d_gpu.jl.
-function calc_volume_integral!(backend::Backend, du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral, dg::DGSEM, cache)
+function calc_volume_integral_per_element!(backend::Backend, du, u, mesh,
+                                           have_nonconservative_terms, equations,
+                                           volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
@@ -20,15 +39,23 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
         check_axes(cache.elements, equations, dg, cache)
     end
 
-    # In the usual (CPU) code, `du` is reset at the beginning of `rhs_hyperbolic!`.
-    # On GPUs, we avoid launching an additional kernel for this memory reset:
-    # the volume integral kernels, including the general fallback below, overwrite
-    # `du` instead of adding to it.
+    accumulate_locally = use_gpu_volume_kernels(backend)
+    if !accumulate_locally
+        # Reset du
+        # In the usual (CPU) code, this is called at the beginning of rhs_hyperbolic!
+        # However, we can significantly improve the performance on GPUs by avoiding
+        # launching an additional kernel for this memory reset. Thus, GPU volume
+        # kernels write directly into the existing `du` array, and we reset it here
+        # if the kernel adds to `du`.
+        @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+            set_zero!(du, dg, cache)
+        end
+    end
 
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
-            volume_integral, dg, kernel_cache,
+            volume_integral, dg, kernel_cache, Val(accumulate_locally),
             ndrange = nelements(dg, cache))
     return nothing
 end
@@ -47,18 +74,24 @@ end
                                                          have_nonconservative_terms,
                                                          equations,
                                                          volume_integral, dg::DGSEM,
-                                                         cache) where {MeshT}
+                                                         cache,
+                                                         ::Val{ACCUMULATE_LOCALLY}) where {
+                                                                                           MeshT,
+                                                                                           ACCUMULATE_LOCALLY
+                                                                                           }
     element = @index(Global)
-    # Accumulate the volume integral of this element in work-item local storage and
-    # write it to `du` once at the end. The CPU kernels called here update `du` with
-    # many read-modify-write accesses per node. On GPUs, these global memory accesses
-    # are not coalesced across work-items (each work-item handles a different element)
-    # and they make the kernel much slower; local storage is coalesced and cached.
-    du_element = zero_element_local(du, equations, dg)
-    volume_integral_kernel!(ElementLocal(du_element), u, element, MeshT,
-                            have_nonconservative_terms, equations, volume_integral,
-                            dg, cache)
-    store_element_local!(du, du_element, element)
+    if ACCUMULATE_LOCALLY
+        # Accumulate the volume integral of this element in work-item local storage
+        # and overwrite `du` once at the end, see `use_gpu_volume_kernels`.
+        du_element = zero_element_local(du, equations, dg)
+        volume_integral_kernel!(ElementLocal(du_element), u, element, MeshT,
+                                have_nonconservative_terms, equations, volume_integral,
+                                dg, cache)
+        store_element_local!(du, du_element, element)
+    else
+        volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
+                                equations, volume_integral, dg, cache)
+    end
 end
 
 # Work-item local storage for the values of `du` in one element, i.e., `du[:, .., element]`.
