@@ -39,3 +39,22 @@ steps:
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
+  - label: "Metal Julia {{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.10" # LTS
+          - "1.12"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+      - JuliaCI/julia-test#v1: ~
+    env:
+      TRIXI_TEST: "Metal"
+      TRIXI_TEST_VERBOSE: "true"
+    agents:
+      queue: "metal"
+    if: build.message !~ /\[skip ci\]/
+    timeout_in_minutes: 60
+    soft_fail:
+      - exit_status: 3

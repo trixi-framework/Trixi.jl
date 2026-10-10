@@ -72,8 +72,8 @@ if "kernelabstractions" in SUITES_TO_DISPATCH
 end
 
 # The GPU suites run their items only when the respective backend is `functional()`,
-# so requesting `CUDA`/`AMDGPU` on a machine without that GPU warns and runs nothing
-# instead of erroring.
+# so requesting `CUDA`/`AMDGPU`/`Metal` on a machine without that GPU warns and runs
+# nothing instead of erroring.
 RUN_CUDA = false
 if !IN_WORKER && TRIXI_TEST in ("all", "CUDA")
     import CUDA
@@ -85,6 +85,12 @@ if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
     import AMDGPU
     RUN_AMDGPU = AMDGPU.functional()
     RUN_AMDGPU || @warn "Unable to run AMDGPU tests on this machine"
+end
+RUN_METAL = false
+if !IN_WORKER && TRIXI_TEST in ("all", "Metal")
+    import Metal
+    RUN_METAL = Metal.functional()
+    RUN_METAL || @warn "Unable to run Metal tests on this machine"
 end
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
@@ -152,6 +158,7 @@ else
         # GPU items run only when the respective backend is functional.
         :CUDA in ti.tags && !RUN_CUDA && return false
         :AMDGPU in ti.tags && !RUN_AMDGPU && return false
+        :Metal in ti.tags && !RUN_METAL && return false
         return true
     end
     @run_package_tests filter=testitem_filter verbose=TRIXI_TEST_VERBOSE
