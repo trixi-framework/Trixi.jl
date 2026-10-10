@@ -195,7 +195,8 @@ Computes the pressure of every component ``k`` analogouos to
 [`pressure(u, equations::IdealGlmMhdEquations1D)`](@ref).
 """
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
-    B1, B2, B3, _ = u
+    B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(u, equations)
     p = zero(MVector{ncomponents(equations), real(equations)})
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
@@ -203,8 +204,10 @@ Computes the pressure of every component ``k`` analogouos to
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         gamma = equations.gammas[k]
-        p[k] = (gamma - 1) * (rho_e_total - 0.5f0 *
-                              (rho * (v1^2 + v2^2 + v3^2) + B1^2 + B2^2 + B3^2))
+        p[k] = (gamma - 1) * (rho_e_total -
+                0.5f0 * (rho * (v1^2 + v2^2 + v3^2)
+                         + B1^2 + B2^2 + B3^2
+                         + psi^2))
     end
     return SVector{ncomponents(equations), real(equations)}(p)
 end

@@ -62,6 +62,10 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in `pressure` of the `IdealGlmMhdMultiIonEquations2D` and
+  `IdealGlmMhdMultiIonEquations3D`: the energy `psi^2 / 2` of the GLM divergence
+  cleaning field was not subtracted, inconsistent with `cons2prim`. Thus, the
+  ion pressures (and quantities derived from them) change if `psi != 0`.
 
 
 ## Changes when updating to v0.17 from v0.16.x
