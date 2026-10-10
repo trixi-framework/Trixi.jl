@@ -180,10 +180,10 @@ function initial_condition_convergence_test(x, t,
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
     B_perp = convert(RealT, 0.1) * sinpi(2 * x_perp)
     rho = one(RealT)
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
-                                                                rho / (1 -
-                                                                 2^ncomponents(equations))
-                                                                for i in eachcomponent(equations))
+    prim_rho = SVector{ncomponents(equations), RealT}(2^(i - 1) * (1 - 2) *
+                                                      rho / (1 -
+                                                       2^ncomponents(equations))
+                                                      for i in eachcomponent(equations))
 
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
@@ -222,15 +222,15 @@ function initial_condition_weak_blast_wave(x, t,
     # We initialize each species with a fraction of the total density `rho`, such
     # that the sum of the densities is `rho := density(prim, equations)`. The density of
     # a species is double the density of the next species.
-    prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (RealT(1) -
-                                                                 2^ncomponents(equations)) :
-                                                                2^(i - 1) * (1 - 2) *
-                                                                RealT(1.1691) /
-                                                                (1 -
-                                                                 2^ncomponents(equations))
-                                                                for i in eachcomponent(equations))
+    prim_rho = SVector{ncomponents(equations), RealT}(r > 0.5f0 ?
+                                                      2^(i - 1) * (1 - 2) /
+                                                      (RealT(1) -
+                                                       2^ncomponents(equations)) :
+                                                      2^(i - 1) * (1 - 2) *
+                                                      RealT(1.1691) /
+                                                      (1 -
+                                                       2^ncomponents(equations))
+                                                      for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin_phi
@@ -319,8 +319,8 @@ of the [`IdealGlmMhdMulticomponentEquations2D`](@ref).
     # standard GLM MHD equations, i.e., the densities are moved to the end
     # Here, we compute the non-density components at first and append zero density
     # components afterwards
-    zero_densities = SVector{ncomponents(equations), real(equations)}(ntuple(_ -> zero(real(equations)),
-                                                                             Val(ncomponents(equations))))
+    zero_densities = SVector{ncomponents(equations), eltype(u_ll)}(ntuple(_ -> zero(eltype(u_ll)),
+                                                                          Val(ncomponents(equations))))
     if orientation == 1
         f = SVector(B1_ll * B1_rr,
                     B2_ll * B1_rr,
@@ -366,12 +366,12 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     gamma_ll = totalgamma(u_ll, equations)
     gamma_rr = totalgamma(u_rr, equations)
 
-    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 8],
-                                                                         u_rr[i + 8])
-                                                                 for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 8] +
-                                                                 u_rr[i + 8])
-                                                                for i in eachcomponent(equations))
+    rhok_mean = SVector{ncomponents(equations), eltype(u_ll)}(ln_mean(u_ll[i + 8],
+                                                                      u_rr[i + 8])
+                                                              for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), eltype(u_ll)}(0.5f0 * (u_ll[i + 8] +
+                                                              u_rr[i + 8])
+                                                             for i in eachcomponent(equations))
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -430,8 +430,8 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     help1 = zero(RealT)
     help2 = zero(RealT)
     if orientation == 1
-        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
-                                                                 for i in eachcomponent(equations))
+        f_rho = SVector{ncomponents(equations), eltype(u_ll)}(rhok_mean[i] * v1_avg
+                                                              for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             help1 += f_rho[i] * cv[i]
             help2 += f_rho[i]
@@ -454,8 +454,8 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
              B1_avg * vel_dot_mag_avg - c_h * psi_B1_avg
 
     else
-        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
-                                                                 for i in eachcomponent(equations))
+        f_rho = SVector{ncomponents(equations), eltype(u_ll)}(rhok_mean[i] * v2_avg
+                                                              for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             help1 += f_rho[i] * cv[i]
             help2 += f_rho[i]
@@ -530,18 +530,18 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
 
     inv_gamma_minus_one = 1 / (totalgamma(0.5f0 * (u_ll + u_rr), equations) - 1)
 
-    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 8],
-                                                                         u_rr[i + 8])
-                                                                 for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 8] +
-                                                                 u_rr[i + 8])
-                                                                for i in eachcomponent(equations))
+    rhok_mean = SVector{ncomponents(equations), eltype(u_ll)}(ln_mean(u_ll[i + 8],
+                                                                      u_rr[i + 8])
+                                                              for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), eltype(u_ll)}(0.5f0 * (u_ll[i + 8] +
+                                                              u_rr[i + 8])
+                                                             for i in eachcomponent(equations))
 
     RealT = eltype(u_ll)
     if orientation == 1
         f1 = zero(RealT)
-        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
-                                                                 for i in eachcomponent(equations))
+        f_rho = SVector{ncomponents(equations), eltype(u_ll)}(rhok_mean[i] * v1_avg
+                                                              for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             f1 += f_rho[i]
         end
@@ -570,8 +570,8 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
                equations.c_h * (B1_ll * psi_rr + B1_rr * psi_ll)))
     else
         f1 = zero(RealT)
-        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
-                                                                 for i in eachcomponent(equations))
+        f_rho = SVector{ncomponents(equations), eltype(u_ll)}(rhok_mean[i] * v2_avg
+                                                              for i in eachcomponent(equations))
         for i in eachcomponent(equations)
             f1 += f_rho[i]
         end
@@ -703,8 +703,8 @@ end
 function cons2prim(u, equations::IdealGlmMhdMulticomponentEquations2D)
     rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
 
-    prim_rho = SVector{ncomponents(equations), real(equations)}(u[i + 8]
-                                                                for i in eachcomponent(equations))
+    prim_rho = SVector{ncomponents(equations), eltype(u)}(u[i + 8]
+                                                          for i in eachcomponent(equations))
     rho = density(u, equations)
 
     v1 = rho_v1 / rho
@@ -751,14 +751,14 @@ end
          0.5f0 * psi^2) /
         (help1)
 
-    entrop_rho = SVector{ncomponents(equations), real(equations)}(-1 *
-                                                                  (cv[i] * log(T) -
-                                                                   gas_constants[i] *
-                                                                   log(u[i + 8])) +
-                                                                  gas_constants[i] +
-                                                                  cv[i] -
-                                                                  (v_square / (2 * T))
-                                                                  for i in eachcomponent(equations))
+    entrop_rho = SVector{ncomponents(equations), eltype(u)}(-1 *
+                                                            (cv[i] * log(T) -
+                                                             gas_constants[i] *
+                                                             log(u[i + 8])) +
+                                                            gas_constants[i] +
+                                                            cv[i] -
+                                                            (v_square / (2 * T))
+                                                            for i in eachcomponent(equations))
 
     w1 = v1 / T
     w2 = v2 / T
@@ -778,8 +778,8 @@ end
 @inline function prim2cons(prim, equations::IdealGlmMhdMulticomponentEquations2D)
     v1, v2, v3, p, B1, B2, B3, psi = prim
 
-    cons_rho = SVector{ncomponents(equations), real(equations)}(prim[i + 8]
-                                                                for i in eachcomponent(equations))
+    cons_rho = SVector{ncomponents(equations), eltype(prim)}(prim[i + 8]
+                                                             for i in eachcomponent(equations))
     rho = density(prim, equations)
 
     rho_v1 = rho * v1
@@ -854,7 +854,7 @@ end
 # `v` should be a scalar velocity component (i.e., `v1` or `v2`)
 @inline function partial_momenta(u, v,
                                  equations::IdealGlmMhdMulticomponentEquations2D)
-    return SVector{ncomponents(equations), real(equations)}(u[i + 8] * v
-                                                            for i in eachcomponent(equations))
+    return SVector{ncomponents(equations), eltype(u)}(u[i + 8] * v
+                                                      for i in eachcomponent(equations))
 end
 end # @muladd
