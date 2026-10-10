@@ -653,3 +653,42 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00026599105557723507,
+                            0.00046187779448444603,
+                            0.0005424899076194272,
+                            0.00046187779448445546,
+                            0.0015846392584275121
+                        ],
+                        linf=[
+                            0.0025241668964857134,
+                            0.006308461684409397,
+                            0.004334939668473314,
+                            0.006308461684396753,
+                            0.03176343483364796
+                        ])
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
