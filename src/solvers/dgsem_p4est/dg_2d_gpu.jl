@@ -67,6 +67,258 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
+# Weak form volume integral parallelized over the individual solution nodes. Each
+# thread computes the contravariant fluxes of its node and stores them in local memory,
+# from where all threads of the element apply the derivative matrix. A workgroup contains
+# several elements so that it is not too small. This overwrites `du`, so `du` does not
+# need to be reset before.
+@inline function calc_volume_integral!(backend::Backend, du, u,
+                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                       have_nonconservative_terms::False, equations,
+                                       volume_integral::VolumeIntegralWeakForm,
+                                       dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    NELEMENTS_WG = max(1, div(GPU_HALFSWEEP_WORKGROUP_SIZE, NNODES^2))
+    kernel! = weak_form_nodes_2d_KAkernel!(backend, (NNODES, NNODES, NELEMENTS_WG))
+    kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
+            Val(NELEMENTS_WG), derivative_hat, contravariant_vectors;
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+@kernel inbounds=true function weak_form_nodes_2d_KAkernel!(du, u, equations, dg::DGSEM,
+                                                            ::Val{NNODES},
+                                                            ::Val{NVARIABLES},
+                                                            ::Val{NELEMENTS_WG},
+                                                            derivative_hat,
+                                                            contravariant_vectors) where {
+                                                                                          NNODES,
+                                                                                          NVARIABLES,
+                                                                                          NELEMENTS_WG
+                                                                                          }
+    i, j, element = @index(Global, NTuple)
+    _, _, local_element = @index(Local, NTuple)
+
+    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
+    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
+
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+    Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
+    contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
+    for v in 1:NVARIABLES
+        flux1_local[v, i, j, local_element] = contravariant_flux1[v]
+        flux2_local[v, i, j, local_element] = contravariant_flux2[v]
+    end
+    @synchronize
+
+    # Use `get_node_vars` instead of a closure, see the half sweep kernel above
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+    for l in 1:NNODES
+        du_local = du_local +
+                   derivative_hat[i, l] *
+                   get_node_vars(flux1_local, equations, dg, l, j, local_element)
+    end
+    for l in 1:NNODES
+        du_local = du_local +
+                   derivative_hat[j, l] *
+                   get_node_vars(flux2_local, equations, dg, i, l, local_element)
+    end
+    set_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
+# Flux differencing volume integral parallelized over the individual solution nodes.
+# The generic fallback in `src/solvers/dg_gpu.jl` uses one thread per element, i.e.,
+# only `nelements` threads, which leaves most of the GPU idle for typical 2D meshes,
+# and it accumulates into `du` in global memory. The kernels here use one thread per
+# node, sum the contributions in registers, and overwrite `du`, so `du` does not need
+# to be reset before. See [`HalfSweep`](@ref), [`FullSweep`](@ref), and
+# [`FullSweepGlobal`](@ref) for the kernel types.
+@inline function calc_volume_integral!(backend::Backend, du, u,
+                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                       have_nonconservative_terms::False, equations,
+                                       volume_integral::VolumeIntegralFluxDifferencing,
+                                       dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    kernel_type = flux_differencing_kernel(backend,
+                                           get(cache, :flux_differencing_kernel,
+                                               FullSweepGlobal()))
+    calc_volume_integral_flux_differencing_2d!(backend, kernel_type, du, u, equations,
+                                               volume_integral.volume_flux, dg, cache)
+    return nothing
+end
+
+# Each thread computes the full sweep of its node, i.e., two-point fluxes are evaluated
+# twice, once by each partner, instead of using their symmetry.
+function calc_volume_integral_flux_differencing_2d!(backend,
+                                                    ::Union{FullSweep,
+                                                            FullSweepGlobal},
+                                                    du, u, equations, volume_flux,
+                                                    dg, cache)
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    kernel! = flux_differencing_nodes_2d_KAkernel!(backend)
+    kernel!(du, u, equations, dg, volume_flux, Val(NNODES),
+            Val(nvariables(equations)), derivative_split, contravariant_vectors,
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+# Half sweep using the symmetry of the volume flux: each two-point flux is computed once
+# and shared with the partner node via local memory, as in the 3D [`HalfSweep`](@ref)
+# kernel. A workgroup contains several elements so that it is not too small.
+function calc_volume_integral_flux_differencing_2d!(backend, ::HalfSweep,
+                                                    du, u, equations, volume_flux,
+                                                    dg, cache)
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    NELEMENTS_WG = max(1, div(GPU_HALFSWEEP_WORKGROUP_SIZE, NNODES^2))
+    kernel! = flux_differencing_halfsweep_2d_KAkernel!(backend,
+                                                       (NNODES, NNODES, NELEMENTS_WG))
+    kernel!(du, u, equations, dg, volume_flux, Val(NNODES),
+            Val(nvariables(equations)), Val(NELEMENTS_WG), derivative_split,
+            contravariant_vectors;
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+# Number of threads per workgroup of the 2D half sweep kernel (rounded down to full elements)
+const GPU_HALFSWEEP_WORKGROUP_SIZE = 128
+
+# For the cyclic distribution of the half sweep and the weighting of the antipodal
+# pair for an even number of nodes, see the 3D `HalfSweep` kernel. In contrast to the
+# 3D kernel, all two-point fluxes of a node are computed and stored in local memory
+# first, followed by a single synchronization, after which each thread sums the fluxes
+# of its own node and the ones computed by its partners. Thus, no variable needs to be
+# kept across a synchronization.
+@kernel inbounds=true function flux_differencing_halfsweep_2d_KAkernel!(du, u,
+                                                                        equations,
+                                                                        dg::DGSEM,
+                                                                        volume_flux,
+                                                                        ::Val{NNODES},
+                                                                        ::Val{NVARIABLES},
+                                                                        ::Val{NELEMENTS_WG},
+                                                                        derivative_split,
+                                                                        contravariant_vectors) where {
+                                                                                                      NNODES,
+                                                                                                      NVARIABLES,
+                                                                                                      NELEMENTS_WG
+                                                                                                      }
+    i, j, element = @index(Global, NTuple)
+    _, _, local_element = @index(Local, NTuple)
+
+    # fluxes[v, offset, direction, i, j, local_element] between the node (i, j) and its
+    # partner at `offset` in `direction`
+    fluxes = @localmem eltype(du) (NVARIABLES, NNODES ÷ 2, 2, NNODES, NNODES,
+                                   NELEMENTS_WG)
+
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    for offset in 1:(NNODES ÷ 2)
+        ii = mod(i - 1 + offset, NNODES) + 1
+        u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors, ii, j, element))
+        fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+
+        jj = mod(j - 1 + offset, NNODES) + 1
+        u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors, i, jj, element))
+        fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+
+        for v in 1:NVARIABLES
+            fluxes[v, offset, 1, i, j, local_element] = fluxtilde1[v]
+            fluxes[v, offset, 2, i, j, local_element] = fluxtilde2[v]
+        end
+    end
+
+    @synchronize
+
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+    for offset in 1:(NNODES ÷ 2)
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
+        weight = (iseven(NNODES) && offset == NNODES ÷ 2) ? 0.5f0 : 1.0f0
+        ii = mod(i - 1 + offset, NNODES) + 1
+        iib = mod(i - 1 - offset, NNODES) + 1
+        jj = mod(j - 1 + offset, NNODES) + 1
+        jjb = mod(j - 1 - offset, NNODES) + 1
+        w1 = weight * derivative_split[i, ii]
+        w1b = weight * derivative_split[i, iib]
+        w2 = weight * derivative_split[j, jj]
+        w2b = weight * derivative_split[j, jjb]
+        # Use `get_node_vars` instead of a closure since the indices `i, j` are
+        # recomputed after `@synchronize` by KernelAbstractions.jl, so that a closure
+        # capturing them would box them.
+        du_local = du_local +
+                   w1 * get_node_vars(fluxes, equations, dg, offset, 1, i, j,
+                                 local_element) +
+                   w1b * get_node_vars(fluxes, equations, dg, offset, 1, iib, j,
+                                 local_element) +
+                   w2 * get_node_vars(fluxes, equations, dg, offset, 2, i, j,
+                                 local_element) +
+                   w2b * get_node_vars(fluxes, equations, dg, offset, 2, i, jjb,
+                                 local_element)
+    end
+
+    set_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
+@kernel inbounds=true function flux_differencing_nodes_2d_KAkernel!(du, u, equations,
+                                                                    dg::DGSEM,
+                                                                    volume_flux,
+                                                                    ::Val{NNODES},
+                                                                    ::Val{NVARIABLES},
+                                                                    derivative_split,
+                                                                    contravariant_vectors) where {
+                                                                                                  NNODES,
+                                                                                                  NVARIABLES
+                                                                                                  }
+    i, j, element = @index(Global, NTuple)
+
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    # x direction; the diagonal entries of `derivative_split` are zero
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    for ii in 1:NNODES
+        if ii != i
+            Ja1_avg = 0.5f0 * (Ja1_node +
+                       get_contravariant_vector(1, contravariant_vectors,
+                                                ii, j, element))
+            fluxtilde1 = volume_flux(u_node,
+                                     get_node_vars(u, equations, dg, ii, j, element),
+                                     Ja1_avg, equations)
+            du_local = du_local + derivative_split[i, ii] * fluxtilde1
+        end
+    end
+
+    # y direction
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    for jj in 1:NNODES
+        if jj != j
+            Ja2_avg = 0.5f0 * (Ja2_node +
+                       get_contravariant_vector(2, contravariant_vectors,
+                                                i, jj, element))
+            fluxtilde2 = volume_flux(u_node,
+                                     get_node_vars(u, equations, dg, i, jj, element),
+                                     Ja2_avg, equations)
+            du_local = du_local + derivative_split[j, jj] * fluxtilde2
+        end
+    end
+
+    set_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
                                                      surface_flux_values, u,
                                                      mesh::Union{P4estMesh{2},
