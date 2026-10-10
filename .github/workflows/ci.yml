@@ -85,6 +85,7 @@ jobs:
           - mpi
           - threaded
           - kernelabstractions
+          - kernelabstractions_mpi
         include:
           - version: '1.11'
             os: ubuntu-latest
