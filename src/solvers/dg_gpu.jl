@@ -133,7 +133,7 @@ Base.@propagate_inbounds function Base.getindex(a::ElementLocal, I::Vararg{Integ
 end
 
 Base.@propagate_inbounds function Base.setindex!(a::ElementLocal, value,
-                                                  I::Vararg{Integer})
+                                                 I::Vararg{Integer})
     data = a.data
     T = eltype(data)
     i = LinearIndices(data)[Base.front(I)...]

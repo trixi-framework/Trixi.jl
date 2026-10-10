@@ -1774,15 +1774,20 @@ end
                                                       ::Val{NNODES}, ::Val{NVARIABLES},
                                                       ::Val{NELEMENTS_WG},
                                                       derivative_hat,
-                                                      contravariant_vectors) where {NNODES,
+                                                      contravariant_vectors) where {
+                                                                                    NNODES,
                                                                                     NVARIABLES,
-                                                                                    NELEMENTS_WG}
+                                                                                    NELEMENTS_WG
+                                                                                    }
     i, j, k, element = @index(Global, NTuple)
     _, _, _, e = @index(Local, NTuple)
 
-    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES, NELEMENTS_WG)
-    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES, NELEMENTS_WG)
-    flux3_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES, NELEMENTS_WG)
+    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
+    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
+    flux3_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -1790,11 +1795,14 @@ end
     flux2 = flux(u_node, 2, equations)
     flux3 = flux(u_node, 3, equations)
 
-    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                                element)
     contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                                element)
     contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                                element)
     contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
     set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j, k, e)
     set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j, k, e)
@@ -1805,15 +1813,18 @@ end
     du_node = zero(SVector{NVARIABLES, eltype(du)})
     for kk in 1:(k - 1)
         du_node = muladd.(derivative_hat[k, kk],
-                          get_node_vars(flux3_local, equations, dg, i, j, kk, e), du_node)
+                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          du_node)
     end
     for jj in 1:(j - 1)
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj, k, e), du_node)
+                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          du_node)
     end
     for ii in 1:NNODES
         du_node = muladd.(derivative_hat[i, ii],
-                          get_node_vars(flux1_local, equations, dg, ii, j, k, e), du_node)
+                          get_node_vars(flux1_local, equations, dg, ii, j, k, e),
+                          du_node)
         if ii == i
             du_node = muladd.(derivative_hat[j, j], contravariant_flux2, du_node)
             du_node = muladd.(derivative_hat[k, k], contravariant_flux3, du_node)
@@ -1821,14 +1832,15 @@ end
     end
     for jj in (j + 1):NNODES
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj, k, e), du_node)
+                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          du_node)
     end
     for kk in (k + 1):NNODES
         du_node = muladd.(derivative_hat[k, kk],
-                          get_node_vars(flux3_local, equations, dg, i, j, kk, e), du_node)
+                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          du_node)
     end
 
     set_node_vars!(du, du_node, equations, dg, i, j, k, element)
 end
-
 end #muladd

@@ -634,9 +634,11 @@ end
                                                       ::Val{NNODES}, ::Val{NVARIABLES},
                                                       ::Val{NELEMENTS_WG},
                                                       derivative_hat,
-                                                      contravariant_vectors) where {NNODES,
+                                                      contravariant_vectors) where {
+                                                                                    NNODES,
                                                                                     NVARIABLES,
-                                                                                    NELEMENTS_WG}
+                                                                                    NELEMENTS_WG
+                                                                                    }
     i, j, element = @index(Global, NTuple)
     _, _, e = @index(Local, NTuple)
 
