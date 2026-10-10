@@ -45,6 +45,8 @@ for human readability.
   - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
     `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
     `P4estMesh2D` ([#3289])
+  - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
