@@ -46,7 +46,7 @@ for human readability.
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 - `ParabolicFormulationLocalDG` is now supported for `DGMulti` solvers, i.e., the
   alternating one-sided LDG fluxes for the gradient and the divergence are available
-  on `DGMultiMesh` ([#PR-NUMBER]).
+  on `DGMultiMesh` ([#3324]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
