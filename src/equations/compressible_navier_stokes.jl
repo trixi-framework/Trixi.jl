@@ -131,6 +131,7 @@ Wrapper for the dynamic viscosity that calls
 For constant `equations.mu`, i.e., `equations.mu` is of `Real`-type it is returned directly.
 In all other cases, `equations.mu` is assumed to be a function with arguments
 `u` and `equations` and is called with these arguments.
+Note that `u` is assumed to be the "transformed" variables according to [`gradient_variable_transformation`](@ref).
 """
 dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
