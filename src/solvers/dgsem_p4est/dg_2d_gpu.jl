@@ -78,6 +78,13 @@ end
                                        volume_integral::VolumeIntegralWeakForm,
                                        dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
@@ -146,6 +153,13 @@ end
                                        volume_integral::VolumeIntegralFluxDifferencing,
                                        dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
     kernel_type = flux_differencing_kernel(backend,
                                            get(cache, :flux_differencing_kernel,
                                                FullSweepGlobal()))
