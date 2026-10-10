@@ -4826,3 +4826,31 @@ end
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
 end
+
+@testitem "Unit: NodeIndex and BoundaryConditionCoupled indices" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The node indices are stored efficiently as plain bits
+    @test isbitstype(NTuple{3, NodeIndex.T})
+    @test sizeof(NTuple{3, NodeIndex.T}) == 3
+
+    @test Trixi.indices2direction((NodeIndex.End, NodeIndex.IForward)) == 2
+    @test Trixi.indices2direction((NodeIndex.IForward, NodeIndex.JBackward,
+                                   NodeIndex.Begin)) == 5
+    @test Trixi.surface_indices((NodeIndex.IBackward, NodeIndex.End,
+                                 NodeIndex.JForward)) ==
+          (NodeIndex.IBackward, NodeIndex.JForward)
+
+    coupling_converter = (x, u, equations_other, equations_own) -> u
+    bc = BoundaryConditionCoupled(2, (NodeIndex.End, NodeIndex.IForward), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.End, NodeIndex.IForward)
+    @test bc.other_orientation == 1
+
+    bc = BoundaryConditionCoupled(2, (NodeIndex.IBackward, NodeIndex.Begin), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.IBackward, NodeIndex.Begin)
+    @test bc.other_orientation == 2
+
+    # Specifying the indices as `Symbol`s is not supported anymore
+    @test_throws MethodError BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+                                                      coupling_converter)
+end

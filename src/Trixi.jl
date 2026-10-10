@@ -64,6 +64,7 @@ using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
+using EnumX: @enumx
 using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
@@ -279,6 +280,8 @@ export boundary_condition_do_nothing,
        NoSlip, Slip,
        Adiabatic, Isothermal,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
+
+export NodeIndex
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,

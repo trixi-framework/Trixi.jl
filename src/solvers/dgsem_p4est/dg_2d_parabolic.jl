@@ -257,7 +257,7 @@ Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_fl
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
 
-    if :i_backward in large_indices
+    if NodeIndex.IBackward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, end + 1 - i,
@@ -317,7 +317,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
             # Initiate the secondary index to be used in the surface for loop.
             # This index on the primary side will always run forward but
             # the secondary index might need to run backwards for flipped sides.
-            if :i_backward in secondary_indices
+            if NodeIndex.IBackward in secondary_indices
                 node_secondary = index_end
                 node_secondary_step = -1
             else
@@ -590,7 +590,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
             # Initiate the secondary index to be used in the surface for loop.
             # This index on the primary side will always run forward but
             # the secondary index might need to run backwards for flipped sides.
-            if :i_backward in secondary_indices
+            if NodeIndex.IBackward in secondary_indices
                 node_secondary = index_end
                 node_secondary_step = -1
             else

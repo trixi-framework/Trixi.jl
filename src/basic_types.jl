@@ -135,4 +135,24 @@ function Base.show(io::IO, ::BoundaryConditionDoNothing)
     print(io, "boundary_condition_do_nothing")
     return nothing
 end
+
+"""
+    NodeIndex
+
+Enumeration describing how the volume node indices of an element are traversed
+along one of its faces, e.g., at interfaces, boundaries, and mortars of a
+[`P4estMesh`](@ref) or [`T8codeMesh`](@ref), or for a [`BoundaryConditionCoupled`](@ref).
+A face is described by a tuple with one entry per spatial dimension, e.g.,
+`(NodeIndex.End, NodeIndex.IForward)` in 2D for the right face (`x = +1`) of an element,
+with nodes traversed in positive `y`-direction. The possible values are
+- `NodeIndex.Begin`: the first node index (fixed along the face)
+- `NodeIndex.End`: the last node index (fixed along the face)
+- `NodeIndex.IForward`: increasing with the first surface index `i`
+- `NodeIndex.IBackward`: decreasing with the first surface index `i`
+- `NodeIndex.JForward`: increasing with the second surface index `j` (only in 3D)
+- `NodeIndex.JBackward`: decreasing with the second surface index `j` (only in 3D)
+
+The type of the values is `NodeIndex.T`.
+"""
+@enumx NodeIndex::UInt8 Begin End IForward IBackward JForward JBackward
 end # @muladd
