@@ -20,15 +20,10 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
         check_axes(cache.elements, equations, dg, cache)
     end
 
-    # Reset du
-    # In the usual (CPU) code, this is called at the beginning of rhs_hyperbolic!
-    # However, we can significantly improve the performance on GPUs by avoiding
-    # launching an additional kernel for this memory reset. Thus, specialized
-    # GPU volume kernels write directly into the existing `du` array, and we reset
-    # it here for the general (fallback) case.
-    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
-        set_zero!(du, dg, cache)
-    end
+    # In the usual (CPU) code, `du` is reset at the beginning of `rhs_hyperbolic!`.
+    # On GPUs, we avoid launching an additional kernel for this memory reset:
+    # the volume integral kernels, including the general fallback below, overwrite
+    # `du` instead of adding to it.
 
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
@@ -54,8 +49,66 @@ end
                                                          volume_integral, dg::DGSEM,
                                                          cache) where {MeshT}
     element = @index(Global)
-    volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
-                            equations, volume_integral, dg, cache)
+    # Accumulate the volume integral of this element in work-item local storage and
+    # write it to `du` once at the end. The CPU kernels called here update `du` with
+    # many read-modify-write accesses per node. On GPUs, these global memory accesses
+    # are not coalesced across work-items (each work-item handles a different element)
+    # and they make the kernel much slower; local storage is coalesced and cached.
+    du_element = zero_element_local(du, equations, dg)
+    volume_integral_kernel!(ElementLocal(du_element), u, element, MeshT,
+                            have_nonconservative_terms, equations, volume_integral,
+                            dg, cache)
+    store_element_local!(du, du_element, element)
+end
+
+# Work-item local storage for the values of `du` in one element, i.e., `du[:, .., element]`.
+@inline function zero_element_local(du::AbstractArray{T, N}, equations,
+                                    dg::DG) where {T, N}
+    S = Tuple{nvariables(equations), ntuple(_ -> nnodes(dg), Val(N - 2))...}
+    return zero(MArray{S, T})
+end
+
+# Wrapper to pass element local storage `data::MArray` to the CPU kernels: index
+# `[v, node..., element]` maps to `data[v, node...]`.
+# We access `data` with the natural alignment of its elements. `getindex` and `setindex!`
+# of an `MArray` use `unsafe_load`/`unsafe_store!` with an alignment of 1 byte, which
+# the NVPTX back-end lowers to byte-wise loads and stores of local memory.
+struct ElementLocal{A <: MArray}
+    data::A
+end
+
+@inline function element_local_pointer(a::ElementLocal)
+    return Base.unsafe_convert(Ptr{eltype(a.data)}, pointer_from_objref(a.data))
+end
+
+Base.@propagate_inbounds function Base.getindex(a::ElementLocal, I::Vararg{Integer})
+    data = a.data
+    T = eltype(data)
+    i = LinearIndices(data)[Base.front(I)...]
+    GC.@preserve data begin
+        return Core.Intrinsics.pointerref(element_local_pointer(a), i,
+                                          Base.datatype_alignment(T))
+    end
+end
+
+Base.@propagate_inbounds function Base.setindex!(a::ElementLocal, value,
+                                                  I::Vararg{Integer})
+    data = a.data
+    T = eltype(data)
+    i = LinearIndices(data)[Base.front(I)...]
+    GC.@preserve data begin
+        Core.Intrinsics.pointerset(element_local_pointer(a), convert(T, value), i,
+                                   Base.datatype_alignment(T))
+    end
+    return a
+end
+
+Base.@propagate_inbounds function store_element_local!(du, du_element, element)
+    a = ElementLocal(du_element)
+    for I in CartesianIndices(du_element)
+        du[Tuple(I)..., element] = a[Tuple(I)..., element]
+    end
+    return nothing
 end
 
 # The half sweep and full sweep kernels use local share data, which is limited to

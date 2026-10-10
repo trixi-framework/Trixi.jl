@@ -591,4 +591,86 @@ end
                                         equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})
 end
+
+# GPU kernel of the weak form volume integral with one work-item per node and one
+# workgroup per element.
+# The general fallback `volume_integral_KAkernel!` uses one work-item per element and
+# accumulates the volume terms of all nodes of an element, which leads to many uncoalesced
+# read-modify-write accesses of `du` in global memory. Here, each work-item computes the
+# contravariant fluxes of its node and stores them in local (shared) memory. Then, each
+# work-item adds up the volume terms of its node and writes `du` once.
+# The contributions are added in the same order as in `weak_form_kernel!`, so that
+# the results are bitwise identical to the CPU code.
+function calc_volume_integral!(backend::Backend, du, u,
+                               mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
+    @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    kernel! = weak_form_2d_KAkernel!(backend, (NNODES, NNODES, 1))
+    kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
+            derivative_hat, contravariant_vectors,
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+@kernel inbounds=true function weak_form_2d_KAkernel!(du, u, equations, dg::DGSEM,
+                                                      ::Val{NNODES}, ::Val{NVARIABLES},
+                                                      derivative_hat,
+                                                      contravariant_vectors) where {NNODES,
+                                                                                    NVARIABLES}
+    i, j, element = @index(Global, NTuple)
+
+    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES)
+    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES)
+
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+
+    # Compute the contravariant fluxes by taking the scalar product of the
+    # contravariant vectors Ja^1, Ja^2 and the flux vector
+    Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
+    Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
+    set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j)
+    set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j)
+
+    @synchronize
+
+    du_node = zero(SVector{NVARIABLES, eltype(du)})
+    # contributions of the second contravariant flux of the nodes (i, jj), jj < j
+    for jj in 1:(j - 1)
+        du_node = muladd.(derivative_hat[j, jj],
+                          get_node_vars(flux2_local, equations, dg, i, jj), du_node)
+    end
+    # contributions of the first contravariant flux of the nodes (ii, j) and
+    # of the second contravariant flux of the node (i, j)
+    for ii in 1:NNODES
+        du_node = muladd.(derivative_hat[i, ii],
+                          get_node_vars(flux1_local, equations, dg, ii, j), du_node)
+        if ii == i
+            du_node = muladd.(derivative_hat[j, j], contravariant_flux2, du_node)
+        end
+    end
+    # contributions of the second contravariant flux of the nodes (i, jj), jj > j
+    for jj in (j + 1):NNODES
+        du_node = muladd.(derivative_hat[j, jj],
+                          get_node_vars(flux2_local, equations, dg, i, jj), du_node)
+    end
+
+    set_node_vars!(du, du_node, equations, dg, i, j, element)
+end
 end #muladd
