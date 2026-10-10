@@ -1086,7 +1086,7 @@ end
     end
 end
 
-@testitem "Unit: Helmholtz ideal gas equation of state (AD vs analytical)" setup=[
+@testitem "Unit: HelmholtzIdealGas analytical forms and specialized speed of sound" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
@@ -1108,18 +1108,65 @@ end
     @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s)
     @test isapprox(energy_internal_specific(V, T, eos), ref.e)
 
-    ig = IdealGas(1.4, eos.R)
-    @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
     c_direct = Trixi.speed_of_sound(V, T, eos)
     c_fallback = invoke(Trixi.speed_of_sound,
                         Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
                         V, T, eos)
     @test c_direct ≈ c_fallback
-    @test temperature(V, ref.e, eos) ≈ T
-    e_h = energy_internal_specific(V, T, eos)
-    p_h = pressure(V, T, eos)
-    s_h = Trixi.entropy_specific(V, T, eos)
-    @test Trixi.gibbs_free_energy(V, T, eos) ≈ e_h + p_h * V - T * s_h
+end
+
+@testitem "Unit: Helmholtz EOS vs explicit EOS" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Shared interface checks for Helmholtz vs explicit formulations. Entropy differs by a
+    # constant reference offset R + cv (ideal / VdW) or R + cv0 (Peng-Robinson).
+    eos_helmholtz_ig = HelmholtzIdealGas(1.4, 287)
+    eos_ig = IdealGas(1.4, 287)
+    states_ig = ((1 / 1.225, 300.15), (1.0, 350.0), (2.0, 400.0))
+    cv_ig = eos -> eos.R / (eos.gamma - 1)
+    rtol_ig = sqrt(eps())
+
+    eos_helmholtz_vdw = HelmholtzVanDerWaals(; a = 10, b = 0.01, gamma = 1.4, R = 287)
+    eos_vdw = VanDerWaals(; a = 10, b = 0.01, gamma = 1.4, R = 287)
+    states_vdw = ((0.8, 300.0), (1.2, 350.0), (2.0, 400.0))
+    cv_vdw = eos -> eos.cv
+    rtol_vdw = sqrt(eps())
+
+    eos_helmholtz_pr = HelmholtzPengRobinson()
+    eos_pr = PengRobinson()
+    states_pr = ((1.0e-3, 150.0), (2.0e-3, 200.0), (1.5e-3, 180.0))
+    cv_pr = eos -> eos.cv0
+    rtol_pr = sqrt(eps())
+
+    cases = ((eos_helmholtz_ig, eos_ig, states_ig, cv_ig, rtol_ig),
+             (eos_helmholtz_vdw, eos_vdw, states_vdw, cv_vdw, rtol_vdw),
+             (eos_helmholtz_pr, eos_pr, states_pr, cv_pr, rtol_pr))
+
+    for (eos_helmholtz, eos_explicit, states, cv_eos, T_rtol) in cases
+        for (V, T) in states
+            @test pressure(V, T, eos_helmholtz) ≈ pressure(V, T, eos_explicit)
+            @test energy_internal_specific(V, T, eos_helmholtz) ≈
+                  energy_internal_specific(V, T, eos_explicit)
+            @test Trixi.heat_capacity_constant_volume(V, T, eos_helmholtz) ≈
+                  Trixi.heat_capacity_constant_volume(V, T, eos_explicit)
+            dpdT_helmholtz, dpdV_helmholtz = Trixi.calc_pressure_derivatives(V, T,
+                                                                             eos_helmholtz)
+            dpdT_explicit, dpdV_explicit = Trixi.calc_pressure_derivatives(V, T,
+                                                                           eos_explicit)
+            @test dpdT_helmholtz ≈ dpdT_explicit
+            @test dpdV_helmholtz ≈ dpdV_explicit
+            @test Trixi.speed_of_sound(V, T, eos_helmholtz) ≈
+                  Trixi.speed_of_sound(V, T, eos_explicit)
+
+            e = energy_internal_specific(V, T, eos_helmholtz)
+            @test temperature(V, e, eos_helmholtz)≈T rtol=T_rtol
+
+            p_helmholtz = pressure(V, T, eos_helmholtz)
+            s_helmholtz = Trixi.entropy_specific(V, T, eos_helmholtz)
+            s_explicit = Trixi.entropy_specific(V, T, eos_explicit)
+            @test s_helmholtz ≈ s_explicit + eos_helmholtz.R + cv_eos(eos_helmholtz)
+            @test Trixi.gibbs_free_energy(V, T, eos_helmholtz) ≈
+                  e + p_helmholtz * V - T * s_helmholtz
+        end
+    end
 end
 
 @testitem "Unit: boundary_condition_do_nothing" setup=[Setup, UnitTests] tags=[:misc_part1] begin
