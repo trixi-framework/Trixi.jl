@@ -3106,6 +3106,29 @@ end
     end
 end
 
+@testitem "Unit: IdealGlmMhdMultiIon pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The pressure must be consistent with `cons2prim` and `prim2cons`, in particular
+    # for a non-zero divergence cleaning field `psi`.
+    # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each species, psi
+    prim = SVector(1.1, -0.3, 0.4,
+                   0.5, 0.1, 0.3, -0.2, 0.4,
+                   1.2, -0.2, 0.4, 0.6, 0.7,
+                   0.8, 0.3, -0.5, 0.1, 1.3,
+                   0.6)
+    p_expected = SVector(0.4, 0.7, 1.3)
+    for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)),
+                      IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)))
+        u = prim2cons(prim, equations)
+        p = pressure(u, equations)
+        @test p ≈ p_expected
+        @test p ≈ SVector(ntuple(k -> Trixi.get_component(k, cons2prim(u, equations),
+                                                      equations)[5],
+                             Val(ncomponents(equations))))
+    end
+end
+
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     N = 3
 
