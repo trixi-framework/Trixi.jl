@@ -4831,38 +4831,72 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    using Random: MersenneTwister
-    rng = MersenneTwister(42)
-
     equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
-    function random_state()
-        prim2cons(SVector(0.5 + rand(rng), randn(rng), randn(rng), 0.5 + rand(rng),
-                          randn(rng), randn(rng)), equations)
+
+    # Pairs of states in primitive variables (ρ, v₁, v₂, p, χ₁, χ₂), with
+    # subsonic and supersonic velocities and tracers with jumps of both signs
+    prim_pairs = [
+        (SVector(1.0, 0.1, 0.2, 1.0, 0.5, -0.3),
+         SVector(1.2, -0.3, 0.4, 0.8, 0.9, 0.1)),
+        (SVector(0.6, 1.5, -0.4, 0.5, -1.0, 2.0),
+         SVector(1.4, 0.7, 0.9, 1.3, 0.4, -0.6)),
+        (SVector(2.0, -2.5, 0.3, 0.4, 0.0, 1.0),
+         SVector(0.3, -1.8, -0.2, 0.2, 1.5, 1.0)),
+        (SVector(0.9, 0.0, 0.0, 1.1, 0.2, 0.2),
+         SVector(0.9, 0.0, 0.0, 1.1, 0.7, -0.4))]
+    orientations_or_normals = (1, 2, SVector(0.6, -0.8), SVector(-1.3, 0.4))
+
+    # Jump of the entropy potential ρ v⋅n (as for the Euler equations)
+    function psi_jump(u_ll, u_rr, orientation::Integer)
+        return u_rr[orientation + 1] - u_ll[orientation + 1]
+    end
+    function psi_jump(u_ll, u_rr, normal_direction::AbstractVector)
+        return (u_rr[2] - u_ll[2]) * normal_direction[1] +
+               (u_rr[3] - u_ll[3]) * normal_direction[2]
     end
 
     # Entropy conservation of `FluxTracerEquationsCentral(flux_ranocha)` and entropy
-    # stability of `FluxTracerEquationsUpwind` for the entropy of the tracer equations.
-    # The entropy potential is ρ v⋅n (as for the Euler equations).
+    # stability of `FluxTracerEquationsUpwind` for the entropy of the tracer equations
     flux_ec = FluxTracerEquationsCentral(flux_ranocha)
-    for flux_es in (FluxTracerEquationsUpwind(flux_lax_friedrichs),
-                    FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
-                                                                  DissipationLocalLaxFriedrichs())))
-        for _ in 1:100
-            u_ll, u_rr = random_state(), random_state()
-            normal_direction = SVector(randn(rng), randn(rng))
-            w_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
-            psi_jump = (u_rr[2] - u_ll[2]) * normal_direction[1] +
-                       (u_rr[3] - u_ll[3]) * normal_direction[2]
-            @test isapprox(dot(w_jump, flux_ec(u_ll, u_rr, normal_direction, equations)),
-                           psi_jump; atol = 1.0e-12 * (1 + abs(psi_jump)))
-            @test dot(w_jump, flux_es(u_ll, u_rr, normal_direction, equations)) <=
-                  psi_jump + 1.0e-12 * (1 + abs(psi_jump))
+    fluxes_es = (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                 FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                               DissipationLocalLaxFriedrichs())))
+    for (prim_ll, prim_rr) in prim_pairs, orientation_or_normal in orientations_or_normals
+        u_ll = prim2cons(prim_ll, equations)
+        u_rr = prim2cons(prim_rr, equations)
+        w_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+        psi = psi_jump(u_ll, u_rr, orientation_or_normal)
+        @test isapprox(dot(w_jump, flux_ec(u_ll, u_rr, orientation_or_normal, equations)),
+                       psi; atol = 1.0e-12 * (1 + abs(psi)))
+        for flux_es in fluxes_es
+            @test dot(w_jump, flux_es(u_ll, u_rr, orientation_or_normal, equations)) <=
+                  psi + 1.0e-12 * (1 + abs(psi))
         end
     end
 
+    # The flow fluxes are those of the flow flux, and the tracers are upwinded with
+    # its mass flux
+    u_ll = prim2cons(prim_pairs[1][1], equations)
+    u_rr = prim2cons(prim_pairs[1][2], equations)
+    flow_equations = equations.flow_equations
+    for orientation_or_normal in orientations_or_normals
+        flux_upwind = FluxTracerEquationsUpwind(flux_lax_friedrichs)(u_ll, u_rr,
+                                                                     orientation_or_normal,
+                                                                     equations)
+        flux_flow = flux_lax_friedrichs(Trixi.flow_variables(u_ll, equations),
+                                        Trixi.flow_variables(u_rr, equations),
+                                        orientation_or_normal, flow_equations)
+        @test flux_upwind[1:4] ≈ flux_flow
+        f_rho = flux_flow[1]
+        chi_ll = Trixi.tracers(u_ll, equations)
+        chi_rr = Trixi.tracers(u_rr, equations)
+        @test flux_upwind[5:6] ≈
+              f_rho * (chi_ll + chi_rr) / 2 - abs(f_rho) * (chi_rr - chi_ll) / 2
+    end
+
     # Consistency: for equal states, the upwind flux is the physical flux
-    u = random_state()
-    for orientation_or_normal in (1, 2, SVector(0.6, -0.8))
+    u = prim2cons(prim_pairs[2][1], equations)
+    for orientation_or_normal in orientations_or_normals
         @test FluxTracerEquationsUpwind(flux_lax_friedrichs)(u, u, orientation_or_normal,
                                                              equations) ≈
               flux(u, orientation_or_normal, equations)
