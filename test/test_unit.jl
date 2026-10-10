@@ -2682,6 +2682,10 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+            @test max_abs_speed(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(Trixi.flow_variables(u_ll, equations),
+                                Trixi.flow_variables(u_rr, equations), 1,
+                                flow_equations)
         end
     end
 
@@ -4719,6 +4723,108 @@ end
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
     end
+end
+
+@testitem "Unit: PassiveTracerEquations slip wall and Lax-Friedrichs flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    flow_equations = equations.flow_equations
+    u_inner = prim2cons(SVector(1.2, 0.4, -0.3, 0.9, 0.7, -0.2), equations)
+    u_flow_inner = Trixi.flow_variables(u_inner, equations)
+    normal_direction = SVector(0.3, 0.8)
+    x = SVector(0.0, 0.0)
+    t = 0.0
+
+    # The mass flux and thus the tracer fluxes vanish at the wall
+    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                             flux_lax_friedrichs, equations)
+    @test flux_wall[1] == 0
+    @test flux_wall[5] == 0
+    @test flux_wall[6] == 0
+    # The flow fluxes are those of the slip wall of the flow equations
+    @test flux_wall[2:4] ≈
+          boundary_condition_slip_wall(u_flow_inner, normal_direction, x, t,
+                                       flux_lax_friedrichs, flow_equations)[2:4]
+
+    # `StructuredMesh` version with `normal_direction` and `direction`
+    for direction in 1:4
+        flux_wall_structured = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                            direction,
+                                                            x, t, flux_lax_friedrichs,
+                                                            equations)
+        @test flux_wall_structured[1] == 0
+        @test flux_wall_structured[5] == 0
+        @test flux_wall_structured[6] == 0
+        @test flux_wall_structured[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, normal_direction, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+    end
+
+    # `TreeMesh` version with `orientation` and `direction`. For the unit normals,
+    # it agrees with the `StructuredMesh` version.
+    for orientation in 1:2, direction in (2 * orientation - 1, 2 * orientation)
+        flux_wall_tree = boundary_condition_slip_wall(u_inner, orientation, direction,
+                                                      x, t, flux_lax_friedrichs, equations)
+        @test flux_wall_tree[1] == 0
+        @test flux_wall_tree[5] == 0
+        @test flux_wall_tree[6] == 0
+        @test flux_wall_tree[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, orientation, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+        normal_direction_unit = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_wall_tree ≈
+              boundary_condition_slip_wall(u_inner, normal_direction_unit, direction,
+                                           x, t, flux_lax_friedrichs, equations)
+    end
+
+    # The Lax-Friedrichs flux uses the wave speed estimate `max_abs_speed`
+    # of the flow equations. For these states (fast flow with a small speed of sound
+    # on the left, slow flow with a large speed of sound on the right),
+    # `max_abs_speed` is smaller than `max_abs_speed_naive`.
+    u_ll = prim2cons(SVector(1.0, 2.0, 0.0, 0.1, 0.3, -0.2), equations)
+    u_rr = prim2cons(SVector(1.0, 0.0, 0.1, 2.0, 0.7, 0.4), equations)
+    normal_direction = SVector(0.6, 0.8)
+    u_flow_ll = Trixi.flow_variables(u_ll, equations)
+    u_flow_rr = Trixi.flow_variables(u_rr, equations)
+    @test max_abs_speed(u_ll, u_rr, normal_direction, equations) ≈
+          max_abs_speed(u_flow_ll, u_flow_rr, normal_direction, equations.flow_equations) <
+          max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)
+    @test flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations)[1:4] ≈
+          flux_lax_friedrichs(u_flow_ll, u_flow_rr, normal_direction,
+                              equations.flow_equations)
+end
+
+@testitem "Unit: check_flux_differencing_shared_memory" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # One workgroup of the flux differencing GPU kernels handles all nodes of an
+    # element, i.e., `nnodes^ndims` nodes. With `polydeg = 10`, this exceeds the
+    # workgroup size limit in 3D but not in 2D.
+    solver = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+
+    mesh = P4estMesh((1, 1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                      semi)
 end
 
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
