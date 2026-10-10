@@ -115,7 +115,7 @@ end
                                                          interface)
 end
 
-Base.@propagate_inbounds function delayed_index_2d(start, step, i)
+@inline function delayed_index_2d(start, step, i)
     return start + (i - 1) * step
 end
 
@@ -572,9 +572,9 @@ Base.@propagate_inbounds function calc_source_terms_node(u, t, source_terms,
     return source_terms(u_local, x_local, t, equations)
 end
 
-Base.@propagate_inbounds function calc_source_terms_node(u, t, source_terms::Nothing,
-                                                         node_coordinates,
-                                                         equations, dg::DG, indices...)
+@inline function calc_source_terms_node(u, t, source_terms::Nothing,
+                                        node_coordinates,
+                                        equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})
 end
 end #muladd

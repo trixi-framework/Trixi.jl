@@ -1127,7 +1127,7 @@ end
                                                          interface)
 end
 
-Base.@propagate_inbounds function delayed_index_3d(start, step_i, step_j, i, j, n)
+@inline function delayed_index_3d(start, step_i, step_j, i, j, n)
     return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
 end
 
