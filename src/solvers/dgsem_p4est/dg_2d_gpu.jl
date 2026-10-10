@@ -80,6 +80,13 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     ninterfaces(cache.interfaces) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.interfaces, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
@@ -499,6 +506,13 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     nelements(dg, cache) == 0 && return nothing
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
     kernel_cache = kernel_filter_cache(cache)
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)

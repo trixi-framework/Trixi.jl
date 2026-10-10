@@ -22,6 +22,13 @@ end
                                        volume_integral::VolumeIntegralFluxDifferencing,
                                        dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
@@ -112,7 +119,7 @@ end
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
         end
 
@@ -138,7 +145,7 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
         end
         @synchronize
@@ -162,7 +169,7 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
         end
         @synchronize
@@ -227,7 +234,7 @@ end
         fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
                                                         equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
         end
         @synchronize
@@ -253,7 +260,7 @@ end
         # averaged contravariant vector
         fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
                                                         equations)
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
         @synchronize
@@ -279,7 +286,7 @@ end
         # averaged contravariant vector
         fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
                                                         equations)
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
         @synchronize
@@ -321,7 +328,7 @@ end
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    @inbounds for v in 1:NVARIABLES
+    for v in 1:NVARIABLES
         u_local[v, i, j, k] = u_node[v]
     end
     @synchronize
@@ -395,7 +402,7 @@ end
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    @inbounds for v in 1:NVARIABLES
+    for v in 1:NVARIABLES
         u_local[v, i, j, k] = u_node[v]
     end
     @synchronize
@@ -579,6 +586,13 @@ end
                                        volume_integral::VolumeIntegralFluxDifferencing{<:FluxTurbo},
                                        dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     @unpack numerical_flux = volume_integral.volume_flux
@@ -641,7 +655,7 @@ end
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    @inbounds for v in 1:NAUX
+    for v in 1:NAUX
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
@@ -676,7 +690,7 @@ end
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
         end
 
@@ -706,7 +720,7 @@ end
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
         end
 
@@ -736,7 +750,7 @@ end
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
         end
 
@@ -779,7 +793,7 @@ end
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    @inbounds for v in 1:NAUX
+    for v in 1:NAUX
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
@@ -817,7 +831,7 @@ end
                                                        Ja1_avg[3],
                                                        equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
         end
 
@@ -852,7 +866,7 @@ end
                                                        Ja2_avg[3],
                                                        equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
 
@@ -887,7 +901,7 @@ end
                                                        Ja3_avg[3],
                                                        equations)
 
-        @inbounds for v in 1:NVARIABLES
+        for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
 
@@ -933,7 +947,7 @@ end
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    @inbounds for v in 1:NAUX
+    for v in 1:NAUX
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
@@ -1021,7 +1035,7 @@ end
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    @inbounds for v in 1:NAUX
+    for v in 1:NAUX
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
@@ -1093,6 +1107,13 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     ninterfaces(cache.interfaces) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.interfaces, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
@@ -1311,6 +1332,11 @@ function prolong2boundaries!(backend::Backend, cache, u,
     @unpack neighbor_ids, node_indices = boundaries
     nboundaries = length(eachboundary(dg, cache))
     nboundaries == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(boundaries, equations, dg, cache)
+    end
     index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
     kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
@@ -1404,6 +1430,14 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
     length(boundary_condition_indices) == 0 && return nothing
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(boundaries, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
+                                       equations, dg,
+                                       cache)
+    end
 
     index_range = eachnode(dg)
     n_boundaries = length(boundary_condition_indices)
@@ -1617,6 +1651,13 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     nelements(dg, cache) == 0 && return nothing
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
     kernel_cache = kernel_filter_cache(cache)
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
