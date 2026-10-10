@@ -3048,6 +3048,12 @@ end
                                             equations)) ==
               RealT
 
+        for flux_upwind in (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                            FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                                          DissipationLocalLaxFriedrichs())))
+            @test eltype(@inferred flux_upwind(u_ll, u_rr, orientation, equations)) == RealT
+        end
+
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
               RealT
         @test typeof(@inferred max_abs_speed(u_ll, u_rr, orientation, equations)) ==
@@ -3095,6 +3101,13 @@ end
                                                    equations)) == RealT
         @test typeof(@inferred max_abs_speed(u_ll, u_rr, normal_direction, equations)) ==
               RealT
+
+        for flux_upwind in (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                            FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                                          DissipationLocalLaxFriedrichs())))
+            @test eltype(@inferred flux_upwind(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
+        end
 
         @test eltype(@inferred boundary_condition_slip_wall(u_inner, normal_direction,
                                                             x, t,
