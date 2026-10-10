@@ -64,11 +64,6 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
-- The default values of `cS2` of `PairedExplicitRK3` and `cS3` of `PairedExplicitRK4`
-  are now `1.0` instead of `1.0f0`. Thus, the abscissae `c` of `PairedExplicitRK3` are
-  computed in `Float64` instead of `Float32` precision by default, which changes its
-  Butcher coefficients and results slightly (relative differences of the order of
-  `1e-8`) ([#3310]).
 
 
 ## Changes when updating to v0.17 from v0.16.x

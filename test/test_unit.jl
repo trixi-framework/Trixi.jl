@@ -3186,17 +3186,10 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
-    # The coefficients are computed by a bisection in the time step `dt` (up to 1e-9)
-    # combined with an optimization of the stability polynomial (Convex.jl and ECOS.jl,
-    # with tolerances 1e-9). Thus, the results depend on round-off, e.g., on the CPU
-    # architecture (different results on AMD EPYC 7763 and 9V45 CPUs of GitHub runners).
-    # In particular, the decisions in the last bisection steps are made by comparing
-    # values that differ from 1 by approximately the solver tolerance, so they can change
-    # due to round-off. This changes `dt_opt` and the coefficients by multiples of 1e-9.
-    # Thus, we use tolerances of 1e-7 for these quantities. The spectrum and the number
-    # of stages are chosen such that the optimization problem is well-conditioned;
-    # otherwise, the results can differ much more. We also check properties of the
-    # Butcher tableau that hold up to machine precision by construction.
+    # The coefficients are computed by a bisection combined with an optimization of the
+    # stability polynomial. Thus, the results depend on round-off, e.g., on the CPU
+    # architecture. Thus, we use tolerances of 1e-7 for these quantities. We also check
+    # properties of the Butcher tableau that hold up to machine precision by construction.
     @test isapprox(ode_algorithm.c, range(0, 0.5, length = 12); atol = 1e-14)
     @test ode_algorithm.b1 == 0
     @test ode_algorithm.bS == 1
