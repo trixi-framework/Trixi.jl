@@ -1289,9 +1289,10 @@ end
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
         ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap_ode(ArrayType, u_ode,
-                        (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                         nelements(dg, cache)))
+        unsafe_wrap_or_reshape(ArrayType, u_ode,
+                               (nvariables(equations),
+                                ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                nelements(dg, cache)))
     end
 end
 
@@ -1312,9 +1313,10 @@ end
                   ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap_ode(Array, u_ode,
-                        (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                         nelements(dg, cache)))
+        unsafe_wrap_or_reshape(Array, u_ode,
+                               (nvariables(equations),
+                                ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                nelements(dg, cache)))
     end
 end
 
@@ -1333,10 +1335,10 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    return unsafe_wrap_ode(Array, u_ode,
-                           (nvariables(equations),
-                            ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                            nelements(dg, cache)))
+    return unsafe_wrap_or_reshape(Array, u_ode,
+                                  (nvariables(equations),
+                                   ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                   nelements(dg, cache)))
 end
 
 # Wrap `u_ode` as an array of type `ArrayType` with size `dims`.
@@ -1351,7 +1353,11 @@ end
 #     Thus, we use `reshape` for these element types, which shares the memory of `u_ode`
 #     in a way the garbage collector understands. On Julia v1.10, this marks `u_ode` as
 #     shared, so `resize!(u_ode, ...)` (e.g., in AMR) throws an error instead.
-@inline function unsafe_wrap_ode(ArrayType, u_ode::AbstractVector, dims)
+#     Persistent wrappers, e.g., in the containers, are not affected, since the wrapper
+#     itself stays reachable and is rescanned by the garbage collector.
+#     For `isbits` element types, `u_ode` must still be `GC.@preserve`d while the
+#     wrapped array is in use.
+@inline function unsafe_wrap_or_reshape(ArrayType, u_ode::AbstractVector, dims)
     if isbitstype(eltype(u_ode))
         return unsafe_wrap(ArrayType{eltype(u_ode), length(dims)}, pointer(u_ode), dims)
     else

@@ -46,6 +46,12 @@ for human readability.
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 
 #### Changed
+- Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
+  type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): the temporary
+  arrays of `wrap_array` now use `reshape` instead of `unsafe_wrap` for such element types,
+  so that the garbage collector keeps the stored objects alive. On Julia v1.10, AMR
+  (`resize!` of the solution) is not supported for non-`isbits` element types anymore.
+  `isbits` element types such as `Float64` are not affected ([#3306]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
