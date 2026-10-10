@@ -20,6 +20,8 @@ for human readability.
   differencing. As in 3D, the flux differencing kernel can be selected via
   `flux_differencing_kernel` of `semidiscretize`, and nonconservative terms are
   supported if the conservative and nonconservative fluxes are combined ([#3329]).
+- The GPU weak form volume integral of the 3D `P4estMesh` and `T8codeMesh` is now
+  parallelized over the individual nodes instead of the elements ([#3335]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
