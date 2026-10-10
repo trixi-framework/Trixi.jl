@@ -109,8 +109,9 @@ end
     i, j, element = @index(Global, NTuple)
     _, _, local_element = @index(Local, NTuple)
 
-    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
-    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
+    # The variable index is last, see `get_local_node_vars`
+    flux1_local = @localmem eltype(du) (NNODES, NNODES, NELEMENTS_WG, NVARIABLES)
+    flux2_local = @localmem eltype(du) (NNODES, NNODES, NELEMENTS_WG, NVARIABLES)
 
     u_node = get_node_vars(u, equations, dg, i, j, element)
     flux1 = flux(u_node, 1, equations)
@@ -120,22 +121,24 @@ end
     contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
     contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
     for v in 1:NVARIABLES
-        flux1_local[v, i, j, local_element] = contravariant_flux1[v]
-        flux2_local[v, i, j, local_element] = contravariant_flux2[v]
+        flux1_local[i, j, local_element, v] = contravariant_flux1[v]
+        flux2_local[i, j, local_element, v] = contravariant_flux2[v]
     end
     @synchronize
 
-    # Use `get_node_vars` instead of a closure, see the half sweep kernel above
+    # Use `get_local_node_vars` instead of a closure, see the half sweep kernel above
     du_local = zero(SVector{NVARIABLES, eltype(du)})
     for l in 1:NNODES
         du_local = du_local +
                    derivative_hat[i, l] *
-                   get_node_vars(flux1_local, equations, dg, l, j, local_element)
+                   get_local_node_vars(flux1_local, Val(NVARIABLES), l, j,
+                                       local_element)
     end
     for l in 1:NNODES
         du_local = du_local +
                    derivative_hat[j, l] *
-                   get_node_vars(flux2_local, equations, dg, i, l, local_element)
+                   get_local_node_vars(flux2_local, Val(NVARIABLES), i, l,
+                                       local_element)
     end
     set_node_vars!(du, du_local, equations, dg, i, j, element)
 end
@@ -229,10 +232,11 @@ const GPU_HALFSWEEP_WORKGROUP_SIZE = 128
     i, j, element = @index(Global, NTuple)
     _, _, local_element = @index(Local, NTuple)
 
-    # fluxes[v, offset, direction, i, j, local_element] between the node (i, j) and its
-    # partner at `offset` in `direction`
-    fluxes = @localmem eltype(du) (NVARIABLES, NNODES ÷ 2, 2, NNODES, NNODES,
-                                   NELEMENTS_WG)
+    # fluxes[i, j, local_element, offset, direction, v] between the node (i, j) and its
+    # partner at `offset` in `direction`. The variable index is last, see
+    # `get_local_node_vars`.
+    fluxes = @localmem eltype(du) (NNODES, NNODES, NELEMENTS_WG, NNODES ÷ 2, 2,
+                                   NVARIABLES)
 
     u_node = get_node_vars(u, equations, dg, i, j, element)
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
@@ -251,8 +255,8 @@ const GPU_HALFSWEEP_WORKGROUP_SIZE = 128
         fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
 
         for v in 1:NVARIABLES
-            fluxes[v, offset, 1, i, j, local_element] = fluxtilde1[v]
-            fluxes[v, offset, 2, i, j, local_element] = fluxtilde2[v]
+            fluxes[i, j, local_element, offset, 1, v] = fluxtilde1[v]
+            fluxes[i, j, local_element, offset, 2, v] = fluxtilde2[v]
         end
     end
 
@@ -270,18 +274,20 @@ const GPU_HALFSWEEP_WORKGROUP_SIZE = 128
         w1b = weight * derivative_split[i, iib]
         w2 = weight * derivative_split[j, jj]
         w2b = weight * derivative_split[j, jjb]
-        # Use `get_node_vars` instead of a closure since the indices `i, j` are
+        # Use `get_local_node_vars` instead of a closure since the indices `i, j` are
         # recomputed after `@synchronize` by KernelAbstractions.jl, so that a closure
         # capturing them would box them.
         du_local = du_local +
-                   w1 * get_node_vars(fluxes, equations, dg, offset, 1, i, j,
-                                 local_element) +
-                   w1b * get_node_vars(fluxes, equations, dg, offset, 1, iib, j,
-                                 local_element) +
-                   w2 * get_node_vars(fluxes, equations, dg, offset, 2, i, j,
-                                 local_element) +
-                   w2b * get_node_vars(fluxes, equations, dg, offset, 2, i, jjb,
-                                 local_element)
+                   w1 *
+                   get_local_node_vars(fluxes, Val(NVARIABLES), i, j, local_element,
+                                       offset, 1) +
+                   w1b * get_local_node_vars(fluxes, Val(NVARIABLES), iib, j,
+                                       local_element, offset, 1) +
+                   w2 *
+                   get_local_node_vars(fluxes, Val(NVARIABLES), i, j, local_element,
+                                       offset, 2) +
+                   w2b * get_local_node_vars(fluxes, Val(NVARIABLES), i, jjb,
+                                       local_element, offset, 2)
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, element)
