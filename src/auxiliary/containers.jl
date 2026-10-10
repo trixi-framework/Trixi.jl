@@ -279,6 +279,9 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
+# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
+# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+#
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
@@ -288,11 +291,27 @@ end
 # However, since zero length arrays are not used in calculations,
 # it should be okay if the underlying storage vectors and wrapped arrays
 # are not the same as long as they are properly wrapped when `resize!`d etc.
+#
+# !!! danger "Non-`isbits` element types"
+#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
+#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
+#     from SparseConnectivityTracer.jl), storing an object through the wrapped array runs
+#     the write barrier on the wrapper instead of on `vector`. If `vector` is already in
+#     the old generation and the wrapper is a temporary (as in `wrap_array`), the next
+#     incremental collection does not rescan `vector`, frees the new objects, and leaves
+#     dangling pointers in `vector`.
+#     Thus, we use `reshape` for these element types, which shares the memory of `vector`
+#     in a way the garbage collector understands. On Julia v1.10, this marks `vector` as
+#     shared, so `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
+#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
+#     wrapped array is in use.
 function unsafe_wrap_or_alloc(to, vector, size)
     if length(vector) == 0
         return similar(vector, size)
-    else
+    elseif isbitstype(eltype(vector))
         return unsafe_wrap(to, pointer(vector), size)
+    else
+        return reshape(vector, size)
     end
 end
 

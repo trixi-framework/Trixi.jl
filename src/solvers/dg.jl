@@ -1289,10 +1289,10 @@ end
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
         ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap_or_reshape(ArrayType, u_ode,
-                               (nvariables(equations),
-                                ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                                nelements(dg, cache)))
+        unsafe_wrap_or_alloc(ArrayType, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1313,10 +1313,10 @@ end
                   ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap_or_reshape(Array, u_ode,
-                               (nvariables(equations),
-                                ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                                nelements(dg, cache)))
+        unsafe_wrap_or_alloc(Array, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1335,34 +1335,10 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    return unsafe_wrap_or_reshape(Array, u_ode,
-                                  (nvariables(equations),
-                                   ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                                   nelements(dg, cache)))
-end
-
-# Wrap `u_ode` as an array of type `ArrayType` with size `dims`.
-#
-# !!! danger "Non-`isbits` element types"
-#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
-#     `u_ode`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
-#     from SparseConnectivityTracer.jl), storing an object through the wrapped array runs
-#     the write barrier on the temporary wrapper instead of on `u_ode`. If `u_ode` is
-#     already in the old generation, the next incremental collection does not rescan it,
-#     frees the new objects, and leaves dangling pointers in `u_ode`.
-#     Thus, we use `reshape` for these element types, which shares the memory of `u_ode`
-#     in a way the garbage collector understands. On Julia v1.10, this marks `u_ode` as
-#     shared, so `resize!(u_ode, ...)` (e.g., in AMR) throws an error instead.
-#     Persistent wrappers, e.g., in the containers, are not affected, since the wrapper
-#     itself stays reachable and is rescanned by the garbage collector.
-#     For `isbits` element types, `u_ode` must still be `GC.@preserve`d while the
-#     wrapped array is in use.
-@inline function unsafe_wrap_or_reshape(ArrayType, u_ode::AbstractVector, dims)
-    if isbitstype(eltype(u_ode))
-        return unsafe_wrap(ArrayType{eltype(u_ode), length(dims)}, pointer(u_ode), dims)
-    else
-        return reshape(u_ode, dims)
-    end
+    return unsafe_wrap_or_alloc(Array, u_ode,
+                                (nvariables(equations),
+                                 ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                 nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
