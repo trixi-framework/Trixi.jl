@@ -1738,7 +1738,12 @@ function calc_volume_integral!(backend::Backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-    if !use_gpu_volume_kernels(backend)
+    # The kernel stores the three contravariant fluxes of all nodes of an element in
+    # local (shared) memory, which is limited to 48 KiB per workgroup on NVIDIA GPUs.
+    NNODES = nnodes(dg)
+    shared_memory = 3 * nvariables(equations) * NNODES^3 * sizeof(eltype(du))
+    if !use_gpu_volume_kernels(backend) || shared_memory > 48 * 1024 ||
+       NNODES^3 > 1024
         return calc_volume_integral_per_element!(backend, du, u, mesh,
                                                  have_nonconservative_terms, equations,
                                                  volume_integral, dg, cache)
@@ -1753,7 +1758,6 @@ function calc_volume_integral!(backend::Backend, du, u,
     end
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
-    NNODES = nnodes(dg)
     kernel! = weak_form_3d_KAkernel!(backend, (NNODES, NNODES, NNODES, 1))
     kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
             derivative_hat, contravariant_vectors,
