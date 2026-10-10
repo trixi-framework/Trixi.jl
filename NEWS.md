@@ -12,7 +12,8 @@ for human readability.
   Spalart-Allmaras turbulence model (SA-neg) in 2D: `CompressibleRANSDiffusion2D` with
   `SpalartAllmarasNeg` as the parabolic part of `PassiveTracerEquations` of the
   compressible Euler equations, and `SourceTermsSpalartAllmaras` for the model
-  source terms ([#3325]).
+  source terms ([#3325]). Wall, slip, and Dirichlet boundary conditions are available
+  for `CompressibleRANSDiffusion2D` ([#3326]).
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
