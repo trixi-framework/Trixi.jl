@@ -31,10 +31,16 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     return nothing
 end
 
-# We use `::Type{MeshT}` with a type parameter to force specialization on the mesh type.
-# Julia does not specialize on `Type` arguments that are only passed through to other
-# functions, which leads to dynamic dispatch for every element with the
-# KernelAbstractions.jl CPU backend.
+# Julia does not specialize on arguments of type `Type` or `Function` that are only
+# passed through to other functions but not used directly, see
+# https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing
+# With the KernelAbstractions.jl v0.9 CPU backend, kernels are ordinary Julia functions, so
+# this leads to dynamic dispatch (and allocations) for every element or node.
+# Thus, kernel arguments such as `MeshT`, `source_terms`, or `boundary_condition` need a
+# type parameter (e.g., `::Type{MeshT}` or `source_terms::Source` with
+# `where {MeshT}` or `where {Source}`) or a type annotation matching all methods of the
+# called functions (e.g., `MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}}`) to
+# avoid this. GPU backends always specialize fully.
 @kernel function volume_integral_KAkernel!(du, u, ::Type{MeshT},
                                            have_nonconservative_terms, equations,
                                            volume_integral, dg::DGSEM,
