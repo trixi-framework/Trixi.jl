@@ -4826,3 +4826,85 @@ end
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
 end
+
+@testitem "Unit: Compressible RANS with Spalart-Allmaras model" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    using ForwardDiff
+
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 1)
+    model = SpalartAllmarasNeg()
+    equations_parabolic = CompressibleRANSDiffusion2D(equations, mu = 1.0e-3,
+                                                      Prandtl = 0.72, model = model)
+    equations_navier_stokes = CompressibleNavierStokesDiffusion2D(equations.flow_equations,
+                                                                  mu = 1.0e-3,
+                                                                  Prandtl = 0.72)
+
+    # Gradients of (rho, v1, v2, T, nu_tilde) in x and y direction
+    gradients = (SVector(0.1, -0.3, 0.5, 0.2, 0.05), SVector(-0.4, 0.2, 0.1, -0.6, 0.3))
+    gradients_navier_stokes = map(gradient -> gradient[1:4], gradients)
+
+    # Without eddy viscosity (nu_tilde <= 0), the parabolic fluxes of the flow variables
+    # are those of the compressible Navier-Stokes equations
+    for prim in (SVector(1.0, 0.1, 0.2, 1.0, -1.0e-3),
+                 SVector(0.6, -0.5, 0.3, 1.4, 0.0),
+                 SVector(1.3, 0.8, -0.6, 0.7, -2.0e-2))
+        u = Trixi.prim_temperature2cons(prim, equations_parabolic)
+        @test Trixi.cons2prim_temperature(u, equations_parabolic) ≈ prim
+        @test eddy_viscosity(u, equations_parabolic) == 0
+        prim_navier_stokes = Trixi.cons2prim_temperature(Trixi.flow_variables(u, equations),
+                                                         equations_navier_stokes)
+        @test prim[1:4] ≈ prim_navier_stokes
+        for orientation in 1:2
+            @test flux(prim, gradients, orientation, equations_parabolic)[1:4] ≈
+                  flux(prim_navier_stokes, gradients_navier_stokes, orientation,
+                       equations_navier_stokes)
+        end
+    end
+
+    # Eddy viscosity mu_t = rho nu_tilde f_v1 for positive nu_tilde
+    u = prim2cons(SVector(1.2, 0.1, 0.2, 1.0, 5.0e-3), equations)
+    chi = 1.2 * 5.0e-3 / 1.0e-3
+    @test eddy_viscosity(u, equations_parabolic) ≈
+          1.2 * 5.0e-3 * chi^3 / (chi^3 + model.cv1^3)
+
+    # A viscosity given as a function `mu(u, equations)` gives the same fluxes as the
+    # constant viscosity with the same value
+    mu_function(u, equations) = 1.0e-3 * (pressure(u, equations) / u[1])^0.7
+    equations_parabolic_mu = CompressibleRANSDiffusion2D(equations, mu = mu_function,
+                                                         Prandtl = 0.72, model = model)
+    equations_parabolic_constant = CompressibleRANSDiffusion2D(equations,
+                                                               mu = mu_function(u,
+                                                                                equations),
+                                                               Prandtl = 0.72,
+                                                               model = model)
+    prim = Trixi.cons2prim_temperature(u, equations_parabolic)
+    for orientation in 1:2
+        @test flux(prim, gradients, orientation, equations_parabolic_mu) ≈
+              flux(prim, gradients, orientation, equations_parabolic_constant)
+    end
+
+    # The negative SA model is C^1 at nu_tilde = 0 (Allmaras, Johnson, Spalart 2012, eq. (15))
+    nu, vorticity, d = 1.0e-5, 100.0, 1.0e-2
+    f(nu_tilde) = Trixi.sa_production_destruction(nu_tilde, nu, vorticity, d, model)
+    @test f(0.0) == 0
+    @test ForwardDiff.derivative(f, 1.0e-14) ≈ model.cb1 * (1 - model.ct3) * vorticity
+    @test ForwardDiff.derivative(f, -1.0e-14) ≈ model.cb1 * (1 - model.ct3) * vorticity
+    # Production and destruction vanish at the wall
+    @test Trixi.sa_production_destruction(1.0e-3, nu, vorticity, 0.0, model) == 0
+    # The modified vorticity (eq. (12)) is continuous at S_bar = -c_v2 * vorticity.
+    # For nu_tilde = 2 nu, f_v2 < 0, and this switch happens at the wall distance d_switch.
+    nu_tilde = 2 * nu
+    chi = nu_tilde / nu
+    fv2 = 1 - chi / (1 + chi * Trixi.sa_fv1(chi, model))
+    d_switch = sqrt(nu_tilde * fv2 / (-model.cv2 * vorticity * model.kappa^2))
+    @test isapprox(Trixi.sa_production_destruction(nu_tilde, nu, vorticity,
+                                                   d_switch * (1 - 1.0e-8), model),
+                   Trixi.sa_production_destruction(nu_tilde, nu, vorticity,
+                                                   d_switch * (1 + 1.0e-8), model);
+                   rtol = 1.0e-6)
+    # Without vorticity, the modified vorticity vanishes and r is limited
+    @test isfinite(Trixi.sa_production_destruction(nu_tilde, nu, 0.0, d_switch, model))
+    # The diffusion coefficient stays positive for negative nu_tilde (eq. (21))
+    @test all(chi -> 1 + chi * Trixi.sa_fn(chi, model) > 0, range(-50, 0, length = 1001))
+    # No eddy viscosity for negative nu_tilde
+    @test Trixi.sa_eddy_viscosity(1.0, -1.0e-3, 1.0e-3, model) == 0
+end

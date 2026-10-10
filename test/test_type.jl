@@ -1061,6 +1061,71 @@ end
     end
 end
 
+@testitem "Type stability: Compressible RANS 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
+    for RealT in (Float32, Float64)
+        flow_equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+        equations = @inferred PassiveTracerEquations{2, 5, 1, typeof(flow_equations)}(flow_equations)
+        model = @inferred SpalartAllmarasNeg(RealT)
+        equations_parabolic = CompressibleRANSDiffusion2D(equations, mu = RealT(1.0e-3),
+                                                          Prandtl = RealT(0.72),
+                                                          model = model)
+
+        x = SVector(zero(RealT), zero(RealT))
+        t = zero(RealT)
+        u = prim2cons(SVector(one(RealT), RealT(0.1), RealT(0.2), one(RealT),
+                              RealT(1.0e-3)), equations)
+        prim = Trixi.cons2prim_temperature(u, equations_parabolic)
+        gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+        gradients = SVector(gradient, gradient)
+        orientations = [1, 2]
+
+        for orientation in orientations
+            @test eltype(@inferred flux(prim, gradients, orientation,
+                                        equations_parabolic)) == RealT
+        end
+        @test eltype(@inferred Trixi.cons2prim_temperature(u, equations_parabolic)) ==
+              RealT
+        @test eltype(@inferred Trixi.prim_temperature2cons(prim, equations_parabolic)) ==
+              RealT
+        @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+        @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+        @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+        @test eltype(@inferred velocity(u, equations_parabolic)) == RealT
+        @test typeof(@inferred eddy_viscosity(u, equations_parabolic)) == RealT
+        @test typeof(@inferred Trixi.max_diffusivity(u, equations_parabolic)) == RealT
+        @test typeof(@inferred Trixi.vorticity_magnitude(gradients,
+                                                         equations_parabolic)) == RealT
+
+        source = SourceTermsSpalartAllmaras(x -> one(eltype(x)))
+        @test eltype(@inferred source(u, gradients, x, t, equations_parabolic)) == RealT
+
+        nu = RealT(1.0e-3)
+        nu_tilde = RealT(2.0e-3)
+        chi = nu_tilde / nu
+        vorticity = RealT(10)
+        d = RealT(0.1)
+        @test typeof(@inferred Trixi.sa_fv1(chi, model)) == RealT
+        @test typeof(@inferred Trixi.sa_fn(-chi, model)) == RealT
+        @test typeof(@inferred Trixi.sa_eddy_viscosity(one(RealT), nu_tilde, nu,
+                                                       model)) == RealT
+        @test typeof(@inferred Trixi.sa_diffusivity(one(RealT), nu_tilde, nu, model)) ==
+              RealT
+        for nu_tilde_ in (nu_tilde, -nu_tilde)
+            @test typeof(@inferred Trixi.sa_production_destruction(nu_tilde_, nu,
+                                                                   vorticity, d,
+                                                                   model)) == RealT
+        end
+
+        adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
+        @test adapted isa CompressibleRANSDiffusion2D
+        @test typeof(adapted.mu) == Float32
+        @test typeof(adapted.Pr) == Float32
+        @test adapted.model isa SpalartAllmarasNeg{Float32}
+        @test adapted.equations_hyperbolic.flow_equations isa
+              CompressibleEulerEquations2D{Float32}
+    end
+end
+
 @testitem "Type stability: Compressible Navier Stokes Diffusion 3D" setup=[
     Setup,
     TypeStability

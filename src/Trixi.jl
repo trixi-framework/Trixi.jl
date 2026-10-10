@@ -233,7 +233,10 @@ export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
        LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
-       CompressibleNavierStokesDiffusion3D
+       CompressibleNavierStokesDiffusion3D,
+       CompressibleRANSDiffusion2D
+
+export SpalartAllmarasNeg, SourceTermsSpalartAllmaras, eddy_viscosity
 
 export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
