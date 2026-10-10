@@ -592,8 +592,8 @@ end
     return zero(SVector{nvariables(equations), eltype(u)})
 end
 
-# GPU kernel of the weak form volume integral with one work-item per node and one
-# workgroup per element.
+# GPU kernel of the weak form volume integral with one work-item per node and
+# several elements per workgroup, see `elements_per_workgroup`.
 # The general fallback `volume_integral_KAkernel!` uses one work-item per element and
 # accumulates the volume terms of all nodes of an element, which leads to many uncoalesced
 # read-modify-write accesses of `du` in global memory. Here, each work-item computes the
@@ -622,22 +622,26 @@ function calc_volume_integral!(backend::Backend, du, u,
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    kernel! = weak_form_2d_KAkernel!(backend, (NNODES, NNODES, 1))
+    NELEMENTS_WG = elements_per_workgroup(NNODES^2, nelements(dg, cache))
+    kernel! = weak_form_2d_KAkernel!(backend, (NNODES, NNODES, NELEMENTS_WG))
     kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
-            derivative_hat, contravariant_vectors,
+            Val(NELEMENTS_WG), derivative_hat, contravariant_vectors,
             ndrange = (NNODES, NNODES, nelements(dg, cache)))
     return nothing
 end
 
 @kernel inbounds=true function weak_form_2d_KAkernel!(du, u, equations, dg::DGSEM,
                                                       ::Val{NNODES}, ::Val{NVARIABLES},
+                                                      ::Val{NELEMENTS_WG},
                                                       derivative_hat,
                                                       contravariant_vectors) where {NNODES,
-                                                                                    NVARIABLES}
+                                                                                    NVARIABLES,
+                                                                                    NELEMENTS_WG}
     i, j, element = @index(Global, NTuple)
+    _, _, e = @index(Local, NTuple)
 
-    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES)
-    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES)
+    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
+    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NELEMENTS_WG)
 
     u_node = get_node_vars(u, equations, dg, i, j, element)
 
@@ -650,8 +654,8 @@ end
     contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
     Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
     contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-    set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j)
-    set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j)
+    set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j, e)
+    set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j, e)
 
     @synchronize
 
@@ -659,13 +663,13 @@ end
     # contributions of the second contravariant flux of the nodes (i, jj), jj < j
     for jj in 1:(j - 1)
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj), du_node)
+                          get_node_vars(flux2_local, equations, dg, i, jj, e), du_node)
     end
     # contributions of the first contravariant flux of the nodes (ii, j) and
     # of the second contravariant flux of the node (i, j)
     for ii in 1:NNODES
         du_node = muladd.(derivative_hat[i, ii],
-                          get_node_vars(flux1_local, equations, dg, ii, j), du_node)
+                          get_node_vars(flux1_local, equations, dg, ii, j, e), du_node)
         if ii == i
             du_node = muladd.(derivative_hat[j, j], contravariant_flux2, du_node)
         end
@@ -673,7 +677,7 @@ end
     # contributions of the second contravariant flux of the nodes (i, jj), jj > j
     for jj in (j + 1):NNODES
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj), du_node)
+                          get_node_vars(flux2_local, equations, dg, i, jj, e), du_node)
     end
 
     set_node_vars!(du, du_node, equations, dg, i, j, element)

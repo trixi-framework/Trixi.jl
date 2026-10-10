@@ -14,6 +14,14 @@ end
 # CPU code are faster.
 @inline use_gpu_volume_kernels(backend::Backend) = !(backend isa KernelAbstractions.CPU)
 
+# Number of elements per workgroup of the GPU kernels with one work-item per node and
+# one element per `NNODES^NDIMS` work-items, such that a workgroup has up to 128
+# work-items. We use a divisor of the number of elements so that all workgroups are full,
+# since all work-items of a workgroup need to reach `@synchronize`.
+@inline function elements_per_workgroup(nnodes_element, n_elements)
+    return gcd(n_elements, max(1, div(128, nnodes_element)))
+end
+
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
