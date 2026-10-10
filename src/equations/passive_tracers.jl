@@ -265,10 +265,18 @@ end
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
                                  tracer_equations::PassiveTracerEquations)
+    boundary_condition_slip_wall(u_inner, orientation_or_normal, direction, x, t,
+                                 surface_flux_function,
+                                 tracer_equations::PassiveTracerEquations)
 
 Slip wall boundary condition for the flow equations, see
 [`boundary_condition_slip_wall`](@ref) of the flow equations. The tracer fluxes are
 the mass flux of the flow equations (which vanishes at the wall) times the inner tracer values.
+
+The first method is used for meshes with a `normal_direction` (e.g., [`P4estMesh`](@ref)),
+the second one for the [`TreeMesh`](@ref) (`orientation`) and the
+[`StructuredMesh`](@ref) (`normal_direction`), where the `direction` is passed as well.
+Both forward to the corresponding method of the flow equations.
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t, surface_flux_function,
@@ -277,8 +285,27 @@ the mass flux of the flow equations (which vanishes at the wall) times the inner
     u_flow = flow_variables(u_inner, tracer_equations)
     flux_flow = boundary_condition_slip_wall(u_flow, normal_direction, x, t,
                                              surface_flux_function, flow_equations)
-    flux_rho = density(flux_flow, flow_equations)
-    flux_tracer = flux_rho * tracers(u_inner, tracer_equations)
+    return append_tracer_fluxes(flux_flow, u_inner, tracer_equations)
+end
+
+@inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
+                                              x, t, surface_flux_function,
+                                              tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    flux_flow = boundary_condition_slip_wall(u_flow, orientation_or_normal, direction,
+                                             x, t, surface_flux_function,
+                                             flow_equations)
+    return append_tracer_fluxes(flux_flow, u_inner, tracer_equations)
+end
+
+# Append the tracer fluxes `f_rho * chi` (mass flux times the tracer values of `u`)
+# to the flux `flux_flow` of the flow equations, consistent with `flux` and
+# `FluxTracerEquationsCentral`.
+@inline function append_tracer_fluxes(flux_flow, u,
+                                      tracer_equations::PassiveTracerEquations)
+    flux_rho = density(flux_flow, tracer_equations.flow_equations)
+    flux_tracer = flux_rho * tracers(u, tracer_equations)
     return SVector(flux_flow..., flux_tracer...)
 end
 end # muladd

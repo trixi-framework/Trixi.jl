@@ -4729,26 +4729,57 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    using Random: MersenneTwister
-    rng = MersenneTwister(42)
-
     equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
-    u_inner = prim2cons(SVector(0.5 + rand(rng), randn(rng), randn(rng), 0.5 + rand(rng),
-                                randn(rng), randn(rng)), equations)
+    flow_equations = equations.flow_equations
+    u_inner = prim2cons(SVector(1.2, 0.4, -0.3, 0.9, 0.7, -0.2), equations)
+    u_flow_inner = Trixi.flow_variables(u_inner, equations)
     normal_direction = SVector(0.3, 0.8)
     x = SVector(0.0, 0.0)
+    t = 0.0
 
     # The mass flux and thus the tracer fluxes vanish at the wall
-    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, 0.0,
+    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                              flux_lax_friedrichs, equations)
     @test flux_wall[1] == 0
     @test flux_wall[5] == 0
     @test flux_wall[6] == 0
     # The flow fluxes are those of the slip wall of the flow equations
     @test flux_wall[2:4] ≈
-          boundary_condition_slip_wall(Trixi.flow_variables(u_inner, equations),
-                                       normal_direction, x, 0.0, flux_lax_friedrichs,
-                                       equations.flow_equations)[2:4]
+          boundary_condition_slip_wall(u_flow_inner, normal_direction, x, t,
+                                       flux_lax_friedrichs, flow_equations)[2:4]
+
+    # `StructuredMesh` version with `normal_direction` and `direction`
+    for direction in 1:4
+        flux_wall_structured = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                            direction,
+                                                            x, t, flux_lax_friedrichs,
+                                                            equations)
+        @test flux_wall_structured[1] == 0
+        @test flux_wall_structured[5] == 0
+        @test flux_wall_structured[6] == 0
+        @test flux_wall_structured[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, normal_direction, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+    end
+
+    # `TreeMesh` version with `orientation` and `direction`. For the unit normals,
+    # it agrees with the `StructuredMesh` version.
+    for orientation in 1:2, direction in (2 * orientation - 1, 2 * orientation)
+        flux_wall_tree = boundary_condition_slip_wall(u_inner, orientation, direction,
+                                                      x, t, flux_lax_friedrichs, equations)
+        @test flux_wall_tree[1] == 0
+        @test flux_wall_tree[5] == 0
+        @test flux_wall_tree[6] == 0
+        @test flux_wall_tree[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, orientation, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+        normal_direction_unit = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_wall_tree ≈
+              boundary_condition_slip_wall(u_inner, normal_direction_unit, direction,
+                                           x, t, flux_lax_friedrichs, equations)
+    end
 
     # The Lax-Friedrichs flux uses the wave speed estimate `max_abs_speed`
     # of the flow equations. For these states (fast flow with a small speed of sound
