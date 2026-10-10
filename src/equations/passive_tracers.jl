@@ -251,4 +251,48 @@ end
     flux_tracer = flux_rho * flux_tracer
     return SVector(flux_flow..., flux_tracer...)
 end
+
+@doc raw"""
+    FluxTracerEquationsUpwind(flow_flux)
+
+Numerical flux for the equations with tracers based on the numerical flux `flow_flux`
+for the flow equations. The tracer flux is obtained by upwinding the tracers with the
+numerical mass flux ``f_\rho`` of `flow_flux`, i.e.,
+```math
+f_{\rho\chi} = f_\rho \{\!\{\chi\}\!\} - \frac{|f_\rho|}{2} [\![\chi]\!].
+```
+If `flow_flux` is entropy stable for the flow equations, this flux is entropy stable for the
+equations with tracers and the [`entropy`](@ref) of [`PassiveTracerEquations`](@ref).
+Thus, it is an entropy-stable surface flux to be combined with the entropy-conservative
+volume flux [`FluxTracerEquationsCentral`](@ref).
+For a single tracer, this flux is used in
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras turbulence model
+  for the compressible Reynolds averaged Navier-Stokes equations
+  [DOI: 10.1016/j.jcp.2022.110998](https://doi.org/10.1016/j.jcp.2022.110998)
+"""
+struct FluxTracerEquationsUpwind{FlowFlux}
+    flow_flux::FlowFlux
+end
+
+@inline function (f::FluxTracerEquationsUpwind)(u_ll, u_rr,
+                                                orientation_or_normal_direction,
+                                                tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+
+    flux_flow = f.flow_flux(u_flow_ll, u_flow_rr, orientation_or_normal_direction,
+                            flow_equations)
+    flux_rho = density(flux_flow, flow_equations)
+    tracers_ll = tracers(u_ll, tracer_equations)
+    tracers_rr = tracers(u_rr, tracer_equations)
+    flux_tracer = SVector(ntuple(@inline(v->0.5f0 *
+                                            (flux_rho *
+                                             (tracers_ll[v] + tracers_rr[v]) -
+                                             abs(flux_rho) *
+                                             (tracers_rr[v] - tracers_ll[v]))),
+                                 Val(ntracers(tracer_equations))))
+    return SVector(flux_flow..., flux_tracer...)
+end
 end # muladd

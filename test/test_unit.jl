@@ -4720,3 +4720,45 @@ end
         end
     end
 end
+
+@testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    using Random: MersenneTwister
+    rng = MersenneTwister(42)
+
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    function random_state()
+        prim2cons(SVector(0.5 + rand(rng), randn(rng), randn(rng), 0.5 + rand(rng),
+                          randn(rng), randn(rng)), equations)
+    end
+
+    # Entropy conservation of `FluxTracerEquationsCentral(flux_ranocha)` and entropy
+    # stability of `FluxTracerEquationsUpwind` for the entropy of the tracer equations.
+    # The entropy potential is ρ v⋅n (as for the Euler equations).
+    flux_ec = FluxTracerEquationsCentral(flux_ranocha)
+    for flux_es in (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                    FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                                  DissipationLocalLaxFriedrichs())))
+        for _ in 1:100
+            u_ll, u_rr = random_state(), random_state()
+            normal_direction = SVector(randn(rng), randn(rng))
+            w_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+            psi_jump = (u_rr[2] - u_ll[2]) * normal_direction[1] +
+                       (u_rr[3] - u_ll[3]) * normal_direction[2]
+            @test isapprox(dot(w_jump, flux_ec(u_ll, u_rr, normal_direction, equations)),
+                           psi_jump; atol = 1.0e-12 * (1 + abs(psi_jump)))
+            @test dot(w_jump, flux_es(u_ll, u_rr, normal_direction, equations)) <=
+                  psi_jump + 1.0e-12 * (1 + abs(psi_jump))
+        end
+    end
+
+    # Consistency: for equal states, the upwind flux is the physical flux
+    u = random_state()
+    for orientation_or_normal in (1, 2, SVector(0.6, -0.8))
+        @test FluxTracerEquationsUpwind(flux_lax_friedrichs)(u, u, orientation_or_normal,
+                                                             equations) ≈
+              flux(u, orientation_or_normal, equations)
+    end
+end
