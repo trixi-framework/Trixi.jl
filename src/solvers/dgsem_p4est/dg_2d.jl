@@ -26,9 +26,9 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     return cache
 end
 
-#     index_to_start_step_2d(index::Symbol, index_range)
+#     index_to_start_step_2d(index::NodeIndex.T, index_range)
 #
-# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
+# Given an `index::NodeIndex.T` and an `index_range` (usually `eachnode(dg)`),
 # return `index_start, index_step`, i.e., a tuple containing
 # - `index_start`, an index value to begin a loop
 # - `index_step`,  an index step to update during a loop
@@ -37,8 +37,8 @@ end
 # !!! warning
 #     This assumes that loops using the return values are written as
 #
-#     i_volume_start, i_volume_step = index_to_start_step_2d(symbolic_index_i, index_range)
-#     j_volume_start, j_volume_step = index_to_start_step_2d(symbolic_index_j, index_range)
+#     i_volume_start, i_volume_step = index_to_start_step_2d(node_index_i, index_range)
+#     j_volume_start, j_volume_step = index_to_start_step_2d(node_index_j, index_range)
 #
 #     i_volume, j_volume = i_volume_start, j_volume_start
 #     for i_surface in index_range
@@ -47,17 +47,17 @@ end
 #       i_volume += i_volume_step
 #       j_volume += j_volume_step
 #     end
-@inline function index_to_start_step_2d(index::Symbol, index_range)
+@inline function index_to_start_step_2d(index::NodeIndex.T, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
 
-    if index === :begin
+    if index === NodeIndex.Begin
         return index_begin, 0
-    elseif index === :end
+    elseif index === NodeIndex.End
         return index_end, 0
-    elseif index === :i_forward
+    elseif index === NodeIndex.IForward
         return index_begin, 1
-    else # if index === :i_backward
+    else # if index === NodeIndex.IBackward
         return index_end, -1
     end
 end
@@ -65,7 +65,7 @@ end
 # Infer interpolation side, i.e., left (1) or right (2) for an element.
 # Required for boundary interpolation with Gauss-Legendre nodes.
 @inline function interpolation_side(index)
-    return (index === :begin) ? 1 : 2
+    return (index === NodeIndex.Begin) ? 1 : 2
 end
 
 function prolong2interfaces!(backend::Nothing, cache, u,
@@ -358,7 +358,7 @@ Base.@propagate_inbounds function calc_interface_flux_per_interface!(surface_flu
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
-    if :i_backward in secondary_indices
+    if NodeIndex.IBackward in secondary_indices
         node_secondary = index_end
         node_secondary_step = -1
     else
@@ -452,7 +452,7 @@ Base.@propagate_inbounds function calc_interface_flux_per_interface!(surface_flu
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
     # the secondary index might need to run backwards for flipped sides.
-    if :i_backward in secondary_indices
+    if NodeIndex.IBackward in secondary_indices
         node_secondary = index_end
         node_secondary_step = -1
     else
@@ -1187,7 +1187,7 @@ Base.@propagate_inbounds function mortar_fluxes_to_elements!(surface_flux_values
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
 
-    if :i_backward in large_indices
+    if NodeIndex.IBackward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 surface_flux_values[v, end + 1 - i,

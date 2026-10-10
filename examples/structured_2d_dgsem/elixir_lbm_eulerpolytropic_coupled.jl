@@ -68,10 +68,14 @@ function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
     return prim2cons(SVector(rho, v1, v2), equations_own)
 end
 
-boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward),
+boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2,
+                                                              (NodeIndex.End,
+                                                               NodeIndex.IForward),
                                                               Float64,
                                                               coupling_function_LBM2Euler),
-                             x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward),
+                             x_pos = BoundaryConditionCoupled(2,
+                                                              (NodeIndex.Begin,
+                                                               NodeIndex.IForward),
                                                               Float64,
                                                               coupling_function_LBM2Euler),
                              y_neg = boundary_condition_periodic,
@@ -138,10 +142,14 @@ function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
     return equilibrium_distribution(rho, v1, v2, equations_own)
 end
 
-boundary_conditions_lbm = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward),
+boundary_conditions_lbm = (x_neg = BoundaryConditionCoupled(1,
+                                                            (NodeIndex.End,
+                                                             NodeIndex.IForward),
                                                             Float64,
                                                             coupling_function_Euler2LBM),
-                           x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward),
+                           x_pos = BoundaryConditionCoupled(1,
+                                                            (NodeIndex.Begin,
+                                                             NodeIndex.IForward),
                                                             Float64,
                                                             coupling_function_Euler2LBM),
                            y_neg = boundary_condition_periodic,

@@ -158,13 +158,13 @@ function extract_boundaries(mesh::P4estMeshView{2},
             # relative to this one, i.e. left, right, up, down.
             # In 3d one would need to add the third dimension.
             if (interfaces_parent.node_indices[view_idx, interface] ==
-                (:end, :i_forward))
+                (NodeIndex.End, NodeIndex.IForward))
                 push!(boundaries.name, :x_pos)
             elseif (interfaces_parent.node_indices[view_idx, interface] ==
-                    (:begin, :i_forward))
+                    (NodeIndex.Begin, NodeIndex.IForward))
                 push!(boundaries.name, :x_neg)
             elseif (interfaces_parent.node_indices[view_idx, interface] ==
-                    (:i_forward, :end))
+                    (NodeIndex.IForward, NodeIndex.End))
                 push!(boundaries.name, :y_pos)
             else
                 push!(boundaries.name, :y_neg)
@@ -263,13 +263,13 @@ end
 # Translate the interface indices into boundary names.
 # This works only in 2d currently.
 function node_indices_to_name(node_index)
-    if node_index == (:end, :i_forward)
+    if node_index == (NodeIndex.End, NodeIndex.IForward)
         return :x_pos
-    elseif node_index == (:begin, :i_forward)
+    elseif node_index == (NodeIndex.Begin, NodeIndex.IForward)
         return :x_neg
-    elseif node_index == (:i_forward, :end)
+    elseif node_index == (NodeIndex.IForward, NodeIndex.End)
         return :y_pos
-    elseif node_index == (:i_forward, :begin)
+    elseif node_index == (NodeIndex.IForward, NodeIndex.Begin)
         return :y_neg
     else
         error("Unknown node index: $node_index")
