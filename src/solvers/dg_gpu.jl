@@ -21,6 +21,13 @@ end
 end
 @inline accumulate_volume_integral_locally(backend::Backend, volume_integral) = false
 
+# Number of elements per workgroup of the GPU kernels with one work-item per node, i.e.,
+# `nnodes_element` work-items per element, such that a workgroup has up to 128 work-items.
+# We use a divisor of the number of elements so that all workgroups are full.
+@inline function elements_per_workgroup(nnodes_element, n_elements)
+    return gcd(n_elements, max(1, div(128, nnodes_element)))
+end
+
 # This is a general fallback for volume integral kernels, parallelizing across
 # elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
 # for flux differencing, parallelize across the individual solution nodes
