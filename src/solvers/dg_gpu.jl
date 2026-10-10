@@ -31,9 +31,14 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     return nothing
 end
 
-@kernel function volume_integral_KAkernel!(du, u, MeshT,
+# We use `::Type{MeshT}` with a type parameter to force specialization on the mesh type.
+# Julia does not specialize on `Type` arguments that are only passed through to other
+# functions, which leads to dynamic dispatch for every element with the
+# KernelAbstractions.jl CPU backend.
+@kernel function volume_integral_KAkernel!(du, u, ::Type{MeshT},
                                            have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM, cache)
+                                           volume_integral, dg::DGSEM,
+                                           cache) where {MeshT}
     element = @index(Global)
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                             equations, volume_integral, dg, cache)
