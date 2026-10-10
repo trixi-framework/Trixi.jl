@@ -1116,6 +1116,28 @@ end
                                                                    model)) == RealT
         end
 
+        # Boundary conditions
+        normal = SVector(zero(RealT), one(RealT))
+        flux_inner = SVector(zero(RealT), RealT(0.1), RealT(0.2), RealT(0.3), RealT(0.4))
+        heat_adiabatic = Adiabatic((x, t, equations) -> zero(eltype(x)))
+        heat_isothermal = Isothermal((x, t, equations) -> one(eltype(x)))
+        velocity_noslip = NoSlip((x, t, equations) -> SVector(zero(eltype(x)),
+                                                              zero(eltype(x))))
+        initial_condition_bc(x, t, equations) = u
+        for boundary_condition in (BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                     heat_adiabatic),
+                                   BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                     heat_isothermal),
+                                   BoundaryConditionNavierStokesWall(Slip(),
+                                                                     heat_adiabatic),
+                                   BoundaryConditionDirichlet(initial_condition_bc))
+            for operator in (Trixi.Gradient(), Trixi.Divergence())
+                @test eltype(@inferred boundary_condition(flux_inner, prim, normal, x, t,
+                                                          operator,
+                                                          equations_parabolic)) == RealT
+            end
+        end
+
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
         @test adapted isa CompressibleRANSDiffusion2D
         @test typeof(adapted.mu) == Float32

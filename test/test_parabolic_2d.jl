@@ -1737,3 +1737,105 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
+
+@testitem "Parabolic2D: P4estMesh2D: RANS-SA wall boundary conditions" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49, solve
+
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 1)
+    equations_parabolic = CompressibleRANSDiffusion2D(equations, mu = 1.0e-2,
+                                                      Prandtl = 0.72)
+
+    function initial_condition_box(x, t, equations)
+        rho = 1 + 0.1 * sinpi(x[1]) * cospi(x[2])
+        v1 = 0.1 * cospi(0.5 * x[2])
+        v2 = 0.05 * sinpi(x[1])
+        p = 1 + 0.1 * cospi(x[1] + x[2])
+        nu_tilde = 3.0e-2 * (1 + 0.5 * sinpi(x[1]) * sinpi(x[2]))
+        return prim2cons(SVector(rho, v1, v2, p, nu_tilde), equations)
+    end
+
+    # No-slip walls at y = ±1 (adiabatic at the bottom, isothermal at the top),
+    # a slip wall at x = -1, and a Dirichlet boundary at x = 1
+    heat_adiabatic = Adiabatic((x, t, equations) -> 0.0)
+    heat_isothermal = Isothermal((x, t, equations) -> 1.0)
+    velocity_noslip = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
+    boundary_condition_noslip_adiabatic = BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                            heat_adiabatic)
+    boundary_condition_noslip_isothermal = BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                             heat_isothermal)
+    boundary_condition_slip = BoundaryConditionNavierStokesWall(Slip(), heat_adiabatic)
+    boundary_condition_dirichlet = BoundaryConditionDirichlet(initial_condition_box)
+    boundary_conditions = (; x_neg = boundary_condition_slip_wall,
+                           x_pos = boundary_condition_dirichlet,
+                           y_neg = boundary_condition_slip_wall,
+                           y_pos = boundary_condition_slip_wall)
+    boundary_conditions_parabolic = (; x_neg = boundary_condition_slip,
+                                     x_pos = boundary_condition_dirichlet,
+                                     y_neg = boundary_condition_noslip_adiabatic,
+                                     y_pos = boundary_condition_noslip_isothermal)
+
+    # Distance to the no-slip walls
+    wall_distance(x) = 1 - abs(x[2])
+
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    mesh = P4estMesh((4, 4), polydeg = 3, coordinates_min = (-1.0, -1.0),
+                     coordinates_max = (1.0, 1.0), periodicity = false)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition_box, solver;
+                                                 boundary_conditions = (boundary_conditions,
+                                                                        boundary_conditions_parabolic),
+                                                 source_terms_parabolic = SourceTermsSpalartAllmaras(wall_distance))
+    ode = semidiscretize(semi, (0.0, 0.05))
+    sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
+                ode_default_options()...)
+    @test all(isfinite, sol.u[end])
+    l2, linf = AnalysisCallback(semi)(sol)
+    @test l2 ≈ [
+        0.00991556973900966,
+        0.014096742026724025,
+        0.013611111167083958,
+        0.03270109170363438,
+        0.0059723953069388555
+    ]
+    @test linf ≈ [
+        0.08396377492281037,
+        0.08065199278958761,
+        0.05947996690995382,
+        0.25119917573114403,
+        0.018041476197294983
+    ]
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # Boundary values and fluxes for the turbulence variable
+    u_inner = initial_condition_box(SVector(0.3, 0.9), 0.0, equations)
+    prim_inner = Trixi.cons2prim_temperature(u_inner, equations_parabolic)
+    normal = SVector(0.0, 1.0)
+    x = SVector(0.3, 1.0)
+    flux_inner = SVector(0.0, 0.1, 0.2, 0.3, 0.4)
+    # No-slip walls: zero velocity and ν̃ = 0 (Dirichlet), the ν̃ flux is not modified
+    for boundary_condition in (boundary_condition_noslip_adiabatic,
+                               boundary_condition_noslip_isothermal)
+        u_boundary = boundary_condition(flux_inner, prim_inner, normal, x, 0.0,
+                                        Trixi.Gradient(), equations_parabolic)
+        @test u_boundary[2] == u_boundary[3] == u_boundary[5] == 0
+        flux_boundary = boundary_condition(flux_inner, prim_inner, normal, x, 0.0,
+                                           Trixi.Divergence(), equations_parabolic)
+        @test flux_boundary[5] == flux_inner[5]
+    end
+    # Slip wall: mirrored normal velocity, ν̃ copied, and zero ν̃ flux (Neumann)
+    u_boundary = boundary_condition_slip(flux_inner, prim_inner, normal, x, 0.0,
+                                         Trixi.Gradient(), equations_parabolic)
+    @test u_boundary[2] ≈ prim_inner[2]
+    @test u_boundary[3] ≈ -prim_inner[3]
+    @test u_boundary[5] == prim_inner[5]
+    flux_boundary = boundary_condition_slip(flux_inner, prim_inner, normal, x, 0.0,
+                                            Trixi.Divergence(), equations_parabolic)
+    @test flux_boundary[2] == flux_boundary[3] == flux_boundary[5] == 0
+    @test flux_boundary[4] == 0 # adiabatic
+end
