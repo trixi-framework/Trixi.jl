@@ -607,12 +607,14 @@ end
                                                    ::HalfSweep,
                                                    have_nonconservative_terms::False,
                                                    dg::DGSEM,
-                                                   numerical_flux,
+                                                   numerical_flux::NumericalFlux,
                                                    ::Val{NNODES},
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NNODES,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
+                                                                                 NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX}
     # In contrast to the regular (CPU) code, this kernel does not
@@ -742,12 +744,14 @@ end
                                                    ::HalfSweep,
                                                    have_nonconservative_terms::True,
                                                    dg::DGSEM,
-                                                   numerical_flux,
+                                                   numerical_flux::NumericalFlux,
                                                    ::Val{NNODES},
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NNODES,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
+                                                                                 NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX}
     # In contrast to the regular (CPU) code, this kernel does not
@@ -892,14 +896,17 @@ end
                                                    ::FullSweep,
                                                    have_nonconservative_terms::False,
                                                    dg::DGSEM,
-                                                   numerical_flux,
+                                                   numerical_flux::NumericalFlux,
                                                    ::Val{NNODES},
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NNODES,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
+                                                                                 NNODES,
                                                                                  NVARIABLES,
-                                                                                 NAUX}
+                                                                                 NAUX
+                                                                                 }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -977,14 +984,17 @@ end
                                                    ::FullSweep,
                                                    have_nonconservative_terms::True,
                                                    dg::DGSEM,
-                                                   numerical_flux,
+                                                   numerical_flux::NumericalFlux,
                                                    ::Val{NNODES},
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NNODES,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
+                                                                                 NNODES,
                                                                                  NVARIABLES,
-                                                                                 NAUX}
+                                                                                 NAUX
+                                                                                 }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -1080,7 +1090,9 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
 end
 
 @kernel function prolong2interfaces_and_calc_interface_flux_KAkernel!(surface_flux_values,
-                                                                      u, MeshT,
+                                                                      u,
+                                                                      MeshT::Type{<:Union{P4estMesh{3},
+                                                                                          T8codeMesh{3}}},
                                                                       have_nonconservative_terms,
                                                                       equations,
                                                                       surface_integral,
@@ -1402,15 +1414,15 @@ end
                                             neighbor_ids,
                                             node_indices_arr,
                                             t,
-                                            boundary_condition,
+                                            boundary_condition::BC,
                                             index_range,
-                                            MeshT::Type{<:Union{P4estMesh,
-                                                                T8codeMesh}},
+                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                T8codeMesh{3}}},
                                             equations,
                                             surface_integral,
                                             dg,
                                             cache, node_coordinates,
-                                            contravariant_vectors)
+                                            contravariant_vectors) where {BC}
     i, j, local_index = @index(Global, NTuple)
 
     if local_index <= length(boundary_condition_indices)
@@ -1580,7 +1592,7 @@ end
 @kernel function calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(du,
                                                                                      u,
                                                                                      t,
-                                                                                     source_terms,
+                                                                                     source_terms::Source,
                                                                                      node_coordinates,
                                                                                      MeshT::Type{<:Union{P4estMesh{3},
                                                                                                          T8codeMesh{3}}},
@@ -1590,7 +1602,10 @@ end
                                                                                      surface_flux_values,
                                                                                      dg::DGSEM,
                                                                                      inverse_jacobian,
-                                                                                     cache) where {NNODES}
+                                                                                     cache) where {
+                                                                                                   NNODES,
+                                                                                                   Source
+                                                                                                   }
     i, j, k, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,

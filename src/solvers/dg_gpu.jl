@@ -31,9 +31,20 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     return nothing
 end
 
-@kernel function volume_integral_KAkernel!(du, u, MeshT,
+# Julia does not specialize on arguments of type `Type` or `Function` that are only
+# passed through to other functions but not used directly, see
+# https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing
+# With the KernelAbstractions.jl v0.9 CPU backend, kernels are ordinary Julia functions, so
+# this leads to dynamic dispatch (and allocations) for every element or node.
+# Thus, kernel arguments such as `MeshT`, `source_terms`, or `boundary_condition` need a
+# type parameter (e.g., `::Type{MeshT}` or `source_terms::Source` with
+# `where {MeshT}` or `where {Source}`) or a type annotation matching all methods of the
+# called functions (e.g., `MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}}`) to
+# avoid this. GPU backends always specialize fully.
+@kernel function volume_integral_KAkernel!(du, u, ::Type{MeshT},
                                            have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM, cache)
+                                           volume_integral, dg::DGSEM,
+                                           cache) where {MeshT}
     element = @index(Global)
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                             equations, volume_integral, dg, cache)
@@ -56,14 +67,16 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
         end
     end
 
-    shared_memory = nshared * nnodes(dg)^3 * sizeof(real(dg))
+    # One workgroup handles all nodes of an element
+    nnodes_element = nnodes(dg)^ndims(semi)
+    shared_memory = nshared * nnodes_element * sizeof(real(dg))
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
         In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
     end
 
-    workgroup_size = nnodes(dg)^3
+    workgroup_size = nnodes_element
 
     if workgroup_size > 1024
         @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.

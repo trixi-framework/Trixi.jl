@@ -1415,8 +1415,9 @@ function compute_coefficients!(backend::Backend, u, func, t,
     return nothing
 end
 
-@kernel function compute_coefficients_KAkernel!(u, func, t, equations,
-                                                dg::DG, node_coordinates, node_indices)
+@kernel function compute_coefficients_KAkernel!(u, func::Func, t, equations,
+                                                dg::DG, node_coordinates,
+                                                node_indices) where {Func}
     element = @index(Global)
     compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
                                       element,

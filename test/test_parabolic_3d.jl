@@ -461,6 +461,40 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_convergence.jl (Float32)" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    # Only set up the semidiscretization without time integration
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_navierstokes_convergence.jl"),
+                  initial_refinement_level = 1, tspan = (0.0, 0.01), sol = nothing,
+                  real_type = Float32, storage_type = Array)
+    semi32 = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi32.solver) == Float32
+    @test typeof(semi32.equations_parabolic.mu) == Float32
+    @test ode.u0 isa Vector{Float32}
+    @test eltype(ode.tspan) == Float32
+    parabolic_container = semi32.cache_parabolic.parabolic_container
+    @test parabolic_container.u_transformed isa Array{Float32, 5}
+    @test all(x -> x isa Array{Float32, 5}, parabolic_container.gradients)
+    @test all(x -> x isa Array{Float32, 5}, parabolic_container.flux_parabolic)
+
+    # The right-hand side agrees with the one of the original `Float64` semidiscretization
+    t = 0.005
+    u_ode = compute_coefficients(t, semi)
+    du_ode = similar(u_ode)
+    u_ode32 = Float32.(u_ode)
+    du_ode32 = similar(u_ode32)
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)
+    Trixi.rhs_parabolic!(du_ode32, u_ode32, semi32, Float32(t))
+    @test du_ode32 ≈ du_ode
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
+    Trixi.rhs_hyperbolic!(du_ode32, u_ode32, semi32, Float32(t))
+    @test du_ode32 ≈ du_ode
+end
+
 @testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" setup=[
     Setup,
     Parabolic3D
