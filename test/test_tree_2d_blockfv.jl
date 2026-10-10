@@ -159,6 +159,59 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "BlockFV 2D: elixir_euler_fvO2.jl" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        l2=[
+                            0.0002340551434683949,
+                            0.0002108591383818558,
+                            0.00021085913838191377,
+                            0.0007957269723569154
+                        ],
+                        linf=[
+                            0.000875867310257572,
+                            0.0008073115701989764,
+                            0.0008073115701983102,
+                            0.0026361509300372177
+                        ])
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 2D: elixir_euler_fvO2.jl with n_nodes=1" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
+    #covers the single-cell surface reconstruction n_nodes=1 case
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        n_nodes=1,
+                        tspan=(0.0, 0.1))
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 2D: elixir_euler_fvO2.jl with inner reconstruction mode" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        reconstruction_mode=reconstruction_O2_inner,
+                        tspan=(0.0, 0.5))
+    @test solver.volume_integral isa VolumeIntegralFiniteVolumeO2
+    @test solver.volume_integral.reconstruction_mode === reconstruction_O2_inner # Inner reconstruction mode
+    # Ensure that we do not have excessive memory allocations
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 2D: elixir_euler_fvO2.jl (convergence)" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
+    using Trixi: convergence_test
+    eocs, _ = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                               3)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2], [2.0, 2.0, 2.0, 2.0], rtol = 0.05)
+    @test isapprox(mean_convergence[:linf], [2.0, 2.0, 2.0, 2.0], rtol = 0.05)
+end
+
 @testitem "BlockFV 2D: elixir_euler_vortex_mortar.jl, BlockFV vs DGSEM with polydeg=0" setup=[
     Setup,
     TreeMesh2DBlockFV
