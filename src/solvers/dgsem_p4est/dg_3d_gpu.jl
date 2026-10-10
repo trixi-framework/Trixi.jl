@@ -1731,4 +1731,126 @@ end
     du_node = source_node - jacobian_factor * du_local
     set_node_vars!(du, du_node, equations, dg, i, j, k, element)
 end
+
+# GPU kernel of the weak form volume integral with one work-item per node and several
+# elements per workgroup, see also the 2D version `weak_form_nodes_2d_KAkernel!`.
+# Each work-item computes the contravariant fluxes of its node and stores them in local
+# (shared) memory. Then, each work-item adds up the volume terms of its node and writes
+# `du` once. On the CPU backend of KernelAbstractions.jl, and if the local memory or the
+# workgroup would be too large, we use the per-element kernel instead.
+# Similar kernels are, e.g., `volumeterm!` of Raven.jl
+# (https://github.com/HorribleSanity/Raven.jl/blob/4e7669105207851aa05928158a0bdd9a5358e909/src/balancelaws/dgsem.jl)
+# and `volumerhs!` in the benchmarks of CUDA.jl
+# (https://github.com/JuliaGPU/CUDA.jl/blob/4a98b2a715577e23d71a3c166ce11579f53c3850/perf/volumerhs.jl),
+# which keeps one direction in registers to need less local memory for high polynomial degrees.
+function calc_volume_integral!(backend::Backend, du, u,
+                               mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+    # The kernel stores the three contravariant fluxes of all nodes of an element in
+    # local (shared) memory, which is limited to 48 KiB per workgroup on NVIDIA GPUs.
+    NNODES = nnodes(dg)
+    shared_memory = 3 * nvariables(equations) * NNODES^3 * sizeof(eltype(du)) *
+                    elements_per_workgroup(NNODES^3, nelements(dg, cache))
+    if !use_gpu_volume_kernels(backend) || shared_memory > 48 * 1024 ||
+       NNODES^3 > 1024
+        return calc_volume_integral_per_element!(backend, du, u, mesh,
+                                                 have_nonconservative_terms, equations,
+                                                 volume_integral, dg, cache)
+    end
+    nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
+    @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NELEMENTS_WG = elements_per_workgroup(NNODES^3, nelements(dg, cache))
+    kernel! = weak_form_3d_KAkernel!(backend, (NNODES, NNODES, NNODES, NELEMENTS_WG))
+    kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
+            Val(NELEMENTS_WG), derivative_hat, contravariant_vectors,
+            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
+    return nothing
+end
+
+# The contributions are added in the same order as in `weak_form_kernel!`, i.e., in the
+# order of the source nodes (ii, jj, kk) with `kk` the slowest index, and the first,
+# second, and third contravariant flux of the same source node in this order.
+@kernel inbounds=true function weak_form_3d_KAkernel!(du, u, equations, dg::DGSEM,
+                                                      ::Val{NNODES}, ::Val{NVARIABLES},
+                                                      ::Val{NELEMENTS_WG},
+                                                      derivative_hat,
+                                                      contravariant_vectors) where {
+                                                                                    NNODES,
+                                                                                    NVARIABLES,
+                                                                                    NELEMENTS_WG
+                                                                                    }
+    i, j, k, element = @index(Global, NTuple)
+    _, _, _, e = @index(Local, NTuple)
+
+    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
+    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
+    flux3_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
+                                        NELEMENTS_WG)
+
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+    flux3 = flux(u_node, 3, equations)
+
+    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                                element)
+    contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                                element)
+    contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                                element)
+    contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
+    set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j, k, e)
+    set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j, k, e)
+    set_node_vars!(flux3_local, contravariant_flux3, equations, dg, i, j, k, e)
+
+    @synchronize
+
+    du_node = zero(SVector{NVARIABLES, eltype(du)})
+    for kk in 1:(k - 1)
+        du_node = muladd.(derivative_hat[k, kk],
+                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          du_node)
+    end
+    for jj in 1:(j - 1)
+        du_node = muladd.(derivative_hat[j, jj],
+                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          du_node)
+    end
+    for ii in 1:NNODES
+        du_node = muladd.(derivative_hat[i, ii],
+                          get_node_vars(flux1_local, equations, dg, ii, j, k, e),
+                          du_node)
+        if ii == i
+            du_node = muladd.(derivative_hat[j, j], contravariant_flux2, du_node)
+            du_node = muladd.(derivative_hat[k, k], contravariant_flux3, du_node)
+        end
+    end
+    for jj in (j + 1):NNODES
+        du_node = muladd.(derivative_hat[j, jj],
+                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          du_node)
+    end
+    for kk in (k + 1):NNODES
+        du_node = muladd.(derivative_hat[k, kk],
+                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          du_node)
+    end
+
+    set_node_vars!(du, du_node, equations, dg, i, j, k, element)
+end
 end #muladd
