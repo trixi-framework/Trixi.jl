@@ -10,6 +10,8 @@ for human readability.
 #### Added
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh{2}`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314]).
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh{3}`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3328]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
