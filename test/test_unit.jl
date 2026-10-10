@@ -4722,15 +4722,15 @@ end
 end
 
 @testitem "Unit: check_flux_differencing_shared_memory" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    using Trixi
     # One workgroup of the flux differencing GPU kernels handles all nodes of an
     # element, i.e., `nnodes^ndims` nodes. With `polydeg = 10`, this exceeds the
     # workgroup size limit in 3D but not in 2D.
     solver = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
-    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 0,
-                    periodicity = true)
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
                                         solver;
@@ -4738,8 +4738,10 @@ end
     @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
     @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
 
-    mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0), initial_refinement_level = 0,
-                    periodicity = true)
+    mesh = P4estMesh((1, 1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = true)
     equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
                                         solver;
