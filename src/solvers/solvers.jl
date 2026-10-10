@@ -76,6 +76,9 @@ Shared memory is used to avoid repeated slow reads
 from the solution vector `u`.
 
 See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
+
+For the 2D `P4estMesh` and `T8codeMesh`, `FullSweep()` and [`FullSweepGlobal()`](@ref)
+use the same kernel, which reads the solution from global memory.
 """
 struct FullSweep end
 

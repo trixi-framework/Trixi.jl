@@ -13,6 +13,10 @@ for human readability.
   `P4estMesh` ([#3313]).
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
+- The GPU volume integrals of the 2D `P4estMesh` and `T8codeMesh` are now parallelized
+  over the individual nodes instead of the elements, for both the weak form and flux
+  differencing. The flux differencing kernel can be selected via
+  `flux_differencing_kernel` of `semidiscretize` as in 3D.
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
