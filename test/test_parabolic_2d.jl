@@ -71,6 +71,57 @@ end
     @test getindex.(du, 1) ≈ 2 * y
 end
 
+@testitem "Parabolic2D: DGMulti 2D rhs_parabolic! (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    using Trixi
+    using LinearAlgebra: Diagonal, Symmetric, eigvals, kron, norm
+
+    equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
+    equations_parabolic = LaplaceDiffusion2D(1.0, equations)
+    initial_condition = (x, t, equations) -> SVector(1.0)
+
+    # The mesh of triangles contains faces whose normals have two components of
+    # the same magnitude. There, the LDG "switch" is sensitive to round-off errors.
+    @testset "$(element_type)" for element_type in (Tri(), Quad())
+        dg = DGMulti(polydeg = 2, element_type = element_type,
+                     approximation_type = Polynomial(),
+                     surface_integral = SurfaceIntegralWeakForm(flux_central),
+                     volume_integral = VolumeIntegralWeakForm())
+        mesh = DGMultiMesh(dg, (4, 4), periodicity = true)
+        semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, dg;
+                                                     solver_parabolic = ParabolicFormulationLocalDG(),
+                                                     boundary_conditions = (boundary_condition_periodic,
+                                                                            boundary_condition_periodic))
+
+        # assemble the matrix of the linear parabolic operator column by column
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        u, du = Base.parent(u_ode), Base.parent(du_ode)
+        A = zeros(length(u), length(u))
+        for j in eachindex(u)
+            fill!(u, zero(eltype(u)))
+            u[j] = SVector(1.0)
+            Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+            A[:, j] .= vec(getindex.(du, 1))
+        end
+
+        # The LDG discretization of the Laplacian is symmetric and negative
+        # semi-definite with respect to the mass matrix. This requires that both
+        # elements sharing a face select the same one-sided values. Moreover,
+        # the null space consists only of the constants.
+        mass_matrix = kron(Diagonal(mesh.md.J[1, :]), dg.basis.M)
+        MA = mass_matrix * A
+        @test norm(MA - MA', Inf) < 1.0e-12 * norm(MA, Inf)
+        eigenvalues = eigvals(Symmetric(MA))
+        @test maximum(eigenvalues) < 1.0e-12
+        @test count(>(-1.0e-10), eigenvalues) == 1
+    end
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_advection_diffusion.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion.jl"),
@@ -98,6 +149,22 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_periodic.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_advection_diffusion_periodic.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[0.03193866119685064],
+                        linf=[0.2159485072288711])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_nonperiodic.jl" setup=[
     Setup,
     Parabolic2D
@@ -107,6 +174,22 @@ end
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[0.002123168335604323],
                         linf=[0.00963640423513712])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_nonperiodic.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[0.0016177741712395145],
+                        linf=[0.008175245564062461])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -138,6 +221,32 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[
+                            0.001627082482609477,
+                            0.0033488362052721513,
+                            0.0036619956650549117,
+                            0.010265263787111385
+                        ],
+                        linf=[
+                            0.006879995850109566,
+                            0.012862761203504713,
+                            0.014487174270485625,
+                            0.02845075451737067
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
     Setup,
     Parabolic2D
@@ -156,6 +265,32 @@ end
                             0.04103131887989486,
                             0.03990424032494211,
                             0.13094018584692968
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_curved.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_curved.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[
+                            0.0045885174627663975,
+                            0.010938005333737727,
+                            0.011178166454224474,
+                            0.03656033506347919
+                        ],
+                        linf=[
+                            0.01897921369337352,
+                            0.03912946764945491,
+                            0.040334582684929066,
+                            0.1322703222334134
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

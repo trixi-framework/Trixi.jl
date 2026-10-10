@@ -17,6 +17,7 @@ cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
