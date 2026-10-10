@@ -384,6 +384,9 @@ starts the Julia sessions itself.
 - Except for consistency checks, unit tests for numerical fluxes and wave speed
   estimates should use *different* left and right states: many copy-paste bugs
   are invisible for `u_ll == u_rr`.
+- When adding an equation or new pointwise functions, add type stability tests
+  for `Float32` and `Float64` to `test/test_type.jl` (see the existing
+  `"Type stability: ..."` test items using `@inferred`).
 
 ## Code style
 
