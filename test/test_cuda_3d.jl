@@ -533,3 +533,55 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "CUDA 3D: elixir_euler_source_terms_nonperiodic.jl weak form / CUDA" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # The weak form volume integral uses one work-item per node. At polydeg = 3, a
+    # workgroup contains two elements if the number of elements is even and one otherwise.
+    solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+
+    # 64 elements, two elements per workgroup; the CPU solution is the reference
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  solver = solver, trees_per_dimension = (2, 2, 2),
+                  initial_refinement_level = 1, tspan = (0.0, 0.1))
+    u_cpu = Array(sol.u[end])
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  solver = solver, trees_per_dimension = (2, 2, 2),
+                  initial_refinement_level = 1, tspan = (0.0, 0.1),
+                  storage_type = CuArray)
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_cpu
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    # 27 elements, one element per workgroup
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  solver = solver, trees_per_dimension = (3, 3, 3),
+                  initial_refinement_level = 0, tspan = (0.0, 0.1))
+    u_cpu = Array(sol.u[end])
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  solver = solver, trees_per_dimension = (3, 3, 3),
+                  initial_refinement_level = 0, tspan = (0.0, 0.1),
+                  storage_type = CuArray)
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_cpu
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
