@@ -97,6 +97,9 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
                                         source_terms, boundary_conditions, uEltype)
 end
 
+# General fallback
+init_boundary_conditions!(boundary_conditions, cache) = nothing
+
 # general fallback
 function digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
     return boundary_conditions
@@ -145,6 +148,8 @@ end
 function digest_boundary_conditions(boundary_conditions,
                                     mesh::Union{TreeMesh{1}, StructuredMesh{1}}, solver,
                                     cache)
+    init_boundary_conditions!(boundary_conditions, cache)
+
     return (; x_neg = boundary_conditions, x_pos = boundary_conditions)
 end
 
