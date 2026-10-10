@@ -612,7 +612,8 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NumericalFlux,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
                                                                                  NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX}
@@ -748,7 +749,8 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NumericalFlux,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
                                                                                  NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX}
@@ -899,7 +901,8 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NumericalFlux,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
                                                                                  NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX
@@ -986,7 +989,8 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors) where {NumericalFlux,
+                                                   contravariant_vectors) where {
+                                                                                 NumericalFlux,
                                                                                  NNODES,
                                                                                  NVARIABLES,
                                                                                  NAUX
