@@ -3050,6 +3050,15 @@ end
 
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
               RealT
+        @test typeof(@inferred max_abs_speed(u_ll, u_rr, orientation, equations)) ==
+              RealT
+
+        for direction in directions
+            @test eltype(@inferred boundary_condition_slip_wall(u_inner, orientation,
+                                                                direction, x, t,
+                                                                surface_flux_function,
+                                                                equations)) == RealT
+        end
 
         @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
         @test eltype(@inferred cons2prim(u, equations)) == RealT
@@ -3066,6 +3075,38 @@ end
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa PassiveTracerEquations
         @test adapted.flow_equations isa CompressibleEulerEquations1D{Float32}
+    end
+
+    # Methods with a `normal_direction` require flow equations in at least two dimensions
+    for RealT in (Float32, Float64)
+        flow_equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+        equations = @inferred PassiveTracerEquations{2, 6, 2, typeof(flow_equations)}(flow_equations)
+
+        x = SVector(zero(RealT), zero(RealT))
+        t = zero(RealT)
+        u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT), one(RealT),
+                                        one(RealT), one(RealT))
+        normal_direction = SVector(one(RealT), zero(RealT))
+        directions = [1, 2, 3, 4]
+
+        surface_flux_function = flux_lax_friedrichs
+
+        @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                   equations)) == RealT
+        @test typeof(@inferred max_abs_speed(u_ll, u_rr, normal_direction, equations)) ==
+              RealT
+
+        @test eltype(@inferred boundary_condition_slip_wall(u_inner, normal_direction,
+                                                            x, t,
+                                                            surface_flux_function,
+                                                            equations)) == RealT
+        for direction in directions
+            @test eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                normal_direction,
+                                                                direction, x, t,
+                                                                surface_flux_function,
+                                                                equations)) == RealT
+        end
     end
 end
 

@@ -309,7 +309,7 @@ end
                                             neighbor_ids,
                                             node_indices_arr,
                                             t,
-                                            boundary_condition,
+                                            boundary_condition::BC,
                                             index_range,
                                             MeshT::Type{<:Union{P4estMesh{2},
                                                                 P4estMeshView{2},
@@ -318,7 +318,7 @@ end
                                             surface_integral,
                                             dg,
                                             cache, node_coordinates,
-                                            contravariant_vectors)
+                                            contravariant_vectors) where {BC}
     i, local_index = @index(Global, NTuple)
 
     if local_index <= length(boundary_condition_indices)
@@ -498,7 +498,7 @@ end
 @kernel function calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(du,
                                                                                      u,
                                                                                      t,
-                                                                                     source_terms,
+                                                                                     source_terms::Source,
                                                                                      node_coordinates,
                                                                                      MeshT::Type{<:Union{P4estMesh{2},
                                                                                                          P4estMeshView{2},
@@ -509,7 +509,10 @@ end
                                                                                      surface_flux_values,
                                                                                      dg::DGSEM,
                                                                                      inverse_jacobian,
-                                                                                     cache) where {NNODES}
+                                                                                     cache) where {
+                                                                                                   NNODES,
+                                                                                                   Source
+                                                                                                   }
     i, j, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
