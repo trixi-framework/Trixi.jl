@@ -1289,9 +1289,10 @@ end
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
         ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(ArrayType, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1312,9 +1313,10 @@ end
                   ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(Array, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1333,9 +1335,10 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    return unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                       (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                        nelements(dg, cache)))
+    return unsafe_wrap_or_alloc(Array, u_ode,
+                                (nvariables(equations),
+                                 ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                 nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
