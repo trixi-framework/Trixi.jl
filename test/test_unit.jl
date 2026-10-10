@@ -3224,14 +3224,13 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
-    # Deterministic parts of the Butcher tableau (default `cS2 = 1`). Since the default
-    # value is `1.0f0`, `c` is currently computed in `Float32`, so we use `atol = 1e-7`.
+    # Deterministic parts of the Butcher tableau (default `cS2 = 1`)
     c_expected = [0, 0.2, 0.4, 0.6, 0.8, 1, 1, 0.5]
-    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-7)
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.33551678438002486 0.06448322158043965
-                    0.49653494442225443 0.10346507941960345
-                    0.6496890912144586 0.15031092070647037
+                   [0.3355167784195604 0.06448322158043965
+                    0.4965349205803965 0.10346507941960345
+                    0.6496890792935297 0.15031092070647037
                     0.789172498521197 0.21082750147880308
                     0.7522972036571336 0.2477027963428664
                     0.31192569908571666 0.18807430091428337], atol = 1e-13)
@@ -3245,7 +3244,7 @@ end
 
     # The coefficients depend on round-off, see the comment in the test of the
     # second-order method above. We also check the third-order condition.
-    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-7)
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-14)
     @test isapprox(ode_algorithm.dt_opt, 0.3911191849038005; atol = 1e-7)
     @test all(>=(0), ode_algorithm.a_matrix)
     @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
@@ -3253,12 +3252,12 @@ end
     @test isapprox(4 * ode_algorithm.a_matrix[2, end] + ode_algorithm.a_matrix[2, end - 1],
                    1; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.33591884693426466 0.06408115902619979
-                    0.49546131851830355 0.10453870532355437
-                    0.6479106823753369 0.152089329545592
-                    0.7874547563378256 0.2125452436621744
-                    0.7518594097920634 0.24814059020793658
-                    0.31203514755198414 0.18796485244801586], atol = 1e-7)
+                   [0.3359188409372204 0.0640811590627796
+                    0.49546129071748163 0.10453870928251836
+                    0.6479106760193197 0.15208932398068034
+                    0.7874547514258144 0.21254524857418558
+                    0.7518593997208064 0.24814060027919357
+                    0.31203515006979843 0.1879648499302016], atol = 1e-7)
 end
 
 @testitem "Unit: PERK Single p4 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin

@@ -207,7 +207,7 @@ If the optimal monomial coefficients are precomputed, the user needs to provide 
 The corresponding constructor has signature
 ```julia
 PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
-                  dt_opt = nothing; cS2 = 1.0f0)
+                  dt_opt = nothing; cS2 = 1.0)
 ```
 Then, the stable CFL number can be computed as described above.
 
