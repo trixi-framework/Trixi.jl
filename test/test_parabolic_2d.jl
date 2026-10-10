@@ -1022,8 +1022,6 @@ end
     Setup,
     Parabolic2D
 ] tags=[:parabolic_part1] begin
-    using Trixi
-    using OrdinaryDiffEqLowStorageRK: CarpenterKennedy2N54
     # Only set up the semidiscretization, the time integration is done below
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
@@ -1048,10 +1046,10 @@ end
     du_ode32 = similar(u_ode32)
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)
     Trixi.rhs_parabolic!(du_ode32, u_ode32, semi32, Float32(t))
-    @test maximum(abs, du_ode32 - du_ode) < 1.0e-3 * maximum(abs, du_ode)
+    @test du_ode32 ≈ du_ode
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
     Trixi.rhs_hyperbolic!(du_ode32, u_ode32, semi32, Float32(t))
-    @test maximum(abs, du_ode32 - du_ode) < 1.0e-3 * maximum(abs, du_ode)
+    @test du_ode32 ≈ du_ode
 
     # A few time steps in `Float32` stay close to the `Float64` solution
     ode64 = semidiscretize(semi, (0.0, 0.01))
@@ -1059,7 +1057,7 @@ end
     sol32 = solve(ode, alg; dt = 1.0f-3, adaptive = false, save_everystep = false)
     sol64 = solve(ode64, alg; dt = 1.0e-3, adaptive = false, save_everystep = false)
     @test sol32.u[end] isa Vector{Float32}
-    @test isapprox(sol32.u[end], sol64.u[end]; rtol = 1.0e-5)
+    @test sol32.u[end] ≈ sol64.u[end]
 end
 
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" setup=[

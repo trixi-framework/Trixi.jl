@@ -1,6 +1,7 @@
 mutable struct ParabolicContainer2D{uEltype <: Real,
                                     ArrayuEltype4D <: AbstractArray{uEltype, 4},
-                                    VectoruEltype <: AbstractVector{uEltype}}
+                                    VectoruEltype <: AbstractVector{uEltype}} <:
+               AbstractContainer
     # [variables, nodes, nodes, elements]
     u_transformed::ArrayuEltype4D
     # ([variables, nodes, nodes, elements],
@@ -41,50 +42,40 @@ function init_parabolic_container_2d(n_vars::Integer, n_nodes::Integer,
     return ParabolicContainer2D{uEltype}(n_vars, n_nodes, n_elements)
 end
 
+function Adapt.parent_type(::Type{<:ParabolicContainer2D{<:Any, <:Any,
+                                                         VectoruEltype}}) where {VectoruEltype}
+    return VectoruEltype
+end
+
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
 function Base.resize!(parabolic_container::ParabolicContainer2D, equations, dg, cache)
+    @unpack _u_transformed, _gradients, _flux_parabolic = parabolic_container
+    ArrayType = storage_type(parabolic_container)
+
     capacity = nvariables(equations) * nnodes(dg)^2 * nelements(dg, cache)
-    resize!(parabolic_container._u_transformed, capacity)
+    resize!(_u_transformed, capacity)
     for dim in 1:2
-        resize!(parabolic_container._gradients[dim], capacity)
-        resize!(parabolic_container._flux_parabolic[dim], capacity)
+        resize!(_gradients[dim], capacity)
+        resize!(_flux_parabolic[dim], capacity)
     end
 
-    parabolic_container.u_transformed = unsafe_wrap(Array,
-                                                    pointer(parabolic_container._u_transformed),
-                                                    (nvariables(equations),
-                                                     nnodes(dg), nnodes(dg),
-                                                     nelements(dg, cache)))
-
-    gradients_1 = unsafe_wrap(Array,
-                              pointer(parabolic_container._gradients[1]),
-                              (nvariables(equations),
-                               nnodes(dg), nnodes(dg),
-                               nelements(dg, cache)))
-    gradients_2 = unsafe_wrap(Array,
-                              pointer(parabolic_container._gradients[2]),
-                              (nvariables(equations),
-                               nnodes(dg), nnodes(dg),
-                               nelements(dg, cache)))
-
-    parabolic_container.gradients = (gradients_1, gradients_2)
-
-    flux_parabolic_1 = unsafe_wrap(Array,
-                                   pointer(parabolic_container._flux_parabolic[1]),
-                                   (nvariables(equations),
-                                    nnodes(dg), nnodes(dg),
-                                    nelements(dg, cache)))
-    flux_parabolic_2 = unsafe_wrap(Array,
-                                   pointer(parabolic_container._flux_parabolic[2]),
-                                   (nvariables(equations),
-                                    nnodes(dg), nnodes(dg),
-                                    nelements(dg, cache)))
-
-    parabolic_container.flux_parabolic = (flux_parabolic_1, flux_parabolic_2)
+    array_size = (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+    parabolic_container.u_transformed = unsafe_wrap_or_alloc(ArrayType, _u_transformed,
+                                                             array_size)
+    parabolic_container.gradients = (unsafe_wrap_or_alloc(ArrayType, _gradients[1],
+                                                          array_size),
+                                     unsafe_wrap_or_alloc(ArrayType, _gradients[2],
+                                                          array_size))
+    parabolic_container.flux_parabolic = (unsafe_wrap_or_alloc(ArrayType,
+                                                               _flux_parabolic[1],
+                                                               array_size),
+                                          unsafe_wrap_or_alloc(ArrayType,
+                                                               _flux_parabolic[2],
+                                                               array_size))
 
     return nothing
 end
