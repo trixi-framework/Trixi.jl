@@ -1789,6 +1789,86 @@ function calc_fv_cell_corners(mesh::P4estMesh{2}, solver::BlockFV, cache)
     return corner_coordinates[1, :, :, :], corner_coordinates[2, :, :, :]
 end
 
+# Returns an array of shape (n+1, n+1, n_elements) that assigns the same group to all
+# corners of FV cells that belong to the same mesh vertex. Inside an element, such corners
+# are the same array entry anyway. Across elements, the corners along each interface are
+# traversed on both sides in the same way as `prolong2interfaces!` traverses the solver
+# nodes. Corners shared by more than two elements are connected through their faces. Since
+# periodic boundaries are interfaces as well, corners on opposite sides of a periodic domain
+# belong to the same group. Mortars are not considered, since `BlockFV` does not support
+# non-conforming meshes yet.
+function calc_fv_corner_groups(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    n = nnodes(solver)
+    corner_range = Base.OneTo(n + 1)
+    corners = LinearIndices((n + 1, n + 1, nelements(solver, cache)))
+    @unpack neighbor_ids, node_indices = cache.interfaces
+
+    # Union-find: each corner points to another corner of the same group, and the
+    # representative of a group (the corner with the smallest index) points to itself.
+    groups = reshape(collect(corners), size(corners))
+    for interface in eachinterface(solver, cache)
+        primary_element = neighbor_ids[1, interface]
+        secondary_element = neighbor_ids[2, interface]
+        primary_indices = node_indices[1, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_primary, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                           corner_range)
+        j_primary, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                           corner_range)
+        i_secondary, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                               corner_range)
+        j_secondary, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                               corner_range)
+        for _ in corner_range
+            primary = find_group!(groups,
+                                  corners[i_primary, j_primary, primary_element])
+            secondary = find_group!(groups,
+                                    corners[i_secondary, j_secondary,
+                                            secondary_element])
+            groups[max(primary, secondary)] = min(primary, secondary)
+
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
+
+    # Let each corner point to the representative of its group
+    for corner in eachindex(groups)
+        groups[corner] = find_group!(groups, corner)
+    end
+
+    return groups
+end
+
+# Returns the representative of the group of `index` in the union-find structure `groups`
+# and shortens the path to it on the way.
+function find_group!(groups, index)
+    while groups[index] != index
+        groups[index] = groups[groups[index]]
+        index = groups[index]
+    end
+    return index
+end
+
+# Returns the mean of `data` over all entries with the same group, for each entry.
+function calc_group_means(data, groups)
+    sums = zeros(eltype(data), maximum(groups))
+    counts = zeros(Int, maximum(groups))
+    for i in eachindex(data, groups)
+        sums[groups[i]] += data[i]
+        counts[groups[i]] += 1
+    end
+
+    means = similar(data)
+    for i in eachindex(means, groups)
+        means[i] = sums[groups[i]] / counts[groups[i]]
+    end
+    return means
+end
+
 # Edge segments for all FV cell boundaries.
 # Returns (x_face, y_face), each (2, n_faces): one column per edge segment.
 function calc_fv_grid_wireframe(corners_x, corners_y)

@@ -121,7 +121,7 @@ end
                 for property in propertynames(spd_function)
                     if property == :data
                         @test spd_no_function.data.data ≈ spd_function.data.data
-                    elseif property == :variable_names
+                    elseif property in (:variable_names, :point_data)
                         @test getproperty(spd_no_function, property) ==
                               getproperty(spd_function, property)
                     else
@@ -1245,12 +1245,108 @@ end
     @trixi_test_nowarn typeof(fig) <: Makie.Figure
     @trixi_test_nowarn typeof(axes) <: AbstractArray{<:Makie.Axis}
 
+    # Makie.contour(pds) uses tricontour with title, xlabel, ylabel and colorbar
+    @test pd.point_values
+    @test isnothing(pd.point_data)
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["rho"])
+    @test plt isa Makie.Tricontour
+
+    # kwargs are forwarded to tricontour!
+    @trixi_test_nowarn Makie.contour(pd["rho"], levels = 5)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D UnstructuredMesh2D solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    _, _, plt = @trixi_test_nowarn Makie.contourf(pd["rho"])
+    @test plt isa Makie.Tricontourf
+    @trixi_test_nowarn Makie.contourf(pd["rho"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"], levels = 5, color = :white)
+
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
     @trixi_test_nowarn Trixi.iplot(sol)
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    pd_const = PlotData2D(sol)
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["rho"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["rho"])
+end
+@testitem "Visualization: Makie contour plots for BlockFV on P4estMesh" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test !pd.point_values
+
+    # Each cell holds a single value on its own copy of the cell corners, so every
+    # triangle is constant. Contours need point values, so the cell values are also
+    # averaged onto the cell corners. On this Cartesian mesh, the corners of neighboring
+    # cells coincide exactly, so the four nodes at each interior corner must get the mean
+    # value of the four adjacent cells.
+    x, y = vec(pd.x), vec(pd.y)
+    u = vec(StructArrays.component(pd.data, 1))
+    u_point = vec(StructArrays.component(pd.point_data, 1))
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, (x[i], y[i])), i)
+    end
+    interior_corners = filter(==(4) ∘ length, collect(values(nodes)))
+    @test length(interior_corners) == 63^2
+    @test all(n -> all(u_point[n] .≈ sum(u[n]) / 4), interior_corners)
+    @test minimum(u) <= minimum(u_point) && maximum(u_point) <= maximum(u)
+
+    # The corners are found with the mesh connectivity. Since the domain is periodic, the
+    # corners on opposite sides of the domain are the same and get the same value.
+    on_boundary(side) = Dict(round(y[i]; digits = 10) => u_point[i]
+                             for i in eachindex(x) if x[i] ≈ side)
+    left, right = on_boundary(-1), on_boundary(1)
+    @test keys(left) == keys(right)
+    @test all(k -> left[k] ≈ right[k], keys(left))
+
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["scalar"])
+    @test !isempty(plt.plots[1][1][])
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # On curved meshes, corners shared by neighboring elements only coincide up to
+    # round-off errors. The mesh connectivity still gives all of them the same value.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_unstructured_flag.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    x, y = vec(pd.x), vec(pd.y)
+    u_point = vec(StructArrays.component(pd.point_data, 1))
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, round.((x[i], y[i]); digits = 10)), i)
+    end
+    @test length(nodes) < length(unique(zip(x, y)))
+    @test all(n -> all(==(u_point[first(n)]), u_point[n]), values(nodes))
 end
 @testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
     Setup,
