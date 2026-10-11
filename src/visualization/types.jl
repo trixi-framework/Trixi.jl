@@ -872,6 +872,7 @@ function PlotData2D(u::StructArray,
     intersection_polygons = tetrahedral_slice_polygons(mesh, dg, slice_dimension,
                                                        slice_coordinate)
 
+    # A triangular cut yields one patch, a quadrilateral two.
     # Keep separate patches for each tetrahedron to preserve DG discontinuities.
     num_slice_elements = sum(length(polygon) - 2
                              for (_, polygon, _) in intersection_polygons)
@@ -896,6 +897,8 @@ function PlotData2D(u::StructArray,
 
     slice_element = 0
     for (element, polygon, vertex_coordinates) in intersection_polygons
+        # Fan triangulation from the first vertex, valid because the cut polygon is
+        # convex and cyclically ordered.
         for last_vertex in 3:length(polygon)
             slice_element += 1
             triangle = (1, last_vertex - 1, last_vertex)
@@ -903,15 +906,18 @@ function PlotData2D(u::StructArray,
                 triangle_corner_values(polygon, triangle, coordinates)
             end
 
+            # Patch coordinates in the slice plane, affine in the barycentric weights.
             mul!(view(x_plot, :, slice_element), triangle_vertex_interpolation,
                  patch_coordinates(vertex_coordinates[orientation_x]))
             mul!(view(y_plot, :, slice_element), triangle_vertex_interpolation,
                  patch_coordinates(vertex_coordinates[orientation_y]))
+            # Where the triangle nodes sit inside the reference tetrahedron.
             for dimension in 1:3
                 mul!(reference_coordinates[dimension], rd_slice.V1,
                      patch_coordinates(reference_vertex_coordinates[dimension]))
             end
 
+            # Evaluate the source element's basis there, then go to the plotting nodes.
             interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
                                                          reference_coordinates...) /
                                    element_vandermonde
