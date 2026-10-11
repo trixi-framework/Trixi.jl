@@ -903,7 +903,8 @@ function PlotData2D(u::StructArray,
             slice_element += 1
             triangle = (1, last_vertex - 1, last_vertex)
             function patch_coordinates(coordinates)
-                triangle_corner_values(polygon, triangle, coordinates)
+                return SVector{3, RealT}(ntuple(corner -> dot(polygon[triangle[corner]],
+                                                              coordinates), 3))
             end
 
             # Patch coordinates in the slice plane, affine in the barycentric weights.

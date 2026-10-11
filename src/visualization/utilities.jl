@@ -780,13 +780,6 @@ function intersect_tetrahedron_with_plane(vertex_coordinates::NTuple{3,
     return intersections
 end
 
-# Evaluate a coordinate component at the three corners of a slice triangle.
-function triangle_corner_values(polygon, triangle, coordinates)
-    RealT = eltype(coordinates)
-    return SVector{3, RealT}(ntuple(local_vertex -> dot(polygon[triangle[local_vertex]],
-                                                        coordinates), 3))
-end
-
 # Convert 3d unstructured data to 2d data.
 # Additional to the new unstructured data updated coordinates, levels and
 # center coordinates are returned.
