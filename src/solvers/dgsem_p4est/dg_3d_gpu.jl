@@ -1800,7 +1800,9 @@ function calc_volume_integral!(backend::Backend, du, u,
     NELEMENTS_WG = elements_per_workgroup(NNODES^3, nelements(dg, cache))
     kernel! = weak_form_3d_KAkernel!(backend, (NNODES, NNODES, NNODES, NELEMENTS_WG))
     kernel!(du, u, equations, dg, Val(NNODES), Val(nvariables(equations)),
-            Val(NELEMENTS_WG), derivative_hat, contravariant_vectors,
+            Val(NELEMENTS_WG),
+            local_memory_layout(backend, get(cache, :local_memory_layout, nothing)),
+            derivative_hat, contravariant_vectors,
             ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
     return nothing
 end
@@ -1811,6 +1813,7 @@ end
 @kernel inbounds=true function weak_form_3d_KAkernel!(du, u, equations, dg::DGSEM,
                                                       ::Val{NNODES}, ::Val{NVARIABLES},
                                                       ::Val{NELEMENTS_WG},
+                                                      layout::AbstractLocalMemoryLayout,
                                                       derivative_hat,
                                                       contravariant_vectors) where {
                                                                                     NNODES,
@@ -1820,12 +1823,15 @@ end
     i, j, k, element = @index(Global, NTuple)
     _, _, _, e = @index(Local, NTuple)
 
-    flux1_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
-                                        NELEMENTS_WG)
-    flux2_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
-                                        NELEMENTS_WG)
-    flux3_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES,
-                                        NELEMENTS_WG)
+    flux1_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                         (NNODES, NNODES, NNODES,
+                                                          NELEMENTS_WG))
+    flux2_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                         (NNODES, NNODES, NNODES,
+                                                          NELEMENTS_WG))
+    flux3_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                         (NNODES, NNODES, NNODES,
+                                                          NELEMENTS_WG))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -1842,26 +1848,32 @@ end
     Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
                                                 element)
     contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-    set_node_vars!(flux1_local, contravariant_flux1, equations, dg, i, j, k, e)
-    set_node_vars!(flux2_local, contravariant_flux2, equations, dg, i, j, k, e)
-    set_node_vars!(flux3_local, contravariant_flux3, equations, dg, i, j, k, e)
+    set_local_node_vars!(flux1_local, layout, Val(NVARIABLES), contravariant_flux1,
+                         i, j, k, e)
+    set_local_node_vars!(flux2_local, layout, Val(NVARIABLES), contravariant_flux2,
+                         i, j, k, e)
+    set_local_node_vars!(flux3_local, layout, Val(NVARIABLES), contravariant_flux3,
+                         i, j, k, e)
 
     @synchronize
 
     du_node = zero(SVector{NVARIABLES, eltype(du)})
     for kk in 1:(k - 1)
         du_node = muladd.(derivative_hat[k, kk],
-                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          get_local_node_vars(flux3_local, layout, Val(NVARIABLES), i,
+                                              j, kk, e),
                           du_node)
     end
     for jj in 1:(j - 1)
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          get_local_node_vars(flux2_local, layout, Val(NVARIABLES), i,
+                                              jj, k, e),
                           du_node)
     end
     for ii in 1:NNODES
         du_node = muladd.(derivative_hat[i, ii],
-                          get_node_vars(flux1_local, equations, dg, ii, j, k, e),
+                          get_local_node_vars(flux1_local, layout, Val(NVARIABLES), ii,
+                                              j, k, e),
                           du_node)
         if ii == i
             du_node = muladd.(derivative_hat[j, j], contravariant_flux2, du_node)
@@ -1870,12 +1882,14 @@ end
     end
     for jj in (j + 1):NNODES
         du_node = muladd.(derivative_hat[j, jj],
-                          get_node_vars(flux2_local, equations, dg, i, jj, k, e),
+                          get_local_node_vars(flux2_local, layout, Val(NVARIABLES), i,
+                                              jj, k, e),
                           du_node)
     end
     for kk in (k + 1):NNODES
         du_node = muladd.(derivative_hat[k, kk],
-                          get_node_vars(flux3_local, equations, dg, i, j, kk, e),
+                          get_local_node_vars(flux3_local, layout, Val(NVARIABLES), i,
+                                              j, kk, e),
                           du_node)
     end
 
