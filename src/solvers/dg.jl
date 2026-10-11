@@ -1258,9 +1258,12 @@ end
     end
     # We would like to use
     #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    # but that results in
+    # but, on Julia v1.10, that results in
     #     ERROR: LoadError: cannot resize array with shared data
-    # when we resize! `u_ode` during AMR.
+    # when we resize! `u_ode` during AMR. Thus, `unsafe_wrap_or_alloc` uses `unsafe_wrap`
+    # for `isbits` element types and `reshape` only for other element types, for which
+    # `unsafe_wrap` is not safe with respect to the garbage collector (see the comment
+    # there).
     #
     # !!! danger "Segfaults"
     #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`

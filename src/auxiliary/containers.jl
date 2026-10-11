@@ -295,11 +295,13 @@ end
 # !!! danger "Non-`isbits` element types"
 #     The garbage collector does not know that an array created by `unsafe_wrap` aliases
 #     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
-#     from SparseConnectivityTracer.jl), storing an object through the wrapped array it can't
-#     keep track of them (write-barrier) and does not mark `vector` during an incremental collection.
-#     Thus, we use `reshape` for these element types, which shares the memory of `vector`
-#     in a way the garbage collector understands. On Julia v1.10, this marks `vector` as
-#     shared, so `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
+#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
+#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
+#     is not rescanned during an incremental collection, and the stored objects can be
+#     freed while `vector` still refers to them. Hence, we use `reshape` for these
+#     element types, which shares the memory of `vector` in a way the garbage collector
+#     understands. On Julia v1.10, this marks `vector` as shared, so
+#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
 #     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
 #     wrapped array is in use.
 function unsafe_wrap_or_alloc(to, vector, size)
