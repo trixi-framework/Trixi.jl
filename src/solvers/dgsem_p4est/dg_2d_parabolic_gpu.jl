@@ -50,19 +50,19 @@ function rhs_parabolic!(backend::Backend, du, u, t,
     # Calculate volume integral of the divergence of the parabolic fluxes.
     # This overwrites `du`, so no reset is required.
     @trixi_timeit_ext backend timer() "volume integral" begin
-        calc_volume_integral_divergence!(backend, du, flux_parabolic, mesh,
-                                         equations_parabolic, dg, cache)
+        calc_volume_integral!(backend, du, flux_parabolic, mesh,
+                              equations_parabolic, dg, cache)
     end
 
     # Prolong the normal parabolic fluxes to the interfaces and calculate the
     # interface fluxes
     @trixi_timeit_ext backend timer() "prolong2interfaces + interface flux" begin
-        prolong2interfaces_and_calc_interface_flux_divergence!(backend,
-                                                               cache.elements.surface_flux_values,
-                                                               flux_parabolic, mesh,
-                                                               equations_parabolic,
-                                                               dg, parabolic_scheme,
-                                                               cache)
+        prolong2interfaces_and_calc_interface_flux!(backend,
+                                                    cache.elements.surface_flux_values,
+                                                    flux_parabolic, mesh,
+                                                    equations_parabolic,
+                                                    dg, parabolic_scheme,
+                                                    cache)
     end
 
     # Prolong the normal parabolic fluxes to the boundaries and calculate the
@@ -256,10 +256,10 @@ end
 
 # Weak-form volume integral of the divergence of the (precomputed) parabolic fluxes.
 # In contrast to the CPU version, this overwrites `du`.
-function calc_volume_integral_divergence!(backend::Backend, du, flux_parabolic,
-                                          mesh::P4estMesh{2},
-                                          equations_parabolic::AbstractEquationsParabolic,
-                                          dg::DGSEM, cache)
+function calc_volume_integral!(backend::Backend, du, flux_parabolic,
+                               mesh::P4estMesh{2},
+                               equations_parabolic::AbstractEquationsParabolic,
+                               dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
     @unpack contravariant_vectors = cache.elements
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -412,14 +412,14 @@ end
     return normal_direction[1] * flux1 + normal_direction[2] * flux2
 end
 
-function prolong2interfaces_and_calc_interface_flux_divergence!(backend::Backend,
-                                                                surface_flux_values,
-                                                                flux_parabolic,
-                                                                mesh::P4estMesh{2},
-                                                                equations_parabolic,
-                                                                dg::DG,
-                                                                parabolic_scheme,
-                                                                cache)
+function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
+                                                     surface_flux_values,
+                                                     flux_parabolic,
+                                                     mesh::P4estMesh{2},
+                                                     equations_parabolic::AbstractEquationsParabolic,
+                                                     dg::DG,
+                                                     parabolic_scheme,
+                                                     cache)
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements

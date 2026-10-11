@@ -347,14 +347,19 @@ end
     using CUDA
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
-                        l2=Float32[0.00031915737375335507,
-                                   0.08100071821161867,
-                                   0.02099960476349156,
-                                   0.04866932200947667],
-                        linf=Float32[0.014976143836975098,
-                                     0.9511703472393689,
-                                     0.7222638225794071,
-                                     1.4565359767599375],
+                        # The default `time_int_tol = 1e-8` of the adaptive time
+                        # integrator is below the machine epsilon of `Float32`.
+                        # Then, the step size controller reacts to round-off
+                        # errors and the results depend on the hardware.
+                        time_int_tol=1e-6,
+                        l2=Float32[0.0002872776782961305,
+                                   0.08101156332910643,
+                                   0.020995577492751334,
+                                   0.04966299146648708],
+                        linf=Float32[0.014816880226135254,
+                                     0.9513215454717804,
+                                     0.7223801011859905,
+                                     1.483162563674],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
