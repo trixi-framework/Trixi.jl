@@ -452,3 +452,35 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # Reference solution on the CPU
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1), real_type = Float32)
+    u_cpu = Array(sol.u[end])
+
+    for kernel in (HalfSweep(), FullSweep(), FullSweepGlobal())
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR,
+                               "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                      tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                      flux_differencing_kernel = kernel)
+        @test ode.p.cache.flux_differencing_kernel === kernel
+        @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+        @test Array(sol.u[end]) ≈ u_cpu
+        # Ensure that the RHS computation overwrites existing data in `du` correctly.
+        u_ode = copy(ode.u0)
+        du_ode = similar(u_ode)
+        fill!(du_ode, convert(eltype(du_ode), NaN))
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+        @test all(isfinite, du_ode)
+    end
+end
