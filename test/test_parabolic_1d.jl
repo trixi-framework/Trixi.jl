@@ -93,7 +93,12 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_dirichlet_amr.jl"),
-                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842])
+                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842],
+                        # Relax error tolerance since some changes in
+                        # OrdinaryDiffEqCore.jl 4.18.1 changed the step
+                        # size sequence slightly and thus also the final
+                        # error.
+                        atol=7.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

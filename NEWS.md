@@ -8,6 +8,13 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
+  arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
+  `P4estMesh` ([#3313]).
+- `boundary_condition_slip_wall` and the less diffusive wave speed estimate
+  `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
+- New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
+  which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
@@ -40,6 +47,8 @@ for human readability.
   - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
     `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
     `P4estMesh2D` ([#3289])
+  - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
@@ -61,6 +70,14 @@ for human readability.
   `ParabolicFormulationLocalDG` change and now agree with serial simulations.
   Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
   is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
+- Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
+  `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
+  in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
+  `normal_direction` used both states instead of only the left state for the minimum
+  wave speed estimate (inconsistent with `min_max_speed_naive` with an `orientation`).
+  Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
+  e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
+  meshes, change.
 
 
 ## Changes when updating to v0.17 from v0.16.x
