@@ -86,7 +86,8 @@ end
                   colorvec::Union{AbstractVector, Nothing} = nothing,
                   storage_type = nothing,
                   real_type = nothing,
-                  flux_differencing_kernel = nothing)
+                  flux_differencing_kernel = nothing,
+                  local_memory_layout = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -102,6 +103,9 @@ Optional keyword arguments:
 - `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
   volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
   [`FullSweepGlobal()`](@ref).
+- `local_memory_layout`: Select the layout of the local (shared) memory of the GPU kernels,
+  [`VariableLast()`](@ref) or [`VariableFirst()`](@ref). By default, GPU backends use
+  `VariableLast()` and the CPU backend of KernelAbstractions.jl uses `VariableFirst()`.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
@@ -109,7 +113,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         reset_threads = true,
                         storage_type = nothing,
                         real_type = nothing,
-                        flux_differencing_kernel = nothing)
+                        flux_differencing_kernel = nothing,
+                        local_memory_layout = nothing)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -118,7 +123,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     end
 
     semi, tspan = adapt_semidiscretization(semi, tspan; storage_type, real_type,
-                                           flux_differencing_kernel)
+                                           flux_differencing_kernel,
+                                           local_memory_layout)
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
     rhs_semi! = default_rhs(semi)
@@ -152,7 +158,8 @@ end
 # Returns the (possibly) adapted semidiscretization and time span.
 function adapt_semidiscretization(semi::AbstractSemidiscretization, tspan;
                                   storage_type = nothing, real_type = nothing,
-                                  flux_differencing_kernel = nothing)
+                                  flux_differencing_kernel = nothing,
+                                  local_memory_layout = nothing)
     if !(storage_type === nothing && real_type === nothing)
         if storage_type === nothing
             storage_type = Array
@@ -167,7 +174,7 @@ function adapt_semidiscretization(semi::AbstractSemidiscretization, tspan;
     end
 
     if storage_type !== nothing || flux_differencing_kernel !== nothing ||
-       _PREFERENCE_THREADING === :kernelabstractions
+       local_memory_layout !== nothing || _PREFERENCE_THREADING === :kernelabstractions
         if flux_differencing_kernel === nothing
             flux_differencing_kernel = HalfSweep()
         end
@@ -180,7 +187,8 @@ function adapt_semidiscretization(semi::AbstractSemidiscretization, tspan;
             error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
         end
         check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
-        @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
+        @reset semi.cache = (; semi.cache..., flux_differencing_kernel,
+                             local_memory_layout)
     end
 
     return semi, tspan

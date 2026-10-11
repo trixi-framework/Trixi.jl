@@ -50,9 +50,11 @@ tspan = (0.0, 5.0)
 # type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
 # On such backends, `flux_differencing_kernel` selects the kernel used for the
 # flux differencing volume integral, one of `HalfSweep()` (default), `FullSweep()`,
-# or `FullSweepGlobal()`.
+# or `FullSweepGlobal()`, and `local_memory_layout` the layout of the local memory
+# of the kernels, `VariableFirst()` or `VariableLast()` (`nothing` selects the default
+# of the backend).
 ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing,
-                     flux_differencing_kernel = nothing)
+                     flux_differencing_kernel = nothing, local_memory_layout = nothing)
 
 summary_callback = SummaryCallback()
 

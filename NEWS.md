@@ -8,6 +8,10 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- The layout of the local (shared) memory of the GPU volume kernels of the `P4estMesh{3}`
+  and `T8codeMesh{3}` can be selected via the keyword argument `local_memory_layout` of
+  `semidiscretize`, either `VariableFirst()` or `VariableLast()`. GPU backends default to
+  `VariableLast()` and the CPU backend of KernelAbstractions.jl to `VariableFirst()`.
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).

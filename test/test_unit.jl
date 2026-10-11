@@ -4827,6 +4827,50 @@ end
                                                                                       semi)
 end
 
+@testitem "Unit: local memory layout of the GPU kernels" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    using Trixi: local_memory_dims, local_index, get_local_node_vars, set_local_node_vars!,
+                 get_node_turbo, default_local_memory_layout, local_memory_layout
+    using Trixi.KernelAbstractions: CPU
+
+    # The variable index is first or last; the node indices keep their order
+    @test local_memory_dims(VariableLast(), Val(5), Val(4), Val(3)) == (4, 4, 4, 5)
+    @test local_memory_dims(VariableFirst(), Val(5), Val(4), Val(3)) == (5, 4, 4, 4)
+    @test local_memory_dims(VariableLast(), Val(5), (4, 4, 2)) == (4, 4, 2, 5)
+    @test local_memory_dims(VariableFirst(), Val(5), (4, 4, 2)) == (5, 4, 4, 2)
+    @test local_index(VariableLast(), 2, 1, 3, 4) == (1, 3, 4, 2)
+    @test local_index(VariableFirst(), 2, 1, 3, 4) == (2, 1, 3, 4)
+
+    # Writing and reading the variables of a node is consistent for both layouts
+    for layout in (VariableFirst(), VariableLast())
+        a = zeros(local_memory_dims(layout, Val(5), Val(4), Val(3)))
+        values = SVector(1.0, 2.0, 3.0, 4.0, 5.0)
+        set_local_node_vars!(a, layout, Val(5), values, 2, 3, 4)
+        @test get_local_node_vars(a, layout, Val(5), 2, 3, 4) == values
+        @test get_node_turbo(a, layout, Val(5), 2, 3, 4) == Tuple(values)
+        @test iszero(get_local_node_vars(a, layout, Val(5), 1, 3, 4))
+        @test count(!iszero, a) == 5
+    end
+
+    # Defaults: the variable index first on the CPU backend, last otherwise
+    @test default_local_memory_layout(CPU()) === VariableFirst()
+    @test local_memory_layout(CPU(), nothing) === VariableFirst()
+    @test local_memory_layout(CPU(), VariableLast()) === VariableLast()
+
+    # The layout is stored in the cache by `semidiscretize`
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    mesh = P4estMesh((1, 1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    ode = semidiscretize(semi, (0.0, 1.0); local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+end
+
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
     Setup,
     UnitTests
