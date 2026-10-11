@@ -268,17 +268,19 @@ end
 
 function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::TreeMesh{1},
+                                      mesh::Union{TreeMesh, P4estMesh},
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
 function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::TreeMesh{1},
+                                        mesh::Union{TreeMesh, P4estMesh},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 

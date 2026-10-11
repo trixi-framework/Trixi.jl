@@ -2682,6 +2682,10 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+            @test max_abs_speed(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(Trixi.flow_variables(u_ll, equations),
+                                Trixi.flow_variables(u_rr, equations), 1,
+                                flow_equations)
         end
     end
 
@@ -4718,5 +4722,183 @@ end
                           cache.mortars)
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
+    end
+end
+
+@testitem "Unit: PassiveTracerEquations slip wall and Lax-Friedrichs flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    flow_equations = equations.flow_equations
+    u_inner = prim2cons(SVector(1.2, 0.4, -0.3, 0.9, 0.7, -0.2), equations)
+    u_flow_inner = Trixi.flow_variables(u_inner, equations)
+    normal_direction = SVector(0.3, 0.8)
+    x = SVector(0.0, 0.0)
+    t = 0.0
+
+    # The mass flux and thus the tracer fluxes vanish at the wall
+    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                             flux_lax_friedrichs, equations)
+    @test flux_wall[1] == 0
+    @test flux_wall[5] == 0
+    @test flux_wall[6] == 0
+    # The flow fluxes are those of the slip wall of the flow equations
+    @test flux_wall[2:4] ≈
+          boundary_condition_slip_wall(u_flow_inner, normal_direction, x, t,
+                                       flux_lax_friedrichs, flow_equations)[2:4]
+
+    # `StructuredMesh` version with `normal_direction` and `direction`
+    for direction in 1:4
+        flux_wall_structured = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                            direction,
+                                                            x, t, flux_lax_friedrichs,
+                                                            equations)
+        @test flux_wall_structured[1] == 0
+        @test flux_wall_structured[5] == 0
+        @test flux_wall_structured[6] == 0
+        @test flux_wall_structured[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, normal_direction, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+    end
+
+    # `TreeMesh` version with `orientation` and `direction`. For the unit normals,
+    # it agrees with the `StructuredMesh` version.
+    for orientation in 1:2, direction in (2 * orientation - 1, 2 * orientation)
+        flux_wall_tree = boundary_condition_slip_wall(u_inner, orientation, direction,
+                                                      x, t, flux_lax_friedrichs, equations)
+        @test flux_wall_tree[1] == 0
+        @test flux_wall_tree[5] == 0
+        @test flux_wall_tree[6] == 0
+        @test flux_wall_tree[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, orientation, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+        normal_direction_unit = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_wall_tree ≈
+              boundary_condition_slip_wall(u_inner, normal_direction_unit, direction,
+                                           x, t, flux_lax_friedrichs, equations)
+    end
+
+    # The Lax-Friedrichs flux uses the wave speed estimate `max_abs_speed`
+    # of the flow equations. For these states (fast flow with a small speed of sound
+    # on the left, slow flow with a large speed of sound on the right),
+    # `max_abs_speed` is smaller than `max_abs_speed_naive`.
+    u_ll = prim2cons(SVector(1.0, 2.0, 0.0, 0.1, 0.3, -0.2), equations)
+    u_rr = prim2cons(SVector(1.0, 0.0, 0.1, 2.0, 0.7, 0.4), equations)
+    normal_direction = SVector(0.6, 0.8)
+    u_flow_ll = Trixi.flow_variables(u_ll, equations)
+    u_flow_rr = Trixi.flow_variables(u_rr, equations)
+    @test max_abs_speed(u_ll, u_rr, normal_direction, equations) ≈
+          max_abs_speed(u_flow_ll, u_flow_rr, normal_direction, equations.flow_equations) <
+          max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)
+    @test flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations)[1:4] ≈
+          flux_lax_friedrichs(u_flow_ll, u_flow_rr, normal_direction,
+                              equations.flow_equations)
+end
+
+@testitem "Unit: check_flux_differencing_shared_memory" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # One workgroup of the flux differencing GPU kernels handles all nodes of an
+    # element, i.e., `nnodes^ndims` nodes. With `polydeg = 10`, this exceeds the
+    # workgroup size limit in 3D but not in 2D.
+    solver = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+
+    mesh = P4estMesh((1, 1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                      semi)
+end
+
+@testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+
+    # Pairs of states in primitive variables (ρ, v₁, v₂, p, χ₁, χ₂), with
+    # subsonic and supersonic velocities and tracers with jumps of both signs
+    prim_pairs = [
+        (SVector(1.0, 0.1, 0.2, 1.0, 0.5, -0.3),
+         SVector(1.2, -0.3, 0.4, 0.8, 0.9, 0.1)),
+        (SVector(0.6, 1.5, -0.4, 0.5, -1.0, 2.0),
+         SVector(1.4, 0.7, 0.9, 1.3, 0.4, -0.6)),
+        (SVector(2.0, -2.5, 0.3, 0.4, 0.0, 1.0),
+         SVector(0.3, -1.8, -0.2, 0.2, 1.5, 1.0)),
+        (SVector(0.9, 0.0, 0.0, 1.1, 0.2, 0.2),
+         SVector(0.9, 0.0, 0.0, 1.1, 0.7, -0.4))]
+    orientations_or_normals = (1, 2, SVector(0.6, -0.8), SVector(-1.3, 0.4))
+
+    # Jump of the entropy potential ρ v⋅n (as for the Euler equations)
+    function psi_jump(u_ll, u_rr, orientation::Integer)
+        return u_rr[orientation + 1] - u_ll[orientation + 1]
+    end
+    function psi_jump(u_ll, u_rr, normal_direction::AbstractVector)
+        return (u_rr[2] - u_ll[2]) * normal_direction[1] +
+               (u_rr[3] - u_ll[3]) * normal_direction[2]
+    end
+
+    # Entropy conservation of `FluxTracerEquationsCentral(flux_ranocha)` and entropy
+    # stability of `FluxTracerEquationsUpwind` for the entropy of the tracer equations
+    flux_ec = FluxTracerEquationsCentral(flux_ranocha)
+    fluxes_es = (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                 FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                               DissipationLocalLaxFriedrichs())))
+    for (prim_ll, prim_rr) in prim_pairs, orientation_or_normal in orientations_or_normals
+        u_ll = prim2cons(prim_ll, equations)
+        u_rr = prim2cons(prim_rr, equations)
+        w_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+        psi = psi_jump(u_ll, u_rr, orientation_or_normal)
+        @test isapprox(dot(w_jump, flux_ec(u_ll, u_rr, orientation_or_normal, equations)),
+                       psi; atol = 1.0e-12 * (1 + abs(psi)))
+        for flux_es in fluxes_es
+            @test dot(w_jump, flux_es(u_ll, u_rr, orientation_or_normal, equations)) <=
+                  psi + 1.0e-12 * (1 + abs(psi))
+        end
+    end
+
+    # The flow fluxes are those of the flow flux, and the tracers are upwinded with
+    # its mass flux
+    u_ll = prim2cons(prim_pairs[1][1], equations)
+    u_rr = prim2cons(prim_pairs[1][2], equations)
+    flow_equations = equations.flow_equations
+    for orientation_or_normal in orientations_or_normals
+        flux_upwind = FluxTracerEquationsUpwind(flux_lax_friedrichs)(u_ll, u_rr,
+                                                                     orientation_or_normal,
+                                                                     equations)
+        flux_flow = flux_lax_friedrichs(Trixi.flow_variables(u_ll, equations),
+                                        Trixi.flow_variables(u_rr, equations),
+                                        orientation_or_normal, flow_equations)
+        @test flux_upwind[1:4] ≈ flux_flow
+        f_rho = flux_flow[1]
+        chi_ll = Trixi.tracers(u_ll, equations)
+        chi_rr = Trixi.tracers(u_rr, equations)
+        @test flux_upwind[5:6] ≈
+              f_rho * (chi_ll + chi_rr) / 2 - abs(f_rho) * (chi_rr - chi_ll) / 2
+    end
+
+    # Consistency: for equal states, the upwind flux is the physical flux
+    u = prim2cons(prim_pairs[2][1], equations)
+    for orientation_or_normal in orientations_or_normals
+        @test FluxTracerEquationsUpwind(flux_lax_friedrichs)(u, u, orientation_or_normal,
+                                                             equations) ≈
+              flux(u, orientation_or_normal, equations)
     end
 end
