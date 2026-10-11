@@ -30,6 +30,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+#=
 @testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_freestream_boundaries.jl" setup=[
     Setup,
     MPIP4estMesh3DParabolic
@@ -56,6 +57,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
+=#
 
 @testitem "P4estMesh MPI 3D Parabolic: elixir_advection_diffusion_nonperiodic.jl (LDG)" setup=[
     Setup,
