@@ -675,7 +675,7 @@ end
 # Sample each polygon's mesh lines in physical coordinates and solution variables.
 function slice_plotting_wireframe(u, intersection_polygons, rd, orientations,
                                   reference_vertex_coordinates,
-                                  vandermonde_factorization,
+                                  element_vandermonde,
                                   equations, solution_variables; nvisnodes)
     RealT = real(rd)
     orientation_x, orientation_y = orientations
@@ -707,7 +707,7 @@ function slice_plotting_wireframe(u, intersection_polygons, rd, orientations,
                                                 for node in wireframe], 3)
         interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
                                                      face_coordinates...) /
-                               vandermonde_factorization
+                               element_vandermonde
         polygon_data = view(face_data, 1:length(wireframe), polygon_id)
         StructArrays.foreachfield((output, input) -> mul!(output, interpolation_matrix,
                                                           input),
