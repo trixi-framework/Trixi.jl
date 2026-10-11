@@ -19,8 +19,9 @@ for human readability.
   which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
 - The GPU volume integrals of the 2D `P4estMesh` and `T8codeMesh` are now parallelized
   over the individual nodes instead of the elements, for both the weak form and flux
-  differencing. The flux differencing kernel can be selected via
-  `flux_differencing_kernel` of `semidiscretize` as in 3D ([#3329]).
+  differencing. As in 3D, the flux differencing kernel can be selected via
+  `flux_differencing_kernel` of `semidiscretize`, and nonconservative terms are
+  supported if the conservative and nonconservative fluxes are combined ([#3329]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
