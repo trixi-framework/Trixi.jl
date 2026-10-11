@@ -98,6 +98,41 @@ struct FullSweepGlobal end
 # Fallback for CPU KernelAbstractions backend
 # This fallback is necessary to run tests on KernelAbstractions CPU backend
 @inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
+
+abstract type AbstractLocalMemoryLayout end
+
+"""
+    VariableFirst()
+
+Layout of the local (shared) memory arrays in which the node-parallel GPU kernels store
+the variables of every node of an element: the variables of a node are stored as
+`a[v, i, j, k]`, the layout of `get_node_vars`, which keeps the variables of a node
+contiguous. This is the default layout of the CPU backend of KernelAbstractions.jl.
+Select a layout explicitly via
+`semidiscretize(semi, tspan; local_memory_layout = VariableFirst())`.
+
+See also [`VariableLast`](@ref).
+"""
+struct VariableFirst <: AbstractLocalMemoryLayout end
+
+"""
+    VariableLast()
+
+Layout of the local (shared) memory arrays in which the node-parallel GPU kernels store
+the variables of every node of an element: the variables of a node are stored as
+`a[i, j, k, v]`, so that consecutive work-items access consecutive memory locations for
+every variable, which avoids bank conflicts of the local memory on GPUs. This is the
+default layout of GPU backends. Select a layout explicitly via
+`semidiscretize(semi, tspan; local_memory_layout = VariableLast())`.
+
+See also [`VariableFirst`](@ref).
+"""
+struct VariableLast <: AbstractLocalMemoryLayout end
+
+@inline default_local_memory_layout(::Backend) = VariableLast()
+@inline default_local_memory_layout(::KernelAbstractions.CPU) = VariableFirst()
+@inline local_memory_layout(backend, layout::AbstractLocalMemoryLayout) = layout
+@inline local_memory_layout(backend, ::Nothing) = default_local_memory_layout(backend)
 @inline flux_differencing_kernel(::Backend, kernel) = kernel
 
 # define types for parabolic solvers

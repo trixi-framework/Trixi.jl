@@ -39,6 +39,7 @@ end
     kernel!(du, u, equations,
             typeof(mesh),
             kernel_type,
+            local_memory_layout(backend, get(cache, :local_memory_layout, nothing)),
             have_nonconservative_terms,
             combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
                                                             equations),
@@ -73,6 +74,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::False,
                                                            combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
@@ -90,7 +92,8 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
+    flux_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                        Val(NNODES), Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -119,15 +122,15 @@ end
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde1[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde1, i, j, k)
 
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[i, ii]) * fluxtilde1 +
                    (weight * derivative_split[i, iib]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       iib, j, k)
         @synchronize
     end
 
@@ -145,14 +148,14 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde2[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde2, i, j, k)
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[j, jj]) * fluxtilde2 +
                    (weight * derivative_split[j, jjb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, jjb, k)
         @synchronize
     end
 
@@ -169,14 +172,14 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde3[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde3, i, j, k)
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[k, kk]) * fluxtilde3 +
                    (weight * derivative_split[k, kkb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, j, kkb)
         @synchronize
     end
 
@@ -187,6 +190,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::True,
                                                            combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
@@ -204,7 +208,8 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
+    flux_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                        Val(NNODES), Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -234,15 +239,15 @@ end
         fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
                                                         equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde1_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde1_right, i, j, k)
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * derivative_split[i, ii]) * fluxtilde1_left +
                    (weight * derivative_split[i, iib]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       iib, j, k)
         @synchronize
     end
 
@@ -260,15 +265,15 @@ end
         # averaged contravariant vector
         fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
                                                         equations)
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde2_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde2_right, i, j, k)
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * derivative_split[j, jj]) * fluxtilde2_left +
                    (weight * derivative_split[j, jjb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, jjb, k)
         @synchronize
     end
 
@@ -286,15 +291,15 @@ end
         # averaged contravariant vector
         fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
                                                         equations)
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde3_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde3_right, i, j, k)
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * derivative_split[k, kk]) * fluxtilde3_left +
                    (weight * derivative_split[k, kkb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, j, kkb)
         @synchronize
     end
 
@@ -308,6 +313,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::False,
                                                            combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
@@ -325,15 +331,14 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    u_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
+    u_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                     Val(NNODES), Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    for v in 1:NVARIABLES
-        u_local[i, j, k, v] = u_node[v]
-    end
+    set_local_node_vars!(u_local, layout, Val(NVARIABLES), u_node, i, j, k)
     @synchronize
 
-    u_node = get_local_node_vars(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_local_node_vars(u_local, layout, Val(NVARIABLES), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -345,7 +350,8 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node,
-                                 get_local_node_vars(u_local, Val(NVARIABLES), ii, j,
+                                 get_local_node_vars(u_local, layout, Val(NVARIABLES),
+                                                     ii, j,
                                                      k),
                                  Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1
@@ -357,7 +363,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2 = volume_flux(u_node,
-                                 get_local_node_vars(u_local, Val(NVARIABLES), i, jj,
+                                 get_local_node_vars(u_local, layout, Val(NVARIABLES),
+                                                     i, jj,
                                                      k),
                                  Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2
@@ -369,7 +376,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3 = volume_flux(u_node,
-                                 get_local_node_vars(u_local, Val(NVARIABLES), i, j,
+                                 get_local_node_vars(u_local, layout, Val(NVARIABLES),
+                                                     i, j,
                                                      kk),
                                  Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3
@@ -382,6 +390,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::True,
                                                            combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
@@ -399,15 +408,14 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    u_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
+    u_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                     Val(NNODES), Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    for v in 1:NVARIABLES
-        u_local[i, j, k, v] = u_node[v]
-    end
+    set_local_node_vars!(u_local, layout, Val(NVARIABLES), u_node, i, j, k)
     @synchronize
 
-    u_node = get_local_node_vars(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_local_node_vars(u_local, layout, Val(NVARIABLES), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -416,7 +424,8 @@ end
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
         fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_local_node_vars(u_local, Val(NVARIABLES),
+                                         get_local_node_vars(u_local, layout,
+                                                             Val(NVARIABLES),
                                                              ii, j, k),
                                          Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
@@ -428,7 +437,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_local_node_vars(u_local, Val(NVARIABLES),
+                                         get_local_node_vars(u_local, layout,
+                                                             Val(NVARIABLES),
                                                              i, jj, k),
                                          Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
@@ -440,7 +450,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_local_node_vars(u_local, Val(NVARIABLES),
+                                         get_local_node_vars(u_local, layout,
+                                                             Val(NVARIABLES),
                                                              i, j, kk),
                                          Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
@@ -458,6 +469,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::False,
                                                            combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
@@ -521,6 +533,7 @@ end
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
+                                                           layout::AbstractLocalMemoryLayout,
                                                            have_nonconservative_terms::True,
                                                            combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
@@ -613,6 +626,7 @@ end
     kernel!(du, u, equations,
             typeof(mesh),
             kernel_type,
+            local_memory_layout(backend, get(cache, :local_memory_layout, nothing)),
             have_nonconservative_terms,
             dg,
             numerical_flux, Val(NNODES), Val(nvariables(equations)),
@@ -631,6 +645,7 @@ end
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::HalfSweep,
+                                                                 layout::AbstractLocalMemoryLayout,
                                                                  have_nonconservative_terms::False,
                                                                  dg::DGSEM,
                                                                  numerical_flux::NumericalFlux,
@@ -650,17 +665,18 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
-    turbo_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NAUX)
+    flux_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                        Val(NNODES), Val(3))
+    turbo_local = @localmem eltype(du) local_memory_dims(layout, Val(NAUX), Val(NNODES),
+                                                         Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
-        turbo_local[i, j, k, v] = turbo_node[v]
-    end
+    set_local_node_vars!(turbo_local, layout, Val(NAUX), turbo_node, i, j,
+                         k)
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, layout, Val(NAUX), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -686,19 +702,20 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), ii, j, k)...,
+                                get_node_turbo(turbo_local, layout, Val(NAUX), ii, j,
+                                               k)...,
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde1[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde1, i, j, k)
 
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[i, ii]) * fluxtilde1 +
                    (weight * derivative_split[i, iib]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       iib, j, k)
         @synchronize
     end
 
@@ -716,19 +733,20 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), i, jj, k)...,
+                                get_node_turbo(turbo_local, layout, Val(NAUX), i, jj,
+                                               k)...,
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde2[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde2, i, j, k)
 
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[j, jj]) * fluxtilde2 +
                    (weight * derivative_split[j, jjb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, jjb, k)
         @synchronize
     end
 
@@ -746,19 +764,20 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), i, j, kk)...,
+                                get_node_turbo(turbo_local, layout, Val(NAUX), i, j,
+                                               kk)...,
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde3[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde3, i, j, k)
 
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * derivative_split[k, kk]) * fluxtilde3 +
                    (weight * derivative_split[k, kkb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, j, kkb)
         @synchronize
     end
 
@@ -769,6 +788,7 @@ end
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::HalfSweep,
+                                                                 layout::AbstractLocalMemoryLayout,
                                                                  have_nonconservative_terms::True,
                                                                  dg::DGSEM,
                                                                  numerical_flux::NumericalFlux,
@@ -788,17 +808,18 @@ end
     # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NVARIABLES)
-    turbo_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NAUX)
+    flux_local = @localmem eltype(du) local_memory_dims(layout, Val(NVARIABLES),
+                                                        Val(NNODES), Val(3))
+    turbo_local = @localmem eltype(du) local_memory_dims(layout, Val(NAUX), Val(NNODES),
+                                                         Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
-        turbo_local[i, j, k, v] = turbo_node[v]
-    end
+    set_local_node_vars!(turbo_local, layout, Val(NAUX), turbo_node, i, j,
+                         k)
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, layout, Val(NAUX), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -825,15 +846,16 @@ end
         fluxtilde1_left, fluxtilde1_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), ii, j,
+                                                                      layout, Val(NAUX),
+                                                                      ii,
+                                                                      j,
                                                                       k)...,
                                                        Ja1_avg[1], Ja1_avg[2],
                                                        Ja1_avg[3],
                                                        equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde1_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde1_right, i, j, k)
 
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
@@ -841,7 +863,8 @@ end
                    (weight * derivative_split[i, ii]) *
                    fluxtilde1_left +
                    (weight * derivative_split[i, iib]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       iib, j, k)
         @synchronize
     end
 
@@ -860,15 +883,16 @@ end
         fluxtilde2_left, fluxtilde2_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), i, jj,
+                                                                      layout, Val(NAUX),
+                                                                      i,
+                                                                      jj,
                                                                       k)...,
                                                        Ja2_avg[1], Ja2_avg[2],
                                                        Ja2_avg[3],
                                                        equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde2_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde2_right, i, j, k)
 
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
@@ -876,7 +900,8 @@ end
                    (weight * derivative_split[j, jj]) *
                    fluxtilde2_left +
                    (weight * derivative_split[j, jjb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, jjb, k)
         @synchronize
     end
 
@@ -895,15 +920,15 @@ end
         fluxtilde3_left, fluxtilde3_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), i, j,
+                                                                      layout, Val(NAUX),
+                                                                      i, j,
                                                                       kk)...,
                                                        Ja3_avg[1], Ja3_avg[2],
                                                        Ja3_avg[3],
                                                        equations)
 
-        for v in 1:NVARIABLES
-            flux_local[i, j, k, v] = fluxtilde3_right[v]
-        end
+        set_local_node_vars!(flux_local, layout, Val(NVARIABLES),
+                             fluxtilde3_right, i, j, k)
 
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
@@ -911,7 +936,8 @@ end
                    (weight * derivative_split[k, kk]) *
                    fluxtilde3_left +
                    (weight * derivative_split[k, kkb]) *
-                   get_local_node_vars(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_local_node_vars(flux_local, layout, Val(NVARIABLES),
+                                       i, j, kkb)
         @synchronize
     end
 
@@ -922,6 +948,7 @@ end
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::FullSweep,
+                                                                 layout::AbstractLocalMemoryLayout,
                                                                  have_nonconservative_terms::False,
                                                                  dg::DGSEM,
                                                                  numerical_flux::NumericalFlux,
@@ -943,16 +970,16 @@ end
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
     # kernel but only the local turbo variables.
-    turbo_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NAUX)
+    turbo_local = @localmem eltype(du) local_memory_dims(layout, Val(NAUX), Val(NNODES),
+                                                         Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
-        turbo_local[i, j, k, v] = turbo_node[v]
-    end
+    set_local_node_vars!(turbo_local, layout, Val(NAUX), turbo_node, i, j,
+                         k)
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, layout, Val(NAUX), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -965,7 +992,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, layout, Val(NAUX),
                                                ii, j, k)...,
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
@@ -980,7 +1007,7 @@ end
                                             i, jj, k, element))
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, layout, Val(NAUX),
                                                i, jj, k)...,
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
@@ -995,7 +1022,7 @@ end
                                             i, j, kk, element))
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, layout, Val(NAUX),
                                                i, j, kk)...,
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
@@ -1010,6 +1037,7 @@ end
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::FullSweep,
+                                                                 layout::AbstractLocalMemoryLayout,
                                                                  have_nonconservative_terms::True,
                                                                  dg::DGSEM,
                                                                  numerical_flux::NumericalFlux,
@@ -1031,16 +1059,16 @@ end
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
     # kernel but only the local turbo variables.
-    turbo_local = @localmem eltype(du) (NNODES, NNODES, NNODES, NAUX)
+    turbo_local = @localmem eltype(du) local_memory_dims(layout, Val(NAUX), Val(NNODES),
+                                                         Val(3))
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
-        turbo_local[i, j, k, v] = turbo_node[v]
-    end
+    set_local_node_vars!(turbo_local, layout, Val(NAUX), turbo_node, i, j,
+                         k)
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, layout, Val(NAUX), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -1053,7 +1081,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, layout, Val(NAUX),
                                                        ii, j, k)...,
                                         Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                         equations)
@@ -1069,7 +1097,7 @@ end
                                             i, jj, k, element))
         fluxtilde2_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, layout, Val(NAUX),
                                                        i, jj, k)...,
                                         Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                         equations)
@@ -1085,7 +1113,7 @@ end
                                             i, j, kk, element))
         fluxtilde3_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, layout, Val(NAUX),
                                                        i, j, kk)...,
                                         Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                         equations)

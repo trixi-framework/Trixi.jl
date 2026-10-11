@@ -472,6 +472,117 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "CUDA 3D: elixir_euler_source_terms_nonperiodic.jl local memory layout / CUDA" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # The default layout of the local memory on GPUs is `VariableLast()`, see
+    # `default_local_memory_layout`. Both layouts compute the same fluxes in the same
+    # order, so the results agree.
+
+    # Half sweep with `flux_local`
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.local_memory_layout === nothing
+    u_default = Array(sol.u[end])
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep(),
+                  local_memory_layout = VariableLast())
+    @test ode.p.cache.local_memory_layout === VariableLast()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep(),
+                  local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    # Half sweep with `flux_local` and `turbo_local`
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep())
+    u_default = Array(sol.u[end])
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep(),
+                  local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    # Full sweep with `turbo_local`
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = FullSweep())
+    u_default = Array(sol.u[end])
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = FullSweep(),
+                  local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "CUDA 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl FluxTurbo / CUDA" setup=[
     Setup,
     CUDA3DExamples

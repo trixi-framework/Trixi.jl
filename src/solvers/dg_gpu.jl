@@ -1,15 +1,46 @@
-# Local (shared) memory arrays of the GPU kernels store the variables of a node as
-# `a[indices..., v]`, i.e., with the variable index last. Then, consecutive work-items
-# access consecutive memory locations, which avoids bank conflicts of the local memory on
-# GPUs, in contrast to the layout `a[v, indices...]` of `get_node_vars`.
-@inline function get_local_node_vars(a, ::Val{NVARIABLES},
-                                     indices...) where {NVARIABLES}
-    return SVector(ntuple(v -> (@inbounds a[indices..., v]), Val(NVARIABLES)))
+# Dimensions of a local memory array of the given `layout` that stores `NVARIABLES`
+# variables at `NNODES^NDIMS` nodes, and the index of variable `v` at the node `indices`.
+# The layouts differ only in the position of the variable axis, so that the kernels index
+# the local memory arrays with plain Cartesian indices.
+# Dimensions of a local memory array with `dims` entries per variable, e.g., the nodes of
+# an element and the element of the workgroup, in the given `layout`
+@inline function local_memory_dims(::VariableLast, ::Val{NVARIABLES},
+                                   dims::Tuple) where {NVARIABLES}
+    return (dims..., NVARIABLES)
+end
+@inline function local_memory_dims(::VariableFirst, ::Val{NVARIABLES},
+                                   dims::Tuple) where {NVARIABLES}
+    return (NVARIABLES, dims...)
+end
+# The nodes of one element with `NNODES` nodes per direction in `NDIMS` dimensions
+@inline function local_memory_dims(layout::AbstractLocalMemoryLayout, ::Val{NVARIABLES},
+                                   ::Val{NNODES},
+                                   ::Val{NDIMS}) where {NVARIABLES, NNODES, NDIMS}
+    return local_memory_dims(layout, Val(NVARIABLES), ntuple(_ -> NNODES, Val(NDIMS)))
 end
 
-@inline function get_node_turbo(turbo_local, ::Val{NAUX},
-                                indices...) where {NAUX}
-    return ntuple(v -> (@inbounds turbo_local[indices..., v]), Val(NAUX))
+@inline local_index(::VariableLast, v, indices...) = (indices..., v)
+@inline local_index(::VariableFirst, v, indices...) = (v, indices...)
+
+@inline function get_local_node_vars(a, layout::AbstractLocalMemoryLayout,
+                                     ::Val{NVARIABLES}, indices...) where {NVARIABLES}
+    return SVector(ntuple(v -> (@inbounds a[local_index(layout, v, indices...)...]),
+                          Val(NVARIABLES)))
+end
+
+@inline function get_node_turbo(turbo_local, layout::AbstractLocalMemoryLayout,
+                                ::Val{NAUX}, indices...) where {NAUX}
+    return ntuple(v -> (@inbounds turbo_local[local_index(layout, v, indices...)...]),
+                  Val(NAUX))
+end
+
+@inline function set_local_node_vars!(a, layout::AbstractLocalMemoryLayout,
+                                      ::Val{NVARIABLES}, values,
+                                      indices...) where {NVARIABLES}
+    for v in 1:NVARIABLES
+        @inbounds a[local_index(layout, v, indices...)...] = values[v]
+    end
+    return nothing
 end
 
 # This is a general fallback for volume integral kernels, parallelizing across
