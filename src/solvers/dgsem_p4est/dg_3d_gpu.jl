@@ -1743,11 +1743,50 @@ end
 # and `volumerhs!` in the benchmarks of CUDA.jl
 # (https://github.com/JuliaGPU/CUDA.jl/blob/4a98b2a715577e23d71a3c166ce11579f53c3850/perf/volumerhs.jl),
 # which keeps one direction in registers to need less local memory for high polynomial degrees.
+# Prototype switch for benchmarking (not for upstream):
+# - `:nodes`: one work-item per node (`weak_form_KAkernel!`), falling back to the
+#   per-element kernel if the local memory or the workgroup would be too large
+# - `:slab`: 2.5D kernel with one work-item per (i, j) column (`weak_form_slab_KAkernel!`)
+#   `:slab_db`: with two local memory buffers (one `@synchronize` per slab instead of two),
+#   `:slab_pf`: loading `u` and the metric terms of the next slab before the barriers,
+#   `:slab_dbpf`: both
+# - `:per_element`: always the per-element kernel
+# - `:auto`: `:nodes` if it does not fall back, `:slab` otherwise
+const WEAK_FORM_3D_KERNEL = Ref(:nodes)
+# Number of elements per workgroup of the slab kernel; 0 means at least 128 work-items
+const WEAK_FORM_3D_SLAB_ELEMENTS = Ref(0)
+
 function calc_volume_integral!(backend::Backend, du, u,
                                mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+    choice = WEAK_FORM_3D_KERNEL[]
+    if !use_gpu_volume_kernels(backend) || choice === :per_element
+        return calc_volume_integral_per_element!(backend, du, u, mesh,
+                                                 have_nonconservative_terms, equations,
+                                                 volume_integral, dg, cache)
+    end
+    NNODES = nnodes(dg)
+    shared_memory = 3 * nvariables(equations) * NNODES^3 * sizeof(eltype(du)) *
+                    nelements_workgroup(NNODES^3)
+    nodes_fits = shared_memory <= 48 * 1024 && NNODES^3 <= 1024
+    if choice in (:slab, :slab_db, :slab_pf, :slab_dbpf) ||
+       (choice === :auto && !nodes_fits)
+        double_buffer = choice in (:slab_db, :slab_dbpf)
+        prefetch = choice in (:slab_pf, :slab_dbpf)
+        return calc_volume_integral_slab!(backend, du, u, mesh, equations, dg, cache,
+                                          Val(double_buffer), Val(prefetch))
+    end
+    return calc_volume_integral_nodes!(backend, du, u, mesh, have_nonconservative_terms,
+                                       equations, volume_integral, dg, cache)
+end
+
+function calc_volume_integral_nodes!(backend::Backend, du, u,
+                                     mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                     have_nonconservative_terms::False, equations,
+                                     volume_integral::VolumeIntegralWeakForm,
+                                     dg::DGSEM, cache)
     # The kernel stores the three contravariant fluxes of all nodes of an element in
     # local (shared) memory, which is limited to 48 KiB per workgroup on NVIDIA GPUs.
     NNODES = nnodes(dg)
@@ -1864,5 +1903,201 @@ end
     end
 
     set_node_vars!(du, du_node, equations, dg, i, j, k, element)
+end
+
+# 2.5D ("slab" or "pencil") GPU kernel of the weak form volume integral, similar to
+# `volumerhs!` in the benchmarks of CUDA.jl and `esvolumeterm!` of Raven.jl.
+# A workgroup contains the `NNODES × NNODES` slab `(i, j)` of `NELEMENTS_WG` elements.
+# Each work-item loops over the nodes `k` in the third direction and keeps the column
+# `du[:, i, j, :, element]` in registers. For every `k`, the first and second contravariant
+# fluxes of the slab are stored in local memory, which requires only
+# `2 * nvariables * NNODES^2` values per element. The third contravariant flux stays in
+# registers and is added to all other nodes of the column directly.
+# The contributions are added in the same order as in `weak_form_kernel!`:
+# For the node `(i, j, n)` of the column, the third contravariant fluxes of the nodes
+# `kk < n` are added before and those of `kk > n` after the slab `k = n`, in which we add
+# the first and second contravariant fluxes in the same order as `weak_form_KAkernel!`.
+# This kernel uses only GPU semantics of `@synchronize`, i.e., variables live across
+# `@synchronize`, so it must not be used with the CPU backend of KernelAbstractions.jl.
+function calc_volume_integral_slab!(backend::Backend, du, u,
+                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    equations, dg::DGSEM, cache,
+                                    double_buffer = Val(false), prefetch = Val(false))
+    nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
+    @unpack derivative_hat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    NNODES = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # The last workgroup may be partially filled: KernelAbstractions.jl masks the
+    # work-items outside of `ndrange`, but they still take part in `@synchronize`.
+    # The local memory of each element is only used by the work-items of this element.
+    NELEMENTS_WG = WEAK_FORM_3D_SLAB_ELEMENTS[] > 0 ? WEAK_FORM_3D_SLAB_ELEMENTS[] :
+                   cld(VOLUME_INTEGRAL_WORKGROUP_SIZE, NNODES^2)
+    kernel! = weak_form_slab_KAkernel!(backend, (NNODES, NNODES, NELEMENTS_WG))
+    kernel!(du, u, equations, typeof(mesh), dg, Val(NNODES), Val(nvariables(equations)),
+            Val(NELEMENTS_WG), double_buffer, prefetch, derivative_hat,
+            contravariant_vectors, ndrange = (NNODES, NNODES, n_elements))
+    return nothing
+end
+
+@inline function get_slab_vars(slab_local, ::Val{NVARIABLES}, i, j, e,
+                               b) where {NVARIABLES}
+    return SVector(ntuple(@inline(v->@inbounds(slab_local[i, j, v, e, b])),
+                          Val(NVARIABLES)))
+end
+
+@inline function set_slab_vars!(slab_local, vals, i, j, e, b)
+    for v in eachindex(vals)
+        @inbounds slab_local[i, j, v, e, b] = vals[v]
+    end
+    return nothing
+end
+
+Base.@propagate_inbounds function load_slab_node(u, equations, dg,
+                                                 contravariant_vectors, i, j, k,
+                                                 element)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    Ja1 = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2 = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3 = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    return (u_node, Ja1, Ja2, Ja3)
+end
+
+# The column is a tuple of `SVector`s. We access it only with constant indices
+# (after unrolling `ntuple`), so it can stay in registers even if the loop over `k`
+# is not unrolled.
+@inline function add_to_column_except(column::NTuple{N, Any}, derivative, k,
+                                      flux) where {N}
+    return ntuple(@inline(n->n == k ? column[n] :
+                             muladd.(@inbounds(derivative[n, k]), flux, column[n])),
+                  Val(N))
+end
+
+@inline column_entry(column::Tuple{Any}, k, n = 1) = first(column)
+@inline function column_entry(column::Tuple, k, n = 1)
+    return ifelse(n == k, first(column), column_entry(Base.tail(column), k, n + 1))
+end
+
+@inline function set_column_entry(column::NTuple{N, Any}, k, value) where {N}
+    return ntuple(@inline(n->ifelse(n == k, value, column[n])), Val(N))
+end
+
+@kernel inbounds=true function weak_form_slab_KAkernel!(du, u, equations,
+                                                        MeshT::Type{<:Union{P4estMesh{3},
+                                                                            T8codeMesh{3}}},
+                                                        dg::DGSEM,
+                                                        ::Val{NNODES},
+                                                        ::Val{NVARIABLES},
+                                                        ::Val{NELEMENTS_WG},
+                                                        ::Val{DOUBLE_BUFFER},
+                                                        ::Val{PREFETCH},
+                                                        derivative_hat,
+                                                        contravariant_vectors) where {
+                                                                                      NNODES,
+                                                                                      NVARIABLES,
+                                                                                      NELEMENTS_WG,
+                                                                                      DOUBLE_BUFFER,
+                                                                                      PREFETCH
+                                                                                      }
+    i, j, element = @index(Global, NTuple)
+    _, _, local_element = @index(Local, NTuple)
+
+    # `@localmem` is hoisted before all other statements by `@kernel`
+    flux1_local = @localmem eltype(du) (NNODES, NNODES, NVARIABLES, NELEMENTS_WG,
+                                        DOUBLE_BUFFER ? 2 : 1)
+    flux2_local = @localmem eltype(du) (NNODES, NNODES, NVARIABLES, NELEMENTS_WG,
+                                        DOUBLE_BUFFER ? 2 : 1)
+    derivative_local = @localmem eltype(du) (NNODES, NNODES)
+
+    if local_element == 1
+        derivative_local[i, j] = derivative_hat[i, j]
+    end
+    du_column = ntuple(_ -> zero(SVector{NVARIABLES, eltype(du)}), Val(NNODES))
+    if PREFETCH
+        next_node = load_slab_node(u, equations, dg, contravariant_vectors, i, j, 1,
+                                   element)
+    end
+
+    @synchronize
+
+    KernelAbstractions.Extras.@unroll for k in 1:NNODES
+        b = DOUBLE_BUFFER ? 2 - (k % 2) : 1
+        if PREFETCH
+            u_node, (Ja11, Ja12, Ja13), (Ja21, Ja22, Ja23), (Ja31, Ja32, Ja33) = next_node
+            if k < NNODES
+                next_node = load_slab_node(u, equations, dg, contravariant_vectors, i,
+                                           j, k + 1, element)
+            end
+        else
+            u_node, (Ja11, Ja12, Ja13), (Ja21, Ja22, Ja23), (Ja31, Ja32, Ja33) = load_slab_node(u,
+                                                                                                equations,
+                                                                                                dg,
+                                                                                                contravariant_vectors,
+                                                                                                i,
+                                                                                                j,
+                                                                                                k,
+                                                                                                element)
+        end
+
+        flux1 = flux(u_node, 1, equations)
+        flux2 = flux(u_node, 2, equations)
+        flux3 = flux(u_node, 3, equations)
+
+        contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+        contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+        contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
+        set_slab_vars!(flux1_local, contravariant_flux1, i, j, local_element, b)
+        set_slab_vars!(flux2_local, contravariant_flux2, i, j, local_element, b)
+
+        # Third direction: add to all other nodes of the column
+        du_column = add_to_column_except(du_column, derivative_local, k,
+                                         contravariant_flux3)
+
+        @synchronize
+
+        du_node = column_entry(du_column, k)
+        for jj in 1:(j - 1)
+            du_node = muladd.(derivative_local[j, jj],
+                              get_slab_vars(flux2_local, Val(NVARIABLES), i, jj,
+                                            local_element, b),
+                              du_node)
+        end
+        for ii in 1:NNODES
+            du_node = muladd.(derivative_local[i, ii],
+                              get_slab_vars(flux1_local, Val(NVARIABLES), ii, j,
+                                            local_element, b),
+                              du_node)
+            if ii == i
+                du_node = muladd.(derivative_local[j, j], contravariant_flux2, du_node)
+                du_node = muladd.(derivative_local[k, k], contravariant_flux3, du_node)
+            end
+        end
+        for jj in (j + 1):NNODES
+            du_node = muladd.(derivative_local[j, jj],
+                              get_slab_vars(flux2_local, Val(NVARIABLES), i, jj,
+                                            local_element, b),
+                              du_node)
+        end
+        du_column = set_column_entry(du_column, k, du_node)
+
+        # The local memory is overwritten by the next slab. With two buffers, the next
+        # slab writes to the other buffer, and the `@synchronize` of the next slab
+        # ensures that all work-items have finished reading this buffer before the
+        # slab after the next one overwrites it.
+        if !DOUBLE_BUFFER
+            @synchronize
+        end
+    end
+
+    KernelAbstractions.Extras.@unroll for k in 1:NNODES
+        set_node_vars!(du, column_entry(du_column, k), equations, dg, i, j, k, element)
+    end
 end
 end #muladd
