@@ -902,20 +902,20 @@ function PlotData2D(u::StructArray,
         for last_vertex in 3:length(polygon)
             slice_element += 1
             triangle = (1, last_vertex - 1, last_vertex)
-            function patch_coordinates(coordinates)
+            function barycentric_corner_values(vertex_values)
                 return SVector{3, RealT}(ntuple(corner -> dot(polygon[triangle[corner]],
-                                                              coordinates), 3))
+                                                              vertex_values), 3))
             end
 
             # Patch coordinates in the slice plane, affine in the barycentric weights.
             mul!(view(x_plot, :, slice_element), triangle_vertex_interpolation,
-                 patch_coordinates(vertex_coordinates[orientation_x]))
+                 barycentric_corner_values(vertex_coordinates[orientation_x]))
             mul!(view(y_plot, :, slice_element), triangle_vertex_interpolation,
-                 patch_coordinates(vertex_coordinates[orientation_y]))
+                 barycentric_corner_values(vertex_coordinates[orientation_y]))
             # Where the triangle nodes sit inside the reference tetrahedron.
             for dimension in 1:3
                 mul!(reference_coordinates[dimension], rd_slice.V1,
-                     patch_coordinates(reference_vertex_coordinates[dimension]))
+                     barycentric_corner_values(reference_vertex_coordinates[dimension]))
             end
 
             # Evaluate the source element's basis there, then go to the plotting nodes.
