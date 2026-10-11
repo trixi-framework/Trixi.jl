@@ -213,7 +213,7 @@ tetrahedral elements and returns a `PlotData2DTriangulated` object. Curved meshe
 element shapes raise an error. Set `Nplot` when constructing [`DGMulti`](@ref), e.g.,
 `DGMulti(polydeg = 3, element_type = Tet(), Nplot = 15)`, to control surface sampling.
 As for 2D DGMulti plots, `nvisnodes` sets the number of points along each mesh edge
-(default: `2 * nnodes(dg)`); use `nvisnodes = 0` to omit mesh lines.
+(default: `2 * (polydeg(dg) + 1)`); use `nvisnodes = 0` to omit mesh lines.
 
 # Examples
 ```julia
