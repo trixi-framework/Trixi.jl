@@ -76,6 +76,15 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                              volume_integral, dg, cache)
 end
 
+# The values of all variables at a node of local (shared) memory stored as
+# `a[indices..., v]`, i.e., with the variable index last. Then, consecutive work-items
+# access consecutive memory locations, which avoids bank conflicts of the local memory on
+# GPUs, in contrast to the layout `a[v, indices...]` of `get_node_vars`.
+@inline function get_local_node_vars(a, ::Val{NVARIABLES},
+                                     indices...) where {NVARIABLES}
+    return SVector(ntuple(v -> (@inbounds a[indices..., v]), Val(NVARIABLES)))
+end
+
 # This is a general fallback for volume integral kernels, parallelizing across
 # elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
 # for flux differencing, parallelize across the individual solution nodes
