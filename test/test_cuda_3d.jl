@@ -593,16 +593,21 @@ end
     using CUDA
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
-                        l2=Float32[0.0002660822155621997,
-                                   0.0004618807752811797,
-                                   0.0005424845719648056,
-                                   0.00046188028589296584,
-                                   0.0015853952086324818],
-                        linf=Float32[0.002538698250686089,
-                                     0.006307985167950392,
-                                     0.004343626123350486,
-                                     0.006308959797024727,
-                                     0.031830781358266336],
+                        # The default `time_int_tol = 1e-8` of the adaptive time
+                        # integrator is below the machine epsilon of `Float32`.
+                        # Then, the step size controller reacts to round-off
+                        # errors and the results depend on the hardware.
+                        time_int_tol=1e-6,
+                        l2=Float32[0.00026599237563895863,
+                                   0.0004618770409481977,
+                                   0.0005424902199947988,
+                                   0.00046187821240216285,
+                                   0.0015847432617011525],
+                        linf=Float32[0.0025286846703638233,
+                                     0.0063080801628530025,
+                                     0.004338984007198565,
+                                     0.006308289710432291,
+                                     0.031785004991078836],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
