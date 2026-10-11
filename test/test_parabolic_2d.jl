@@ -993,6 +993,24 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # Serial reference for the corresponding MPI test in `test_mpi_p4est_parabolic_2d.jl`
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        trees_per_dimension=(1, 1), initial_refinement_level=2,
+                        tspan=(0.0, 0.5),
+                        l2=[0.00912383895722383],
+                        linf=[0.14071539996402677])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     Parabolic2D
