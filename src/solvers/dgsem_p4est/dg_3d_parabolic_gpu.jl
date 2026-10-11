@@ -149,23 +149,26 @@ function transform_variables!(backend::Backend, u_transformed, u,
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations_parabolic, dg, cache)
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+    end
     kernel! = transform_variables_KAkernel!(backend)
     kernel!(u_transformed, u, equations_parabolic, dg,
             ndrange = (nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
     return nothing
 end
 
-@kernel function transform_variables_KAkernel!(u_transformed, u,
-                                               equations_parabolic::AbstractEquationsParabolic{3},
-                                               dg)
+@kernel inbounds=true function transform_variables_KAkernel!(u_transformed, u,
+                                                             equations_parabolic::AbstractEquationsParabolic{3},
+                                                             dg)
     i, j, k, element = @index(Global, NTuple)
     transformation = gradient_variable_transformation(equations_parabolic)
-    @inbounds begin
-        u_node = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
-        u_transformed_node = transformation(u_node, equations_parabolic)
-        set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
-                       i, j, k, element)
-    end
+    u_node = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
+    u_transformed_node = transformation(u_node, equations_parabolic)
+    set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
+                   i, j, k, element)
 end
 
 function calc_volume_integral_gradient!(backend::Backend, gradients, u_transformed,
@@ -175,6 +178,14 @@ function calc_volume_integral_gradient!(backend::Backend, gradients, u_transform
     nelements(dg, cache) == 0 && return nothing
     @unpack contravariant_vectors = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
     kernel! = calc_volume_integral_gradient_KAkernel!(backend)
     kernel!(gradients_x, gradients_y, gradients_z, u_transformed, equations_parabolic,
             dg, contravariant_vectors,
@@ -182,64 +193,65 @@ function calc_volume_integral_gradient!(backend::Backend, gradients, u_transform
     return nothing
 end
 
-@kernel function calc_volume_integral_gradient_KAkernel!(gradients_x, gradients_y,
-                                                         gradients_z, u_transformed,
-                                                         equations_parabolic::AbstractEquationsParabolic{3},
-                                                         dg, contravariant_vectors)
+@kernel inbounds=true function calc_volume_integral_gradient_KAkernel!(gradients_x,
+                                                                       gradients_y,
+                                                                       gradients_z,
+                                                                       u_transformed,
+                                                                       equations_parabolic::AbstractEquationsParabolic{3},
+                                                                       dg,
+                                                                       contravariant_vectors)
     i, j, k, element = @index(Global, NTuple)
-    @inbounds begin
-        @unpack derivative_hat = dg.basis
+    @unpack derivative_hat = dg.basis
 
-        # Gradients with respect to the reference coordinates
-        gradients_reference_1 = zero(get_node_vars(u_transformed, equations_parabolic,
-                                                   dg, i, j, k, element))
-        gradients_reference_2 = gradients_reference_1
-        gradients_reference_3 = gradients_reference_1
-        for l in eachnode(dg)
-            gradients_reference_1 = gradients_reference_1 +
-                                    derivative_hat[i, l] *
-                                    get_node_vars(u_transformed, equations_parabolic,
-                                                  dg, l, j, k, element)
-        end
-        for l in eachnode(dg)
-            gradients_reference_2 = gradients_reference_2 +
-                                    derivative_hat[j, l] *
-                                    get_node_vars(u_transformed, equations_parabolic,
-                                                  dg, i, l, k, element)
-        end
-        for l in eachnode(dg)
-            gradients_reference_3 = gradients_reference_3 +
-                                    derivative_hat[k, l] *
-                                    get_node_vars(u_transformed, equations_parabolic,
-                                                  dg, i, j, l, element)
-        end
-
-        # Transform the reference coordinate gradients to physical gradients
-        # using the contravariant vectors. Note that the contravariant vectors are
-        # transposed compared with computations of flux divergences.
-        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
-                                                    i, j, k, element)
-        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, j, k, element)
-        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, k, element)
-        gradient_x_node = Ja11 * gradients_reference_1 +
-                          Ja21 * gradients_reference_2 +
-                          Ja31 * gradients_reference_3
-        gradient_y_node = Ja12 * gradients_reference_1 +
-                          Ja22 * gradients_reference_2 +
-                          Ja32 * gradients_reference_3
-        gradient_z_node = Ja13 * gradients_reference_1 +
-                          Ja23 * gradients_reference_2 +
-                          Ja33 * gradients_reference_3
-
-        set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
-                       i, j, k, element)
-        set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
-                       i, j, k, element)
-        set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
-                       i, j, k, element)
+    # Gradients with respect to the reference coordinates
+    gradients_reference_1 = zero(get_node_vars(u_transformed, equations_parabolic,
+                                               dg, i, j, k, element))
+    gradients_reference_2 = gradients_reference_1
+    gradients_reference_3 = gradients_reference_1
+    for l in eachnode(dg)
+        gradients_reference_1 = gradients_reference_1 +
+                                derivative_hat[i, l] *
+                                get_node_vars(u_transformed, equations_parabolic,
+                                              dg, l, j, k, element)
     end
+    for l in eachnode(dg)
+        gradients_reference_2 = gradients_reference_2 +
+                                derivative_hat[j, l] *
+                                get_node_vars(u_transformed, equations_parabolic,
+                                              dg, i, l, k, element)
+    end
+    for l in eachnode(dg)
+        gradients_reference_3 = gradients_reference_3 +
+                                derivative_hat[k, l] *
+                                get_node_vars(u_transformed, equations_parabolic,
+                                              dg, i, j, l, element)
+    end
+
+    # Transform the reference coordinate gradients to physical gradients
+    # using the contravariant vectors. Note that the contravariant vectors are
+    # transposed compared with computations of flux divergences.
+    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                i, j, k, element)
+    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                i, j, k, element)
+    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                i, j, k, element)
+    gradient_x_node = Ja11 * gradients_reference_1 +
+                      Ja21 * gradients_reference_2 +
+                      Ja31 * gradients_reference_3
+    gradient_y_node = Ja12 * gradients_reference_1 +
+                      Ja22 * gradients_reference_2 +
+                      Ja32 * gradients_reference_3
+    gradient_z_node = Ja13 * gradients_reference_1 +
+                      Ja23 * gradients_reference_2 +
+                      Ja33 * gradients_reference_3
+
+    set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                   i, j, k, element)
+    set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                   i, j, k, element)
+    set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
+                   i, j, k, element)
 end
 
 function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
@@ -249,6 +261,16 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
     nelements(dg, cache) == 0 && return nothing
     gradients_x, gradients_y, gradients_z = gradients
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+    end
     kernel! = calc_parabolic_fluxes_KAkernel!(backend)
     kernel!(flux_parabolic_x, flux_parabolic_y, flux_parabolic_z,
             gradients_x, gradients_y, gradients_z, u_transformed,
@@ -257,34 +279,34 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
     return nothing
 end
 
-@kernel function calc_parabolic_fluxes_KAkernel!(flux_parabolic_x, flux_parabolic_y,
-                                                 flux_parabolic_z,
-                                                 gradients_x, gradients_y,
-                                                 gradients_z, u_transformed,
-                                                 equations_parabolic::AbstractEquationsParabolic{3},
-                                                 dg)
+@kernel inbounds=true function calc_parabolic_fluxes_KAkernel!(flux_parabolic_x,
+                                                               flux_parabolic_y,
+                                                               flux_parabolic_z,
+                                                               gradients_x, gradients_y,
+                                                               gradients_z,
+                                                               u_transformed,
+                                                               equations_parabolic::AbstractEquationsParabolic{3},
+                                                               dg)
     i, j, k, element = @index(Global, NTuple)
-    @inbounds begin
-        u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                               i, j, k, element)
-        gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
-                                         i, j, k, element)
-        gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
-                                         i, j, k, element)
-        gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg,
-                                         i, j, k, element)
-        gradients_node = (gradients_1_node, gradients_2_node, gradients_3_node)
+    u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                           i, j, k, element)
+    gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
+                                     i, j, k, element)
+    gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
+                                     i, j, k, element)
+    gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg,
+                                     i, j, k, element)
+    gradients_node = (gradients_1_node, gradients_2_node, gradients_3_node)
 
-        flux_parabolic_node_x = flux(u_node, gradients_node, 1, equations_parabolic)
-        flux_parabolic_node_y = flux(u_node, gradients_node, 2, equations_parabolic)
-        flux_parabolic_node_z = flux(u_node, gradients_node, 3, equations_parabolic)
-        set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
-                       dg, i, j, k, element)
-        set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
-                       dg, i, j, k, element)
-        set_node_vars!(flux_parabolic_z, flux_parabolic_node_z, equations_parabolic,
-                       dg, i, j, k, element)
-    end
+    flux_parabolic_node_x = flux(u_node, gradients_node, 1, equations_parabolic)
+    flux_parabolic_node_y = flux(u_node, gradients_node, 2, equations_parabolic)
+    flux_parabolic_node_z = flux(u_node, gradients_node, 3, equations_parabolic)
+    set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
+                   dg, i, j, k, element)
+    set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
+                   dg, i, j, k, element)
+    set_node_vars!(flux_parabolic_z, flux_parabolic_node_z, equations_parabolic,
+                   dg, i, j, k, element)
 end
 
 # Weak-form volume integral of the divergence of the (precomputed) parabolic fluxes.
@@ -296,6 +318,14 @@ function calc_volume_integral!(backend::Backend, du, flux_parabolic,
     nelements(dg, cache) == 0 && return nothing
     @unpack contravariant_vectors = cache.elements
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
     kernel! = calc_volume_integral_divergence_KAkernel!(backend)
     kernel!(du, flux_parabolic_x, flux_parabolic_y, flux_parabolic_z,
             equations_parabolic, dg, contravariant_vectors,
@@ -303,10 +333,13 @@ function calc_volume_integral!(backend::Backend, du, flux_parabolic,
     return nothing
 end
 
-@inline function contravariant_parabolic_flux(orientation, flux_parabolic_x,
-                                              flux_parabolic_y, flux_parabolic_z,
-                                              equations_parabolic, dg,
-                                              contravariant_vectors, i, j, k, element)
+Base.@propagate_inbounds function contravariant_parabolic_flux(orientation,
+                                                               flux_parabolic_x,
+                                                               flux_parabolic_y,
+                                                               flux_parabolic_z,
+                                                               equations_parabolic, dg,
+                                                               contravariant_vectors, i,
+                                                               j, k, element)
     flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg, i, j, k, element)
     flux2 = get_node_vars(flux_parabolic_y, equations_parabolic, dg, i, j, k, element)
     flux3 = get_node_vars(flux_parabolic_z, equations_parabolic, dg, i, j, k, element)
@@ -315,46 +348,46 @@ end
     return Ja1 * flux1 + Ja2 * flux2 + Ja3 * flux3
 end
 
-@kernel function calc_volume_integral_divergence_KAkernel!(du, flux_parabolic_x,
+@kernel inbounds=true function calc_volume_integral_divergence_KAkernel!(du,
+                                                                         flux_parabolic_x,
+                                                                         flux_parabolic_y,
+                                                                         flux_parabolic_z,
+                                                                         equations_parabolic::AbstractEquationsParabolic{3},
+                                                                         dg,
+                                                                         contravariant_vectors)
+    i, j, k, element = @index(Global, NTuple)
+    @unpack derivative_hat = dg.basis
+
+    du_node = zero(get_node_vars(du, equations_parabolic, dg, i, j, k, element))
+    for l in eachnode(dg)
+        contravariant_flux1 = contravariant_parabolic_flux(1, flux_parabolic_x,
                                                            flux_parabolic_y,
                                                            flux_parabolic_z,
-                                                           equations_parabolic::AbstractEquationsParabolic{3},
-                                                           dg, contravariant_vectors)
-    i, j, k, element = @index(Global, NTuple)
-    @inbounds begin
-        @unpack derivative_hat = dg.basis
-
-        du_node = zero(get_node_vars(du, equations_parabolic, dg, i, j, k, element))
-        for l in eachnode(dg)
-            contravariant_flux1 = contravariant_parabolic_flux(1, flux_parabolic_x,
-                                                               flux_parabolic_y,
-                                                               flux_parabolic_z,
-                                                               equations_parabolic, dg,
-                                                               contravariant_vectors,
-                                                               l, j, k, element)
-            du_node = du_node + derivative_hat[i, l] * contravariant_flux1
-        end
-        for l in eachnode(dg)
-            contravariant_flux2 = contravariant_parabolic_flux(2, flux_parabolic_x,
-                                                               flux_parabolic_y,
-                                                               flux_parabolic_z,
-                                                               equations_parabolic, dg,
-                                                               contravariant_vectors,
-                                                               i, l, k, element)
-            du_node = du_node + derivative_hat[j, l] * contravariant_flux2
-        end
-        for l in eachnode(dg)
-            contravariant_flux3 = contravariant_parabolic_flux(3, flux_parabolic_x,
-                                                               flux_parabolic_y,
-                                                               flux_parabolic_z,
-                                                               equations_parabolic, dg,
-                                                               contravariant_vectors,
-                                                               i, j, l, element)
-            du_node = du_node + derivative_hat[k, l] * contravariant_flux3
-        end
-
-        set_node_vars!(du, du_node, equations_parabolic, dg, i, j, k, element)
+                                                           equations_parabolic, dg,
+                                                           contravariant_vectors,
+                                                           l, j, k, element)
+        du_node = du_node + derivative_hat[i, l] * contravariant_flux1
     end
+    for l in eachnode(dg)
+        contravariant_flux2 = contravariant_parabolic_flux(2, flux_parabolic_x,
+                                                           flux_parabolic_y,
+                                                           flux_parabolic_z,
+                                                           equations_parabolic, dg,
+                                                           contravariant_vectors,
+                                                           i, l, k, element)
+        du_node = du_node + derivative_hat[j, l] * contravariant_flux2
+    end
+    for l in eachnode(dg)
+        contravariant_flux3 = contravariant_parabolic_flux(3, flux_parabolic_x,
+                                                           flux_parabolic_y,
+                                                           flux_parabolic_z,
+                                                           equations_parabolic, dg,
+                                                           contravariant_vectors,
+                                                           i, j, l, element)
+        du_node = du_node + derivative_hat[k, l] * contravariant_flux3
+    end
+
+    set_node_vars!(du, du_node, equations_parabolic, dg, i, j, k, element)
 end
 
 ###############################################################################
@@ -364,8 +397,9 @@ end
 # for the surface node `(i, j)` (counted along the primary side). This returns
 # the volume node indices on both elements as well as the surface node indices
 # on the secondary element (which might run backwards or be transposed).
-@inline function interface_node_info_3d(neighbor_ids, node_indices, index_range,
-                                        i, j, interface)
+Base.@propagate_inbounds function interface_node_info_3d(neighbor_ids, node_indices,
+                                                         index_range,
+                                                         i, j, interface)
     n = length(index_range)
 
     primary_element = neighbor_ids[1, interface]
@@ -429,6 +463,14 @@ function prolong2interfaces_and_calc_interface_flux_gradient!(backend::Backend,
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
     kernel! = interface_flux_gradient_KAkernel!(backend)
     kernel!(surface_flux_values, u_transformed, equations_parabolic, dg,
             parabolic_scheme, neighbor_ids, node_indices, contravariant_vectors,
@@ -437,48 +479,52 @@ function prolong2interfaces_and_calc_interface_flux_gradient!(backend::Backend,
     return nothing
 end
 
-@kernel function interface_flux_gradient_KAkernel!(surface_flux_values, u_transformed,
-                                                   equations_parabolic::AbstractEquationsParabolic{3},
-                                                   dg, parabolic_scheme, neighbor_ids,
-                                                   node_indices, contravariant_vectors,
-                                                   index_range)
+@kernel inbounds=true function interface_flux_gradient_KAkernel!(surface_flux_values,
+                                                                 u_transformed,
+                                                                 equations_parabolic::AbstractEquationsParabolic{3},
+                                                                 dg, parabolic_scheme,
+                                                                 neighbor_ids,
+                                                                 node_indices,
+                                                                 contravariant_vectors,
+                                                                 index_range)
     i, j, interface = @index(Global, NTuple)
-    @inbounds begin
-        (primary_element, primary_direction, i_primary, j_primary, k_primary,
-        secondary_element, secondary_direction, i_secondary, j_secondary, k_secondary,
-        i_secondary_surface, j_secondary_surface) = interface_node_info_3d(neighbor_ids,
-                                                                           node_indices,
-                                                                           index_range,
-                                                                           i, j,
-                                                                           interface)
+    (primary_element, primary_direction, i_primary, j_primary, k_primary,
+    secondary_element, secondary_direction, i_secondary, j_secondary, k_secondary,
+    i_secondary_surface, j_secondary_surface) = interface_node_info_3d(neighbor_ids,
+                                                                       node_indices,
+                                                                       index_range,
+                                                                       i, j,
+                                                                       interface)
 
-        u_ll = get_node_vars(u_transformed, equations_parabolic, dg,
-                             i_primary, j_primary, k_primary, primary_element)
-        u_rr = get_node_vars(u_transformed, equations_parabolic, dg,
-                             i_secondary, j_secondary, k_secondary, secondary_element)
+    u_ll = get_node_vars(u_transformed, equations_parabolic, dg,
+                         i_primary, j_primary, k_primary, primary_element)
+    u_rr = get_node_vars(u_transformed, equations_parabolic, dg,
+                         i_secondary, j_secondary, k_secondary, secondary_element)
 
-        normal_direction = get_normal_direction(primary_direction,
-                                                contravariant_vectors,
-                                                i_primary, j_primary, k_primary,
-                                                primary_element)
+    normal_direction = get_normal_direction(primary_direction,
+                                            contravariant_vectors,
+                                            i_primary, j_primary, k_primary,
+                                            primary_element)
 
-        flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                               equations_parabolic, parabolic_scheme)
+    flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                           equations_parabolic, parabolic_scheme)
 
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
-            # No sign flip required for gradient calculation because for parabolic terms,
-            # the normals are not embedded in `flux_` for gradient computations.
-            surface_flux_values[v, i_secondary_surface, j_secondary_surface,
-            secondary_direction, secondary_element] = flux_[v]
-        end
+    for v in eachvariable(equations_parabolic)
+        surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
+        # No sign flip required for gradient calculation because for parabolic terms,
+        # the normals are not embedded in `flux_` for gradient computations.
+        surface_flux_values[v, i_secondary_surface, j_secondary_surface,
+        secondary_direction, secondary_element] = flux_[v]
     end
 end
 
 # Parabolic flux in the outward normal direction `normal_direction` at a volume node
-@inline function normal_parabolic_flux(flux_parabolic_x, flux_parabolic_y,
-                                       flux_parabolic_z, normal_direction,
-                                       equations_parabolic, dg, i, j, k, element)
+Base.@propagate_inbounds function normal_parabolic_flux(flux_parabolic_x,
+                                                        flux_parabolic_y,
+                                                        flux_parabolic_z,
+                                                        normal_direction,
+                                                        equations_parabolic, dg, i, j,
+                                                        k, element)
     flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg, i, j, k, element)
     flux2 = get_node_vars(flux_parabolic_y, equations_parabolic, dg, i, j, k, element)
     flux3 = get_node_vars(flux_parabolic_z, equations_parabolic, dg, i, j, k, element)
@@ -498,6 +544,16 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
     kernel! = interface_flux_divergence_KAkernel!(backend)
     kernel!(surface_flux_values, flux_parabolic_x, flux_parabolic_y, flux_parabolic_z,
             equations_parabolic, dg, parabolic_scheme, neighbor_ids, node_indices,
@@ -506,65 +562,64 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     return nothing
 end
 
-@kernel function interface_flux_divergence_KAkernel!(surface_flux_values,
-                                                     flux_parabolic_x,
+@kernel inbounds=true function interface_flux_divergence_KAkernel!(surface_flux_values,
+                                                                   flux_parabolic_x,
+                                                                   flux_parabolic_y,
+                                                                   flux_parabolic_z,
+                                                                   equations_parabolic::AbstractEquationsParabolic{3},
+                                                                   dg, parabolic_scheme,
+                                                                   neighbor_ids,
+                                                                   node_indices,
+                                                                   contravariant_vectors,
+                                                                   index_range)
+    i, j, interface = @index(Global, NTuple)
+    (primary_element, primary_direction, i_primary, j_primary, k_primary,
+    secondary_element, secondary_direction, i_secondary, j_secondary, k_secondary,
+    i_secondary_surface, j_secondary_surface) = interface_node_info_3d(neighbor_ids,
+                                                                       node_indices,
+                                                                       index_range,
+                                                                       i, j,
+                                                                       interface)
+
+    # Outward normal directions on the primary and secondary element
+    normal_direction_primary = get_normal_direction(primary_direction,
+                                                    contravariant_vectors,
+                                                    i_primary, j_primary, k_primary,
+                                                    primary_element)
+    normal_direction_secondary = get_normal_direction(secondary_direction,
+                                                      contravariant_vectors,
+                                                      i_secondary, j_secondary,
+                                                      k_secondary,
+                                                      secondary_element)
+
+    # Normal parabolic fluxes with respect to the primary normal direction,
+    # which is the negative of the secondary normal direction
+    parabolic_flux_normal_ll = normal_parabolic_flux(flux_parabolic_x,
                                                      flux_parabolic_y,
                                                      flux_parabolic_z,
-                                                     equations_parabolic::AbstractEquationsParabolic{3},
-                                                     dg, parabolic_scheme, neighbor_ids,
-                                                     node_indices,
-                                                     contravariant_vectors,
-                                                     index_range)
-    i, j, interface = @index(Global, NTuple)
-    @inbounds begin
-        (primary_element, primary_direction, i_primary, j_primary, k_primary,
-        secondary_element, secondary_direction, i_secondary, j_secondary, k_secondary,
-        i_secondary_surface, j_secondary_surface) = interface_node_info_3d(neighbor_ids,
-                                                                           node_indices,
-                                                                           index_range,
-                                                                           i, j,
-                                                                           interface)
+                                                     normal_direction_primary,
+                                                     equations_parabolic, dg,
+                                                     i_primary, j_primary,
+                                                     k_primary, primary_element)
+    parabolic_flux_normal_rr = -normal_parabolic_flux(flux_parabolic_x,
+                                                      flux_parabolic_y,
+                                                      flux_parabolic_z,
+                                                      normal_direction_secondary,
+                                                      equations_parabolic, dg,
+                                                      i_secondary, j_secondary,
+                                                      k_secondary,
+                                                      secondary_element)
 
-        # Outward normal directions on the primary and secondary element
-        normal_direction_primary = get_normal_direction(primary_direction,
-                                                        contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
-                                                        primary_element)
-        normal_direction_secondary = get_normal_direction(secondary_direction,
-                                                          contravariant_vectors,
-                                                          i_secondary, j_secondary,
-                                                          k_secondary,
-                                                          secondary_element)
+    flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
+                           normal_direction_primary, Divergence(),
+                           equations_parabolic, parabolic_scheme)
 
-        # Normal parabolic fluxes with respect to the primary normal direction,
-        # which is the negative of the secondary normal direction
-        parabolic_flux_normal_ll = normal_parabolic_flux(flux_parabolic_x,
-                                                         flux_parabolic_y,
-                                                         flux_parabolic_z,
-                                                         normal_direction_primary,
-                                                         equations_parabolic, dg,
-                                                         i_primary, j_primary,
-                                                         k_primary, primary_element)
-        parabolic_flux_normal_rr = -normal_parabolic_flux(flux_parabolic_x,
-                                                          flux_parabolic_y,
-                                                          flux_parabolic_z,
-                                                          normal_direction_secondary,
-                                                          equations_parabolic, dg,
-                                                          i_secondary, j_secondary,
-                                                          k_secondary,
-                                                          secondary_element)
-
-        flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
-                               normal_direction_primary, Divergence(),
-                               equations_parabolic, parabolic_scheme)
-
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
-            # Sign flip required for divergence calculation since the divergence
-            # interface flux involves the normal direction.
-            surface_flux_values[v, i_secondary_surface, j_secondary_surface,
-            secondary_direction, secondary_element] = -flux_[v]
-        end
+    for v in eachvariable(equations_parabolic)
+        surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
+        # Sign flip required for divergence calculation since the divergence
+        # interface flux involves the normal direction.
+        surface_flux_values[v, i_secondary_surface, j_secondary_surface,
+        secondary_direction, secondary_element] = -flux_[v]
     end
 end
 
@@ -590,6 +645,12 @@ function calc_boundary_flux_gradient!(backend::Backend, cache, t, u_transformed,
                                       boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
                                       mesh::P4estMesh{3}, equations_parabolic, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.boundaries, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
     calc_boundary_flux_parabolic_by_type!(backend, cache, t, u_transformed,
                                           boundary_condition_types, boundary_indices,
                                           Gradient(), mesh, equations_parabolic, dg)
@@ -601,6 +662,15 @@ function calc_boundary_flux_divergence!(backend::Backend, cache, t, flux_parabol
                                         mesh::P4estMesh{3}, equations_parabolic,
                                         dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.boundaries, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
     calc_boundary_flux_parabolic_by_type!(backend, cache, t, flux_parabolic,
                                           boundary_condition_types, boundary_indices,
                                           Divergence(), mesh, equations_parabolic, dg)
@@ -647,74 +717,81 @@ end
 
 # Values at the boundary node passed to the boundary condition:
 # the (transformed) solution for the gradient computation ...
-@inline function boundary_inner_value_parabolic(::Gradient, u_transformed,
-                                                normal_direction, equations_parabolic,
-                                                dg, i, j, k, element)
+Base.@propagate_inbounds function boundary_inner_value_parabolic(::Gradient,
+                                                                 u_transformed,
+                                                                 normal_direction,
+                                                                 equations_parabolic,
+                                                                 dg, i, j, k, element)
     return get_node_vars(u_transformed, equations_parabolic, dg, i, j, k, element)
 end
 
 # ... and the parabolic flux in the outward normal direction for the divergence computation
-@inline function boundary_inner_value_parabolic(::Divergence, flux_parabolic,
-                                                normal_direction, equations_parabolic,
-                                                dg, i, j, k, element)
+Base.@propagate_inbounds function boundary_inner_value_parabolic(::Divergence,
+                                                                 flux_parabolic,
+                                                                 normal_direction,
+                                                                 equations_parabolic,
+                                                                 dg, i, j, k, element)
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
     return normal_parabolic_flux(flux_parabolic_x, flux_parabolic_y, flux_parabolic_z,
                                  normal_direction, equations_parabolic, dg,
                                  i, j, k, element)
 end
 
-@kernel function calc_boundary_flux_parabolic_KAkernel!(surface_flux_values, u_or_flux,
-                                                        boundary_condition_indices,
-                                                        neighbor_ids, node_indices_arr,
-                                                        t, boundary_condition,
-                                                        operator_type, index_range,
-                                                        equations_parabolic::AbstractEquationsParabolic{3},
-                                                        dg, node_coordinates,
-                                                        contravariant_vectors)
+@kernel inbounds=true function calc_boundary_flux_parabolic_KAkernel!(surface_flux_values,
+                                                                      u_or_flux,
+                                                                      boundary_condition_indices,
+                                                                      neighbor_ids,
+                                                                      node_indices_arr,
+                                                                      t,
+                                                                      boundary_condition,
+                                                                      operator_type,
+                                                                      index_range,
+                                                                      equations_parabolic::AbstractEquationsParabolic{3},
+                                                                      dg,
+                                                                      node_coordinates,
+                                                                      contravariant_vectors)
     i, j, local_index = @index(Global, NTuple)
-    @inbounds begin
-        # Use the local index to get the global boundary index from the pre-sorted list
-        boundary = boundary_condition_indices[local_index]
+    # Use the local index to get the global boundary index from the pre-sorted list
+    boundary = boundary_condition_indices[local_index]
 
-        # Get information on the adjacent element
-        element = neighbor_ids[boundary]
-        node_indices = node_indices_arr[boundary]
-        direction = indices2direction(node_indices)
-        n = length(index_range)
+    # Get information on the adjacent element
+    element = neighbor_ids[boundary]
+    node_indices = node_indices_arr[boundary]
+    direction = indices2direction(node_indices)
+    n = length(index_range)
 
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
-        i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
-        j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
-        k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                        index_range)
+    i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
+    j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
+    k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
 
-        # Outward-pointing normal direction (not normalized)
-        normal_direction = get_normal_direction(direction, contravariant_vectors,
-                                                i_node, j_node, k_node, element)
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction, contravariant_vectors,
+                                            i_node, j_node, k_node, element)
 
-        u_inner = boundary_inner_value_parabolic(operator_type, u_or_flux,
-                                                 normal_direction, equations_parabolic,
-                                                 dg, i_node, j_node, k_node, element)
+    u_inner = boundary_inner_value_parabolic(operator_type, u_or_flux,
+                                             normal_direction, equations_parabolic,
+                                             dg, i_node, j_node, k_node, element)
 
-        # This assumes the gradient numerical flux at the boundary is the gradient variable,
-        # which is consistent with BR1, LDG.
-        flux_inner = u_inner
+    # This assumes the gradient numerical flux at the boundary is the gradient variable,
+    # which is consistent with BR1, LDG.
+    flux_inner = u_inner
 
-        # Coordinates at boundary node
-        x = get_node_coords(node_coordinates, equations_parabolic, dg,
-                            i_node, j_node, k_node, element)
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations_parabolic, dg,
+                        i_node, j_node, k_node, element)
 
-        flux_ = boundary_condition(flux_inner, u_inner, normal_direction, x, t,
-                                   operator_type, equations_parabolic)
+    flux_ = boundary_condition(flux_inner, u_inner, normal_direction, x, t,
+                               operator_type, equations_parabolic)
 
-        # Copy flux to element storage in the correct orientation
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, i, j, direction, element] = flux_[v]
-        end
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations_parabolic)
+        surface_flux_values[v, i, j, direction, element] = flux_[v]
     end
 end
 
@@ -731,6 +808,15 @@ function calc_surface_integral_and_apply_jacobian_gradient!(backend::Backend,
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values, contravariant_vectors, inverse_jacobian = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
     kernel! = calc_surface_integral_and_apply_jacobian_gradient_KAkernel!(backend)
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     factor = inverse_weights[1]
@@ -742,11 +828,15 @@ end
 
 # Surface integral contribution of the face `direction` at the volume node (i, j, k)
 # and surface node (l, m)
-@inline function surface_integral_gradient_node(gradient_x_node, gradient_y_node,
-                                                gradient_z_node, surface_flux_values,
-                                                contravariant_vectors, factor,
-                                                equations_parabolic, dg, direction,
-                                                l, m, i, j, k, element)
+Base.@propagate_inbounds function surface_integral_gradient_node(gradient_x_node,
+                                                                 gradient_y_node,
+                                                                 gradient_z_node,
+                                                                 surface_flux_values,
+                                                                 contravariant_vectors,
+                                                                 factor,
+                                                                 equations_parabolic,
+                                                                 dg, direction,
+                                                                 l, m, i, j, k, element)
     normal_direction_x, normal_direction_y, normal_direction_z = get_normal_direction(direction,
                                                                                       contravariant_vectors,
                                                                                       i,
@@ -761,144 +851,142 @@ end
     return gradient_x_node, gradient_y_node, gradient_z_node
 end
 
-@kernel function calc_surface_integral_and_apply_jacobian_gradient_KAkernel!(gradients_x,
-                                                                             gradients_y,
-                                                                             gradients_z,
-                                                                             surface_flux_values,
-                                                                             contravariant_vectors,
-                                                                             inverse_jacobian,
-                                                                             factor,
-                                                                             equations_parabolic::AbstractEquationsParabolic{3},
-                                                                             dg)
+@kernel inbounds=true function calc_surface_integral_and_apply_jacobian_gradient_KAkernel!(gradients_x,
+                                                                                           gradients_y,
+                                                                                           gradients_z,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           inverse_jacobian,
+                                                                                           factor,
+                                                                                           equations_parabolic::AbstractEquationsParabolic{3},
+                                                                                           dg)
     i, j, k, element = @index(Global, NTuple)
-    @inbounds begin
-        n = nnodes(dg)
-        gradient_x_node = get_node_vars(gradients_x, equations_parabolic, dg,
-                                        i, j, k, element)
-        gradient_y_node = get_node_vars(gradients_y, equations_parabolic, dg,
-                                        i, j, k, element)
-        gradient_z_node = get_node_vars(gradients_z, equations_parabolic, dg,
-                                        i, j, k, element)
+    n = nnodes(dg)
+    gradient_x_node = get_node_vars(gradients_x, equations_parabolic, dg,
+                                    i, j, k, element)
+    gradient_y_node = get_node_vars(gradients_y, equations_parabolic, dg,
+                                    i, j, k, element)
+    gradient_z_node = get_node_vars(gradients_z, equations_parabolic, dg,
+                                    i, j, k, element)
 
-        # surface at -x
-        if i == 1
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               1,
-                                                                                               j,
-                                                                                               k,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-        # surface at +x
-        if i == n
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               2,
-                                                                                               j,
-                                                                                               k,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-        # surface at -y
-        if j == 1
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               3,
-                                                                                               i,
-                                                                                               k,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-        # surface at +y
-        if j == n
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               4,
-                                                                                               i,
-                                                                                               k,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-        # surface at -z
-        if k == 1
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               5,
-                                                                                               i,
-                                                                                               j,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-        # surface at +z
-        if k == n
-            gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
-                                                                                               gradient_y_node,
-                                                                                               gradient_z_node,
-                                                                                               surface_flux_values,
-                                                                                               contravariant_vectors,
-                                                                                               factor,
-                                                                                               equations_parabolic,
-                                                                                               dg,
-                                                                                               6,
-                                                                                               i,
-                                                                                               j,
-                                                                                               i,
-                                                                                               j,
-                                                                                               k,
-                                                                                               element)
-        end
-
-        # Apply Jacobian from mapping to reference element. In contrast to the
-        # hyperbolic part, the sign of the inverse Jacobian is not flipped.
-        jacobian_factor = inverse_jacobian[i, j, k, element]
-        set_node_vars!(gradients_x, jacobian_factor * gradient_x_node,
-                       equations_parabolic, dg, i, j, k, element)
-        set_node_vars!(gradients_y, jacobian_factor * gradient_y_node,
-                       equations_parabolic, dg, i, j, k, element)
-        set_node_vars!(gradients_z, jacobian_factor * gradient_z_node,
-                       equations_parabolic, dg, i, j, k, element)
+    # surface at -x
+    if i == 1
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           1,
+                                                                                           j,
+                                                                                           k,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
     end
+    # surface at +x
+    if i == n
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           2,
+                                                                                           j,
+                                                                                           k,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
+    end
+    # surface at -y
+    if j == 1
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           3,
+                                                                                           i,
+                                                                                           k,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
+    end
+    # surface at +y
+    if j == n
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           4,
+                                                                                           i,
+                                                                                           k,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
+    end
+    # surface at -z
+    if k == 1
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           5,
+                                                                                           i,
+                                                                                           j,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
+    end
+    # surface at +z
+    if k == n
+        gradient_x_node, gradient_y_node, gradient_z_node = surface_integral_gradient_node(gradient_x_node,
+                                                                                           gradient_y_node,
+                                                                                           gradient_z_node,
+                                                                                           surface_flux_values,
+                                                                                           contravariant_vectors,
+                                                                                           factor,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           6,
+                                                                                           i,
+                                                                                           j,
+                                                                                           i,
+                                                                                           j,
+                                                                                           k,
+                                                                                           element)
+    end
+
+    # Apply Jacobian from mapping to reference element. In contrast to the
+    # hyperbolic part, the sign of the inverse Jacobian is not flipped.
+    jacobian_factor = inverse_jacobian[i, j, k, element]
+    set_node_vars!(gradients_x, jacobian_factor * gradient_x_node,
+                   equations_parabolic, dg, i, j, k, element)
+    set_node_vars!(gradients_y, jacobian_factor * gradient_y_node,
+                   equations_parabolic, dg, i, j, k, element)
+    set_node_vars!(gradients_z, jacobian_factor * gradient_z_node,
+                   equations_parabolic, dg, i, j, k, element)
 end
 
 function calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic!(backend::Backend,
@@ -915,6 +1003,17 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic!(ba
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(u, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic_KAkernel!(backend)
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     factor = inverse_weights[1]
@@ -925,12 +1024,14 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic!(ba
     return nothing
 end
 
-@inline function calc_source_terms_parabolic_node(u, gradients_x, gradients_y,
-                                                  gradients_z, t,
-                                                  source_terms_parabolic,
-                                                  node_coordinates,
-                                                  equations_parabolic, dg, i, j, k,
-                                                  element)
+Base.@propagate_inbounds function calc_source_terms_parabolic_node(u, gradients_x,
+                                                                   gradients_y,
+                                                                   gradients_z, t,
+                                                                   source_terms_parabolic,
+                                                                   node_coordinates,
+                                                                   equations_parabolic,
+                                                                   dg, i, j, k,
+                                                                   element)
     u_local = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
     gradients_x_local = get_node_vars(gradients_x, equations_parabolic, dg,
                                       i, j, k, element)
@@ -946,78 +1047,76 @@ end
                                   x_local, t, equations_parabolic)
 end
 
-@kernel function calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic_KAkernel!(du,
-                                                                                               u,
-                                                                                               gradients_x,
-                                                                                               gradients_y,
-                                                                                               gradients_z,
-                                                                                               t,
-                                                                                               source_terms_parabolic,
-                                                                                               surface_flux_values,
-                                                                                               inverse_jacobian,
-                                                                                               node_coordinates,
-                                                                                               factor,
-                                                                                               equations_parabolic::AbstractEquationsParabolic{3},
-                                                                                               dg)
+@kernel inbounds=true function calc_surface_integral_and_apply_jacobian_and_calc_sources_parabolic_KAkernel!(du,
+                                                                                                             u,
+                                                                                                             gradients_x,
+                                                                                                             gradients_y,
+                                                                                                             gradients_z,
+                                                                                                             t,
+                                                                                                             source_terms_parabolic,
+                                                                                                             surface_flux_values,
+                                                                                                             inverse_jacobian,
+                                                                                                             node_coordinates,
+                                                                                                             factor,
+                                                                                                             equations_parabolic::AbstractEquationsParabolic{3},
+                                                                                                             dg)
     i, j, k, element = @index(Global, NTuple)
-    @inbounds begin
-        n = nnodes(dg)
-        du_node = get_node_vars(du, equations_parabolic, dg, i, j, k, element)
+    n = nnodes(dg)
+    du_node = get_node_vars(du, equations_parabolic, dg, i, j, k, element)
 
-        # Note that all fluxes have been computed with outward-pointing normal vectors.
-        # surface at -x
-        if i == 1
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, j, k, 1, element)
-        end
-        # surface at +x
-        if i == n
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, j, k, 2, element)
-        end
-        # surface at -y
-        if j == 1
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, i, k, 3, element)
-        end
-        # surface at +y
-        if j == n
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, i, k, 4, element)
-        end
-        # surface at -z
-        if k == 1
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, i, j, 5, element)
-        end
-        # surface at +z
-        if k == n
-            du_node = du_node +
-                      factor * get_node_vars(surface_flux_values, equations_parabolic,
-                                    dg, i, j, 6, element)
-        end
-
-        # Apply Jacobian from mapping to reference element. In contrast to the
-        # hyperbolic part, the sign of the inverse Jacobian is not flipped.
-        du_node = inverse_jacobian[i, j, k, element] * du_node
-
-        # Add parabolic source terms
-        if !(source_terms_parabolic isa Nothing)
-            du_node = du_node +
-                      calc_source_terms_parabolic_node(u, gradients_x, gradients_y,
-                                                       gradients_z, t,
-                                                       source_terms_parabolic,
-                                                       node_coordinates,
-                                                       equations_parabolic, dg,
-                                                       i, j, k, element)
-        end
-
-        set_node_vars!(du, du_node, equations_parabolic, dg, i, j, k, element)
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # surface at -x
+    if i == 1
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, j, k, 1, element)
     end
+    # surface at +x
+    if i == n
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, j, k, 2, element)
+    end
+    # surface at -y
+    if j == 1
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, i, k, 3, element)
+    end
+    # surface at +y
+    if j == n
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, i, k, 4, element)
+    end
+    # surface at -z
+    if k == 1
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, i, j, 5, element)
+    end
+    # surface at +z
+    if k == n
+        du_node = du_node +
+                  factor * get_node_vars(surface_flux_values, equations_parabolic,
+                                dg, i, j, 6, element)
+    end
+
+    # Apply Jacobian from mapping to reference element. In contrast to the
+    # hyperbolic part, the sign of the inverse Jacobian is not flipped.
+    du_node = inverse_jacobian[i, j, k, element] * du_node
+
+    # Add parabolic source terms
+    if !(source_terms_parabolic isa Nothing)
+        du_node = du_node +
+                  calc_source_terms_parabolic_node(u, gradients_x, gradients_y,
+                                                   gradients_z, t,
+                                                   source_terms_parabolic,
+                                                   node_coordinates,
+                                                   equations_parabolic, dg,
+                                                   i, j, k, element)
+    end
+
+    set_node_vars!(du, du_node, equations_parabolic, dg, i, j, k, element)
 end
 end # @muladd
