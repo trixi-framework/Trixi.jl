@@ -53,7 +53,6 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
-- The parabolic terms on conforming `P4estMesh3D`s now support MPI parallelization ([#3291]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
