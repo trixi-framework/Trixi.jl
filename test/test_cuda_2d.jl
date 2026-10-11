@@ -264,6 +264,72 @@ end
     @test Array(sol.u[end]) ≈ u_cpu
 end
 
+@testitem "CUDA 2D: elixir_euler_source_terms.jl local memory layout / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # The half sweep and weak form kernels store fluxes in local memory, whose layout is
+    # selected by `local_memory_layout` (`VariableLast()` by default on GPUs); the
+    # results do not depend on it. At polydeg = 4, the last workgroup is partially filled.
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = DGSEM(polydeg = 4,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                 volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)),
+                  tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.local_memory_layout === nothing
+    u_default = Array(sol.u[end])
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = DGSEM(polydeg = 4,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                 volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)),
+                  tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep(),
+                  local_memory_layout = VariableLast())
+    @test ode.p.cache.local_memory_layout === VariableLast()
+    @test Array(sol.u[end]) ≈ u_default
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = DGSEM(polydeg = 4,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                 volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)),
+                  tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                  flux_differencing_kernel = HalfSweep(),
+                  local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    # The same for the weak form volume integral
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = DGSEM(polydeg = 4,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)),
+                  tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray)
+    u_default = Array(sol.u[end])
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = DGSEM(polydeg = 4,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)),
+                  tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                  local_memory_layout = VariableFirst())
+    @test ode.p.cache.local_memory_layout === VariableFirst()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Array(sol.u[end]) ≈ u_default
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" setup=[
     Setup,
     CUDA2DExamples

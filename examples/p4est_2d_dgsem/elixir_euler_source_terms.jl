@@ -45,7 +45,7 @@ tspan = (0.0, 2.0)
 # flux differencing volume integral, one of `HalfSweep()` (default), `FullSweep()`,
 # or `FullSweepGlobal()`.
 ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing,
-                     flux_differencing_kernel = nothing)
+                     flux_differencing_kernel = nothing, local_memory_layout = nothing)
 
 summary_callback = SummaryCallback()
 
