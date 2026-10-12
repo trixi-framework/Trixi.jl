@@ -132,6 +132,9 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                                           performance_counter)
 end
 
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(SemidiscretizationHyperbolicParabolic)
+
 # Create a new semidiscretization but change some parameters compared to the input.
 # `Base.similar` follows a related concept but would require us to `copy` the `mesh`,
 # which would impact the performance. Instead, `SciMLBase.remake` has exactly the
@@ -255,7 +258,10 @@ end
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                    jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
+                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
+                   storage_type = nothing,
+                   real_type = nothing,
+                   flux_differencing_kernel = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -271,17 +277,29 @@ Optional keyword arguments:
   The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
+- `storage_type` and `real_type`: Configure the underlying computational datastructures.
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
+  or other GPU array types. `real_type` changes the computational data type being used.
+- `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
+  volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
+  [`FullSweepGlobal()`](@ref).
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true)
+                        reset_threads = true,
+                        storage_type = nothing,
+                        real_type = nothing,
+                        flux_differencing_kernel = nothing)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
     if reset_threads
         Polyester.reset_threads!()
     end
+
+    semi, tspan = adapt_semidiscretization(semi, tspan; storage_type, real_type,
+                                           flux_differencing_kernel)
 
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using

@@ -1258,9 +1258,12 @@ end
     end
     # We would like to use
     #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    # but that results in
+    # but, on Julia v1.10, that results in
     #     ERROR: LoadError: cannot resize array with shared data
-    # when we resize! `u_ode` during AMR.
+    # when we resize! `u_ode` during AMR. Thus, `unsafe_wrap_or_alloc` uses `unsafe_wrap`
+    # for `isbits` element types and `reshape` only for other element types, for which
+    # `unsafe_wrap` is not safe with respect to the garbage collector (see the comment
+    # there).
     #
     # !!! danger "Segfaults"
     #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
@@ -1289,9 +1292,10 @@ end
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
         ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(ArrayType, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1312,9 +1316,10 @@ end
                   ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(Array, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1333,9 +1338,10 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    return unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                       (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                        nelements(dg, cache)))
+    return unsafe_wrap_or_alloc(Array, u_ode,
+                                (nvariables(equations),
+                                 ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                 nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
@@ -1388,8 +1394,9 @@ function compute_coefficients!(backend::Backend, u, func, t,
     return nothing
 end
 
-@kernel function compute_coefficients_KAkernel!(u, func, t, equations,
-                                                dg::DG, node_coordinates, node_indices)
+@kernel function compute_coefficients_KAkernel!(u, func::Func, t, equations,
+                                                dg::DG, node_coordinates,
+                                                node_indices) where {Func}
     element = @index(Global)
     compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
                                       element,
