@@ -3106,156 +3106,286 @@ end
     end
 end
 
+@testsnippet NormalDirectionTests begin
+    # Test cases for methods with a `normal_direction`, e.g., wave speed estimates and
+    # numerical fluxes. These are used on curvilinear meshes, where the
+    # `normal_direction` is not normalized but contains the surface scaling.
+    # Each test case contains `equations`, three different states `u_values`, and the
+    # numerical fluxes to test for these `equations`. We use different states since
+    # many bugs are invisible for `u_ll == u_rr`.
+    function normal_direction_test_cases()
+        test_cases = Any[]
+
+        equations = CompressibleEulerEquations1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hllc, flux_ranocha,
+                   flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+                   FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal())]))
+
+        equations = InviscidBurgersEquation1D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_ec]))
+
+        # Primitive variables: rho, v1, p, a
+        equations = CompressibleEulerEquationsQuasi1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0, 0.8), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 1.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_chan_etal,
+                   flux_nonconservative_chan_etal]))
+
+        euler_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hllc, FluxLMARS(340.0),
+            flux_ranocha, flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+            FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal()),
+            flux_shima_etal, flux_shima_etal_turbo,
+            flux_chandrashekar, flux_kennedy_gruber]
+
+        equations = CompressibleEulerEquations2D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        equations = CompressibleEulerEquations3D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        # Primitive variables: v1, v2, p, rho1, rho2
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                               gas_constants = (0.287,
+                                                                                1.578))
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(0.3, -0.2, 2.0, 0.6, 0.4), equations),
+                   prim2cons(SVector(-0.7, 0.4, 0.4, 0.1, 0.4), equations),
+                   prim2cons(SVector(1.2, 0.9, 1.1, 1.2, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   FluxLaxFriedrichs(max_abs_speed_naive), flux_ranocha,
+                   FluxRotated(flux_ranocha)]))
+
+        equations = PolytropicEulerEquations2D(1.4, 0.72)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_winters_etal]))
+
+        # Thermodynamic variables: V, v1, v2, T
+        eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+        equations = NonIdealCompressibleEulerEquations2D(eos)
+        push!(test_cases,
+              (; equations,
+               u_values = [thermo2cons(SVector(2.0, 0.1, 0.2, 10.0), equations),
+                   thermo2cons(SVector(2.5, -0.3, 0.1, 8.0), equations),
+                   thermo2cons(SVector(1.5, 0.4, -0.6, 12.0), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   flux_terashima_etal, flux_central_terashima_etal]))
+
+        tracer_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxTracerEquationsCentral(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_lax_friedrichs)]
+
+        # Primitive variables: rho, v1, v2, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0, 0.1, 0.7), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        # Primitive variables: rho, v1, v2, v3, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations3D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0, 0.1, 0.7),
+                                     equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        mhd_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hindenlang_gassner,
+            flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric]
+        for equations in (IdealGlmMhdEquations2D(1.4, 5.0),
+                          IdealGlmMhdEquations3D(1.4, 5.0))
+            fluxes = copy(mhd_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_powell_local_jump)
+            end
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1,
+                                                 0.0),
+                                         equations),
+                       prim2cons(SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+                                 equations),
+                       prim2cons(SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1),
+                                 equations)],
+                   fluxes))
+        end
+
+        multiion_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxLaxFriedrichs(max_abs_speed_naive), flux_ruedaramirez_etal,
+            flux_nonconservative_ruedaramirez_etal,
+            DissipationLaxFriedrichsEntropyVariables(),
+            FluxPlusDissipation(flux_ruedaramirez_etal,
+                                DissipationLaxFriedrichsEntropyVariables())]
+        # The default `initial_c_h = NaN` would result in `NaN`s in the fluxes
+        for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5),
+                          IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5))
+            fluxes = copy(multiion_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_central)
+            end
+            # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each ion, psi
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.1, -0.3, 0.4, 0.5, 0.1, 0.3, 0.0, 0.4,
+                                                 0.7, -0.2, 0.4, 0.1, 0.6, 0.1), equations),
+                       prim2cons(SVector(0.2, 0.5, -0.1, 1.2, -0.4, 0.2, 0.3, 1.1,
+                                         0.3, 0.6, -0.5, 0.2, 0.9, -0.2), equations),
+                       prim2cons(SVector(-0.6, 0.1, 0.3, 0.8, 0.7, -0.6, 0.1, 0.5,
+                                         1.4, 0.2, 0.1, -0.3, 0.3, 0.05), equations)],
+                   fluxes))
+        end
+
+        equations = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.3),
+                                               c_mean_global = 1.2,
+                                               rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 1.0),
+                   SVector(0.5, -0.2, 0.1, 5.0),
+                   SVector(-0.4, 0.8, 0.3, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_godunov]))
+
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, -0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 0.1, 1.0),
+                   SVector(0.5, -0.2, 0.1, 0.2, 5.0),
+                   SVector(-0.4, 0.8, 0.3, -0.6, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive)]))
+
+        # Variables: v1_prime, v2_prime, p_prime_scaled, v1_mean, v2_mean, c_mean,
+        # rho_mean
+        equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                    c_mean_global = 2.0,
+                                                    rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3),
+                   SVector(0.2, 0.4, 0.6, 0.6, -1.2, 1.5, 1.4),
+                   SVector(-0.3, 0.1, 0.2, 0.1, 0.4, 0.8, 0.7)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   DissipationLocalLaxFriedrichs()]))
+
+        for equations in (LinearScalarAdvectionEquation2D(0.3, -0.7),
+                          LinearScalarAdvectionEquation3D(0.3, -0.7, 0.4))
+            push!(test_cases,
+                  (; equations,
+                   u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+                   fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+        end
+
+        equations = HyperbolicDiffusionEquations2D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0, 0.3, -0.2),
+                   SVector(0.5, -0.7, 0.4),
+                   SVector(1.7, 1.2, 0.9)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+
+        return test_cases
+    end
+
+    # A non-axis-aligned `normal_direction` with non-unit length
+    function oblique_normal_direction(equations)
+        if ndims(equations) == 1
+            return SVector(-1.2)
+        elseif ndims(equations) == 2
+            return SVector(-1.2, 0.3)
+        else
+            return SVector(-1.2, 0.3, 0.7)
+        end
+    end
+
+    # Return all specialized methods of the callable objects in `functions` defined in
+    # Trixi.jl that take the arguments `(u_ll, u_rr, normal_direction, equations)`.
+    # This skips generic fallbacks, e.g., for all 1D equations or all `equations`.
+    # Note that this uses some Julia internals (`method.sig` etc.) since there is no
+    # public API to inspect method signatures.
+    function specialized_normal_direction_methods(functions)
+        found_methods = Set{Method}()
+        for f in functions, method in methods(f)
+            parentmodule(method) === Trixi || continue
+            parameters = Base.unwrap_unionall(method.sig).parameters
+            length(parameters) == 5 || continue
+            direction_type, equations_type = parameters[4], parameters[5]
+            direction_type isa Type && direction_type <: Integer && continue
+            equations_type isa TypeVar && (equations_type = equations_type.ub)
+            isabstracttype(Base.unwrap_unionall(equations_type)) && continue
+            push!(found_methods, method)
+        end
+        return found_methods
+    end
+end
+
 @testitem "Unit: Wave speed estimates with normal_direction" setup=[
     Setup,
-    UnitTests
+    UnitTests,
+    NormalDirectionTests
 ] tags=[:misc_part1] begin
-    # Wave speed estimates with a `normal_direction` are used on curvilinear meshes,
-    # where the `normal_direction` is not normalized but contains the surface scaling.
-    # Thus, they must
+    # Wave speed estimates with a `normal_direction` must
     # - agree with the `orientation` methods for axis-aligned unit normals,
     # - be homogeneous of degree one in the `normal_direction`, i.e., scale linearly
     #   with its (positive) length, and
     # - be consistent under reflection, i.e., flipping the `normal_direction` and
     #   swapping the left and right states.
-    # We use different left and right states since many bugs are invisible for
-    # `u_ll == u_rr`.
     estimates = (max_abs_speed_naive, max_abs_speed,
                  min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt)
-
-    test_cases = Any[]
-
-    equations = CompressibleEulerEquations2D(1.4)
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(1.0, 0.3, -0.2, 2.0), equations),
-               prim2cons(SVector(0.5, -0.7, 0.4, 0.4), equations),
-               prim2cons(SVector(1.7, 1.2, 0.9, 1.1), equations)]))
-
-    equations = CompressibleEulerEquations3D(1.4)
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0), equations),
-               prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4), equations),
-               prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1), equations)]))
-
-    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
-                                                           gas_constants = (0.287,
-                                                                            1.578))
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(0.3, -0.2, 2.0, 0.6, 0.4), equations),
-               prim2cons(SVector(-0.7, 0.4, 0.4, 0.1, 0.4), equations),
-               prim2cons(SVector(1.2, 0.9, 1.1, 1.2, 0.5), equations)]))
-
-    equations = PolytropicEulerEquations2D(1.4, 0.72)
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(1.0, 0.3, -0.2), equations),
-               prim2cons(SVector(0.5, -0.7, 0.4), equations),
-               prim2cons(SVector(1.7, 1.2, 0.9), equations)]))
-
-    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
-    equations = NonIdealCompressibleEulerEquations2D(eos)
-    push!(test_cases,
-          (equations,
-           [thermo2cons(SVector(2.0, 0.1, 0.2, 10.0), equations),
-               thermo2cons(SVector(2.5, -0.3, 0.1, 8.0), equations),
-               thermo2cons(SVector(1.5, 0.4, -0.6, 12.0), equations)]))
-
-    # Primitive variables: rho, v1, v2, p, chi_1, chi_2
-    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(1.0, 0.3, -0.2, 2.0, 0.1, 0.7), equations),
-               prim2cons(SVector(0.5, -0.7, 0.4, 0.4, 0.5, 0.2), equations),
-               prim2cons(SVector(1.7, 1.2, 0.9, 1.1, 0.9, 0.4), equations)]))
-
-    # Primitive variables: rho, v1, v2, v3, p, chi_1, chi_2
-    equations = PassiveTracerEquations(CompressibleEulerEquations3D(1.4), n_tracers = 2)
-    push!(test_cases,
-          (equations,
-           [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0, 0.1, 0.7), equations),
-               prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4, 0.5, 0.2), equations),
-               prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1, 0.9, 0.4), equations)]))
-
-    for equations in (IdealGlmMhdEquations2D(1.4, 5.0), IdealGlmMhdEquations3D(1.4, 5.0))
-        push!(test_cases,
-              (equations,
-               [
-                   prim2cons(SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
-                             equations),
-                   prim2cons(SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
-                             equations),
-                   prim2cons(SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1),
-                             equations)]))
-    end
-
-    for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
-                                                     charge_to_mass = (1.0, 2.0)),
-                      IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
-                                                     charge_to_mass = (1.0, 2.0)))
-        # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each ion, psi
-        push!(test_cases,
-              (equations,
-               [
-                   prim2cons(SVector(1.1, -0.3, 0.4, 0.5, 0.1, 0.3, 0.0, 0.4,
-                                     0.7, -0.2, 0.4, 0.1, 0.6, 0.1), equations),
-                   prim2cons(SVector(0.2, 0.5, -0.1, 1.2, -0.4, 0.2, 0.3, 1.1,
-                                     0.3, 0.6, -0.5, 0.2, 0.9, -0.2), equations),
-                   prim2cons(SVector(-0.6, 0.1, 0.3, 0.8, 0.7, -0.6, 0.1, 0.5,
-                                     1.4, 0.2, 0.1, -0.3, 0.3, 0.05), equations)]))
-    end
-
-    equations = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.3),
-                                           c_mean_global = 1.2,
-                                           rho_mean_global = 0.9)
-    push!(test_cases,
-          (equations,
-           [SVector(0.3, 0.5, -0.7, 1.0),
-               SVector(0.5, -0.2, 0.1, 5.0),
-               SVector(-0.4, 0.8, 0.3, 0.2)]))
-
-    equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, -0.7),
-                                           c_mean_global = 1.0,
-                                           rho_mean_global = 1.0)
-    push!(test_cases,
-          (equations,
-           [SVector(0.3, 0.5, -0.7, 0.1, 1.0),
-               SVector(0.5, -0.2, 0.1, 0.2, 5.0),
-               SVector(-0.4, 0.8, 0.3, -0.6, 0.2)]))
-
-    # Variables: v1_prime, v2_prime, p_prime_scaled, v1_mean, v2_mean, c_mean, rho_mean
-    equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
-                                                c_mean_global = 2.0,
-                                                rho_mean_global = 0.9)
-    push!(test_cases,
-          (equations,
-           [SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3),
-               SVector(0.2, 0.4, 0.6, 0.6, -1.2, 1.5, 1.4),
-               SVector(-0.3, 0.1, 0.2, 0.1, 0.4, 0.8, 0.7)]))
-
-    for equations in (LinearScalarAdvectionEquation2D(0.3, -0.7),
-                      LinearScalarAdvectionEquation3D(0.3, -0.7, 0.4))
-        push!(test_cases, (equations, [SVector(1.0), SVector(-0.4), SVector(2.2)]))
-    end
-
-    equations = HyperbolicDiffusionEquations2D()
-    push!(test_cases,
-          (equations,
-           [SVector(1.0, 0.3, -0.2),
-               SVector(0.5, -0.7, 0.4),
-               SVector(1.7, 1.2, 0.9)]))
 
     # The estimates are either scalars (`max_abs_speed`) or tuples (`min_max_speed`).
     # Thus, we compare them via `all(isapprox.(x, y))`, which handles both cases.
     tested_methods = Set{Method}()
-    for (equations, u_values) in test_cases, estimate in estimates
-        if ndims(equations) == 2
-            normal_direction = SVector(-1.2, 0.3)
-        else
-            normal_direction = SVector(-1.2, 0.3, 0.7)
-        end
+    for test_case in normal_direction_test_cases(), estimate in estimates
+        (; equations, u_values) = test_case
+        # In 1D, only generic fallbacks exist for methods with a `normal_direction`.
+        # Note that `max_abs_speed` falls back to `max_abs_speed_naive` in this case
+        # and does not agree with the `orientation` methods.
+        ndims(equations) == 1 && continue
+        normal_direction = oblique_normal_direction(equations)
         u = first(u_values)
         signature = Tuple{typeof(u), typeof(u), typeof(normal_direction),
                           typeof(equations)}
@@ -3296,26 +3426,74 @@ end
 
     # Make sure that every specialized method of the wave speed estimates with a
     # `normal_direction` defined in Trixi.jl is tested above. If this test fails
-    # after adding a new method, add the corresponding equations to `test_cases`.
-    # Note that this uses some Julia internals (`method.sig` etc.) since there is no
-    # public API to inspect method signatures.
-    found_methods = Set{Method}()
-    for estimate in estimates, method in methods(estimate)
-        parentmodule(method) === Trixi || continue
-        parameters = Base.unwrap_unionall(method.sig).parameters
-        length(parameters) == 5 || continue
-        direction_type, equations_type = parameters[4], parameters[5]
-        direction_type isa Type && direction_type <: Integer && continue
-        equations_type isa TypeVar && (equations_type = equations_type.ub)
-        # Generic fallbacks, e.g., for all 1D equations
-        isabstracttype(Base.unwrap_unionall(equations_type)) && continue
-        push!(found_methods, method)
+    # after adding a new method, add the corresponding equations to
+    # `normal_direction_test_cases`.
+    found_methods = specialized_normal_direction_methods(estimates)
+    for method in found_methods
         @test method in tested_methods
     end
 
     # Positive control: make sure that the method introspection above still works
     # and does not skip all methods silently
     known_method = which(max_abs_speed_naive,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+end
+
+@testitem "Unit: Numerical fluxes with normal_direction" setup=[
+    Setup,
+    UnitTests,
+    NormalDirectionTests
+] tags=[:misc_part1] begin
+    # Numerical fluxes with a `normal_direction` must be homogeneous of degree one in
+    # the `normal_direction`, i.e., scale linearly with its (positive) length.
+    # This also applies to nonconservative fluxes and dissipation operators.
+    # We use an absolute tolerance since some of them vanish, e.g., dissipation
+    # operators for `u_ll == u_rr`. Since `isapprox` sets the default `rtol` to zero
+    # if `atol` is given, we specify `rtol` as well.
+    tested_methods = Set{Method}()
+    for test_case in normal_direction_test_cases(), numerical_flux in test_case.fluxes
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        u = first(u_values)
+        push!(tested_methods,
+              which(numerical_flux,
+                    Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), $(numerical_flux)" begin
+            for u_ll in u_values, u_rr in u_values, factor in (2.5, 0.1)
+                @test isapprox(numerical_flux(u_ll, u_rr, factor * normal_direction,
+                                              equations),
+                               factor * numerical_flux(u_ll, u_rr, normal_direction,
+                                              equations),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the numerical fluxes with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding numerical flux or equations to
+    # `normal_direction_test_cases`. We check all exported numerical fluxes
+    # `flux_*` and instances of callable types with specialized methods.
+    numerical_fluxes = Any[getfield(Trixi, name)
+                           for name in names(Trixi)
+                           if startswith(string(name), "flux_")]
+    append!(numerical_fluxes,
+            [FluxLMARS(340.0), FluxTracerEquationsCentral(flux_central),
+                FluxTracerEquationsUpwind(flux_central), DissipationMatrixWintersEtal(),
+                DissipationLocalLaxFriedrichs(),
+                DissipationLaxFriedrichsEntropyVariables()])
+    found_methods = specialized_normal_direction_methods(numerical_fluxes)
+    for method in found_methods
+        @test method in tested_methods
+    end
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(flux_ranocha,
                          Tuple{SVector{4, Float64}, SVector{4, Float64},
                                SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
     @test known_method in found_methods
