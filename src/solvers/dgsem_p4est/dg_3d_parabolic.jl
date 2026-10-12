@@ -139,7 +139,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(primary_direction,
                                                             contravariant_vectors,
-                                                            i_primary, j_primary,
+                                                            i_primary,
+                                                            j_primary,
                                                             k_primary,
                                                             primary_element)
 
@@ -333,7 +334,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                     # this is the outward normal direction on the primary element
                     normal_direction = get_normal_direction(primary_direction,
                                                             contravariant_vectors,
-                                                            i_primary, j_primary,
+                                                            i_primary,
+                                                            j_primary,
                                                             k_primary,
                                                             primary_element)
 
@@ -390,7 +392,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                     # the negative of normal_direction on the primary element.
                     normal_direction = get_normal_direction(secondary_direction,
                                                             contravariant_vectors,
-                                                            i_secondary, j_secondary,
+                                                            i_secondary,
+                                                            j_secondary,
                                                             k_secondary,
                                                             secondary_element)
 
@@ -487,7 +490,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(primary_direction_index,
                                                             contravariant_vectors,
-                                                            i_primary, j_primary,
+                                                            i_primary,
+                                                            j_primary,
                                                             k_primary,
                                                             primary_element)
                     # We prolong the parabolic flux dotted with respect the outward normal on the
@@ -578,7 +582,8 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                     for i in eachnode(dg)
                         normal_direction = get_normal_direction(direction_index,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
@@ -644,15 +649,18 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
 
                     for v in eachvariable(equations_parabolic)
                         flux_parabolic_node = SVector(flux_parabolic_x[v,
-                                                                       i_large, j_large,
+                                                                       i_large,
+                                                                       j_large,
                                                                        k_large,
                                                                        element],
                                                       flux_parabolic_y[v,
-                                                                       i_large, j_large,
+                                                                       i_large,
+                                                                       j_large,
                                                                        k_large,
                                                                        element],
                                                       flux_parabolic_z[v,
-                                                                       i_large, j_large,
+                                                                       i_large,
+                                                                       j_large,
                                                                        k_large,
                                                                        element])
 
@@ -739,7 +747,8 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                     for i in eachnode(dg)
                         normal_direction = get_normal_direction(small_direction,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
@@ -828,7 +837,8 @@ function calc_mortar_flux_gradient!(surface_flux_values,
                     for i in eachnode(dg)
                         normal_direction = get_normal_direction(small_direction,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
@@ -1040,15 +1050,18 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 
                     for v in eachvariable(equations_parabolic)
                         flux_parabolic_node = SVector(flux_parabolic_x[v,
-                                                                       i_node, j_node,
+                                                                       i_node,
+                                                                       j_node,
                                                                        k_node,
                                                                        element],
                                                       flux_parabolic_y[v,
-                                                                       i_node, j_node,
+                                                                       i_node,
+                                                                       j_node,
                                                                        k_node,
                                                                        element],
                                                       flux_parabolic_z[v,
-                                                                       i_node, j_node,
+                                                                       i_node,
+                                                                       j_node,
                                                                        k_node,
                                                                        element])
 
