@@ -51,7 +51,11 @@ and phases.
 Since the laminar flow at this Reynolds number is linearly stable, the transition to
 turbulence requires a perturbation of finite amplitude. Thus, the amplitude is chosen
 such that the velocity fluctuations are of the order of the turbulent ones of the
-DNS of Moser, Kim, and Mansour (1999).
+DNS of
+- R. D. Moser, J. Kim, N. N. Mansour (1999)
+  Direct numerical simulation of turbulent channel flow up to Re_tau = 590
+  [DOI: 10.1063/1.869966](https://doi.org/10.1063/1.869966)
+
 Each wave is divergence-free, periodic, and vanishes at the walls.
 """
 function initial_condition_channel_flow(x, t, equations::CompressibleEulerEquations3D)
