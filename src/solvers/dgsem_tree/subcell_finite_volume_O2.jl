@@ -62,7 +62,7 @@ Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](
 or [`VolumeIntegralFiniteVolumeO2`](@ref).
 
 The supplied `limiter` governs the choice of slopes given the nodal values
-`u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
+`u_ll`, `u_lr`, `u_rl`, and `u_rr` at the nodes (e.g., Gauss-Lobatto Legendre for `DGSEM`).
 
 **Symmetric** total-Variation-Diminishing (TVD) choices for the limiter are
     1) [`minmod`](@ref)
