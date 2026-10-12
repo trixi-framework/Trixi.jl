@@ -334,15 +334,15 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                                         local_element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem,
-                                                         local_element],
-                                        flux_parabolic_y[v, i_elem, j_elem,
-                                                         local_element])
+                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_elem, j_elem,
+                                                                   local_element],
+                                                  flux_parabolic_y[v, i_elem, j_elem,
+                                                                   local_element])
                     # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
                     # Thus, the `orientation_factor` changes the logic such that the
                     # flux which enters side 1 leaves side 2.
                     cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
-                                                                          dot(flux_visc,
+                                                                          dot(flux_parabolic_node,
                                                                               normal_direction)
                 end
 
@@ -379,6 +379,11 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
             local_side = local_sides[interface]
+            # The gradient flux must be evaluated with the normal direction of the
+            # primary side (as in the serial `calc_interface_flux_gradient!`) since it
+            # may depend on the normal direction, e.g., for `ParabolicFormulationLocalDG`.
+            # The normal direction of the secondary side is the negative of the primary one.
+            orientation_factor = local_side == 1 ? 1 : -1
 
             # Create the local i,j indexing on the local element used to pull normal direction information
             i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
@@ -408,7 +413,9 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                 u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
                                                    i, interface)
 
-                flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                flux_ = flux_parabolic(u_ll, u_rr,
+                                       orientation_factor * normal_direction,
+                                       Gradient(),
                                        equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
@@ -454,6 +461,10 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
             local_side = local_sides[interface]
+            # Sign flip for `local_side = 2` required for divergence calculation since
+            # the divergence interface flux involves the normal direction.
+            # `local_side=2` is thus flipped (opposite of primary side)
+            orientation_factor = local_side == 1 ? 1 : -1
 
             i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
                                                                      index_range)
@@ -484,10 +495,6 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                                                   equations_parabolic,
                                                                   dg, i, interface)
 
-                # Sign flip for `local_side = 2` required for divergence calculation since
-                # the divergence interface flux involves the normal direction.
-                # `local_side=2` is thus flipped (opposite of primary side)
-                orientation_factor = local_side == 1 ? 1 : -1
                 flux_ = flux_parabolic(parabolic_flux_normal_ll,
                                        parabolic_flux_normal_rr,
                                        orientation_factor * normal_direction,
@@ -687,16 +694,19 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_large, j_large,
-                                                                 element],
-                                                flux_parabolic_y[v, i_large, j_large,
-                                                                 element])
+                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_large,
+                                                                           j_large,
+                                                                           element],
+                                                          flux_parabolic_y[v, i_large,
+                                                                           j_large,
+                                                                           element])
 
                             # Same convention as local 2D code:
                             # prolong flux dotted with outward normal on the small element.
                             # The large-element normal is -2x the small-element normal,
                             # hence the factor -1/2 here.
-                            u_buffer[v, i] = -0.5f0 * dot(flux_node, normal_direction)
+                            u_buffer[v, i] = -0.5f0 *
+                                             dot(flux_parabolic_node, normal_direction)
                         end
 
                         i_large += i_large_step
@@ -724,12 +734,14 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_small, j_small,
-                                                                 element],
-                                                flux_parabolic_y[v, i_small, j_small,
-                                                                 element])
+                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_small,
+                                                                           j_small,
+                                                                           element],
+                                                          flux_parabolic_y[v, i_small,
+                                                                           j_small,
+                                                                           element])
 
-                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_node,
+                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_parabolic_node,
                                                                                  normal_direction)
                         end
 
