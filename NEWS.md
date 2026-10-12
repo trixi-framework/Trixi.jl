@@ -8,11 +8,9 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
-<<<<<<< HEAD
 - Added multi-GPU support for 2D P4estMesh. A local CUDA-aware MPI installation is required.
   For configuration see [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs.
-=======
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -20,7 +18,6 @@ for human readability.
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
   which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
->>>>>>> main
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
