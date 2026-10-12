@@ -3,6 +3,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+
 gamma = 1.4
 equations = CompressibleEulerEquations3D(gamma)
 

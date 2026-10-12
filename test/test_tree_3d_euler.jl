@@ -655,10 +655,11 @@ end
                             0.3425012835994106,
                             2.158371918362654
                         ],
-                        atol=1e-7, #higher tolerances for the Liu-Zhang limiter
+                        atol=1e-7, # limiters are not smooth, so we need bigger tolerances
                         rtol=1e-6)
 
-    # check that the Liu-Zhang limiter is activated
+    # check that the limiter is activated; the precise number of activations
+    # can vary by 1-2 based on architecture.
     @test length(global_limiter!.history_davis_yin_iterations) > 1
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
