@@ -5003,7 +5003,14 @@ end
                      coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
                      periodicity = true)
     equations = IdealGlmMhdEquations2D(5 / 3)
-    for (volume_flux, warns) in ((flux_hindenlang_gassner_nonconservative_powell, true),
+    # Only the trait matters here, see `elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl`
+    # for an actual combined flux
+    combined_flux(u_ll, u_rr, normal_direction, equations) = nothing
+    function Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(combined_flux),
+                                                                   ::IdealGlmMhdEquations2D)
+        return Trixi.True()
+    end
+    for (volume_flux, warns) in ((combined_flux, true),
                                  ((flux_central, flux_nonconservative_powell), false))
         solver = DGSEM(polydeg = 9,
                        surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
