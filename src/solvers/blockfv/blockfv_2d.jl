@@ -11,7 +11,8 @@
 # fstar_y[v, i, j]: flux at interface between cells (i,j-1) and (i,j) in y-direction
 #                   shape (nvars, n, n+1); slots j=1 and j=n+1 are zero (boundary)
 function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::VolumeIntegralFiniteVolume,
+                      volume_integral::Union{VolumeIntegralFiniteVolume,
+                                             VolumeIntegralFiniteVolumeO2},
                       dg::BlockFV, cache_containers, uEltype)
     n = nnodes(dg)
     nv = nvariables(equations)
@@ -81,6 +82,331 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                             (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
                                             inv_h *
                                             (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+#####################################################################
+# Second-order volume integral with reconstructed states at internal faces
+function calc_volume_integral!(backend::Nothing, du, u,
+                               mesh::TreeMesh{2},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralFiniteVolumeO2,
+                               dg::BlockFV, cache)
+    @unpack (sc_interface_coords, surface_flux, reconstruction_mode, slope_limiter,
+    cons2recon, recon2cons) = volume_integral
+    @unpack fstar_x_threaded, fstar_y_threaded = cache
+    inv_h = nnodes(dg) * one(eltype(u)) / 2
+
+    @threaded for element in eachelement(dg, cache)
+        fstar_x = fstar_x_threaded[Threads.threadid()]
+        fstar_y = fstar_y_threaded[Threads.threadid()]
+
+        # Each BlockFV element is split into an n x n grid of equal FV cells
+        # on [-1, 1]^2. Cell averages live at the cell centers; numerical fluxes
+        # are stored in fstar_x / fstar_y at the faces (element boundaries +
+        # internal faces). Schematic for n_nodes = 3:
+        #
+        #   η = +1  ---------------------------------------------
+        #          |           |           |           |
+        #          |  u_{1,3}  |  u_{2,3}  |  u_{3,3}  |
+        #          |           |           |           |
+        #          |-----fy----+-----fy----+-----fy----|  fy = fstar_y
+        #          |           |           |           |
+        #          |  u_{1,2}  |  u_{2,2}  |  u_{3,2}  |
+        #          |           |           |           |
+        #          |-----fy----+-----fy----+-----fy----|
+        #          |           |           |           |
+        #          |  u_{1,1}  |  u_{2,1}  |  u_{3,1}  |
+        #          |           |           |           |
+        #   η = -1  ---------------------------------------------
+        #         ξ = -1                              ξ = +1
+        #
+        # Vertical lines also carry fstar_x fluxes (fx) between columns.
+        # Volume loops only fill internal faces; the boundary slots of fstar_x /
+        # fstar_y stay zero until the surface integral adds them.
+        #
+        # At an internal x-face i (between cells (i-1,j) and (i,j)), high-order
+        # reconstruction needs up to four neighboring cell averages along the
+        # row j (reference the stencil in 1D since it is the same).
+        #
+        #            u_ll        u_lr   |   u_rl        u_rr
+        #              ·          ·     |     ·          ·
+        #         (i-2, j)   (i-1, j)   |  (i, j)    (i+1, j)
+        #                               ^
+        #                          face i (fstar_x)
+        #
+        # At an internal y-direction face j the analogous four-point stencil is taken
+        # along the column i.
+        # Near the element ends the missing neighbor is
+        # clamped to the outermost cell (volume-local stencil; no values from
+        # other elements).
+
+        # x-direction: internal interfaces at i + 1/2 for i = 1, ..., n-1
+        for j in eachnode(dg)
+            for i in 2:nnodes(dg)
+                u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j,
+                                                element), equations)
+                u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, element),
+                                  equations)
+                u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                                  equations)
+                u_rr = cons2recon(get_node_vars(u, equations, dg,
+                                                min(nnodes(dg), i + 1), j, element),
+                                  equations)
+
+                u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                               sc_interface_coords, i,
+                                               slope_limiter, dg)
+
+                f = surface_flux(recon2cons(u_l, equations),
+                                 recon2cons(u_r, equations), 1, equations)
+                set_node_vars!(fstar_x, f, equations, dg, i, j)
+            end
+        end
+
+        # internal interfaces in y-direction at j + 1/2 for j = 1, ..., n-1
+        for j in 2:nnodes(dg)
+            for i in eachnode(dg)
+                u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2),
+                                                element), equations)
+                u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
+                                  equations)
+                u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                                  equations)
+                u_rr = cons2recon(get_node_vars(u, equations, dg, i,
+                                                min(nnodes(dg), j + 1), element),
+                                  equations)
+
+                u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                               sc_interface_coords, j,
+                                               slope_limiter, dg)
+
+                f = surface_flux(recon2cons(u_l, equations),
+                                 recon2cons(u_r, equations), 2, equations)
+                set_node_vars!(fstar_y, f, equations, dg, i, j)
+            end
+        end
+
+        # Apply flux differences to the internal faces (boundary slots are zero)
+        for j in eachnode(dg)
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    du[v, i, j, element] = (du[v, i, j, element] +
+                                            inv_h *
+                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
+                                            inv_h *
+                                            (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+#####################################################################
+# Surface reconstruction for BlockFV with VolumeIntegralFiniteVolumeO2.
+# Reconstruct to an element face at ξ or η = +/- 1 using `reconstruction_mode`,
+# then extrapolate from the near-boundary internal face.
+# `orientation` is 1 for x-faces and 2 for y-faces; `face` is +/- 1;
+# `index` is the node index along the face (transverse direction).
+@inline function reconstruct_element_face(u, equations, dg::BlockFV, element,
+                                          orientation, face, index,
+                                          volume_integral::VolumeIntegralFiniteVolumeO2)
+    @unpack sc_interface_coords, reconstruction_mode, slope_limiter,
+    cons2recon, recon2cons = volume_integral
+    nodes = dg.basis.nodes
+    n = nnodes(dg)
+
+    # the one node case, just return the node value
+    if n == 1
+        if orientation == 1
+            return get_node_vars(u, equations, dg, 1, index, element)
+        else
+            return get_node_vars(u, equations, dg, index, 1, element)
+        end
+    end
+
+    # Reconstruct at ξ or η = ±1 by extrapolating from the nearest internal face.
+    # Along a fixed transverse index, the stencil is the same as in 1D.
+    #
+    # orientation = 1 (x-faces), fixed j = index:
+    #
+    #   ξ = -1                                              ξ = +1
+    #        |--- u₁ ---|--- u₂ --- ... ---|--- u_n ---|
+    #                   f₂                            f_n
+    #        ^                                         ^
+    #     left face                               right face
+    #
+    # orientation = 2 (y-faces), fixed i = index:
+    #
+    #   η = -1                                              η = +1
+    #        |--- u₁ ---|--- u₂ --- ... ---|--- u_n ---|
+    #                   f₂                            f_n
+    #        ^                                         ^
+    #    bottom face                               top face
+    #
+    # Right/top (face = +1): reconstruct at f_n, then extrapolate from u_n to +1.
+    # Left/bottom (face = -1): reconstruct at f_2, then extrapolate from u_1 to -1.
+
+    if face > 0
+        # Right (+x) or top (+y) face on reference coordinate = +1
+        i = n
+        if orientation == 1
+            u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), index,
+                                            element), equations)
+            u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, index, element),
+                              equations)
+            u_rl = cons2recon(get_node_vars(u, equations, dg, i, index, element),
+                              equations)
+        else
+            u_ll = cons2recon(get_node_vars(u, equations, dg, index, max(1, i - 2),
+                                            element), equations)
+            u_lr = cons2recon(get_node_vars(u, equations, dg, index, i - 1, element),
+                              equations)
+            u_rl = cons2recon(get_node_vars(u, equations, dg, index, i, element),
+                              equations)
+        end
+        # there's no cell to the right of the last one, so reuse u_rl.
+        u_rr = u_rl
+        _, u_face = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        sc_interface_coords, i, slope_limiter, dg)
+        x_c = nodes[i]
+        return recon2cons(u_rl +
+                          (u_face - u_rl) / (sc_interface_coords[i - 1] - x_c) *
+                          (face - x_c), equations)
+    else
+        # The other (left (-x) or bottom (-y)) face on reference coordinate = -1
+        i = 2
+        if orientation == 1
+            u_ll = cons2recon(get_node_vars(u, equations, dg, 1, index, element),
+                              equations)
+            u_lr = u_ll
+            u_rl = cons2recon(get_node_vars(u, equations, dg, 2, index, element),
+                              equations)
+            u_rr = cons2recon(get_node_vars(u, equations, dg, min(n, 3), index,
+                                            element), equations)
+        else
+            u_ll = cons2recon(get_node_vars(u, equations, dg, index, 1, element),
+                              equations)
+            u_lr = u_ll
+            u_rl = cons2recon(get_node_vars(u, equations, dg, index, 2, element),
+                              equations)
+            u_rr = cons2recon(get_node_vars(u, equations, dg, index, min(n, 3),
+                                            element), equations)
+        end
+        u_face, _ = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        sc_interface_coords, i, slope_limiter, dg)
+        x_c = nodes[i - 1]
+        return recon2cons(u_lr +
+                          (u_face - u_lr) / (sc_interface_coords[i - 1] - x_c) *
+                          (face - x_c), equations)
+    end
+end
+
+function prolong2interfaces!(backend::Nothing, cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DG{<:UniformFiniteVolumeBasis, Mortar, SurfaceIntegral,
+                                    <:VolumeIntegralFiniteVolumeO2}) where {Mortar,
+                                                                            SurfaceIntegral
+                                                                            }
+    @unpack interfaces = cache
+    @unpack orientations, neighbor_ids = interfaces
+    interfaces_u = interfaces.u
+    volume_integral = dg.volume_integral
+
+    @threaded for interface in eachinterface(dg, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        # internal interfaces in x-direction
+        if orientations[interface] == 1
+            for j in eachnode(dg)
+                u_left = reconstruct_element_face(u, equations, dg, left_element, 1, 1,
+                                                  j, volume_integral)
+                u_right = reconstruct_element_face(u, equations, dg, right_element, 1,
+                                                   -1, j, volume_integral)
+                for v in eachvariable(equations)
+                    interfaces_u[1, v, j, interface] = u_left[v]
+                    interfaces_u[2, v, j, interface] = u_right[v]
+                end
+            end
+        else
+            # internal interfaces in y-direction
+            for i in eachnode(dg)
+                u_left = reconstruct_element_face(u, equations, dg, left_element, 2, 1,
+                                                  i, volume_integral)
+                u_right = reconstruct_element_face(u, equations, dg, right_element, 2,
+                                                   -1, i, volume_integral)
+                for v in eachvariable(equations)
+                    interfaces_u[1, v, i, interface] = u_left[v]
+                    interfaces_u[2, v, i, interface] = u_right[v]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(backend::Nothing, cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DG{<:UniformFiniteVolumeBasis, Mortar, SurfaceIntegral,
+                                    <:VolumeIntegralFiniteVolumeO2}) where {Mortar,
+                                                                            SurfaceIntegral
+                                                                            }
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+    volume_integral = dg.volume_integral
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(dg)
+                    u_b = reconstruct_element_face(u, equations, dg, element, 1, 1, l,
+                                                   volume_integral)
+                    for v in eachvariable(equations)
+                        boundaries.u[1, v, l, boundary] = u_b[v]
+                    end
+                end
+            else
+                # element in +x direction of boundary
+                for l in eachnode(dg)
+                    u_b = reconstruct_element_face(u, equations, dg, element, 1, -1, l,
+                                                   volume_integral)
+                    for v in eachvariable(equations)
+                        boundaries.u[2, v, l, boundary] = u_b[v]
+                    end
+                end
+            end
+        else
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(dg)
+                    u_b = reconstruct_element_face(u, equations, dg, element, 2, 1, l,
+                                                   volume_integral)
+                    for v in eachvariable(equations)
+                        boundaries.u[1, v, l, boundary] = u_b[v]
+                    end
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(dg)
+                    u_b = reconstruct_element_face(u, equations, dg, element, 2, -1, l,
+                                                   volume_integral)
+                    for v in eachvariable(equations)
+                        boundaries.u[2, v, l, boundary] = u_b[v]
+                    end
                 end
             end
         end
