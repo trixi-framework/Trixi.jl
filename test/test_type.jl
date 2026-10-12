@@ -693,6 +693,27 @@ end
         @test typeof(@inferred density(u, equations)) == RealT
         @test typeof(@inferred pressure(u, equations)) == RealT
 
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_convergence_test(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred source_terms_convergence_test(u_dual, x, t, equations)) ==
+              DualT
+        @test eltype(@inferred flux(u_dual, orientation, equations)) == DualT
+        @test eltype(@inferred flux_chandrashekar(u_dual, u_dual, orientation,
+                                                  equations)) == DualT
+        @test eltype(@inferred flux_ranocha(u_dual, u_dual, orientation, equations)) ==
+              DualT
+        @test eltype(@inferred cons2prim(u_dual, equations)) == DualT
+        @test eltype(@inferred prim2cons(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
+        @test eltype(@inferred entropy2cons(u_dual, equations)) == DualT
+
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa CompressibleEulerMulticomponentEquations1D
         @test eltype(adapted.gammas) == Float32
@@ -754,6 +775,31 @@ end
         @test typeof(@inferred Trixi.totalgamma(u, equations)) == RealT
         @test typeof(@inferred density(u, equations)) == RealT
         @test typeof(@inferred density_pressure(u, equations)) == RealT
+
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_convergence_test(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred source_terms_convergence_test(u_dual, x, t, equations)) ==
+              DualT
+        for orientation in orientations
+            @test eltype(@inferred flux(u_dual, orientation, equations)) == DualT
+            @test eltype(@inferred flux_chandrashekar(u_dual, u_dual, orientation,
+                                                      equations)) == DualT
+            @test eltype(@inferred flux_ranocha(u_dual, u_dual, orientation,
+                                                equations)) == DualT
+        end
+        @test eltype(@inferred flux_ranocha(u_dual, u_dual, normal_direction,
+                                            equations)) == DualT
+        @test eltype(@inferred cons2prim(u_dual, equations)) == DualT
+        @test eltype(@inferred prim2cons(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
+        @test eltype(@inferred entropy2cons(u_dual, equations)) == DualT
 
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa CompressibleEulerMulticomponentEquations2D
@@ -1767,6 +1813,24 @@ end
             @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
         end
 
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_convergence_test(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred flux(u_dual, orientation, equations)) == DualT
+        @test eltype(@inferred flux_derigs_etal(u_dual, u_dual, orientation,
+                                                equations)) == DualT
+        @test eltype(@inferred flux_hindenlang_gassner(u_dual, u_dual, orientation,
+                                                       equations)) == DualT
+        @test eltype(@inferred cons2prim(u_dual, equations)) == DualT
+        @test eltype(@inferred prim2cons(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
+
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa IdealGlmMhdMulticomponentEquations1D
         @test eltype(adapted.gammas) == Float32
@@ -1826,6 +1890,29 @@ end
         for direction in directions
             @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
         end
+
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_convergence_test(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        for orientation in orientations
+            @test eltype(@inferred flux(u_dual, orientation, equations)) == DualT
+            @test eltype(@inferred flux_nonconservative_powell(u_dual, u_dual,
+                                                               orientation,
+                                                               equations)) == DualT
+            @test eltype(@inferred flux_derigs_etal(u_dual, u_dual, orientation,
+                                                    equations)) == DualT
+            @test eltype(@inferred flux_hindenlang_gassner(u_dual, u_dual, orientation,
+                                                           equations)) == DualT
+        end
+        @test eltype(@inferred cons2prim(u_dual, equations)) == DualT
+        @test eltype(@inferred prim2cons(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
 
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa IdealGlmMhdMulticomponentEquations2D
@@ -1911,6 +1998,7 @@ end
         @test eltype(@inferred prim2cons(u, equations)) == RealT
         @test eltype(@inferred cons2entropy(u, equations)) == RealT
         @test typeof(@inferred density(u, equations)) == RealT
+        @test eltype(@inferred pressure(u, equations)) == RealT
         @test eltype(@inferred magnetic_field(u, equations)) == RealT
         @test typeof(@inferred divergence_cleaning_field(u, equations)) == RealT
         @test typeof(@inferred Trixi.electron_pressure_zero(u, equations)) == RealT
@@ -1926,6 +2014,37 @@ end
         for direction in orientations
             @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
         end
+
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        @test eltype(@inferred source_terms_collision_ion_ion(u_dual, x, t, equations)) ==
+              DualT
+        @test eltype(@inferred source_terms_collision_ion_electron(u_dual, x, t,
+                                                                   equations)) == DualT
+        for orientation in orientations
+            @test eltype(@inferred flux_nonconservative_central(u_dual, u_dual,
+                                                                orientation,
+                                                                equations)) == DualT
+            @test typeof(@inferred Trixi.calc_fast_wavespeed(u_dual, orientation,
+                                                             equations)) == DualT
+        end
+        @test eltype(@inferred flux_nonconservative_central(u_dual, u_dual,
+                                                            normal_direction,
+                                                            equations)) == DualT
+        @test typeof(@inferred Trixi.calc_fast_wavespeed(u_dual, normal_direction,
+                                                         equations)) == DualT
+        @test eltype(@inferred Trixi.max_abs_speeds(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
+        @test typeof(@inferred density(u_dual, equations)) == DualT
+        @test eltype(@inferred pressure(u_dual, equations)) == DualT
+        @test typeof(@inferred Trixi.charge_averaged_velocities(u_dual, equations)) ==
+              Tuple{DualT, DualT, DualT, SVector{2, DualT}, SVector{2, DualT},
+                    SVector{2, DualT}}
 
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa IdealGlmMhdMultiIonEquations2D
@@ -1997,6 +2116,34 @@ end
         for direction in orientations
             @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
         end
+
+        @test typeof(@inferred density(u, equations)) == RealT
+        @test eltype(@inferred pressure(u, equations)) == RealT
+
+        # Automatic differentiation: the element type of the state differs from the
+        # real type of the equations
+        u_dual = ForwardDiff.Dual{Nothing}.(u, one(RealT))
+        DualT = eltype(u_dual)
+        x_dual = ForwardDiff.Dual{Nothing}.(x, one(RealT))
+        @test eltype(@inferred initial_condition_weak_blast_wave(x_dual, t, equations)) ==
+              DualT
+        for orientation in orientations
+            @test eltype(@inferred flux_nonconservative_ruedaramirez_etal(u_dual, u_dual,
+                                                                          orientation,
+                                                                          equations)) ==
+                  DualT
+            @test typeof(@inferred Trixi.calc_fast_wavespeed(u_dual, orientation,
+                                                             equations)) == DualT
+        end
+        @test typeof(@inferred Trixi.calc_fast_wavespeed(u_dual, normal_direction,
+                                                         equations)) == DualT
+        @test eltype(@inferred Trixi.max_abs_speeds(u_dual, equations)) == DualT
+        @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
+        @test typeof(@inferred density(u_dual, equations)) == DualT
+        @test eltype(@inferred pressure(u_dual, equations)) == DualT
+        @test typeof(@inferred Trixi.charge_averaged_velocities(u_dual, equations)) ==
+              Tuple{DualT, DualT, DualT, SVector{2, DualT}, SVector{2, DualT},
+                    SVector{2, DualT}}
 
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
         @test adapted isa IdealGlmMhdMultiIonEquations3D
