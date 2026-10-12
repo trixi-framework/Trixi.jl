@@ -38,7 +38,8 @@ function prolong2mpiinterfaces!(cache, u,
             j_element = j_element_start
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    mpi_interfaces.u[local_side, v, i, interface] = u[v, i_element,
+                    mpi_interfaces.u[local_side, v, i, interface] = u[v,
+                                                                      i_element,
                                                                       j_element,
                                                                       local_element]
                 end
