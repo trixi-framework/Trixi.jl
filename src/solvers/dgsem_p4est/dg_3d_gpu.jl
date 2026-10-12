@@ -56,7 +56,7 @@ end
             volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
             derivative_split,
             contravariant_vectors,
-            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -629,7 +629,7 @@ end
             nturbovars(numerical_flux, equations),
             derivative_split,
             contravariant_vectors,
-            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -1335,6 +1335,11 @@ end
     return (nnodes(dg), nnodes(dg))
 end
 
+# Nodes of one element, see the 2D version
+@inline function element_node_ndrange(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg)
+    return (nnodes(dg), nnodes(dg), nnodes(dg))
+end
+
 function prolong2boundaries!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh, T8codeMesh},
                              equations, dg::DG)
@@ -1674,7 +1679,7 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
             inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
             kernel_cache,
-            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
 
     return nothing
 end

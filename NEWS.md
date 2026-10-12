@@ -19,6 +19,8 @@ for human readability.
 - The `SummaryCallback` warns if the time type of the time integrator differs from the
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh{2}`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -64,6 +66,7 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- The parabolic terms on conforming `P4estMesh3D`s now support MPI parallelization ([#3291]).
 
 #### Changed
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element

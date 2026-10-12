@@ -140,10 +140,12 @@ end
     return start + (i - 1) * step
 end
 
-Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
-                                                       node_indices,
-                                                       contravariant_vectors,
-                                                       index_range, i, interface)
+# Compute the elements, directions, and volume node indices on both sides of an
+# interface for the surface node `i` (counted along the primary side) as well as
+# the surface node index `i_secondary` on the secondary element, which might run
+# backwards for flipped sides.
+Base.@propagate_inbounds function get_interface_indices(neighbor_ids, node_indices,
+                                                        index_range, i, interface)
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
@@ -173,6 +175,22 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
     else
         i_secondary = i_secondary_node
     end
+
+    return (primary_direction, primary_element, i_primary, j_primary,
+            i_secondary, secondary_direction, secondary_element,
+            i_secondary_node, j_secondary_node)
+end
+
+Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
+                                                       node_indices,
+                                                       contravariant_vectors,
+                                                       index_range, i, interface)
+    (primary_direction, primary_element, i_primary, j_primary,
+    i_secondary, secondary_direction, secondary_element,
+    i_secondary_node, j_secondary_node) = get_interface_indices(neighbor_ids,
+                                                                node_indices,
+                                                                index_range, i,
+                                                                interface)
 
     u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, primary_element)
     u_rr = get_node_vars(u, equations, dg, i_secondary_node, j_secondary_node,
@@ -303,6 +321,14 @@ end
 @inline function boundary_node_ndrange(mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                                    T8codeMesh{2}}, dg)
     return (nnodes(dg),)
+end
+
+# Nodes of one element. Kernels parallelizing over all volume nodes are launched with
+# `ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache))`, analogous to
+# `boundary_node_ndrange` for the nodes of interfaces and boundaries.
+@inline function element_node_ndrange(mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                  T8codeMesh{2}}, dg)
+    return (nnodes(dg), nnodes(dg))
 end
 
 Base.@propagate_inbounds function prolong2boundaries_per_node!(u,
@@ -533,7 +559,7 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
             inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
             kernel_cache,
-            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
 
     return nothing
 end
