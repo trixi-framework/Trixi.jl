@@ -7,7 +7,8 @@
 
 @doc raw"""
     CompressibleRANSDiffusion2D(equations; mu, Prandtl, Prandtl_turbulent = 0.9,
-                                model = SpalartAllmarasNeg())
+                                model = SpalartAllmarasNeg(),
+                                gradient_variables = GradientVariablesPrimitive())
 
 Parabolic part of the compressible Reynolds-averaged (Favre-averaged) Navier-Stokes equations
 with a one-equation eddy-viscosity turbulence `model`.
@@ -37,8 +38,11 @@ Supported parabolic boundary conditions are [`BoundaryConditionDirichlet`](@ref)
 The dynamic viscosity `mu` may be a constant or a function `mu(u, equations)` of the conservative
 variables `u` (passed together with the hyperbolic equations).
 
-Gradients are computed for the primitive variables ``(\rho, v_1, v_2, T, \tilde\nu)``
-(`GradientVariablesPrimitive`).
+Gradients are computed either for ``(\rho, v_1, v_2, T, \tilde\nu)`` (`GradientVariablesPrimitive`)
+or for the entropy variables of the [`PassiveTracerEquations`](@ref) (`GradientVariablesEntropy`).
+For the latter, the parabolic terms are entropy stable for the entropy
+``S = S_{\text{Euler}} + \rho \tilde\nu^2``, see Lodares et al. (2022) in
+[`SpalartAllmarasNeg`](@ref).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -61,8 +65,8 @@ end
 function CompressibleRANSDiffusion2D(equations::PassiveTracerEquations{2, 5, 1,
                                                                        <:CompressibleEulerEquations2D};
                                      mu, Prandtl, Prandtl_turbulent = 0.9,
-                                     model = SpalartAllmarasNeg())
-    gradient_variables = GradientVariablesPrimitive()
+                                     model = SpalartAllmarasNeg(),
+                                     gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations.flow_equations
 
     RealT = promote_type(typeof(gamma), typeof(Prandtl))
@@ -91,7 +95,8 @@ function Base.similar(equations::CompressibleRANSDiffusion2D,
                                        Prandtl = convert(NewRealT, equations.Pr),
                                        Prandtl_turbulent = convert(NewRealT,
                                                                    equations.Pr_t),
-                                       model = similar(equations.model, NewRealT))
+                                       model = similar(equations.model, NewRealT),
+                                       gradient_variables = equations.gradient_variables)
 end
 
 """
@@ -114,6 +119,41 @@ end
     rho_e_total = rho * T * equations.inv_gamma_minus_one +
                   0.5f0 * rho * (v1^2 + v2^2)
     return SVector(rho, rho * v1, rho * v2, rho_e_total, rho * nu_tilde)
+end
+
+# Entropy variables of `PassiveTracerEquations` with one tracer:
+# w = (w1_Euler - nu_tilde^2, rho v1 / p, rho v2 / p, -rho / p, 2 nu_tilde), where
+# w1_Euler = (gamma - s) / (gamma - 1) - rho |v|^2 / (2 p) and s = log(p) - gamma log(rho).
+# This converts them to `(rho, v1, v2, T, nu_tilde)`.
+@inline function entropy2prim_temperature(w, equations::CompressibleRANSDiffusion2D)
+    @unpack gamma, inv_gamma_minus_one = equations
+    inv_w4 = inv(w[4])
+    T = -inv_w4
+    v1 = -w[2] * inv_w4
+    v2 = -w[3] * inv_w4
+    nu_tilde = 0.5f0 * w[5]
+    # With p = rho T, w1_Euler = (gamma - log(T)) / (gamma - 1) + log(rho) - |v|^2 / (2 T)
+    log_rho = w[1] + nu_tilde^2 + 0.5f0 * (v1^2 + v2^2) / T -
+              (gamma - log(T)) * inv_gamma_minus_one
+    return SVector(exp(log_rho), v1, v2, T, nu_tilde)
+end
+
+# Convert the gradient of the transformed variables to the gradient of `(rho, v1, v2, T, nu_tilde)`.
+# The first argument are the primitive variables `(rho, v1, v2, T, nu_tilde)`.
+@inline function convert_derivative_to_primitive(prim, gradient_w,
+                                                 equations::CompressibleRANSDiffusion2D{GradientVariablesEntropy})
+    rho, v1, v2, T, nu_tilde = prim
+    dw1, dw2, dw3, dw4, dw5 = gradient_w
+
+    dv1 = T * (dw2 + v1 * dw4)
+    dv2 = T * (dw3 + v2 * dw4)
+    dT = T * T * dw4
+    dnu_tilde = 0.5f0 * dw5
+    # From w1 = (gamma - log(T)) / (gamma - 1) + log(rho) - |v|^2 / (2 T) - nu_tilde^2
+    dlog_rho = dw1 + dT * equations.inv_gamma_minus_one / T +
+               (v1 * dv1 + v2 * dv2) / T - 0.5f0 * (v1^2 + v2^2) * dT / T^2 +
+               2 * nu_tilde * dnu_tilde
+    return SVector(rho * dlog_rho, dv1, dv2, dT, dnu_tilde)
 end
 
 function flux(u, gradients, orientation::Integer,

@@ -1798,6 +1798,66 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_rans_sa_convergence.jl (Entropy gradient variables)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_rans_sa_convergence.jl"),
+                        tspan=(0.0, 0.1),
+                        gradient_variables=GradientVariablesEntropy(),
+                        density_gradient_term=false,
+                        l2=[
+                            0.0004095291511015633,
+                            0.0008334481353450454,
+                            0.0007562482622292063,
+                            0.0032255279906742056,
+                            3.268959791022444e-5
+                        ],
+                        linf=[
+                            0.002721621784921968,
+                            0.005164141675755074,
+                            0.003446040487885993,
+                            0.023132595070014972,
+                            0.00011281692278134609
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_rans_sa_entropy_stable.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_rans_sa_entropy_stable.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.16084153387043917,
+                            0.14031220136682931,
+                            0.10536840479038184,
+                            0.5771810874492614,
+                            0.0009017228097114247
+                        ],
+                        linf=[
+                            0.6248417771445381,
+                            0.4692302667116518,
+                            0.3139819737794502,
+                            1.9831462285293087,
+                            0.004152598399449118
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The total entropy decreases since the turbulence production is small here
+    @test Trixi.integrate(entropy, sol.u[end], semi) <
+          Trixi.integrate(entropy, sol.u[1], semi)
+end
+
 @testitem "Parabolic2D: P4estMesh2D: RANS-SA wall boundary conditions" setup=[
     Setup,
     Parabolic2D

@@ -11,7 +11,7 @@
 # `compressible_rans_2d.jl`.
 
 @doc raw"""
-    SpalartAllmarasNeg(RealT = Float64; ct3 = 1.2)
+    SpalartAllmarasNeg(RealT = Float64; ct3 = 1.2, density_gradient_term = true)
 
 Negative Spalart-Allmaras (SA-neg) one-equation turbulence model for use with
 [`CompressibleRANSDiffusion2D`](@ref) and [`SourceTermsSpalartAllmaras`](@ref).
@@ -26,8 +26,15 @@ and the modified vorticity ``\tilde S`` of eq. (12) of the reference). For ``\ti
 negative continuation (eqs. (14), (21), (22)) is used, with zero eddy viscosity.
 The trip term ``f_{t1}`` is not included. Setting `ct3 = 0` gives the SA-noft2 variant.
 
-The conservative compressible form (eq. (9) of the reference) is used, including the term
+The conservative compressible form (eq. (9) of the reference) contains the term
 ``-\frac{1}{\sigma}(\nu + \tilde\nu f_n) \nabla\rho \cdot \nabla\tilde\nu``.
+It is included if `density_gradient_term = true` (the default).
+For the entropy-stable formulation of
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras turbulence model
+  for the compressible Reynolds averaged Navier-Stokes equations
+  [DOI: 10.1016/j.jcp.2022.110998](https://doi.org/10.1016/j.jcp.2022.110998)
+use `density_gradient_term = false`, since this term has no sign in the entropy balance.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -47,9 +54,10 @@ struct SpalartAllmarasNeg{RealT <: Real}
     ct4::RealT
     cn1::RealT
     rlim::RealT
+    density_gradient_term::Bool
 end
 
-function SpalartAllmarasNeg(RealT = Float64; ct3 = 1.2)
+function SpalartAllmarasNeg(RealT = Float64; ct3 = 1.2, density_gradient_term = true)
     cb1 = convert(RealT, 0.1355)
     cb2 = convert(RealT, 0.622)
     sigma = convert(RealT, 2 / 3)
@@ -64,12 +72,14 @@ function SpalartAllmarasNeg(RealT = Float64; ct3 = 1.2)
                                      convert(RealT, ct3),
                                      convert(RealT, 0.5), # ct4
                                      convert(RealT, 16), # cn1
-                                     convert(RealT, 10)) # rlim
+                                     convert(RealT, 10), # rlim
+                                     density_gradient_term)
 end
 
 function Base.similar(model::SpalartAllmarasNeg, ::Type{NewRealT}) where {NewRealT}
     return SpalartAllmarasNeg{NewRealT}((convert(NewRealT, getfield(model, f))
-                                         for f in fieldnames(SpalartAllmarasNeg))...)
+                                         for f in fieldnames(SpalartAllmarasNeg)[1:(end - 1)])...,
+                                        model.density_gradient_term)
 end
 
 # Viscous damping function f_v1 of the eddy viscosity
@@ -159,13 +169,17 @@ end
 # The conservative variables are `(rho, rho v_1, ..., rho v_NDIMS, rho e_total, rho nu_tilde)`
 # and the primitive variables used for the parabolic terms are
 # `(rho, v_1, ..., v_NDIMS, T, nu_tilde)`. The concrete types implement
-# `cons2prim_temperature`, `prim_temperature2cons`, `flux`, and `vorticity_magnitude`.
+# `cons2prim_temperature`, `prim_temperature2cons`, `entropy2prim_temperature`,
+# `convert_derivative_to_primitive` for `GradientVariablesEntropy`, `flux`,
+# and `vorticity_magnitude`.
 abstract type AbstractCompressibleRANSDiffusion{NDIMS, NVARS, GradientVariables} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
 
 const CompressibleRANSDiffusionPrimitive = AbstractCompressibleRANSDiffusion{<:Any,
                                                                              <:Any,
                                                                              GradientVariablesPrimitive}
+const CompressibleRANSDiffusionEntropy = AbstractCompressibleRANSDiffusion{<:Any, <:Any,
+                                                                           GradientVariablesEntropy}
 
 @inline function Base.getproperty(equations::AbstractCompressibleRANSDiffusion,
                                   field::Symbol)
@@ -184,8 +198,15 @@ end
 function gradient_variable_transformation(::CompressibleRANSDiffusionPrimitive)
     return cons2prim_temperature
 end
+function gradient_variable_transformation(::CompressibleRANSDiffusionEntropy)
+    return cons2entropy
+end
 
 @inline have_constant_diffusivity(::AbstractCompressibleRANSDiffusion) = False()
+
+@inline function cons2entropy(u, equations::AbstractCompressibleRANSDiffusion)
+    return cons2entropy(u, equations.equations_hyperbolic)
+end
 
 @inline function cons2prim(u, equations::AbstractCompressibleRANSDiffusion)
     return cons2prim(u, equations.equations_hyperbolic)
@@ -207,6 +228,11 @@ end
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleRANSDiffusionPrimitive)
     return u_transformed
+end
+
+@inline function convert_transformed_to_primitive(w,
+                                                  equations::CompressibleRANSDiffusionEntropy)
+    return entropy2prim_temperature(w, equations)
 end
 
 # Convert the gradient of the transformed variables to the gradient of
@@ -257,7 +283,8 @@ They contain production and destruction and the non-conservative parts of the di
 \rho (P - D) + \frac{c_{b2}}{\sigma} \rho \nabla\tilde\nu \cdot \nabla\tilde\nu
 - \frac{1}{\sigma} (\nu + \tilde\nu f_n) \nabla\rho \cdot \nabla\tilde\nu,
 ```
-see [`SpalartAllmarasNeg`](@ref). The production uses the magnitude of the vorticity.
+where the last term is only included for `density_gradient_term = true` in
+[`SpalartAllmarasNeg`](@ref). The production uses the magnitude of the vorticity.
 
 The distance to the nearest (no-slip) wall is given by the function `wall_distance(x)` of the
 coordinates `x`.
@@ -296,8 +323,10 @@ end
 
     source_nu = rho * sa_production_destruction(nu_tilde, nu, vorticity, d, model)
     source_nu += model.cb2 / model.sigma * rho * dot(grad_nu_tilde, grad_nu_tilde)
-    source_nu += sa_density_gradient_source(nu_tilde, nu, grad_rho, grad_nu_tilde,
-                                            model)
+    if model.density_gradient_term
+        source_nu += sa_density_gradient_source(nu_tilde, nu, grad_rho, grad_nu_tilde,
+                                                model)
+    end
 
     return source_last_variable(source_nu, equations)
 end
@@ -327,6 +356,10 @@ end
 @inline function transform_primitive_bc(prim,
                                         equations::CompressibleRANSDiffusionPrimitive)
     return prim
+end
+@inline function transform_primitive_bc(prim,
+                                        equations::CompressibleRANSDiffusionEntropy)
+    return cons2entropy(prim_temperature2cons(prim, equations), equations)
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,

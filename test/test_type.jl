@@ -1184,6 +1184,44 @@ end
             end
         end
 
+        # Entropy gradient variables and the SA model without the density gradient term
+        model_es = @inferred SpalartAllmarasNeg(RealT; density_gradient_term = false)
+        equations_entropy = CompressibleRANSDiffusion2D(equations, mu = RealT(1.0e-3),
+                                                        Prandtl = RealT(0.72),
+                                                        model = model_es,
+                                                        gradient_variables = GradientVariablesEntropy())
+        w = @inferred cons2entropy(u, equations_entropy)
+        @test eltype(w) == RealT
+        for orientation in orientations
+            @test eltype(@inferred flux(w, gradients, orientation, equations_entropy)) ==
+                  RealT
+        end
+        @test eltype(@inferred Trixi.entropy2prim_temperature(w, equations_entropy)) ==
+              RealT
+        @test eltype(@inferred Trixi.convert_transformed_to_primitive(w,
+                                                                      equations_entropy)) ==
+              RealT
+        @test eltype(@inferred Trixi.convert_derivative_to_primitive(prim, gradient,
+                                                                     equations_entropy)) ==
+              RealT
+        @test eltype(@inferred source(u, gradients, x, t, equations_entropy)) == RealT
+        for boundary_condition in (BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                     heat_adiabatic),
+                                   BoundaryConditionNavierStokesWall(velocity_noslip,
+                                                                     heat_isothermal),
+                                   BoundaryConditionNavierStokesWall(Slip(),
+                                                                     heat_adiabatic),
+                                   BoundaryConditionDirichlet(initial_condition_bc))
+            for operator in (Trixi.Gradient(), Trixi.Divergence())
+                @test eltype(@inferred boundary_condition(flux_inner, w, normal, x, t,
+                                                          operator,
+                                                          equations_entropy)) == RealT
+            end
+        end
+        adapted_entropy = @inferred Trixi.trixi_adapt(Array, Float32, equations_entropy)
+        @test adapted_entropy.gradient_variables isa GradientVariablesEntropy
+        @test adapted_entropy.model.density_gradient_term == false
+
         adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
         @test adapted isa CompressibleRANSDiffusion2D
         @test typeof(adapted.mu) == Float32

@@ -13,7 +13,9 @@ for human readability.
   `SpalartAllmarasNeg` as the parabolic part of `PassiveTracerEquations` of the
   compressible Euler equations, and `SourceTermsSpalartAllmaras` for the model
   source terms ([#3325]). Wall, slip, and Dirichlet boundary conditions are available
-  for `CompressibleRANSDiffusion2D` ([#3326]).
+  for `CompressibleRANSDiffusion2D` ([#3326]). The entropy-stable formulation of
+  Lodares et al. (2022) is available with entropy gradient variables and
+  `SpalartAllmarasNeg(density_gradient_term = false)` ([#3348]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).

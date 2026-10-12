@@ -8,16 +8,20 @@ using Trixi
 
 # Manufactured solution test. The forcing is obtained from the pointwise physical
 # fluxes and model source terms by automatic differentiation, so it is consistent
-# with the model implementation.
+# with the model implementation for any choice of the gradient variables.
 
 prandtl_number() = 0.72
 mu() = 0.01
 
 equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 1)
 
+gradient_variables = GradientVariablesPrimitive()
+density_gradient_term = true
 equations_parabolic = CompressibleRANSDiffusion2D(equations, mu = mu(),
                                                   Prandtl = prandtl_number(),
-                                                  model = SpalartAllmarasNeg())
+                                                  model = SpalartAllmarasNeg(;
+                                                                             density_gradient_term),
+                                                  gradient_variables = gradient_variables)
 
 # Smooth, positive wall distance function (no walls are present in this periodic test)
 wall_distance(x) = 0.5f0 + 0.2f0 * sinpi(x[1]) * cospi(x[2])
@@ -39,8 +43,13 @@ function initial_condition_rans_convergence_test(x, t, equations)
 end
 initial_condition = initial_condition_rans_convergence_test
 
-# Residual of the full model evaluated for the manufactured solution
-source_terms_rans_convergence_test = let equations_parabolic = equations_parabolic
+# Residual of the full model evaluated for the manufactured solution.
+# The parabolic flux and model source terms are evaluated with primitive gradient variables,
+# independent of the `gradient_variables` used by the discretization.
+equations_parabolic_primitive = CompressibleRANSDiffusion2D(equations, mu = mu(),
+                                                            Prandtl = prandtl_number(),
+                                                            model = equations_parabolic.model)
+source_terms_rans_convergence_test = let equations_parabolic = equations_parabolic_primitive
     function (u, x, t, equations)
         u_exact(x_, t_) = initial_condition_rans_convergence_test(x_, t_, equations)
         prim(x_) = Trixi.cons2prim_temperature(u_exact(x_, t), equations_parabolic)
