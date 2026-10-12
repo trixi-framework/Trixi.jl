@@ -3342,20 +3342,26 @@ end
     end
 
     # Return all specialized methods of the callable objects in `functions` defined in
-    # Trixi.jl that take the arguments `(u_ll, u_rr, normal_direction, equations)`.
-    # This skips generic fallbacks, e.g., for all 1D equations or all `equations`.
+    # Trixi.jl that take the arguments `(u_ll, u_rr, normal_direction, equations)`
+    # (or `(u, normal_direction, equations)` for `n_args = 3`).
+    # This skips only generic fallbacks for all `equations` or all equations in a given
+    # number of dimensions, but not methods for families of equations such as
+    # `AbstractIdealGlmMhdMultiIonEquations`.
     # Note that this uses some Julia internals (`method.sig` etc.) since there is no
     # public API to inspect method signatures.
-    function specialized_normal_direction_methods(functions)
+    generic_equations_types = (Any, Trixi.AbstractEquations, Trixi.AbstractEquations{1},
+                               Trixi.AbstractEquations{2}, Trixi.AbstractEquations{3})
+    function specialized_normal_direction_methods(functions; n_args = 4)
         found_methods = Set{Method}()
         for f in functions, method in methods(f)
             parentmodule(method) === Trixi || continue
+            # The first parameter is the type of the callable object itself
             parameters = Base.unwrap_unionall(method.sig).parameters
-            length(parameters) == 5 || continue
-            direction_type, equations_type = parameters[4], parameters[5]
+            length(parameters) == n_args + 1 || continue
+            direction_type, equations_type = parameters[end - 1], parameters[end]
             direction_type isa Type && direction_type <: Integer && continue
             equations_type isa TypeVar && (equations_type = equations_type.ub)
-            isabstracttype(Base.unwrap_unionall(equations_type)) && continue
+            any(==(equations_type), generic_equations_types) && continue
             push!(found_methods, method)
         end
         return found_methods
@@ -3381,22 +3387,23 @@ end
     tested_methods = Set{Method}()
     for test_case in normal_direction_test_cases(), estimate in estimates
         (; equations, u_values) = test_case
-        # In 1D, only generic fallbacks exist for methods with a `normal_direction`.
-        # Note that `max_abs_speed` falls back to `max_abs_speed_naive` in this case
-        # and does not agree with the `orientation` methods.
-        ndims(equations) == 1 && continue
         normal_direction = oblique_normal_direction(equations)
         u = first(u_values)
         signature = Tuple{typeof(u), typeof(u), typeof(normal_direction),
                           typeof(equations)}
         hasmethod(estimate, signature) || continue
         push!(tested_methods, which(estimate, signature))
-        has_orientation = hasmethod(estimate,
-                                    Tuple{typeof(u), typeof(u), Int, typeof(equations)})
+        # In 1D, `max_abs_speed` with a `normal_direction` falls back to
+        # `max_abs_speed_naive` and does not agree with specialized `orientation`
+        # methods of `max_abs_speed`.
+        check_orientation = hasmethod(estimate,
+                                      Tuple{typeof(u), typeof(u), Int,
+                                            typeof(equations)}) &&
+                            !(ndims(equations) == 1 && estimate === max_abs_speed)
 
         @testset "$(nameof(typeof(equations))), $(nameof(estimate))" begin
             for u_ll in u_values, u_rr in u_values
-                if has_orientation
+                if check_orientation
                     for orientation in 1:ndims(equations)
                         unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0,
                                                      ndims(equations)))
@@ -3478,6 +3485,9 @@ end
     # after adding a new method, add the corresponding numerical flux or equations to
     # `normal_direction_test_cases`. We check all exported numerical fluxes
     # `flux_*` and instances of callable types with specialized methods.
+    # Note that methods of callable types can only be found via instances of these
+    # types. Thus, new callable flux or dissipation types with specialized methods
+    # (as well as non-exported numerical fluxes) must be added to the list below.
     numerical_fluxes = Any[getfield(Trixi, name)
                            for name in names(Trixi)
                            if startswith(string(name), "flux_")]
@@ -3497,6 +3507,41 @@ end
                          Tuple{SVector{4, Float64}, SVector{4, Float64},
                                SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
     @test known_method in found_methods
+
+    # The physical flux with a `normal_direction` must be the corresponding linear
+    # combination of the fluxes in the coordinate directions. This implies that it
+    # scales correctly with the `normal_direction` and agrees with the `orientation`
+    # methods for axis-aligned unit normals.
+    tested_methods_flux = Set{Method}()
+    for test_case in normal_direction_test_cases()
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        push!(tested_methods_flux,
+              which(flux,
+                    Tuple{eltype(u_values), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), flux" begin
+            for u in u_values
+                @test isapprox(flux(u, normal_direction, equations),
+                               sum(normal_direction[orientation] *
+                                   flux(u, orientation, equations)
+                                   for orientation in 1:ndims(equations)),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of `flux` with a `normal_direction`
+    # defined in Trixi.jl is tested above, and check the method introspection
+    found_methods_flux = specialized_normal_direction_methods((flux,), n_args = 3)
+    for method in found_methods_flux
+        @test method in tested_methods_flux
+    end
+    known_method = which(flux,
+                         Tuple{SVector{4, Float64}, SVector{2, Float64},
+                               CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods_flux
 end
 
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
