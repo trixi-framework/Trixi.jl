@@ -197,7 +197,9 @@ end
 # e.g., the default `tspan = (0.0, 1.0)` would result in `Float64` time values for
 # a `Float32` semidiscretization, and time-dependent initial conditions, boundary
 # conditions, and source terms would be evaluated in `Float64`.
+# Custom semidiscretizations do not need to implement `real`; then, we keep `tspan`.
 function convert_tspan(semi, tspan)
+    applicable(real, semi) || return tspan
     RealT = real(semi)
     return (convert(RealT, first(tspan)), convert(RealT, last(tspan)))
 end

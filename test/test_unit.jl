@@ -4965,6 +4965,27 @@ end
     @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
         Trixi.solve(ode, alg; dt = 1.0f-3, callback = callbacks)
     end
+
+    # Custom semidiscretizations do not need to implement `real`, see the tutorial
+    # `docs/literate/src/files/custom_semidiscretization.jl`
+    struct CustomSemidiscretization{Semi} <: Trixi.AbstractSemidiscretization
+        semi::Semi
+    end
+    Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
+    function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
+        return Trixi.mesh_equations_solver_cache(semi.semi)
+    end
+    function rhs_custom!(du_ode, u_ode, semi_custom, t)
+        return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_custom.semi, t)
+    end
+    semi_custom = CustomSemidiscretization(semi32)
+    @test !applicable(real, semi_custom)
+    @test Trixi.convert_tspan(semi_custom, (0.0, 1.0)) === (0.0, 1.0)
+    ode = semidiscretize(semi32, (0.0f0, 2.0f-3))
+    ode_custom = Trixi.ODEProblem(rhs_custom!, ode.u0, (0.0, 2.0e-3), semi_custom)
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode_custom, alg; dt = 1.0e-3, callback = callbacks)
+    end
 end
 
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[

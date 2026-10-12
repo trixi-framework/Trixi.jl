@@ -233,7 +233,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     # values for a `Float32` semidiscretization. Then, time-dependent initial
     # conditions, boundary conditions, and source terms are evaluated in another
     # precision than the solution.
-    if semi isa AbstractSemidiscretization && typeof(t) != real(semi)
+    # Custom semidiscretizations do not need to implement `real`; then, we skip the check.
+    if semi isa AbstractSemidiscretization && applicable(real, semi) &&
+       typeof(t) != real(semi)
         @warn "The time `t` has the type $(typeof(t)) but the semidiscretization " *
               "uses the real type $(real(semi)). Pass `dt` to `solve` as an integer " *
               "(e.g., `dt = 1` with a `StepsizeCallback`) or in the real type " *
