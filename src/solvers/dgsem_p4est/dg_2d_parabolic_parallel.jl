@@ -6,7 +6,7 @@
 #! format: noindent
 
 function rhs_parabolic!(backend::Nothing, du, u, t,
-                        mesh::P4estMeshParallel{2},
+                        mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -227,7 +227,7 @@ function calc_mortars_local!(cache, flux_parabolic,
 end
 
 function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
-                              mesh::P4estMeshParallel{2},
+                              mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
 
@@ -377,6 +377,11 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
             local_side = local_sides[interface]
+            # The gradient flux must be evaluated with the normal direction of the
+            # primary side (as in the serial `calc_interface_flux_gradient!`) since it
+            # may depend on the normal direction, e.g., for `ParabolicFormulationLocalDG`.
+            # The normal direction of the secondary side is the negative of the primary one.
+            orientation_factor = local_side == 1 ? 1 : -1
 
             # Create the local i,j indexing on the local element used to pull normal direction information
             i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
@@ -406,7 +411,9 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                 u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
                                                    i, interface)
 
-                flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                flux_ = flux_parabolic(u_ll, u_rr,
+                                       orientation_factor * normal_direction,
+                                       Gradient(),
                                        equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
@@ -452,6 +459,10 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
             local_side = local_sides[interface]
+            # Sign flip for `local_side = 2` required for divergence calculation since
+            # the divergence interface flux involves the normal direction.
+            # `local_side=2` is thus flipped (opposite of primary side)
+            orientation_factor = local_side == 1 ? 1 : -1
 
             i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
                                                                      index_range)
@@ -482,10 +493,6 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                                                   equations_parabolic,
                                                                   dg, i, interface)
 
-                # Sign flip for `local_side = 2` required for divergence calculation since
-                # the divergence interface flux involves the normal direction.
-                # `local_side=2` is thus flipped (opposite of primary side)
-                orientation_factor = local_side == 1 ? 1 : -1
                 flux_ = flux_parabolic(parabolic_flux_normal_ll,
                                        parabolic_flux_normal_rr,
                                        orientation_factor * normal_direction,

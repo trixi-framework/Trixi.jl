@@ -69,7 +69,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 25.0)
-ode = semidiscretize(semi, tspan)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)

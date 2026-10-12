@@ -25,6 +25,10 @@ ode = semidiscretize(semi, tspan; real_type = Float32, storage_type = CuArray)
 The rest of the elixir (callbacks, ODE solver call) remains unchanged. See, e.g.,
 `examples/p4est_2d_dgsem/elixir_euler_source_terms.jl` for a concrete example.
 
+Mixed hyperbolic-parabolic problems, i.e., a [`SemidiscretizationHyperbolicParabolic`](@ref),
+are supported on conforming (non-adaptive) `P4estMesh{2}`s as well, see, e.g.,
+`examples/p4est_2d_dgsem/elixir_navierstokes_lid_driven_cavity.jl`.
+
 !!! note "Single-precision computations using `Float32`"
     To use `Float32` consistently, make sure to write all equations, initial conditions,
     boundary conditions, and source terms in a type-stable manner — avoid hard-coded

@@ -1104,6 +1104,37 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_euler_tracers_slip_walls.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_tracers_slip_walls.jl"),
+                        l2=[
+                            0.06200019000308978,
+                            0.1691060686668429,
+                            0.08542366933964743,
+                            0.21893144674396867,
+                            0.028487506971673588,
+                            0.03296348008092221
+                        ],
+                        linf=[
+                            0.15829429669870665,
+                            0.2559287492800888,
+                            0.14691082428968222,
+                            0.56586646320181,
+                            0.13412256151504687,
+                            0.1288301635303165
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Mass, energy, and the mass of each tracer are conserved in the closed box
+    integrals(u) = Trixi.integrate((u_node, equations) -> u_node, u, semi)
+    integrals_initial = integrals(sol.u[1])
+    integrals_final = integrals(sol.u[end])
+    for v in (1, 4, 5, 6)
+        @test isapprox(integrals_final[v], integrals_initial[v]; atol = 1.0e-13)
+    end
+end
+
 @testitem "P4estMesh2D: elixir_euler_cylinder_bowshock_mach3.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_cylinder_bowshock_mach3.jl"),
