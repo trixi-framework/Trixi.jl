@@ -4858,6 +4858,31 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
+
+    # In 2D, the half sweep kernel stores the two-point fluxes of all nodes with half of
+    # their partners, i.e., 9 * 5 * 2 * 100 * 8 bytes > 48 KiB for MHD at `polydeg = 9`.
+    # Nonconservative terms without combined fluxes use the generic kernel without
+    # local memory.
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = IdealGlmMhdEquations2D(5 / 3)
+    for (volume_flux, warns) in ((flux_hindenlang_gassner_nonconservative_powell, true),
+                                 ((flux_central, flux_nonconservative_powell), false))
+        solver = DGSEM(polydeg = 9,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        if warns
+            @test_logs (:warn, r"shared memory") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                             semi)
+        else
+            @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
+        end
+        @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+    end
 end
 
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[

@@ -257,7 +257,7 @@ end
 
     # flux_local[v, offset, orientation, i, j, local_element] between the node (i, j)
     # and its partner at `offset` in the coordinate direction `orientation`
-    flux_local = @localmem eltype(du) (NVARIABLES, NNODES ÷ 2, 2, NNODES, NNODES,
+    flux_local = @localmem eltype(du) (NVARIABLES, div(NNODES, 2), 2, NNODES, NNODES,
                                        NELEMENTS_WG)
 
     u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -347,7 +347,7 @@ end
     # flux_local[v, offset, orientation, i, j, local_element] contains the part of the
     # two-point flux between the node (i, j) and its partner at `offset` in the
     # coordinate direction `orientation` that belongs to the partner
-    flux_local = @localmem eltype(du) (NVARIABLES, NNODES ÷ 2, 2, NNODES, NNODES,
+    flux_local = @localmem eltype(du) (NVARIABLES, div(NNODES, 2), 2, NNODES, NNODES,
                                        NELEMENTS_WG)
 
     u_node = get_node_vars(u, equations, dg, i, j, element)
