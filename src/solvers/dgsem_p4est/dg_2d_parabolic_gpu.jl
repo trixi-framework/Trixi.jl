@@ -12,7 +12,8 @@
 # elements, interfaces, and boundaries, following the structure of the
 # hyperbolic implementation in `dg_2d_gpu.jl`: the functions launching the
 # kernels are generic in the number of spatial dimensions, while the kernels
-# and the `per_node!` functions they call dispatch on the mesh type `MeshT`.
+# and the `per_node!` functions they call dispatch on the mesh type `MeshT`
+# (the 3D kernels are in `dg_3d_parabolic_gpu.jl`).
 # To reduce the number of kernel launches, some steps of the CPU implementation
 # are fused:
 # - Volume integrals compute their result per node and overwrite their output,
@@ -25,7 +26,7 @@
 #
 # Currently, only conforming meshes are supported (no mortars).
 function rhs_parabolic!(backend::Backend, du, u, t,
-                        mesh::P4estMesh{2},
+                        mesh::P4estMesh,
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -100,7 +101,7 @@ function rhs_parabolic!(backend::Backend, du, u, t,
 end
 
 function calc_gradient!(backend::Backend, gradients, u_transformed, t,
-                        mesh::P4estMesh{2},
+                        mesh::P4estMesh,
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
     # Calculate volume integral. This overwrites `gradients`, so no reset is required.
