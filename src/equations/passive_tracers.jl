@@ -233,11 +233,26 @@ end
     return max_abs_speeds(u_flow, tracer_equations.flow_equations)
 end
 
-"""
+@doc raw"""
     FluxTracerEquationsCentral(flow_flux)
 
-Get an entropy conserving flux for the equations with tracers corresponding to the given entropy conserving flux `flow_flux` for the flow equations. The study of this flux is part of ongoing
-research.
+Numerical flux for the equations with tracers based on the numerical flux `flow_flux`
+for the flow equations. The tracer flux is obtained by multiplying the numerical mass
+flux ``f_\rho`` of `flow_flux` with the arithmetic mean of the tracers, i.e.,
+```math
+f_{\rho\chi} = f_\rho \{\!\{\chi\}\!\}.
+```
+If `flow_flux` is entropy conservative for the flow equations, this flux is entropy
+conservative for the equations with tracers and the [`entropy`](@ref) of
+[`PassiveTracerEquations`](@ref).
+Thus, it is an entropy-conservative volume flux to be combined with the entropy-stable
+surface flux [`FluxTracerEquationsUpwind`](@ref) (if the latter is based on an
+entropy-stable flux for the flow equations).
+For a single tracer, this flux is used in
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras turbulence model
+  for the compressible Reynolds averaged Navier-Stokes equations
+  [DOI: 10.1016/j.jcp.2022.110998](https://doi.org/10.1016/j.jcp.2022.110998)
 """
 struct FluxTracerEquationsCentral{FlowFlux}
     flow_flux::FlowFlux
