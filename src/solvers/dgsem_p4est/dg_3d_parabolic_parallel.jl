@@ -297,7 +297,6 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DG, parabolic_scheme, cache)
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
-    @unpack u = cache.mpi_mortars
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -316,21 +315,18 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
             for position in 1:4
                 for j in eachnode(dg)
                     for i in eachnode(dg)
+                        # Use the normal direction of the small element, which is
+                        # available on all MPI ranks of this mortar
                         normal_direction = get_normal_direction(cache.mpi_mortars,
                                                                 i, j, position, mortar)
 
-                        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                                           position, i, j, mortar)
-
-                        flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                                               equations_parabolic, parabolic_scheme)
-
-                        # As in `calc_interface_flux_gradient!`, no sign flip is
-                        # necessary for the fluxes used in gradient calculations
-                        set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
-                                       i, j, position)
-                        set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
-                                       i, j, position)
+                        # This reuses the serial version with the MPI mortar data
+                        calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                                   mesh, equations_parabolic,
+                                                   dg, parabolic_scheme,
+                                                   cache.mpi_mortars.u,
+                                                   mortar, position, normal_direction,
+                                                   i, j)
                     end
                 end
             end

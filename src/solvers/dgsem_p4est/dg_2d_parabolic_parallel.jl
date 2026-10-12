@@ -522,7 +522,6 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                                         dg::DG, parabolic_scheme, cache)
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
-    @unpack u = cache.mpi_mortars
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -541,19 +540,17 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
 
             for position in 1:2
                 for i in eachnode(dg)
+                    # Use the normal direction of the small element, which is
+                    # available on all MPI ranks of this mortar
                     normal_direction = get_normal_direction(cache.mpi_mortars, i,
                                                             position, mortar)
 
-                    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                                       position, i, mortar)
-
-                    flux = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                                          equations_parabolic, parabolic_scheme)
-
-                    set_node_vars!(fstar_primary[position], flux,
-                                   equations_parabolic, dg, i)
-                    set_node_vars!(fstar_secondary[position], flux,
-                                   equations_parabolic, dg, i)
+                    # This reuses the serial version with the MPI mortar data
+                    calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                               mesh, equations_parabolic,
+                                               dg, parabolic_scheme,
+                                               cache.mpi_mortars.u,
+                                               mortar, position, normal_direction, i)
                 end
             end
 

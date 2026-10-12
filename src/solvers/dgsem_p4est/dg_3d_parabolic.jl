@@ -834,7 +834,8 @@ function calc_mortar_flux_gradient!(surface_flux_values,
 
                         calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                                    mesh, equations_parabolic,
-                                                   dg, parabolic_scheme, cache,
+                                                   dg, parabolic_scheme,
+                                                   cache.mortars.u,
                                                    mortar, position, normal_direction,
                                                    i, j)
 
@@ -873,20 +874,22 @@ end
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a parabolic conservative "flux") and thus no
 # non-conservative terms are present.
+# The mortar data `mortars_u` is passed explicitly (instead of `cache`) such that this
+# function can be used for both the serial mortars (`cache.mortars.u`) and the MPI
+# mortars (`cache.mpi_mortars.u`).
 Base.@propagate_inbounds function calc_mortar_flux_gradient!(fstar_primary,
                                                              fstar_secondary,
                                                              mesh::P4estMesh{3},
                                                              equations_parabolic,
                                                              dg::DG, parabolic_scheme,
-                                                             cache,
+                                                             mortars_u,
                                                              mortar_index,
                                                              position_index,
                                                              normal_direction,
                                                              i_node_index, j_node_index)
-    @unpack u = cache.mortars
-
-    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, position_index,
-                                       i_node_index, j_node_index, mortar_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations_parabolic, dg,
+                                       position_index, i_node_index, j_node_index,
+                                       mortar_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                            equations_parabolic, parabolic_scheme)
