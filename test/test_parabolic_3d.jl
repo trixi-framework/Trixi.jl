@@ -1061,6 +1061,34 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_channel_flow.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_channel_flow.jl"),
+                        trees_per_dimension=(4, 4, 4), polydeg=3,
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.003939816204462443,
+                            1.0695931718111358,
+                            1.4173285852534776,
+                            2.4874486127670825,
+                            232.6843318060808
+                        ],
+                        linf=[
+                            0.010583188761466467,
+                            5.728184192412961,
+                            5.892741155509393,
+                            8.743825065946726,
+                            574.7927723623216
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic3D: TreeMesh3D: elixir_euler_laplace_diffusion.jl" setup=[
     Setup,
     Parabolic3D
