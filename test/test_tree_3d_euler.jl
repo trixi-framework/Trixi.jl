@@ -634,3 +634,31 @@ end
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
+
+@testitem "TreeMesh3D Euler: elixir_euler_sedov_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh3DEuler
+] tags=[:tree_part4] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.12052633471629985,
+                            0.04282865935788898,
+                            0.04282865935788827,
+                            0.042828659357888856,
+                            0.3273294679786309
+                        ],
+                        linf=[
+                            0.8427833741480486,
+                            0.3425012835994107,
+                            0.3425012835994108,
+                            0.3425012835994106,
+                            2.158371918362654
+                        ],
+                        atol=1e-7, #higher tolerances for the Liu-Zhang limiter
+                        rtol=1e-6)
+
+    # check that the Liu-Zhang limiter is activated
+    @test length(global_limiter!.history_davis_yin_iterations) > 1
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
