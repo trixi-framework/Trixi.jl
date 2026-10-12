@@ -173,6 +173,10 @@ end
 @inline function is_left_element_ldg(nxyzJ, idM, idP,
                                      mesh::DGMultiMesh{NDIMS}) where {NDIMS}
     normal_direction = SVector{NDIMS}(getindex.(nxyzJ, min(idM, idP)))
+    # Components whose magnitudes agree up to the relative tolerance `sqrt(eps())`
+    # (the default of `isapprox`) are considered to be equal. This tolerance is much
+    # larger than the round-off errors of the normals, which reach relative differences
+    # of about `1e-13` on uniform meshes of triangles, i.e., hundreds of `eps()`.
     threshold = (1 - sqrt(eps(eltype(normal_direction)))) *
                 maximum(abs, normal_direction)
     dominant_component = normal_direction[1]
@@ -183,6 +187,12 @@ end
         end
     end
 
+    # `normal_direction` is the outward normal of the element containing the face node
+    # with the smaller index. This element is the left element if the dominant component
+    # is positive and the right element otherwise. Thus, the element containing `idM` is
+    # the left element if `idM` is the smaller index and the dominant component is
+    # positive, or if `idM` is the larger index and the dominant component is negative.
+    # At boundary nodes, `idM == idP` holds, and the normal of the element itself is used.
     return (dominant_component > 0) == (idM <= idP)
 end
 
