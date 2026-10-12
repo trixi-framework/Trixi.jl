@@ -1427,37 +1427,43 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
                                      node_coordinates, contravariant_vectors)
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
-    length(boundary_condition_indices) == 0 && return nothing
-    @unpack boundaries = cache
-    @unpack neighbor_ids, node_indices = boundaries
-    # Explicit bounds check, which allows us to assume inbounds access in the kernel
-    @boundscheck begin
-        check_axes(boundaries, equations, dg, cache)
-        check_axes(cache.elements, equations, dg, cache)
-        check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
-                                       equations, dg,
-                                       cache)
+
+    # A boundary condition type without any boundaries (e.g., in parallel
+    # runs, where not every rank owns boundaries of every name) must not stop
+    # the processing of the remaining boundary condition types below.
+    n_boundaries = length(boundary_condition_indices)
+    if n_boundaries > 0
+        @unpack boundaries = cache
+        @unpack neighbor_ids, node_indices = boundaries
+        # Explicit bounds check, which allows us to assume inbounds access in the kernel
+        @boundscheck begin
+            check_axes(boundaries, equations, dg, cache)
+            check_axes(cache.elements, equations, dg, cache)
+            check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
+                                           equations, dg,
+                                           cache)
+        end
+
+        index_range = eachnode(dg)
+        kernel_cache = kernel_filter_cache(cache)
+        kernel! = calc_boundary_flux_kernel!(backend)
+        kernel!(boundaries.u,
+                cache.elements.surface_flux_values,
+                boundary_condition_indices,
+                neighbor_ids,
+                node_indices,
+                t,
+                boundary_condition,
+                index_range,
+                typeof(mesh),
+                equations,
+                surface_integral,
+                dg,
+                kernel_cache, node_coordinates, contravariant_vectors;
+                ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
     end
 
-    index_range = eachnode(dg)
-    n_boundaries = length(boundary_condition_indices)
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = calc_boundary_flux_kernel!(backend)
-    kernel!(boundaries.u,
-            cache.elements.surface_flux_values,
-            boundary_condition_indices,
-            neighbor_ids,
-            node_indices,
-            t,
-            boundary_condition,
-            index_range,
-            typeof(mesh),
-            equations,
-            surface_integral,
-            dg,
-            kernel_cache, node_coordinates, contravariant_vectors;
-            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
-
+    # Recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
                                 Base.tail(BC_indices),

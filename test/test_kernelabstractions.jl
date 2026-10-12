@@ -429,6 +429,53 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: boundary flux with an empty boundary condition type" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    # A boundary condition type without any boundaries (e.g., on a rank that
+    # does not own boundaries of this name in parallel runs) must not stop the
+    # processing of the remaining boundary condition types in
+    # `calc_boundary_flux_by_type!`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"),
+                  tspan = (0.0, 0.0))
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    (; mesh, equations, solver, cache, boundary_conditions) = semi
+    @test boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+    u_ode = copy(ode.u0)
+    u = Trixi.wrap_array(u_ode, semi)
+    backend = Trixi.trixi_backend(u_ode)
+    @test backend isa Trixi.KernelAbstractions.CPU
+    t = first(ode.tspan)
+    surface_flux_values = cache.elements.surface_flux_values
+
+    # Reference boundary fluxes with the original boundary conditions
+    Trixi.prolong2boundaries!(backend, cache, u, mesh, equations, solver)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
+                              solver.surface_integral, solver)
+    surface_flux_values_reference = copy(surface_flux_values)
+    @test any(!iszero, surface_flux_values_reference)
+
+    # Prepend a boundary condition type without any boundaries
+    boundary_condition_types = (boundary_condition_do_nothing,
+                                boundary_conditions.boundary_condition_types...)
+    boundary_indices = (Int[], boundary_conditions.boundary_indices...)
+    boundary_conditions_empty_first = Trixi.UnstructuredSortedBoundaryTypes{length(boundary_condition_types),
+                                                                            typeof(boundary_condition_types),
+                                                                            Vector{Int},
+                                                                            typeof(boundary_conditions.boundary_conditions)}(boundary_condition_types,
+                                                                                                                             boundary_indices,
+                                                                                                                             boundary_conditions.boundary_conditions,
+                                                                                                                             boundary_conditions.boundary_symbol_indices)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions_empty_first, mesh,
+                              equations, solver.surface_integral, solver)
+    @test surface_flux_values == surface_flux_values_reference
+end
 @testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32" setup=[
     Setup,
     KernelAbstractionsExamples

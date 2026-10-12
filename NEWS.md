@@ -71,6 +71,9 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
+  `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
+  boundary fluxes of all subsequent boundary condition types were not computed.
 
 
 ## Changes when updating to v0.17 from v0.16.x
