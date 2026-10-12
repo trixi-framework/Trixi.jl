@@ -309,6 +309,14 @@ end
     return (nnodes(dg),)
 end
 
+# Nodes of one element. Kernels parallelizing over all volume nodes are launched with
+# `ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache))`, analogous to
+# `boundary_node_ndrange` for the nodes of interfaces and boundaries.
+@inline function element_node_ndrange(mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                  T8codeMesh{2}}, dg)
+    return (nnodes(dg), nnodes(dg))
+end
+
 Base.@propagate_inbounds function prolong2boundaries_per_node!(u,
                                                                MeshT::Type{<:Union{P4estMesh{2},
                                                                                    P4estMeshView{2},
@@ -537,7 +545,7 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
             inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
             kernel_cache,
-            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
 
     return nothing
 end

@@ -141,13 +141,10 @@ function calc_gradient!(backend::Backend, gradients, u_transformed, t,
     return nothing
 end
 
-# The volume kernels parallelize over the volume nodes of all elements. The
-# surface kernels parallelize over the surface nodes of all interfaces or
-# boundaries, which are indexed in the same way, so that the
-# `boundary_node_ndrange` of the hyperbolic GPU code is reused for interfaces.
-@inline function volume_node_ndrange(mesh::P4estMesh, dg)
-    return ntuple(_ -> nnodes(dg), Val(ndims(mesh)))
-end
+# The volume kernels parallelize over the volume nodes of all elements
+# (`element_node_ndrange`). The surface kernels parallelize over the surface nodes of
+# all interfaces or boundaries, which are indexed in the same way, so that
+# `boundary_node_ndrange` is used for both.
 
 ###############################################################################
 # Volume terms
@@ -164,7 +161,7 @@ function transform_variables!(backend::Backend, u_transformed, u,
     end
     kernel! = transform_variables_KAkernel!(backend)
     kernel!(u_transformed, u, typeof(mesh), equations_parabolic, dg,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -198,7 +195,7 @@ function calc_volume_integral_gradient!(backend::Backend, gradients, u_transform
     kernel! = calc_volume_integral_gradient_KAkernel!(backend)
     kernel!(gradients, u_transformed, typeof(mesh), equations_parabolic, dg,
             derivative_hat, contravariant_vectors,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -266,7 +263,7 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
     kernel! = calc_parabolic_fluxes_KAkernel!(backend)
     kernel!(flux_parabolic, gradients, u_transformed, typeof(mesh),
             equations_parabolic, dg,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -317,7 +314,7 @@ function calc_volume_integral!(backend::Backend, du, flux_parabolic::Tuple,
     kernel! = calc_volume_integral_KAkernel!(backend)
     kernel!(du, flux_parabolic, typeof(mesh), equations_parabolic, dg,
             derivative_hat, contravariant_vectors,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -801,7 +798,7 @@ function calc_surface_integral_and_apply_jacobian_gradient!(backend::Backend,
     kernel!(gradients, typeof(mesh), equations_parabolic, inverse_weights[1],
             Val(NNODES), surface_flux_values, dg, contravariant_vectors,
             inverse_jacobian,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
@@ -904,7 +901,7 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     kernel!(du, u, gradients, t, source_terms_parabolic, node_coordinates,
             typeof(mesh), equations_parabolic, inverse_weights[1], Val(NNODES),
             surface_flux_values, dg, inverse_jacobian,
-            ndrange = (volume_node_ndrange(mesh, dg)..., nelements(dg, cache)))
+            ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
