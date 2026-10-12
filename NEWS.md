@@ -13,8 +13,13 @@ for human readability.
   `SpalartAllmarasNeg` as the parabolic part of `PassiveTracerEquations` of the
   compressible Euler equations, and `SourceTermsSpalartAllmaras` for the model
   source terms ([#3325]).
+- `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
+  arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
+  `P4estMesh` ([#3313]).
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
+- New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
+  which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
@@ -47,12 +52,21 @@ for human readability.
   - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
     `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
     `P4estMesh2D` ([#3289])
+  - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 
 #### Changed
+- Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
+  type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
+  the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
+  `unsafe_wrap` for such element types, so that the garbage collector keeps the stored
+  objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
+  supported for non-`isbits` element types anymore.
+  `isbits` element types such as `Float64` are not affected ([#3306]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
@@ -61,6 +75,12 @@ for human readability.
   fluxes of the large elements at mortars were computed with the wrong normal direction
   and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
   (e.g., with AMR) change.
+- Fixes two bugs in the MPI-parallel parabolic terms of `P4estMesh2D`s ([#3344]):
+  The gradient fluxes at MPI interfaces were computed with the normal direction of the
+  local instead of the primary element. Thus, results of MPI-parallel simulations with
+  `ParabolicFormulationLocalDG` change and now agree with serial simulations.
+  Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
+  is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
 - Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
   `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
   in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
