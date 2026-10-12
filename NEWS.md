@@ -68,7 +68,7 @@ for human readability.
   `T8codeMesh`es: the boundary fluxes of all boundary condition types are computed in a
   single kernel launch (instead of one launch per boundary condition type), and the
   parabolic right-hand side on `P4estMesh{2}` computes the parabolic fluxes in the same
-  kernel as the surface integral of the gradients ([#XXXX]).
+  kernel as the surface integral of the gradients ([#3354]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
   the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
