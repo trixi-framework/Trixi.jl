@@ -144,7 +144,9 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(u_interface,
         for i in index_range
             for v in eachvariable(equations)
                 u_interface[1, v, i, j, interface] = u[v,
-                                                       i_primary, j_primary, k_primary,
+                                                       i_primary,
+                                                       j_primary,
+                                                       k_primary,
                                                        primary_element]
             end
             i_primary += i_primary_step_i
@@ -175,7 +177,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(u_interface,
         for i in index_range
             for v in eachvariable(equations)
                 u_interface[2, v, i, j, interface] = u[v,
-                                                       i_secondary, j_secondary,
+                                                       i_secondary,
+                                                       j_secondary,
                                                        k_secondary,
                                                        secondary_element]
             end
@@ -506,7 +509,10 @@ Base.@propagate_inbounds function prolong2boundaries_per_boundary!(u,
     for j in eachnode(dg)
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                u_boundaries[v, i, j, boundary] = u[v, i_node, j_node, k_node,
+                u_boundaries[v, i, j, boundary] = u[v,
+                                                    i_node,
+                                                    j_node,
+                                                    k_node,
                                                     element]
             end
             i_node += i_node_step_i
@@ -895,7 +901,8 @@ function calc_mortar_flux!(surface_flux_values,
                         # are pointing inwards. This is handled by `get_normal_direction`.
                         normal_direction = get_normal_direction(small_direction,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
