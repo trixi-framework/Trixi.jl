@@ -67,16 +67,6 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
-# Number of threads per workgroup of the 2D volume integral kernels using local memory.
-# Since these kernels need all nodes of an element in a single workgroup, a workgroup
-# contains several elements so that it is not too small, and the number of threads is
-# rounded down to full elements.
-const VOLUME_INTEGRAL_WORKGROUP_SIZE_2D = 128
-
-@inline function nelements_workgroup_2d(nnodes)
-    return max(1, div(VOLUME_INTEGRAL_WORKGROUP_SIZE_2D, nnodes^2))
-end
-
 # Weak form volume integral parallelized over the individual solution nodes. Each
 # thread computes the contravariant fluxes of its node and stores them in local memory,
 # from where all threads of the element apply the derivative matrix. This overwrites
@@ -97,7 +87,7 @@ end
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    NELEMENTS_WG = nelements_workgroup_2d(NNODES)
+    NELEMENTS_WG = nelements_workgroup(NNODES^2)
     kernel! = weak_form_KAkernel!(backend, (NNODES, NNODES, NELEMENTS_WG))
     kernel!(du, u, equations, typeof(mesh), dg, Val(NNODES), Val(nvariables(equations)),
             Val(NELEMENTS_WG), derivative_hat, contravariant_vectors;
@@ -201,7 +191,7 @@ end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    NELEMENTS_WG = nelements_workgroup_2d(NNODES)
+    NELEMENTS_WG = nelements_workgroup(NNODES^2)
     kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
     kernel! = flux_differencing_KAkernel!(backend,
                                           flux_differencing_workgroupsize_2d(kernel_type,

@@ -21,6 +21,17 @@ end
 end
 @inline accumulate_volume_integral_locally(backend::Backend, volume_integral) = false
 
+# Number of work-items per workgroup of the GPU volume integral kernels with one
+# work-item per node that use local memory. Since these kernels need all nodes of an
+# element in a single workgroup, a workgroup contains several elements so that it is not
+# too small, and the number of work-items is rounded down to full elements.
+const VOLUME_INTEGRAL_WORKGROUP_SIZE = 128
+
+# Number of elements per workgroup for elements with `nnodes_element` nodes
+@inline function nelements_workgroup(nnodes_element)
+    return max(1, div(VOLUME_INTEGRAL_WORKGROUP_SIZE, nnodes_element))
+end
+
 # This is a general fallback for volume integral kernels, parallelizing across
 # elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
 # for flux differencing, parallelize across the individual solution nodes
@@ -214,7 +225,7 @@ function check_flux_differencing_shared_memory_2d(kernel::Union{HalfSweep, FullS
     end
 
     n_nodes = nnodes(dg)
-    nelements_workgroup = nelements_workgroup_2d(n_nodes)
+    nelements_wg = nelements_workgroup(n_nodes^2)
     if kernel isa HalfSweep
         # Two-point fluxes of all nodes with half of their partners in both directions
         nshared = nvariables(equations) * (n_nodes ÷ 2) * 2
@@ -222,14 +233,14 @@ function check_flux_differencing_shared_memory_2d(kernel::Union{HalfSweep, FullS
         # Solution at all nodes
         nshared = nvariables(equations)
     end
-    shared_memory = nshared * n_nodes^2 * nelements_workgroup * sizeof(real(dg))
+    shared_memory = nshared * n_nodes^2 * nelements_wg * sizeof(real(dg))
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
         In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
     end
 
-    workgroup_size = n_nodes^2 * nelements_workgroup
+    workgroup_size = n_nodes^2 * nelements_wg
     if workgroup_size > 1024
         @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.
         Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
