@@ -221,6 +221,10 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolicParabolic) = real(semi.solver)
 
+function storage_type(semi::SemidiscretizationHyperbolicParabolic)
+    return storage_type(semi.mesh, semi.cache)
+end
+
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicParabolic)
     @unpack mesh, equations, solver, cache = semi

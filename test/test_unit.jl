@@ -4876,9 +4876,20 @@ end
     # The flux differencing kernel is part of the `cache` from the beginning
     @test semi.cache.flux_differencing_kernel === HalfSweep()
 
+    # Only the real type is changed, the current array type is kept
+    @test Trixi.storage_type(semi) === Array
     semi32 = trixi_adapt(semi; real_type = Float32)
     @test real(semi32) == Float32
+    @test Trixi.storage_type(semi32) === Array
     @test Trixi.storage_type(semi32.cache.elements) === Array
+    # The containers of other meshes do not support other array types
+    semi_tree = SemidiscretizationHyperbolic(TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                                      initial_refinement_level = 1,
+                                                      periodicity = true),
+                                             equations, initial_condition_convergence_test,
+                                             solver;
+                                             boundary_conditions = boundary_condition_periodic)
+    @test Trixi.storage_type(semi_tree) === Array
     @test semi32.cache.flux_differencing_kernel === HalfSweep()
 
     # An explicitly selected kernel is kept when adapting the semidiscretization again

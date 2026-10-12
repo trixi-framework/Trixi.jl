@@ -116,7 +116,8 @@ function trixi_adapt(semi::AbstractSemidiscretization;
 
     if !(storage_type === nothing && real_type === nothing)
         if storage_type === nothing
-            storage_type = Array
+            # The keyword argument shadows the function `Trixi.storage_type`
+            storage_type = Trixi.storage_type(semi)
         end
         if real_type === nothing
             real_type = real(semi)
@@ -125,6 +126,15 @@ function trixi_adapt(semi::AbstractSemidiscretization;
     end
 
     return adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
+end
+
+# Array type of the internal data structures of the semidiscretization `semi`, which
+# `trixi_adapt` keeps if only the real type is changed. Only the containers of a
+# `P4estMesh` or `T8codeMesh` support other array types than `Array`, e.g., GPU arrays.
+storage_type(semi::AbstractSemidiscretization) = Array
+storage_type(mesh, cache) = Array
+function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
+    return storage_type(cache.elements)
 end
 
 # The `cache` contains the GPU kernel used for `VolumeIntegralFluxDifferencing` if
@@ -154,8 +164,9 @@ function adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
         error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
     end
 
-    # The resources such as the shared memory are only limited on GPUs
-    if storage_type(semi.cache.elements) !== Array
+    # The resources such as the shared memory are only limited on GPUs. We check the
+    # backend instead of the array type to support all GPU array types.
+    if !(get_backend(semi.cache.elements.node_coordinates) isa KernelAbstractions.CPU)
         check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
     end
 

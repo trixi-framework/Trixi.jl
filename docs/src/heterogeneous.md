@@ -6,20 +6,22 @@ Support for heterogeneous computing is currently being worked on.
 ## User-facing interface
 
 GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is controlled via
-two keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretization:
+the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretization:
 
 - `storage_type`: the array type used for all internal data structures.
   Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs
   or `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs.
-  Defaults to `nothing`, which keeps the standard CPU `Array`.
+  Defaults to `nothing`, which keeps the current array type (usually the standard
+  CPU `Array`).
 - `real_type`: the floating-point element type. GPU workflows typically benefit from
-  setting this to `Float32`. Defaults to `nothing`, which retains the type used when
-  building the semidiscretization (usually `Float64`).
+  setting this to `Float32`. Defaults to `nothing`, which keeps the current real type
+  (usually `Float64`).
+- `flux_differencing_kernel`: the GPU kernel used for
+  [`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default),
+  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). Defaults to `nothing`, which
+  keeps the current kernel.
 
-Both arguments can be used independently. Moreover, the keyword argument
-`flux_differencing_kernel` selects the GPU kernel used for
-[`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default),
-[`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). A typical GPU setup looks like:
+All arguments can be used independently. A typical GPU setup looks like:
 
 ```julia
 using CUDA   # or using AMDGPU

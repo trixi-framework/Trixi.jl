@@ -94,11 +94,10 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     # Thus, we need to modify the equations field of the semidiscretization.
     # When using `real_type = Float32` in `trixi_adapt`, the `equations`
     # are converted correctly. However, callbacks are not adapted. To make it
-    # easier for people to
-    # use the code without having to pay attention to the types of `glm_scale`
-    # and `cfl` when constructing the `GlmSpeedCallback`, we `convert` the
-    # numbers here for convenience. This is also done internally for the
-    # `integrator` when updating `dt` via the `StepsizeCallback`.
+    # easier for people to use the code without having to pay attention to the
+    # types of `glm_scale` and `cfl` when constructing the `GlmSpeedCallback`,
+    # we `convert` the numbers here for convenience. This is also done internally
+    # for the `integrator` when updating `dt` via the `StepsizeCallback`.
     RealT = typeof(equations.c_h)
     @reset equations.c_h = convert(RealT, glm_scale * c_h_deltat) / dt
     semi.equations = equations
