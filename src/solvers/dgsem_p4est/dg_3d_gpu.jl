@@ -1420,124 +1420,132 @@ function calc_boundary_flux!(backend::Backend, cache, t::Real,
     return nothing
 end
 
+# The boundary fluxes of all boundary condition types are computed in a single kernel
+# launch. The CPU code processes the boundary condition types one after another, see
+# `calc_boundary_flux_by_type!`. On GPUs, this would require one kernel launch per
+# boundary condition type, each covering only a few boundaries, so that its run time
+# would be dominated by the launch overhead. Thus, `ndrange` enumerates the nodes of a
+# boundary, the boundaries of each type (padded to the maximum number of boundaries of a
+# type), and the boundary condition types. The padding costs only idle work items. The
+# kernels select the boundary condition with `calc_boundary_flux_per_node_by_type!`.
 function calc_boundary_flux!(backend::Backend, cache, t, boundary_conditions,
                              mesh::Union{P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
+    n_boundaries_max = maximum(length, boundary_indices; init = 0)
+    n_boundaries_max == 0 && return nothing
+    @unpack boundaries = cache
+    @unpack neighbor_ids, node_indices = boundaries
     @unpack node_coordinates, contravariant_vectors = cache.elements
-    calc_boundary_flux_by_type!(backend, cache, t,
-                                boundary_condition_types, boundary_indices,
-                                mesh, equations, surface_integral, dg,
-                                node_coordinates, contravariant_vectors)
-    return nothing
-end
-
-function calc_boundary_flux_by_type!(backend::Backend, cache, t,
-                                     BCs::Tuple{},
-                                     BC_indices::Tuple{},
-                                     mesh::Union{P4estMesh, T8codeMesh},
-                                     equations, surface_integral, dg,
-                                     node_coordinates, contravariant_vectors)
-    return nothing
-end
-
-function calc_boundary_flux_by_type!(backend::Backend, cache, t,
-                                     BCs::Tuple{Any, Vararg{Any}},
-                                     BC_indices::Tuple{AbstractVector{Int},
-                                                       Vararg{AbstractVector{Int}}},
-                                     mesh::Union{P4estMesh,
-                                                 T8codeMesh},
-                                     equations, surface_integral, dg::DG,
-                                     node_coordinates, contravariant_vectors)
-    boundary_condition = first(BCs)
-    boundary_condition_indices = first(BC_indices)
-
-    # A boundary condition type without any boundaries (e.g., in parallel
-    # runs, where not every rank owns boundaries of every name) must not stop
-    # the processing of the remaining boundary condition types below.
-    n_boundaries = length(boundary_condition_indices)
-    if n_boundaries > 0
-        @unpack boundaries = cache
-        @unpack neighbor_ids, node_indices = boundaries
-        # Explicit bounds check, which allows us to assume inbounds access in the kernel
-        @boundscheck begin
-            check_axes(boundaries, equations, dg, cache)
-            check_axes(cache.elements, equations, dg, cache)
-            check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
-                                           equations, dg, cache)
-        end
-
-        index_range = eachnode(dg)
-        kernel_cache = kernel_filter_cache(cache)
-        kernel! = calc_boundary_flux_kernel!(backend)
-        kernel!(boundaries.u,
-                cache.elements.surface_flux_values,
-                boundary_condition_indices,
-                neighbor_ids,
-                node_indices,
-                t,
-                boundary_condition,
-                index_range,
-                typeof(mesh),
-                equations,
-                surface_integral,
-                dg,
-                kernel_cache, node_coordinates, contravariant_vectors;
-                ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(boundaries, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
+                                       equations, dg,
+                                       cache)
     end
 
-    # Recursively call this method with the unprocessed boundary types
-    calc_boundary_flux_by_type!(backend, cache, t,
-                                Base.tail(BCs),
-                                Base.tail(BC_indices),
-                                mesh, equations, surface_integral, dg,
-                                node_coordinates, contravariant_vectors)
+    index_range = eachnode(dg)
+    kernel_cache = kernel_filter_cache(cache)
+    kernel! = calc_boundary_flux_kernel!(backend)
+    kernel!(boundaries.u,
+            cache.elements.surface_flux_values,
+            boundary_indices,
+            neighbor_ids,
+            node_indices,
+            t,
+            boundary_condition_types,
+            index_range,
+            typeof(mesh),
+            equations,
+            surface_integral,
+            dg,
+            kernel_cache, node_coordinates, contravariant_vectors;
+            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries_max,
+                       length(boundary_condition_types)))
+    return nothing
+end
+
+# Call `per_node!(boundary_condition, boundary, args...)` for the `local_index`-th
+# boundary with the `type_index`-th boundary condition type, if this boundary exists
+# (`local_index` is padded to the maximum number of boundaries of a type). The recursion
+# over the tuple of boundary condition types ("lispy tuple programming") is resolved at
+# compile time, so the call of `per_node!` is specialized on the boundary condition
+# without dynamic dispatch. The type parameter `F` forces specialization on `per_node!`,
+# see the comment in `src/solvers/dg_gpu.jl`. For the same reason, the kernels calling
+# this function need the type parameter `MeshT`: `MeshT` is passed on in `args`, whose
+# elements must have concrete types to avoid dynamic dispatch with the
+# KernelAbstractions.jl CPU backend.
+Base.@propagate_inbounds function calc_boundary_flux_per_node_by_type!(per_node!::F,
+                                                                       type_index,
+                                                                       local_index,
+                                                                       BCs::Tuple{},
+                                                                       BC_indices::Tuple{},
+                                                                       args...) where {F}
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_boundary_flux_per_node_by_type!(per_node!::F,
+                                                                       type_index,
+                                                                       local_index,
+                                                                       BCs::Tuple,
+                                                                       BC_indices::Tuple,
+                                                                       args...) where {F}
+    if type_index == 1
+        boundary_condition_indices = first(BC_indices)
+        if local_index <= length(boundary_condition_indices)
+            boundary = boundary_condition_indices[local_index]
+            per_node!(first(BCs), boundary, args...)
+        end
+    else
+        calc_boundary_flux_per_node_by_type!(per_node!, type_index - 1, local_index,
+                                             Base.tail(BCs), Base.tail(BC_indices),
+                                             args...)
+    end
     return nothing
 end
 
 @kernel inbounds=true function calc_boundary_flux_kernel!(u,
                                                           surface_flux_values,
-                                                          boundary_condition_indices,
+                                                          boundary_indices,
                                                           neighbor_ids,
                                                           node_indices_arr,
                                                           t,
-                                                          boundary_condition::BC,
+                                                          boundary_condition_types,
                                                           index_range,
-                                                          MeshT::Type{<:Union{P4estMesh{3},
-                                                                              T8codeMesh{3}}},
+                                                          ::Type{MeshT},
                                                           equations,
                                                           surface_integral,
                                                           dg,
                                                           cache, node_coordinates,
-                                                          contravariant_vectors) where {BC}
-    i, j, local_index = @index(Global, NTuple)
-
-    if local_index <= length(boundary_condition_indices)
-        boundary = boundary_condition_indices[local_index]
-
-        calc_boundary_flux_per_node!(u,
-                                     surface_flux_values, t, boundary_condition,
-                                     MeshT, equations, surface_integral, dg, cache,
-                                     boundary, neighbor_ids, node_indices_arr,
-                                     index_range, node_coordinates,
-                                     contravariant_vectors, i, j)
-    end
+                                                          contravariant_vectors) where {MeshT <:
+                                                                                        Union{P4estMesh{3},
+                                                                                              T8codeMesh{3}}}
+    i, j, local_index, type_index = @index(Global, NTuple)
+    calc_boundary_flux_per_node_by_type!(calc_boundary_flux_per_node!, type_index,
+                                         local_index, boundary_condition_types,
+                                         boundary_indices, u, surface_flux_values, t,
+                                         MeshT, equations, surface_integral, dg, cache,
+                                         neighbor_ids, node_indices_arr, index_range,
+                                         node_coordinates, contravariant_vectors,
+                                         i, j)
 end
 
-Base.@propagate_inbounds function calc_boundary_flux_per_node!(u,
+Base.@propagate_inbounds function calc_boundary_flux_per_node!(boundary_condition::BC,
+                                                               boundary, u,
                                                                surface_flux_values, t,
-                                                               boundary_condition,
                                                                MeshT::Type{<:Union{P4estMesh{3},
                                                                                    T8codeMesh{3}}},
                                                                equations,
                                                                surface_integral, dg,
                                                                cache,
-                                                               boundary, neighbor_ids,
+                                                               neighbor_ids,
                                                                node_indices_arr,
                                                                index_range,
                                                                node_coordinates,
                                                                contravariant_vectors, i,
-                                                               j)
+                                                               j) where {BC}
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them

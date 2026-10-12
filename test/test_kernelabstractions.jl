@@ -409,6 +409,44 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence_nonperiodic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_convergence_nonperiodic.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.2),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.0004036496258545996,
+                            0.0005869762480189079,
+                            0.0009148853742181908,
+                            0.0011984191532764543
+                        ],
+                        linf=[
+                            0.0024993634989209923,
+                            0.009487866203496731,
+                            0.004505829506103787,
+                            0.011634902753554499
+                        ])
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test ode.u0 isa Array
+    # Both the hyperbolic and the parabolic boundary conditions use two different
+    # types (Dirichlet and wall), which are handled by a single kernel launch each.
+    @test length(semi.boundary_conditions.boundary_condition_types) == 2
+    @test length(semi.boundary_conditions_parabolic.boundary_condition_types) == 2
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
     Setup,
     KernelAbstractionsExamples

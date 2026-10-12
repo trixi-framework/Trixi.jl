@@ -578,7 +578,8 @@ end
 #
 # The prolongation of the (transformed) solution or of the normal parabolic
 # fluxes to the boundaries is fused with the boundary flux computation. As in
-# the hyperbolic GPU code, one kernel is launched per boundary condition type.
+# the hyperbolic GPU code, a single kernel launch covers all boundary condition
+# types, see `calc_boundary_flux!` for `P4estMesh` in `dg_3d_gpu.jl`.
 
 function calc_boundary_flux_gradient!(backend::Backend, cache, t, u_transformed,
                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
@@ -600,14 +601,12 @@ function calc_boundary_flux_gradient!(backend::Backend, cache, t, u_transformed,
                                       boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
                                       mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                       equations_parabolic, dg::DG)
-    @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
     end
-    calc_boundary_flux_by_type!(backend, cache, t, u_transformed,
-                                boundary_condition_types, boundary_indices,
-                                Gradient(), mesh, equations_parabolic, dg)
+    calc_boundary_flux!(backend, cache, t, u_transformed, boundary_conditions_parabolic,
+                        Gradient(), mesh, equations_parabolic, dg)
     return nothing
 end
 
@@ -615,100 +614,79 @@ function calc_boundary_flux_divergence!(backend::Backend, cache, t, flux_parabol
                                         boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
                                         mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                         equations_parabolic, dg::DG)
-    @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         for flux_parabolic_i in flux_parabolic
             check_axes(flux_parabolic_i, mesh, equations_parabolic, dg, cache)
         end
     end
-    calc_boundary_flux_by_type!(backend, cache, t, flux_parabolic,
-                                boundary_condition_types, boundary_indices,
-                                Divergence(), mesh, equations_parabolic, dg)
+    calc_boundary_flux!(backend, cache, t, flux_parabolic,
+                        boundary_conditions_parabolic,
+                        Divergence(), mesh, equations_parabolic, dg)
     return nothing
 end
 
-# Iterate over tuples of boundary condition types and associated indices
-# in a type-stable way using "lispy tuple programming", launching one kernel
-# per boundary condition type. Thus, the kernels are specialized on the
-# boundary condition and do not need any dynamic dispatch.
-function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
-                                     BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type,
-                                     mesh::Union{P4estMesh{2}, P4estMesh{3}},
-                                     equations_parabolic, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
-                                     BCs::Tuple{Any, Vararg{Any}},
-                                     BC_indices::Tuple{AbstractVector{Int},
-                                                       Vararg{AbstractVector{Int}}},
-                                     operator_type,
-                                     mesh::Union{P4estMesh{2}, P4estMesh{3}},
-                                     equations_parabolic, dg::DG)
-    boundary_condition = first(BCs)
-    boundary_condition_indices = first(BC_indices)
-
-    n_boundaries = length(boundary_condition_indices)
-    if n_boundaries > 0
-        @unpack neighbor_ids, node_indices = cache.boundaries
-        @unpack node_coordinates, contravariant_vectors, surface_flux_values = cache.elements
-        # Explicit bounds check, which allows us to assume inbounds access in the kernel
-        @boundscheck begin
-            check_axes(cache.boundaries, equations_parabolic, dg, cache)
-            check_axes(cache.elements, equations_parabolic, dg, cache)
-            check_axes_surface_flux_values(surface_flux_values, mesh,
-                                           equations_parabolic, dg, cache)
-        end
-        index_range = eachnode(dg)
-        kernel! = calc_boundary_flux_KAkernel!(backend)
-        kernel!(surface_flux_values, u_or_flux, boundary_condition_indices,
-                neighbor_ids, node_indices, t, boundary_condition, operator_type,
-                index_range, typeof(mesh), equations_parabolic, dg,
-                node_coordinates, contravariant_vectors,
-                ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
+function calc_boundary_flux!(backend::Backend, cache, t, u_or_flux,
+                             boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
+                             operator_type, mesh::Union{P4estMesh{2}, P4estMesh{3}},
+                             equations_parabolic,
+                             dg::DG)
+    @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
+    n_boundaries_max = maximum(length, boundary_indices; init = 0)
+    n_boundaries_max == 0 && return nothing
+    @unpack neighbor_ids, node_indices = cache.boundaries
+    @unpack node_coordinates, contravariant_vectors, surface_flux_values = cache.elements
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(cache.boundaries, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
-
-    # Recursively call this method with the unprocessed boundary types
-    calc_boundary_flux_by_type!(backend, cache, t, u_or_flux,
-                                Base.tail(BCs), Base.tail(BC_indices),
-                                operator_type, mesh, equations_parabolic, dg)
+    index_range = eachnode(dg)
+    kernel! = calc_boundary_flux_KAkernel!(backend)
+    kernel!(surface_flux_values, u_or_flux, boundary_indices, neighbor_ids,
+            node_indices, t, boundary_condition_types, operator_type, index_range,
+            typeof(mesh), equations_parabolic, dg, node_coordinates,
+            contravariant_vectors,
+            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries_max,
+                       length(boundary_condition_types)))
     return nothing
 end
 
 @kernel inbounds=true function calc_boundary_flux_KAkernel!(surface_flux_values,
                                                             u_or_flux,
-                                                            boundary_condition_indices,
+                                                            boundary_indices,
                                                             neighbor_ids,
                                                             node_indices_arr,
                                                             t,
-                                                            boundary_condition::BC,
+                                                            boundary_condition_types,
                                                             operator_type,
                                                             index_range,
-                                                            MeshT::Type{<:P4estMesh{2}},
+                                                            ::Type{MeshT},
                                                             equations_parabolic,
                                                             dg,
                                                             node_coordinates,
-                                                            contravariant_vectors) where {BC}
-    i, local_index = @index(Global, NTuple)
-    # Use the local index to get the global boundary index from the pre-sorted list
-    boundary = boundary_condition_indices[local_index]
-
-    calc_boundary_flux_per_node!(surface_flux_values, u_or_flux, t,
-                                 boundary_condition, operator_type, MeshT,
-                                 equations_parabolic, dg, boundary, neighbor_ids,
-                                 node_indices_arr, index_range, node_coordinates,
-                                 contravariant_vectors, i)
+                                                            contravariant_vectors) where {MeshT <:
+                                                                                          P4estMesh{2}}
+    i, local_index, type_index = @index(Global, NTuple)
+    calc_boundary_flux_per_node_by_type!(calc_boundary_flux_per_node!, type_index,
+                                         local_index, boundary_condition_types,
+                                         boundary_indices, surface_flux_values,
+                                         u_or_flux, t, operator_type, MeshT,
+                                         equations_parabolic, dg, neighbor_ids,
+                                         node_indices_arr, index_range,
+                                         node_coordinates, contravariant_vectors, i)
 end
 
-Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_values,
+Base.@propagate_inbounds function calc_boundary_flux_per_node!(boundary_condition,
+                                                               boundary,
+                                                               surface_flux_values,
                                                                u_or_flux, t,
-                                                               boundary_condition,
                                                                operator_type,
                                                                MeshT::Type{<:P4estMesh{2}},
                                                                equations_parabolic,
-                                                               dg, boundary,
+                                                               dg,
                                                                neighbor_ids,
                                                                node_indices_arr,
                                                                index_range,

@@ -916,48 +916,46 @@ end
 
 @kernel inbounds=true function calc_boundary_flux_kernel!(u,
                                                           surface_flux_values,
-                                                          boundary_condition_indices,
+                                                          boundary_indices,
                                                           neighbor_ids,
                                                           node_indices_arr,
                                                           t,
-                                                          boundary_condition::BC,
+                                                          boundary_condition_types,
                                                           index_range,
-                                                          MeshT::Type{<:Union{P4estMesh{2},
-                                                                              P4estMeshView{2},
-                                                                              T8codeMesh{2}}},
+                                                          ::Type{MeshT},
                                                           equations,
                                                           surface_integral,
                                                           dg,
                                                           cache, node_coordinates,
-                                                          contravariant_vectors) where {BC}
-    i, local_index = @index(Global, NTuple)
-
-    if local_index <= length(boundary_condition_indices)
-        boundary = boundary_condition_indices[local_index]
-
-        calc_boundary_flux_per_node!(u,
-                                     surface_flux_values, t, boundary_condition,
-                                     MeshT, equations, surface_integral, dg, cache,
-                                     boundary, neighbor_ids, node_indices_arr,
-                                     index_range, node_coordinates,
-                                     contravariant_vectors, i)
-    end
+                                                          contravariant_vectors) where {MeshT <:
+                                                                                        Union{P4estMesh{2},
+                                                                                              P4estMeshView{2},
+                                                                                              T8codeMesh{2}}}
+    i, local_index, type_index = @index(Global, NTuple)
+    calc_boundary_flux_per_node_by_type!(calc_boundary_flux_per_node!, type_index,
+                                         local_index, boundary_condition_types,
+                                         boundary_indices, u, surface_flux_values, t,
+                                         MeshT, equations, surface_integral, dg, cache,
+                                         neighbor_ids, node_indices_arr, index_range,
+                                         node_coordinates, contravariant_vectors,
+                                         i)
 end
 
-Base.@propagate_inbounds function calc_boundary_flux_per_node!(u,
+Base.@propagate_inbounds function calc_boundary_flux_per_node!(boundary_condition::BC,
+                                                               boundary, u,
                                                                surface_flux_values, t,
-                                                               boundary_condition,
                                                                MeshT::Type{<:Union{P4estMesh{2},
                                                                                    P4estMeshView{2},
                                                                                    T8codeMesh{2}}},
                                                                equations,
                                                                surface_integral, dg,
                                                                cache,
-                                                               boundary, neighbor_ids,
+                                                               neighbor_ids,
                                                                node_indices_arr,
                                                                index_range,
                                                                node_coordinates,
-                                                               contravariant_vectors, i)
+                                                               contravariant_vectors,
+                                                               i) where {BC}
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them
