@@ -21,7 +21,93 @@ function create_cache(mesh::TreeMesh{1}, equations,
         fstar[:, 1] .= zero(uEltype)
         fstar[:, n + 1] .= zero(uEltype)
     end
-    return (; fstar_threaded)
+    # Left/right neighbor element ids for each element, 0 means a domain boundary.
+    # Only O2 reconstruction reads this.
+    element_neighbors = zeros(Int, 2, nelements(dg, cache_containers))
+    return (; fstar_threaded, element_neighbors)
+end
+
+# Fill neighbors from the mesh interfaces to enable element-spanning reconstruction.
+@inline function update_element_neighbors!(element_neighbors, dg, cache)
+    fill!(element_neighbors, 0)
+    @unpack neighbor_ids = cache.interfaces
+    for interface in eachinterface(dg, cache)
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
+        element_neighbors[2, left] = right
+        element_neighbors[1, right] = left
+    end
+    return nothing
+end
+
+# Look up a cell average and its reference coordinate, allowing indices that
+# go into a neighboring element. If a neighbor does not exist (domain boundary) or the
+# index would leave the neighbor too, the outermost available cell is returned
+# and marked invalid.
+@inline function extended_sample(u, equations, dg, idx, element, left, right)
+    n = nnodes(dg)
+    nodes = dg.basis.nodes
+    dx = 2 * one(eltype(nodes)) / n
+
+    if 1 <= idx <= n
+        return get_node_vars(u, equations, dg, idx, element), nodes[idx], true
+    elseif idx < 1
+        j = n + idx
+        x = nodes[1] + (idx - 1) * dx
+        if left != 0 && j >= 1
+            return get_node_vars(u, equations, dg, j, left), x, true
+        else
+            el = left == 0 ? element : left
+            return get_node_vars(u, equations, dg, 1, el), x, false
+        end
+    else # idx > n
+        j = idx - n
+        x = nodes[n] + j * dx
+        if right != 0 && j <= n
+            return get_node_vars(u, equations, dg, j, right), x, true
+        else
+            el = right == 0 ? element : right
+            return get_node_vars(u, equations, dg, n, el), x, false
+        end
+    end
+end
+
+# Reconstruct left and right states at a face from the four neighboring cell
+# averages. Indices may reach into adjacent elements so
+# that two small blocks match 1 larger block at the same combined size.
+#
+#            u_ll        u_lr   |   u_rl        u_rr
+#              ·          ·     |     ·          ·
+#           cell i-2   cell i-1 |  cell i    cell i+1
+#                               ^
+#                          face i (flux)
+#
+# Interior sides use the same limited slopes as reconstruction_O2_full /
+# reconstruction_O2_inner. If an outer sample is missing at a domain boundary,
+# the full reconstruction keeps the unlimited slope across the face, and the inner uses a zero slope.
+@inline function reconstruct_face(u, equations, dg, i, x_face, element,
+                                  left, right, volume_integral)
+    @unpack reconstruction_mode, slope_limiter, cons2recon = volume_integral
+
+    u_ll, x_ll, valid_ll = extended_sample(u, equations, dg, i - 2, element, left,
+                                           right)
+    u_lr, x_lr, _ = extended_sample(u, equations, dg, i - 1, element, left, right)
+    u_rl, x_rl, _ = extended_sample(u, equations, dg, i, element, left, right)
+    u_rr, x_rr, valid_rr = extended_sample(u, equations, dg, i + 1, element, left,
+                                           right)
+
+    u_ll, u_lr = cons2recon(u_ll, equations), cons2recon(u_lr, equations)
+    u_rl, u_rr = cons2recon(u_rl, equations), cons2recon(u_rr, equations)
+
+    reconstruction_mode === reconstruction_constant && return u_lr, u_rl
+
+    s_m = (u_rl - u_lr) / (x_rl - x_lr)
+    # For a missing outer neighbor, the full reconstruction keeps the cross-face slope and the inner uses a zero slope.
+    s_boundary = reconstruction_mode === reconstruction_O2_inner ? zero(s_m) : s_m
+    s_l = valid_ll ? slope_limiter.((u_lr - u_ll) / (x_lr - x_ll), s_m) : s_boundary
+    s_r = valid_rr ? slope_limiter.(s_m, (u_rr - u_rl) / (x_rr - x_rl)) : s_boundary
+
+    return u_lr + s_l * (x_face - x_lr), u_rl + s_r * (x_face - x_rl)
 end
 
 #####################################################################
@@ -64,19 +150,24 @@ function calc_volume_integral!(backend::Nothing, du, u,
 end
 
 #####################################################################
-# Second-order volume integral with reconstructed states at internal faces
+# Second-order volume integral with reconstructed states at internal faces.
+# Extended indices reach into neighboring elements when present.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFiniteVolumeO2,
                                dg::BlockFV, cache)
-    @unpack (sc_interface_coords, surface_flux, reconstruction_mode, slope_limiter,
-    cons2recon, recon2cons) = volume_integral
-    @unpack fstar_threaded = cache
-    inv_h = nnodes(dg) * one(eltype(u)) / 2
+    @unpack sc_interface_coords, surface_flux, recon2cons = volume_integral
+    @unpack fstar_threaded, element_neighbors = cache
+    update_element_neighbors!(element_neighbors, dg, cache)
+
+    n = nnodes(dg)
+    inv_h = n * one(eltype(u)) / 2
 
     @threaded for element in eachelement(dg, cache)
         fstar = fstar_threaded[Threads.threadid()]
+        left = element_neighbors[1, element]
+        right = element_neighbors[2, element]
 
         # Each BlockFV element is split into n equal FV cells on [-1, 1].
         # Cell averages live at the cell centers; numerical fluxes are stored
@@ -90,35 +181,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
         #
         # Volume loop only fills internal faces i = 2, ..., n (f₂..f₄ above).
         # Boundary faces f₁ and f₅ are zero until the surface integral adds them.
-        #
-        # At internal face i (between cells i-1 and i), high-order reconstruction
-        # needs up to four neighboring cell averages:
-        #
-        #            u_ll        u_lr   |   u_rl        u_rr
-        #              ·          ·     |     ·          ·
-        #           cell i-2   cell i-1 |  cell i    cell i+1
-        #                               ^
-        #                          face i (flux)
-        #
-        # Near the element ends the missing neighbor is clamped to the
-        # outermost cell (volume-local stencil; no values from other elements).
 
-        for i in 2:nnodes(dg)
-            # Four-point stencil, clamped to the element (volume-local)
-            u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), element),
-                              equations)
-            u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, element),
-                              equations)
-            u_rl = cons2recon(get_node_vars(u, equations, dg, i, element),
-                              equations)
-            u_rr = cons2recon(get_node_vars(u, equations, dg,
-                                            min(nnodes(dg), i + 1), element),
-                              equations)
-
-            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                           sc_interface_coords, i,
-                                           slope_limiter, dg)
-
+        for i in 2:n
+            u_l, u_r = reconstruct_face(u, equations, dg, i,
+                                        sc_interface_coords[i - 1],
+                                        element, left, right, volume_integral)
             f = surface_flux(recon2cons(u_l, equations),
                              recon2cons(u_r, equations), 1, equations)
             set_node_vars!(fstar, f, equations, dg, i)
@@ -140,60 +207,48 @@ end
 # Surface reconstruction for BlockFV with VolumeIntegralFiniteVolumeO2.
 # Reconstruct to element face ξ = +/- 1 using `reconstruction_mode`,
 # then extrapolate from the near-boundary internal face
+# Passing an adjacent element lets the stencil cross the interface
+#
+#   ξ = -1                                              ξ = +1
+#        |--- u₁ ---|--- u₂ --- ... ---|--- u_n ---|
+#                   f₂                            f_n
+#        ^                                         ^
+#     left face                               right face
+#
 @inline function reconstruct_element_face(u, equations, dg::BlockFV, element, face,
-                                          volume_integral::VolumeIntegralFiniteVolumeO2)
-    @unpack sc_interface_coords, reconstruction_mode, slope_limiter,
-    cons2recon, recon2cons = volume_integral
-    nodes = dg.basis.nodes
+                                          volume_integral::VolumeIntegralFiniteVolumeO2,
+                                          neighbor_element::Integer = 0)
+    @unpack recon2cons = volume_integral
     n = nnodes(dg)
+    neighbor = Int(neighbor_element)
 
-    #the one node case, just return the node value
-    if n == 1
+    # A single-cell element has no neighbors, so there is no reconstruction to do.
+    if n == 1 && neighbor == 0
         return get_node_vars(u, equations, dg, 1, element)
     end
 
-    # Reconstruct at ξ = ±1 by extrapolating from the nearest internal face.
-    #
-    #   ξ = -1                                              ξ = +1
-    #        |--- u₁ ---|--- u₂ --- ... ---|--- u_n ---|
-    #                   f₂                            f_n
-    #        ^                                         ^
-    #     left face                               right face
-    #
-    # Right (face = +1): reconstruct at f_n, then extrapolate from u_n to ξ = +1.
-    # Left  (face = -1): reconstruct at f₂, then extrapolate from u₁ to ξ = -1.
-    if face > 0
-        # Right face on ξ = +1
-        i = n
-        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), element),
-                          equations)
-        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, element), equations)
-        u_rl = cons2recon(get_node_vars(u, equations, dg, i, element), equations)
-        # There's no cell to the right of the last one, so reuse u_rl.
-        # The reconstruction mode already handles this (node_index == n) and so does not use u_rr to compute a slope
-        u_rr = u_rl
-        _, u_face = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                        sc_interface_coords, i, slope_limiter, dg)
-        x_c = nodes[i]
-        return recon2cons(u_rl +
-                          (u_face - u_rl) / (sc_interface_coords[i - 1] - x_c) *
-                          (face - x_c), equations)
+    if neighbor != 0
+        # An interface between two elements is an ordinary internal interface of a larger block.
+        if face > 0
+            u_l, _ = reconstruct_face(u, equations, dg, n + 1, face, element,
+                                      0, neighbor, volume_integral)
+            return recon2cons(u_l, equations)
+        else
+            _, u_r = reconstruct_face(u, equations, dg, 1, face, element,
+                                      neighbor, 0, volume_integral)
+            return recon2cons(u_r, equations)
+        end
     else
-        # Left face ξ = -1
-        i = 2
-        # No cell to the left of the first one, so reuse u_lr.
-        # Same idea as above for node_index == 2.
-        u_ll = cons2recon(get_node_vars(u, equations, dg, 1, element), equations)
-        u_lr = u_ll
-        u_rl = cons2recon(get_node_vars(u, equations, dg, 2, element), equations)
-        u_rr = cons2recon(get_node_vars(u, equations, dg, min(n, 3), element),
-                          equations)
-        u_face, _ = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
-                                        sc_interface_coords, i, slope_limiter, dg)
-        x_c = nodes[i - 1]
-        return recon2cons(u_lr +
-                          (u_face - u_lr) / (sc_interface_coords[i - 1] - x_c) *
-                          (face - x_c), equations)
+        # On the element boundary, there is no outside cell.
+        if face > 0
+            _, u_b = reconstruct_face(u, equations, dg, n, face, element,
+                                      0, 0, volume_integral)
+            return recon2cons(u_b, equations)
+        else
+            u_b, _ = reconstruct_face(u, equations, dg, 2, face, element,
+                                      0, 0, volume_integral)
+            return recon2cons(u_b, equations)
+        end
     end
 end
 
@@ -213,9 +268,9 @@ function prolong2interfaces!(cache, u,
         right_element = neighbor_ids[2, interface]
 
         u_left = reconstruct_element_face(u, equations, dg, left_element, 1,
-                                          volume_integral)
+                                          volume_integral, right_element)
         u_right = reconstruct_element_face(u, equations, dg, right_element, -1,
-                                           volume_integral)
+                                           volume_integral, left_element)
         for v in eachvariable(equations)
             interfaces_u[1, v, interface] = u_left[v]
             interfaces_u[2, v, interface] = u_right[v]

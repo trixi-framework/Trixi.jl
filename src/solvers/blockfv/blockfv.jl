@@ -80,8 +80,10 @@ This is the block-FV counterpart of [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref
 
 Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of
 convergence between 1 and 2 can be expected in practice.
-Since this is a volume integral, all reconstructions are purely cell-local, i.e.,
-no neighboring elements are queried at reconstruction stage.
+Volume faces next to an element interface and the surface reconstruction at the given
+interface use neighboring-element cell averages when available, such that splitting
+a block into several smaller blocks is equivalent to a larger block. At element boundaries
+the stencil is limited to the nearest interior face.
 
 The interface values of the inner FV cells are reconstructed using the standard
 MUSCL-type reconstruction.

@@ -94,14 +94,14 @@ end
 @testitem "BlockFV 1D: elixir_euler_fvO2.jl" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
                         l2=[
-                            0.00017170000368369232,
-                            0.00017695136133033884,
-                            0.0005490514030400933
+                            0.00011202747933756509,
+                            0.0001544525768409134,
+                            0.00030499224382692265
                         ],
                         linf=[
-                            0.0006228589670183027,
-                            0.0005996662214733384,
-                            0.0013619534679571998
+                            0.00027341716469075905,
+                            0.0002796241338514083,
+                            0.0004802617931396469
                         ])
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
@@ -126,6 +126,28 @@ end
                         tspan=(0.0, 0.5))
     @test solver.volume_integral isa VolumeIntegralFiniteVolumeO2
     @test solver.volume_integral.reconstruction_mode === reconstruction_O2_inner
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl multi-block equivalence" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
+    # BlockFV with O2 reconstruction must make 2 blocks of 4 cells identical to a block of 8 cells.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        n_nodes=8,
+                        initial_refinement_level=3,
+                        tspan=(0.0, 0.5))
+    res1 = analysis_callback(sol)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        n_nodes=4,
+                        initial_refinement_level=4,
+                        tspan=(0.0, 0.5))
+    res2 = analysis_callback(sol)
+
+    @test res1.l2 ≈ res2.l2
+    @test res1.linf ≈ res2.linf
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 

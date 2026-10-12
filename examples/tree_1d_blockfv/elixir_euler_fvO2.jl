@@ -12,10 +12,10 @@ initial_condition = initial_condition_convergence_test
 # `reconstruction_O2_full` reconstructs on every FV cell, including those next
 # to element faces (unlimited central slope there). This gives it
 # second-order accuracy on this problem.
-# `monotonized_central` is used so that the limiter is lower dissipation
+# `central_slope` leaves the slopes unlimited so the observed order is close to2.
 solver = BlockFV(n_nodes = 4, surface_flux = flux_hllc,
                  reconstruction_mode = reconstruction_O2_full,
-                 slope_limiter = monotonized_central)
+                 slope_limiter = central_slope)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
