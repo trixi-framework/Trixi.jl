@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations3D(gamma)
 
 Spherical blast wave into a near-vacuum ambient state. The low outer density and
 pressure make cell averages of the internal energy go negative without limiting,
-allowing the Liu-Zhang limiter to run to find an admissible solution. 
+allowing the Liu-Zhang limiter to run to find an admissible solution.
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations3D)
     RealT = eltype(x)
