@@ -230,7 +230,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-# Pass the initial time step `dt` in the real type of `semi`, which is used for the time
+# A `Rational` initial time step `dt` keeps the real type of `semi` for the time
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
-            abstol = time_int_tol, reltol = time_int_tol, dt = convert(real(semi), 1e-5),
+            abstol = time_int_tol, reltol = time_int_tol, dt = 1 // 100_000,
             ode_default_options()..., callback = callbacks)
