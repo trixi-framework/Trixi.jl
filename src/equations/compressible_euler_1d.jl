@@ -234,7 +234,7 @@ are available in the paper:
   the Euler equations of gas dynamics
   [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
-The implementation is modified to ensure non-negativity of `p_star`. This modification 
+The implementation is modified to ensure non-negativity of `p_star`. This modification
 preserves entropy stability based on the analysis in the paper:
 - F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
   Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations

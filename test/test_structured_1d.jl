@@ -64,8 +64,8 @@ end
 @testitem "StructuredMesh1D: elixir_advection_float128.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     using Quadmath: Float128
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float128.jl"),
-                        l2=Float128[6.49879312655540217059228636803492411e-09],
-                        linf=Float128[5.35548407857266390181158920649552284e-08])
+                        l2=Float128[6.4987931105253158144700690718532668e-09],
+                        linf=Float128[5.355484252740692483311667337799588e-08])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

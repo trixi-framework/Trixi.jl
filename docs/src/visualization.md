@@ -482,7 +482,7 @@ interactive surface plots via [`iplot`](@ref) for all supported 2D mesh types.
 To use Makie-based visualization, load [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl)
 for static plots or [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) for interactive use:
 ```julia
-julia> using CairoMakie 
+julia> using CairoMakie
 ```
 
 !!! note
@@ -508,7 +508,7 @@ pd = PlotData1D(sol)
 plot(pd["scalar"])
 ```
 
-The figure can be customized with any attributes from Makie: 
+The figure can be customized with any attributes from Makie:
 ```@example makie-1d
 fig, axes = plot(pd)
 axes[1, 1].title = "New title"
@@ -566,6 +566,45 @@ ax = Axis(fig[1, 1], title = "Density", xlabel = "x", ylabel = "y",
 plt = plot!(ax, pd["rho"], colormap = :berlin)
 Colorbar(fig[1, 2], plt)
 plot!(getmesh(pd))
+```
+
+### Contour plots
+
+For solutions on Cartesian meshes, Trixi.jl also supports unfilled contour lines
+(`contour`, `contour!`) and filled contour bands (`contourf`). Contour lines for a single variable:
+```@example makie-2d
+Makie.contour(pd["rho"])
+```
+
+Filled contour bands:
+```@example makie-2d
+Makie.contourf(pd["rho"])
+```
+
+The remaining examples use `contour`, but work the same way for `contourf`. The only exception is `contour!`, which has no `contourf!` counterpart in Trixi.jl. All variables at
+once, optionally with mesh overlay:
+```@example makie-2d
+Makie.contour(pd, plot_mesh = true)
+```
+
+Both functions also accept the solution directly:
+```@example makie-2d
+Makie.contour(sol)
+```
+
+Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
+contour lines or bands is controlled by `levels`, which takes either the number of levels or a
+vector of level values. Attributes of the contour lines such as `linewidth` apply to `contour`
+only, since `contourf` draws filled bands instead of lines:
+```@example makie-2d
+Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
+```
+
+Finally, `contour!` adds contour lines on top of the plot in the currently active axis,
+e.g., to overlay them on a heatmap:
+```@example makie-2d
+Makie.plot(pd["rho"])
+Makie.contour!(pd["rho"], color = :white)
 ```
 
 ### Interactive visualization

@@ -103,7 +103,7 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               max_level = 8, max_threshold = 0.003,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
-# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
 # coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
@@ -118,5 +118,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
-sol = solve(ode, SSPRK43(; stage_limiter! = positivity_limiter);
+sol = solve(ode, SSPRK43(; stage_limiter! = positivity_limiter, thread = Trixi.Threaded());
             ode_default_options()..., callback = callbacks);

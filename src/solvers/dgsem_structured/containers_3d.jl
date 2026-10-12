@@ -483,7 +483,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     return nothing
 end
 
-# Used for both fixed (`StructuredMesh{3}`) 
+# Used for both fixed (`StructuredMesh{3}`)
 # and adaptive meshes (`P4estMesh{3}` or `T8codeMesh{3}`)
 mutable struct NormalVectorContainer3D{RealT <: Real} <:
                AbstractNormalVectorContainer

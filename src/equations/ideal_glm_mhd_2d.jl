@@ -1383,12 +1383,9 @@ end
     v_normal_ll = (v1_ll * normal_direction[1] + v2_ll * normal_direction[2])
     v_normal_rr = (v1_rr * normal_direction[1] + v2_rr * normal_direction[2])
 
-    c_f_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
-    c_f_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
-
     # Estimate the min/max eigenvalues in the normal direction
-    λ_min = min(v_normal_ll - c_f_ll, v_normal_rr - c_f_rr)
-    λ_max = max(v_normal_rr + c_f_rr, v_normal_rr + c_f_rr)
+    λ_min = v_normal_ll - calc_fast_wavespeed(u_ll, normal_direction, equations)
+    λ_max = v_normal_rr + calc_fast_wavespeed(u_rr, normal_direction, equations)
 
     return λ_min, λ_max
 end
@@ -1418,7 +1415,7 @@ end
         c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
         λ_min = min(v2_ll - c_f_ll, v2_rr - c_f_rr)
-        λ_max = max(v2_ll + c_f_ll, v1_rr + c_f_rr)
+        λ_max = max(v2_ll + c_f_ll, v2_rr + c_f_rr)
     end
 
     return λ_min, λ_max

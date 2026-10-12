@@ -241,3 +241,21 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
+
+@testitem "P4estMesh MPI 2D: check_axes" setup=[Setup, MPIP4estMesh2D] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_nonconforming_flag.jl"),
+                        maxiters=1)
+    mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+    u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+    @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+    # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +, Trixi.mpi_comm()) > 0
+    for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                      cache.boundaries, cache.mortars, cache.mpi_mortars)
+        @test Trixi.check_axes(container, equations, dg, cache) === nothing
+    end
+end

@@ -68,6 +68,60 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 2D Parabolic: elixir_advection_diffusion_nonperiodic_curved.jl (LDG)" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The LDG interface fluxes depend on the direction of the normal vector. Thus,
+    # both sides of an MPI interface must use the same (primary) normal direction
+    # to obtain the same results as in serial.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        trees_per_dimension=(1, 1), initial_refinement_level=2,
+                        tspan=(0.0, 0.5),
+                        l2=[0.00912383895722383],
+                        linf=[0.14071539996402677])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
+@testitem "P4estMesh MPI 2D Parabolic: parabolic time step" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The parabolic time step restriction must be identical on all MPI ranks
+    # and coincide with the one of a serial simulation.
+    function max_dt_parabolic(semi, ode)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic) = semi
+        u = Trixi.wrap_array(ode.u0, semi)
+        return Trixi.max_dt(u, first(ode.tspan), mesh,
+                            Trixi.have_constant_diffusivity(equations_parabolic),
+                            equations, equations_parabolic, solver, cache)
+    end
+    is_identical_on_all_ranks(x) = Trixi.MPI.Allreduce(x, min, Trixi.mpi_comm()) ==
+                                   Trixi.MPI.Allreduce(x, max, Trixi.mpi_comm())
+
+    # Constant diffusivity on a curved mesh
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        tspan=(0.0, 0.0))
+    dt = max_dt_parabolic(semi, ode)
+    @test is_identical_on_all_ranks(dt)
+    @test isapprox(dt, 0.005600668213814502, rtol = 1.0e-12)
+
+    # Solution-dependent diffusivity
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_convergence_nonperiodic.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.0))
+    dt = max_dt_parabolic(semi, ode)
+    @test is_identical_on_all_ranks(dt)
+    @test isapprox(dt, 0.6026785714285666, rtol = 1.0e-12)
+end
+
 @testitem "P4estMesh MPI 2D Parabolic: elixir_advection_diffusion_periodic.jl" setup=[
     Setup,
     MPIP4estMesh2DParabolic
@@ -147,4 +201,73 @@ end
     # Ensure that we do not have excessive memory allocations
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
+@testitem "P4estMesh MPI 2D Parabolic: check_axes" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # Linear initial condition such that the initial adaptation of the AMR callback
+    # creates MPI mortars for 2 and 3 MPI ranks
+    initial_condition_linear(x, t, equations) = SVector(0.05 * x[2] + 0.02 * x[1])
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_inverted_index.jl"),
+                        initial_condition=initial_condition_linear,
+                        boundary_condition=BoundaryConditionDirichlet(initial_condition),
+                        maxiters=1)
+    mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic, cache_parabolic) = semi
+    (; u_transformed, gradients, flux_parabolic) = cache_parabolic.parabolic_container
+    for array in (u_transformed, gradients..., flux_parabolic...)
+        @test Trixi.check_axes(array, mesh, equations_parabolic, dg, cache) === nothing
+    end
+
+    # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +, Trixi.mpi_comm()) > 0
+    # The parabolic terms reuse the containers of the hyperbolic `cache`
+    for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                      cache.boundaries, cache.mortars, cache.mpi_mortars)
+        @test Trixi.check_axes(container, equations_parabolic, dg, cache) === nothing
+    end
+end
+
+@testitem "P4estMesh MPI 2D Parabolic: nonconforming meshes (linear solution)" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The parabolic terms must vanish for a linear solution, in particular
+    # at nonconforming interfaces (mortars), including MPI mortars. The mortars
+    # are created by the initial adaptation of the AMR callback.
+    initial_condition_linear(x, t, equations) = SVector(0.05 * x[2] + 0.02 * x[1])
+
+    function max_abs_rhs_parabolic(semi)
+        # Use the mesh after the initial adaptation of the AMR callback
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return Trixi.MPI.Allreduce(maximum(abs, du_ode; init = zero(eltype(du_ode))),
+                                   max, Trixi.mpi_comm())
+    end
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_inverted_index.jl"),
+                        initial_condition=initial_condition_linear,
+                        boundary_condition=BoundaryConditionDirichlet(initial_condition),
+                        tspan=(0.0, 0.0))
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_inverted_index.jl"),
+                        initial_condition=initial_condition_linear,
+                        boundary_condition=BoundaryConditionDirichlet(initial_condition),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        tspan=(0.0, 0.0))
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
 end

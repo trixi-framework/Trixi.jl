@@ -12,9 +12,8 @@ initial_condition = initial_condition_constant
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 target_mesh_file = joinpath(@__DIR__, "hybrid_hexmesh.inp")
-isfile(target_mesh_file) ||
-    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/70c1d59e3c6378ee4d7e21769e430fce/raw/25d063663199a20813d2f94ec04135fc2d9d1713/hybrid_hexmesh.inp",
-                   target_mesh_file)
+Trixi.download("https://gist.githubusercontent.com/DanielDoehring/70c1d59e3c6378ee4d7e21769e430fce/raw/25d063663199a20813d2f94ec04135fc2d9d1713/hybrid_hexmesh.inp",
+               target_mesh_file)
 mesh_file = target_mesh_file
 
 # Refine the given mesh twice
@@ -51,6 +50,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

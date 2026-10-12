@@ -37,7 +37,7 @@ p = p(V, T)
 Similarly, the internal energy is specified by `e_internal = energy_internal_specific(V, T, eos)`, see
 [`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
-Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating 
+Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating
 specific volume.
 """
 struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
@@ -348,7 +348,7 @@ end
                       equations::AbstractNonIdealCompressibleEulerEquations)
 
 Calculate the entropy potential, which for the compressible Euler equations with general
-EOS is ``p v_{\text{normal}} / T`` for the choice of [`entropy`](@ref) ``S(u) = -\rho s``. 
+EOS is ``p v_{\text{normal}} / T`` for the choice of [`entropy`](@ref) ``S(u) = -\rho s``.
 """
 @inline function entropy_potential(u, orientation::Int,
                                    equations::NonIdealCompressibleEulerEquations1D)

@@ -148,7 +148,7 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation, 
+    flux_godunov(u_ll, u_rr, orientation,
                  equations::LinearScalarAdvectionEquation1D)
 
 Godunov (upwind) flux for the 1D linear scalar advection equation.

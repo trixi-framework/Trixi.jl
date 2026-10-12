@@ -311,6 +311,27 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "UnstructuredMesh2D: FDSBP (central): elixir_euler_ec.jl" setup=[
+    Setup,
+    UnstructuredMesh2D
+] tags=[:unstructured_dgmulti] begin
+    using Trixi: examples_dir
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp",
+                                 "elixir_euler_ec.jl"),
+                        l2=[0.09056730335512135,
+                            0.07557730593078431,
+                            0.07557331604286137,
+                            0.23768999194184112],
+                        linf=[0.37265499941374935,
+                            0.25381409473468786,
+                            0.2584902123868289,
+                            0.9037236407898466],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "UnstructuredMesh2D: FDSBP (central): elixir_euler_source_terms.jl" setup=[
     Setup,
     UnstructuredMesh2D
@@ -435,7 +456,11 @@ end
                         l2=[0, 0, 0, 0],
                         linf=[0, 0, 0, 0],
                         tspan=(0.0f0, 0.05f0),
-                        atol=9.0f-4)
+                        # The `Float32` round-off errors depend on the hardware
+                        # (e.g., FMA availability) and the adaptive step sequence;
+                        # the `linf` error of `rho_e_total ≈ 25` varies between
+                        # about `6.0f-4` and `1.8f-3`.
+                        atol=5.0f-3)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

@@ -43,8 +43,8 @@ eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
 
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# The default amplitude and frequency k are consistent with initial_condition_density_wave 
-# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
+# The default amplitude and frequency k are consistent with initial_condition_density_wave
+# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible
 # solution states for all non-ideal equations of state!
 function Trixi.initial_condition_density_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D;
@@ -99,6 +99,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

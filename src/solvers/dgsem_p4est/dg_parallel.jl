@@ -601,8 +601,13 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
 end
 
 # Get normal direction of MPI mortar
-@inline function get_normal_direction(mpi_mortars::P4estMPIMortarContainer, indices...)
-    return SVector(ntuple(@inline(dim->mpi_mortars.normal_directions[dim, indices...]),
+Base.@propagate_inbounds function get_normal_direction(mpi_mortars::P4estMPIMortarContainer,
+                                                       indices...)
+    @unpack normal_directions = mpi_mortars
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(normal_directions, 1:ndims(mpi_mortars), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(dim->@inbounds normal_directions[dim, indices...]),
                           Val(ndims(mpi_mortars))))
 end
 

@@ -36,7 +36,7 @@ boundary_conditions_parabolic = boundary_conditions
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Unstructured mesh with inverted indexing of the nodes
-# Specifically tests that the node indexing in the mpi parabolic solver is consistent 
+# Specifically tests that the node indexing in the mpi parabolic solver is consistent
 mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/3e7dac35eeadc24739ea29619f78b8d2/raw/ecc29e82be69c656217dc878821917850c51e41d/mesh_wobbly_channel.inp",
                            joinpath(@__DIR__, "mesh_wobbly_channel.inp"))
 
@@ -88,7 +88,7 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-ode_alg = RDPK3SpFSAL49()
+ode_alg = RDPK3SpFSAL49(thread = Trixi.Threaded())
 sol = solve(ode, ode_alg;
             dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
