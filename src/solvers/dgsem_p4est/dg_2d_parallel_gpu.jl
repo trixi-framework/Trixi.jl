@@ -123,7 +123,7 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u, local_sides,
+@kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u, local_sides,
                                                  local_neighbor_ids, node_indices,
                                                  index_range, variables_range, u)
     interface = @index(Global)
@@ -153,7 +153,7 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
     return nothing
 end
 
-@kernel function calc_mpi_interface_flux_KAkernel!(surface_flux_values,
+@kernel inbounds=true function calc_mpi_interface_flux_KAkernel!(surface_flux_values,
                                                    MeshT::Type{<:Union{P4estMeshParallel{2},
                                                                        T8codeMeshParallel{2}}},
                                                    have_nonconservative_terms,
@@ -223,7 +223,7 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
     end
 end
 
-@kernel function start_mpi_send_KAkernel!(send_buffer, neighbor_interfaces, local_sides,
+@kernel inbounds=true function start_mpi_send_KAkernel!(send_buffer, neighbor_interfaces, local_sides,
                                           u_mpi_interfaces, ::Val{NVARS},
                                           ::Val{2}) where {NVARS}
     index_node, index_interface = @index(Global, NTuple)
@@ -268,7 +268,7 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
     KernelAbstractions.synchronize(backend)
 end
 
-@kernel function finish_mpi_receive_KAkernel!(recv_buffer, neighbor_interfaces,
+@kernel inbounds=true function finish_mpi_receive_KAkernel!(recv_buffer, neighbor_interfaces,
                                               local_sides,
                                               u_mpi_interfaces, ::Val{NVARS},
                                               ::Val{2}) where {NVARS}
