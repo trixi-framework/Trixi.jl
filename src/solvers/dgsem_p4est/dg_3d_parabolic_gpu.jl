@@ -48,18 +48,21 @@ end
                                                dg, i, j, k, element))
     gradients_reference_2 = gradients_reference_1
     gradients_reference_3 = gradients_reference_1
+
     for ii in eachnode(dg)
         gradients_reference_1 = gradients_reference_1 +
                                 derivative_hat[i, ii] *
                                 get_node_vars(u_transformed, equations_parabolic,
                                               dg, ii, j, k, element)
     end
+
     for jj in eachnode(dg)
         gradients_reference_2 = gradients_reference_2 +
                                 derivative_hat[j, jj] *
                                 get_node_vars(u_transformed, equations_parabolic,
                                               dg, i, jj, k, element)
     end
+
     for kk in eachnode(dg)
         gradients_reference_3 = gradients_reference_3 +
                                 derivative_hat[k, kk] *
@@ -139,6 +142,7 @@ end
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     du_node = zero(get_node_vars(du, equations_parabolic, dg, i, j, k, element))
+
     for ii in eachnode(dg)
         flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
                               ii, j, k, element)
@@ -154,6 +158,7 @@ end
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
         du_node = du_node + derivative_hat[i, ii] * contravariant_flux1
     end
+
     for jj in eachnode(dg)
         flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
                               i, jj, k, element)
@@ -169,6 +174,7 @@ end
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
         du_node = du_node + derivative_hat[j, jj] * contravariant_flux2
     end
+
     for kk in eachnode(dg)
         flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
                               i, j, kk, element)
