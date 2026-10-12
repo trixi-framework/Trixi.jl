@@ -465,7 +465,10 @@ function prolong2mpimortars!(cache, u,
                     for j in eachnode(dg)
                         for i in eachnode(dg)
                             for v in eachvariable(equations)
-                                u_buffer[v, i, j] = u[v, i_large, j_large, k_large,
+                                u_buffer[v, i, j] = u[v,
+                                                      i_large,
+                                                      j_large,
+                                                      k_large,
                                                       element]
                             end
 
