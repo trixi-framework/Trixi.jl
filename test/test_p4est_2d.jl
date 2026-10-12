@@ -110,6 +110,27 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_advection_amr_unstructured_flag.jl (Float32)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # Ensure that AMR works with an `adapt`ed semidiscretization. In particular, the
+    # adapted containers must still be `resize!`able on Julia v1.10.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_amr_unstructured_flag.jl"),
+                        l2=[Float32(0.0012809037565600584)],
+                        linf=[Float32(0.01752687079023763)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    @test real(ode.p.solver) == Float32
+    @test eltype(ode.p.cache.elements) == Float32
+    @test eltype(sol.u[end]) == Float32
+    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh2D: elixir_advection_restart.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
