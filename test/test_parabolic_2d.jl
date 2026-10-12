@@ -196,6 +196,38 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_advection_diffusion_convergence.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[0.00244685594252776],
+                        linf=[0.007727084298456366])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_convergence.jl (convergence)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    using Trixi: convergence_test
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                        "elixir_advection_diffusion_convergence.jl"),
+                               2, cells_per_dimension = (4, 4))
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2], [4.0], rtol = 0.05)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     Parabolic2D
