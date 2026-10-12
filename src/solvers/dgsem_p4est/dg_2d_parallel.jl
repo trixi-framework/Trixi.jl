@@ -158,7 +158,7 @@ end
 end
 
 # Inlined version of the interface flux computation for conservation laws
-@inline function calc_mpi_interface_flux!(surface_flux_values,
+Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                           MeshT::Type{<:Union{P4estMeshParallel{2},
                                                               T8codeMeshParallel{2}}},
                                           have_nonconservative_terms::False, equations,
@@ -188,7 +188,7 @@ end
 end
 
 # Inlined version of the interface flux computation for non-conservative equations
-@inline function calc_mpi_interface_flux!(surface_flux_values,
+Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                           MeshT::Type{<:Union{P4estMeshParallel{2},
                                                               T8codeMeshParallel{2}}},
                                           have_nonconservative_terms::True, equations,
