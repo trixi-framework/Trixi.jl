@@ -17,7 +17,7 @@ function prolong2mpiinterfaces!(backend::Nothing, cache, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
-        check_axes(mpi_interfaces, equations, dg, cache)
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
