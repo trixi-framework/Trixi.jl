@@ -126,10 +126,12 @@ end
     return start + (i - 1) * step
 end
 
-Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
-                                                       node_indices,
-                                                       contravariant_vectors,
-                                                       index_range, i, interface)
+# Compute the elements, directions, and volume node indices on both sides of an
+# interface for the surface node `i` (counted along the primary side) as well as
+# the surface node index `i_secondary` on the secondary element, which might run
+# backwards for flipped sides.
+Base.@propagate_inbounds function get_interface_indices(neighbor_ids, node_indices,
+                                                        index_range, i, interface)
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
@@ -159,6 +161,22 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
     else
         i_secondary = i_secondary_node
     end
+
+    return (primary_direction, primary_element, i_primary, j_primary,
+            i_secondary, secondary_direction, secondary_element,
+            i_secondary_node, j_secondary_node)
+end
+
+Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
+                                                       node_indices,
+                                                       contravariant_vectors,
+                                                       index_range, i, interface)
+    (primary_direction, primary_element, i_primary, j_primary,
+    i_secondary, secondary_direction, secondary_element,
+    i_secondary_node, j_secondary_node) = get_interface_indices(neighbor_ids,
+                                                                node_indices,
+                                                                index_range, i,
+                                                                interface)
 
     u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, primary_element)
     u_rr = get_node_vars(u, equations, dg, i_secondary_node, j_secondary_node,
