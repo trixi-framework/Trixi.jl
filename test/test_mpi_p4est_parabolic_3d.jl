@@ -30,6 +30,35 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_taylor_green_vortex_amr.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0011069115461970517,
+                            0.013872454764036899,
+                            0.013872454764036934,
+                            0.012060120516483785,
+                            0.14491993697252206
+                        ],
+                        linf=[
+                            0.004408900543641403,
+                            0.05154019471576565,
+                            0.051540194715650245,
+                            0.035283556918085636,
+                            0.6804810816393854
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_freestream_boundaries.jl" setup=[
     Setup,
     MPIP4estMesh3DParabolic
