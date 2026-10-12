@@ -180,6 +180,17 @@ end
                         solver=DGSEM(polydeg = 3,
                                      surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+    # The global full sweep kernel, which is not the default on any backend, gives the
+    # same right-hand side as the default kernel
+    ode_global = semidiscretize(semi, ode.tspan; real_type = Float32,
+                                flux_differencing_kernel = FullSweepGlobal())
+    @test ode_global.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    du_ode_global = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode_global, u_ode, ode_global.p, first(ode.tspan))
+    @test du_ode_global ≈ du_ode
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
@@ -235,6 +246,17 @@ end
                             0.0008948904521319523,
                             0.00018926467653786568
                         ])
+    # The global full sweep kernel, which is not the default on any backend, gives the
+    # same right-hand side as the default kernel
+    ode_global = semidiscretize(semi, ode.tspan;
+                                flux_differencing_kernel = FullSweepGlobal())
+    @test ode_global.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    du_ode_global = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode_global, u_ode, ode_global.p, first(ode.tspan))
+    @test du_ode_global ≈ du_ode
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
