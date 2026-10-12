@@ -46,15 +46,8 @@ temperature_wall() = p_reference() / rho_reference()
 """
     initial_condition_channel_flow(x, t, equations::CompressibleEulerEquations3D)
 
-Mean turbulent velocity profile of
-- H. Reichardt (1951)
-  Vollständige Darstellung der turbulenten Geschwindigkeitsverteilung in glatten
-  Leitungen
-  [DOI: 10.1002/zamm.19510310704](https://doi.org/10.1002/zamm.19510310704)
-superimposed with oblique waves with random wave numbers and phases in the spirit of
-- R. H. Kraichnan (1970)
-  Diffusion by a random velocity field
-  [DOI: 10.1063/1.1692799](https://doi.org/10.1063/1.1692799)
+Mean turbulent velocity profile superimposed with oblique waves with random wave numbers
+and phases.
 Since the laminar flow at this Reynolds number is linearly stable, the transition to
 turbulence requires a perturbation of finite amplitude. Thus, the amplitude is chosen
 such that the velocity fluctuations are of the order of the turbulent ones of the
