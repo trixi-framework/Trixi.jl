@@ -3106,6 +3106,221 @@ end
     end
 end
 
+@testitem "Unit: Wave speed estimates with normal_direction" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # Wave speed estimates with a `normal_direction` are used on curvilinear meshes,
+    # where the `normal_direction` is not normalized but contains the surface scaling.
+    # Thus, they must
+    # - agree with the `orientation` methods for axis-aligned unit normals,
+    # - be homogeneous of degree one in the `normal_direction`, i.e., scale linearly
+    #   with its (positive) length, and
+    # - be consistent under reflection, i.e., flipping the `normal_direction` and
+    #   swapping the left and right states.
+    # We use different left and right states since many bugs are invisible for
+    # `u_ll == u_rr`.
+    estimates = (max_abs_speed_naive, max_abs_speed,
+                 min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt)
+
+    test_cases = Any[]
+
+    equations = CompressibleEulerEquations2D(1.4)
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(1.0, 0.3, -0.2, 2.0), equations),
+               prim2cons(SVector(0.5, -0.7, 0.4, 0.4), equations),
+               prim2cons(SVector(1.7, 1.2, 0.9, 1.1), equations)]))
+
+    equations = CompressibleEulerEquations3D(1.4)
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0), equations),
+               prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4), equations),
+               prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1), equations)]))
+
+    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                           gas_constants = (0.287,
+                                                                            1.578))
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(0.3, -0.2, 2.0, 0.6, 0.4), equations),
+               prim2cons(SVector(-0.7, 0.4, 0.4, 0.1, 0.4), equations),
+               prim2cons(SVector(1.2, 0.9, 1.1, 1.2, 0.5), equations)]))
+
+    equations = PolytropicEulerEquations2D(1.4, 0.72)
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(1.0, 0.3, -0.2), equations),
+               prim2cons(SVector(0.5, -0.7, 0.4), equations),
+               prim2cons(SVector(1.7, 1.2, 0.9), equations)]))
+
+    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations = NonIdealCompressibleEulerEquations2D(eos)
+    push!(test_cases,
+          (equations,
+           [thermo2cons(SVector(2.0, 0.1, 0.2, 10.0), equations),
+               thermo2cons(SVector(2.5, -0.3, 0.1, 8.0), equations),
+               thermo2cons(SVector(1.5, 0.4, -0.6, 12.0), equations)]))
+
+    # Primitive variables: rho, v1, v2, p, chi_1, chi_2
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(1.0, 0.3, -0.2, 2.0, 0.1, 0.7), equations),
+               prim2cons(SVector(0.5, -0.7, 0.4, 0.4, 0.5, 0.2), equations),
+               prim2cons(SVector(1.7, 1.2, 0.9, 1.1, 0.9, 0.4), equations)]))
+
+    # Primitive variables: rho, v1, v2, v3, p, chi_1, chi_2
+    equations = PassiveTracerEquations(CompressibleEulerEquations3D(1.4), n_tracers = 2)
+    push!(test_cases,
+          (equations,
+           [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0, 0.1, 0.7), equations),
+               prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4, 0.5, 0.2), equations),
+               prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1, 0.9, 0.4), equations)]))
+
+    for equations in (IdealGlmMhdEquations2D(1.4, 5.0), IdealGlmMhdEquations3D(1.4, 5.0))
+        push!(test_cases,
+              (equations,
+               [
+                   prim2cons(SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+                             equations),
+                   prim2cons(SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+                             equations),
+                   prim2cons(SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1),
+                             equations)]))
+    end
+
+    for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
+                                                     charge_to_mass = (1.0, 2.0)),
+                      IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                     charge_to_mass = (1.0, 2.0)))
+        # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each ion, psi
+        push!(test_cases,
+              (equations,
+               [
+                   prim2cons(SVector(1.1, -0.3, 0.4, 0.5, 0.1, 0.3, 0.0, 0.4,
+                                     0.7, -0.2, 0.4, 0.1, 0.6, 0.1), equations),
+                   prim2cons(SVector(0.2, 0.5, -0.1, 1.2, -0.4, 0.2, 0.3, 1.1,
+                                     0.3, 0.6, -0.5, 0.2, 0.9, -0.2), equations),
+                   prim2cons(SVector(-0.6, 0.1, 0.3, 0.8, 0.7, -0.6, 0.1, 0.5,
+                                     1.4, 0.2, 0.1, -0.3, 0.3, 0.05), equations)]))
+    end
+
+    equations = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.3),
+                                           c_mean_global = 1.2,
+                                           rho_mean_global = 0.9)
+    push!(test_cases,
+          (equations,
+           [SVector(0.3, 0.5, -0.7, 1.0),
+               SVector(0.5, -0.2, 0.1, 5.0),
+               SVector(-0.4, 0.8, 0.3, 0.2)]))
+
+    equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, -0.7),
+                                           c_mean_global = 1.0,
+                                           rho_mean_global = 1.0)
+    push!(test_cases,
+          (equations,
+           [SVector(0.3, 0.5, -0.7, 0.1, 1.0),
+               SVector(0.5, -0.2, 0.1, 0.2, 5.0),
+               SVector(-0.4, 0.8, 0.3, -0.6, 0.2)]))
+
+    # Variables: v1_prime, v2_prime, p_prime_scaled, v1_mean, v2_mean, c_mean, rho_mean
+    equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                c_mean_global = 2.0,
+                                                rho_mean_global = 0.9)
+    push!(test_cases,
+          (equations,
+           [SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3),
+               SVector(0.2, 0.4, 0.6, 0.6, -1.2, 1.5, 1.4),
+               SVector(-0.3, 0.1, 0.2, 0.1, 0.4, 0.8, 0.7)]))
+
+    for equations in (LinearScalarAdvectionEquation2D(0.3, -0.7),
+                      LinearScalarAdvectionEquation3D(0.3, -0.7, 0.4))
+        push!(test_cases, (equations, [SVector(1.0), SVector(-0.4), SVector(2.2)]))
+    end
+
+    equations = HyperbolicDiffusionEquations2D()
+    push!(test_cases,
+          (equations,
+           [SVector(1.0, 0.3, -0.2),
+               SVector(0.5, -0.7, 0.4),
+               SVector(1.7, 1.2, 0.9)]))
+
+    # The estimates are either scalars (`max_abs_speed`) or tuples (`min_max_speed`).
+    # Thus, we compare them via `all(isapprox.(x, y))`, which handles both cases.
+    tested_methods = Set{Method}()
+    for (equations, u_values) in test_cases, estimate in estimates
+        if ndims(equations) == 2
+            normal_direction = SVector(-1.2, 0.3)
+        else
+            normal_direction = SVector(-1.2, 0.3, 0.7)
+        end
+        u = first(u_values)
+        signature = Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}
+        hasmethod(estimate, signature) || continue
+        push!(tested_methods, which(estimate, signature))
+        has_orientation = hasmethod(estimate,
+                                    Tuple{typeof(u), typeof(u), Int, typeof(equations)})
+
+        @testset "$(nameof(typeof(equations))), $(nameof(estimate))" begin
+            for u_ll in u_values, u_rr in u_values
+                if has_orientation
+                    for orientation in 1:ndims(equations)
+                        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0,
+                                                     ndims(equations)))
+                        @test all(isapprox.(estimate(u_ll, u_rr, unit_normal, equations),
+                                            estimate(u_ll, u_rr, orientation, equations)))
+                    end
+                end
+
+                for factor in (2.5, 0.1)
+                    @test all(isapprox.(estimate(u_ll, u_rr, factor * normal_direction,
+                                                 equations),
+                                        factor .*
+                                        estimate(u_ll, u_rr, normal_direction, equations)))
+                end
+
+                speeds = estimate(u_ll, u_rr, normal_direction, equations)
+                speeds_reflected = estimate(u_rr, u_ll, -normal_direction, equations)
+                if speeds isa Tuple # (λ_min, λ_max)
+                    @test all(isapprox.(speeds,
+                                        (-speeds_reflected[2], -speeds_reflected[1])))
+                else # λ_max
+                    @test speeds ≈ speeds_reflected
+                end
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the wave speed estimates with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding equations to `test_cases`.
+    # Note that this uses some Julia internals (`method.sig` etc.) since there is no
+    # public API to inspect method signatures.
+    found_methods = Set{Method}()
+    for estimate in estimates, method in methods(estimate)
+        parentmodule(method) === Trixi || continue
+        parameters = Base.unwrap_unionall(method.sig).parameters
+        length(parameters) == 5 || continue
+        direction_type, equations_type = parameters[4], parameters[5]
+        direction_type isa Type && direction_type <: Integer && continue
+        equations_type isa TypeVar && (equations_type = equations_type.ub)
+        # Generic fallbacks, e.g., for all 1D equations
+        isabstracttype(Base.unwrap_unionall(equations_type)) && continue
+        push!(found_methods, method)
+        @test method in tested_methods
+    end
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(max_abs_speed_naive,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+end
+
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     N = 3
 

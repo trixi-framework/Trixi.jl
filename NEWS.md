@@ -77,6 +77,15 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in `max_abs_speed_naive` with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D`: The sound speed was not scaled by the
+  length of the `normal_direction`. Moreover, the less diffusive wave speed estimate
+  `max_abs_speed` is now also implemented with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D` and the `IdealGlmMhdMultiIonEquations2D`,
+  consistent with the versions with an `orientation`. Previously, it fell back to
+  `max_abs_speed_naive`. Thus, results of simulations with these equations on
+  curvilinear meshes (e.g., `StructuredMesh`, `UnstructuredMesh2D`, `P4estMesh`) and
+  the default `flux_lax_friedrichs` change.
 
 
 ## Changes when updating to v0.17 from v0.16.x

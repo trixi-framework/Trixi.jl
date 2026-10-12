@@ -762,18 +762,18 @@ end
 @testitem "P4estMesh2D: elixir_eulermulti_shock.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
                         l2=[
-                            0.09238286359859513,
-                            0.0006429842672568709,
-                            0.22741647050108965,
-                            0.09129657317724366,
-                            0.2714793219290268
+                            0.09392590739498288,
+                            0.000519863005517788,
+                            0.23011748498524512,
+                            0.091956231455822,
+                            0.27181243143352474
                         ],
                         linf=[
-                            0.6949550920191041,
-                            0.027123073012782554,
-                            1.7445063388384803,
-                            1.1616284674760593,
-                            4.340140043930651
+                            0.6833040767968239,
+                            0.021738072256959836,
+                            1.7070169261949442,
+                            1.1396854377361927,
+                            4.370269641899181
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
