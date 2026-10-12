@@ -247,9 +247,10 @@ end
                             0.00018926467653786568
                         ])
     # The global full sweep kernel, which is not the default on any backend, gives the
-    # same right-hand side as the default kernel
-    ode_global = semidiscretize(semi, ode.tspan;
-                                flux_differencing_kernel = FullSweepGlobal())
+    # same right-hand side as the default kernel. The equations are taken from `ode.p`,
+    # since the `GlmSpeedCallback` has set the divergence cleaning speed there.
+    ode_global = semidiscretize(Trixi.remake(semi, equations = ode.p.equations),
+                                ode.tspan; flux_differencing_kernel = FullSweepGlobal())
     @test ode_global.p.cache.flux_differencing_kernel === FullSweepGlobal()
     u_ode = copy(sol.u[end])
     du_ode = similar(u_ode)
