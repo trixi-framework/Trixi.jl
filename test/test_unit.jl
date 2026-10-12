@@ -5016,4 +5016,48 @@ end
     @test all(chi -> 1 + chi * Trixi.sa_fn(chi, model) > 0, range(-50, 0, length = 1001))
     # No eddy viscosity for negative nu_tilde
     @test Trixi.sa_eddy_viscosity(1.0, -1.0e-3, 1.0e-3, model) == 0
+
+    # Entropy gradient variables: the gradients of the entropy variables are converted
+    # correctly to gradients of (rho, v1, v2, T, nu_tilde), and both gradient variables
+    # give the same parabolic fluxes and source terms
+    equations_entropy = CompressibleRANSDiffusion2D(equations, mu = 1.0e-3,
+                                                    Prandtl = 0.72, model = model,
+                                                    gradient_variables = GradientVariablesEntropy())
+    source = SourceTermsSpalartAllmaras(x -> 0.05)
+    x = SVector(0.0, 0.0)
+    for prim in (SVector(1.0, 0.1, 0.2, 1.0, 3.0e-3),
+                 SVector(0.6, -0.5, 0.3, 1.4, -2.0e-3),
+                 SVector(1.3, 0.8, -0.6, 0.7, 4.0e-2))
+        u = Trixi.prim_temperature2cons(prim, equations_parabolic)
+        w = cons2entropy(u, equations_entropy)
+        @test Trixi.convert_transformed_to_primitive(w, equations_entropy) ≈ prim
+        function prim2entropy(p)
+            cons2entropy(Trixi.prim_temperature2cons(p, equations_parabolic),
+                         equations_entropy)
+        end
+        jacobian = ForwardDiff.jacobian(prim2entropy, prim)
+        gradients_w = map(gradient -> jacobian * gradient, gradients)
+        for orientation in 1:2
+            @test flux(prim, gradients, orientation, equations_parabolic) ≈
+                  flux(w, gradients_w, orientation, equations_entropy)
+        end
+        @test source(u, gradients, x, 0.0, equations_parabolic) ≈
+              source(u, gradients_w, x, 0.0, equations_entropy)
+    end
+
+    # Without the density gradient term, the source differs exactly by this term
+    model_es = SpalartAllmarasNeg(density_gradient_term = false)
+    @test similar(model_es, Float32).density_gradient_term == false
+    equations_es = CompressibleRANSDiffusion2D(equations, mu = 1.0e-3, Prandtl = 0.72,
+                                               model = model_es)
+    prim = SVector(1.0, 0.1, 0.2, 1.0, 3.0e-3)
+    u = Trixi.prim_temperature2cons(prim, equations_parabolic)
+    source_with = source(u, gradients, x, 0.0, equations_parabolic)
+    source_without = source(u, gradients, x, 0.0, equations_es)
+    grad_rho = SVector(gradients[1][1], gradients[2][1])
+    grad_nu_tilde = SVector(gradients[1][5], gradients[2][5])
+    @test source_with[5] - source_without[5] ≈
+          Trixi.sa_density_gradient_source(prim[5], 1.0e-3 / prim[1], grad_rho,
+                                           grad_nu_tilde, model)
+    @test source_with[1:4] == source_without[1:4]
 end
