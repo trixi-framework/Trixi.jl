@@ -21,6 +21,11 @@ optimal performance, but switching backends can be useful for comparisons or deb
 - `:serial`: Disables threading, executing loops serially
 - `:kernelabstractions`: Preferentially use the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)
   kernels written in Trixi.jl, falling back to `:static` execution.
+
+With the `:static` and `:kernelabstractions` backends, a [`@threaded`](@ref) loop that is
+executed inside another threaded region (e.g., when the right-hand sides of several
+semidiscretizations are evaluated in parallel tasks) runs serially, since
+`Threads.@threads :static` cannot be nested.
 """
 function set_threading_backend!(backend::Symbol = :polyester; force = true)
     valid_backends = (:polyester, :static, :serial, :kernelabstractions)
