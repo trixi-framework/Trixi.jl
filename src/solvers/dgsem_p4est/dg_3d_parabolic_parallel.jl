@@ -464,17 +464,27 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                     for i in eachnode(dg)
                         normal_direction = get_normal_direction(direction_index,
                                                                 contravariant_vectors,
-                                                                i_large, j_large,
+                                                                i_large,
+                                                                j_large,
                                                                 k_large,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_large, j_large,
-                                                                 k_large, element],
-                                                flux_parabolic_y[v, i_large, j_large,
-                                                                 k_large, element],
-                                                flux_parabolic_z[v, i_large, j_large,
-                                                                 k_large, element])
+                            flux_node = SVector(flux_parabolic_x[v,
+                                                                 i_large,
+                                                                 j_large,
+                                                                 k_large,
+                                                                 element],
+                                                flux_parabolic_y[v,
+                                                                 i_large,
+                                                                 j_large,
+                                                                 k_large,
+                                                                 element],
+                                                flux_parabolic_z[v,
+                                                                 i_large,
+                                                                 j_large,
+                                                                 k_large,
+                                                                 element])
 
                             # same convention as local code
                             u_buffer[v, i, j] = -0.5f0 *
@@ -523,17 +533,27 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                     for i in eachnode(dg)
                         normal_direction = get_normal_direction(direction_index,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v, i_small, j_small,
-                                                                 k_small, element],
-                                                flux_parabolic_y[v, i_small, j_small,
-                                                                 k_small, element],
-                                                flux_parabolic_z[v, i_small, j_small,
-                                                                 k_small, element])
+                            flux_node = SVector(flux_parabolic_x[v,
+                                                                 i_small,
+                                                                 j_small,
+                                                                 k_small,
+                                                                 element],
+                                                flux_parabolic_y[v,
+                                                                 i_small,
+                                                                 j_small,
+                                                                 k_small,
+                                                                 element],
+                                                flux_parabolic_z[v,
+                                                                 i_small,
+                                                                 j_small,
+                                                                 k_small,
+                                                                 element])
 
                             cache.mpi_mortars.u[1, v, position, i, j, mortar] = dot(flux_node,
                                                                                     normal_direction)
