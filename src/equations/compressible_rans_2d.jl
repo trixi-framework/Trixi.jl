@@ -27,6 +27,13 @@ non-conservative diffusion terms) depend on gradients and the wall distance and 
 [`SourceTermsSpalartAllmaras`](@ref), which has to be passed as `source_terms_parabolic`
 to [`SemidiscretizationHyperbolicParabolic`](@ref).
 
+Supported parabolic boundary conditions are [`BoundaryConditionDirichlet`](@ref) and
+[`BoundaryConditionNavierStokesWall`](@ref) with
+- [`NoSlip`](@ref) and [`Adiabatic`](@ref) or [`Isothermal`](@ref): ``\tilde\nu = 0`` at the wall,
+- [`Slip`](@ref) and [`Adiabatic`](@ref): ``\partial\tilde\nu / \partial n = 0``. As for
+  [`CompressibleNavierStokesDiffusion2D`](@ref), the whole viscous traction is set to zero, i.e.,
+  this is a slip wall and not a true symmetry plane for viscous flows.
+
 The dynamic viscosity `mu` may be a constant or a function `mu(u, equations)` of the conservative
 variables `u` (passed together with the hyperbolic equations).
 

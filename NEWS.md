@@ -12,7 +12,8 @@ for human readability.
   Spalart-Allmaras turbulence model (SA-neg) in 2D: `CompressibleRANSDiffusion2D` with
   `SpalartAllmarasNeg` as the parabolic part of `PassiveTracerEquations` of the
   compressible Euler equations, and `SourceTermsSpalartAllmaras` for the model
-  source terms ([#3325]).
+  source terms ([#3325]). Wall, slip, and Dirichlet boundary conditions are available
+  for `CompressibleRANSDiffusion2D` ([#3326]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).

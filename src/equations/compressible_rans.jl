@@ -6,8 +6,8 @@
 #! format: noindent
 
 # Dimension-independent parts of the compressible RANS equations with the
-# Spalart-Allmaras model: the turbulence model and the model source terms.
-# The dimension-specific parts (variables, viscous fluxes, vorticity) are in
+# Spalart-Allmaras model: the turbulence model, the model source terms, and the boundary
+# conditions. The dimension-specific parts (variables, viscous fluxes, vorticity) are in
 # `compressible_rans_2d.jl`.
 
 @doc raw"""
@@ -315,5 +315,140 @@ end
 @inline function source_last_variable(source, equations)
     return SVector(ntuple(@inline(v->v == nvariables(equations) ? source : zero(source)),
                           Val(nvariables(equations))))
+end
+
+###############################################################################
+# Boundary conditions.
+# The gradient boundary conditions return the boundary values of the transformed variables,
+# the divergence boundary conditions return the normal parabolic flux.
+# For the turbulence variable, no-slip walls use ν̃ = 0 (Dirichlet) and slip walls / symmetry
+# planes use ∂ν̃/∂n = 0 (Neumann).
+
+@inline function transform_primitive_bc(prim,
+                                        equations::CompressibleRANSDiffusionPrimitive)
+    return prim
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::AbstractCompressibleRANSDiffusion)
+    v = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+                                                                               equations)
+    prim = convert_transformed_to_primitive(u_inner, equations)
+    rho = prim[1]
+    T = prim[ndims(equations) + 2]
+    return transform_primitive_bc(SVector(rho, v..., T, zero(T)), equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:Isothermal})(flux_inner,
+                                                                                       u_inner,
+                                                                                       normal::AbstractVector,
+                                                                                       x,
+                                                                                       t,
+                                                                                       operator_type::Gradient,
+                                                                                       equations::AbstractCompressibleRANSDiffusion)
+    v = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+                                                                               equations)
+    T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
+                                                                                equations)
+    rho = convert_transformed_to_primitive(u_inner, equations)[1]
+    return transform_primitive_bc(SVector(rho, v..., T, zero(T)), equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::AbstractCompressibleRANSDiffusion)
+    NDIMS = ndims(equations)
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+    v = boundary_condition.boundary_condition_velocity.boundary_value_function(x, t,
+                                                                               equations)
+    # Normal viscous stresses (fluxes of the momentum equations)
+    tau_n = SVector(ntuple(@inline(i->flux_inner[i + 1]), Val(NDIMS)))
+    normal_energy_flux = dot(SVector(v), tau_n) + normal_heat_flux
+    return SVector(ntuple(@inline(i->i == NDIMS + 2 ? normal_energy_flux :
+                                     flux_inner[i]),
+                          Val(nvariables(equations))))
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:Isothermal})(flux_inner,
+                                                                                       u_inner,
+                                                                                       normal::AbstractVector,
+                                                                                       x,
+                                                                                       t,
+                                                                                       operator_type::Divergence,
+                                                                                       equations::AbstractCompressibleRANSDiffusion)
+    return flux_inner
+end
+
+# Slip wall. Should be used with `boundary_condition_slip_wall` for the hyperbolic part.
+# As for `CompressibleNavierStokesDiffusion2D`, the whole viscous traction (including the
+# normal stress) is set to zero at the wall. Thus, this is not a true symmetry plane for
+# viscous flows, which would only remove the tangential traction.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::AbstractCompressibleRANSDiffusion)
+    NDIMS = ndims(equations)
+    prim = convert_transformed_to_primitive(u_inner, equations)
+    v = ntuple(@inline(i->prim[i + 1]), Val(NDIMS))
+    v_outer = velocity_symmetry_plane(normal, v...)
+    return transform_primitive_bc(SVector(prim[1], v_outer..., prim[NDIMS + 2],
+                                          prim[NDIMS + 3]),
+                                  equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::AbstractCompressibleRANSDiffusion)
+    NDIMS = ndims(equations)
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+    z = zero(normal_heat_flux)
+    return SVector(ntuple(@inline(i->i == 1 ? flux_inner[1] :
+                                     (i == NDIMS + 2 ? normal_heat_flux : z)),
+                          Val(nvariables(equations))))
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::AbstractCompressibleRANSDiffusion)
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+    return gradient_variable_transformation(equations)(u_boundary, equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::AbstractCompressibleRANSDiffusion)
+    return flux_inner
 end
 end # @muladd
