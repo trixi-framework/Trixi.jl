@@ -106,7 +106,7 @@ are `SVectors` of size `ncomponents(equations)`.
 """
 @inline function charge_averaged_velocities(u,
                                             equations::AbstractIdealGlmMhdMultiIonEquations)
-    total_electron_charge = zero(real(equations))
+    total_electron_charge = zero(eltype(u))
 
     vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
     vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
@@ -181,7 +181,7 @@ Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved var
 where ``i`` is the index of **ion** species.
 """
 @inline function density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
-    rho = zero(real(equations))
+    rho = zero(eltype(u))
     for k in eachcomponent(equations)
         rho += u[3 + (k - 1) * 5 + 1]
     end
@@ -196,7 +196,7 @@ Computes the pressure of every component ``k`` analogouos to
 """
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     B1, B2, B3, _ = u
-    p = zero(MVector{ncomponents(equations), real(equations)})
+    p = zero(MVector{ncomponents(equations), eltype(u)})
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
         v1 = rho_v1 / rho
@@ -206,7 +206,7 @@ Computes the pressure of every component ``k`` analogouos to
         p[k] = (gamma - 1) * (rho_e_total - 0.5f0 *
                               (rho * (v1^2 + v2^2 + v3^2) + B1^2 + B2^2 + B3^2))
     end
-    return SVector{ncomponents(equations), real(equations)}(p)
+    return SVector(p)
 end
 
 #Convert conservative variables to primitive
@@ -246,7 +246,7 @@ end
 
     prim = cons2prim(u, equations)
     entropy = zero(MVector{nvariables(equations), eltype(u)})
-    rho_p_plus = zero(real(equations))
+    rho_p_plus = zero(eltype(u))
     for k in eachcomponent(equations)
         rho, v1, v2, v3, p = get_component(k, prim, equations)
         s = log(p) - gammas[k] * log(rho)
@@ -585,7 +585,7 @@ function source_terms_collision_ion_ion(u, x, t,
 
         set_component!(s, k, 0, S_q1, S_q2, S_q3, S_E, equations)
     end
-    return SVector{nvariables(equations), real(equations)}(s)
+    return SVector(s)
 end
 
 @doc raw"""
@@ -640,7 +640,7 @@ function source_terms_collision_ion_electron(u, x, t,
                                                                                          equations)
 
     # Compute total electron charge
-    total_electron_charge = zero(real(equations))
+    total_electron_charge = zero(eltype(u))
     for k in eachcomponent(equations)
         rho, _ = get_component(k, u, equations)
         total_electron_charge += rho * equations.charge_to_mass[k]
@@ -664,6 +664,6 @@ function source_terms_collision_ion_electron(u, x, t,
 
         set_component!(s, k, 0, S_q1, S_q2, S_q3, S_E, equations)
     end
-    return SVector{nvariables(equations), real(equations)}(s)
+    return SVector(s)
 end
 end
