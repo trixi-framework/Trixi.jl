@@ -11,6 +11,16 @@ end
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    return calc_volume_integral_per_element!(backend, du, u, mesh,
+                                             have_nonconservative_terms, equations,
+                                             volume_integral, dg, cache)
+end
+
+# Also used by specialized kernels for cases they do not support, e.g., nonconservative
+# terms without combined fluxes in `src/solvers/dgsem_p4est/dg_2d_gpu.jl`.
+function calc_volume_integral_per_element!(backend::Backend, du, u, mesh,
+                                           have_nonconservative_terms, equations,
+                                           volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
@@ -61,6 +71,10 @@ end
 # The half sweep and full sweep kernels use local share data, which is limited to
 # 48 KiB per workgroup on NVIDIA GPUs and 64 KiB on AMD GPUs (as of 2026).
 function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSweep}, semi)
+    if semi.mesh isa Union{P4estMesh{2}, T8codeMesh{2}}
+        return check_flux_differencing_shared_memory_2d(kernel, semi)
+    end
+
     dg = semi.solver
     equations = semi.equations
     volume_integral = semi.solver.volume_integral
@@ -96,3 +110,45 @@ end
 
 # This kernel does not use any shared memory
 check_flux_differencing_shared_memory(::FullSweepGlobal, semi) = nothing
+
+# The 2D kernels for the `P4estMesh{2}` and `T8codeMesh{2}` in
+# `src/solvers/dgsem_p4est/dg_2d_gpu.jl` use workgroups containing several elements.
+function check_flux_differencing_shared_memory_2d(kernel::Union{HalfSweep, FullSweep},
+                                                  semi)
+    dg = semi.solver
+    equations = semi.equations
+    volume_integral = dg.volume_integral
+
+    # Equations with nonconservative terms use the kernels parallelized over the nodes
+    # only for combined fluxes, otherwise the generic kernel without local memory
+    if volume_integral isa VolumeIntegralFluxDifferencing &&
+       have_nonconservative_terms(equations) === True() &&
+       combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
+                                                       equations) === False()
+        return nothing
+    end
+
+    n_nodes = nnodes(dg)
+    nelements_workgroup = nelements_workgroup_2d(n_nodes)
+    if kernel isa HalfSweep
+        # Two-point fluxes of all nodes with half of their partners in both directions
+        nshared = nvariables(equations) * (n_nodes ÷ 2) * 2
+    else
+        # Solution at all nodes
+        nshared = nvariables(equations)
+    end
+    shared_memory = nshared * n_nodes^2 * nelements_workgroup * sizeof(real(dg))
+
+    if shared_memory > 48 * 1024
+        @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
+        In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+    end
+
+    workgroup_size = n_nodes^2 * nelements_workgroup
+    if workgroup_size > 1024
+        @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.
+        Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
+    end
+
+    return nothing
+end
