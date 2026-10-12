@@ -299,51 +299,72 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     @unpack u = cache.mpi_mortars
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mpi_mortars, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations_parabolic,
+                                       dg, cache)
+    end
+
     @threaded for mortar in eachmpimortar(dg, cache)
-        fstar_primary = fstar_primary_threaded[Threads.threadid()]
-        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        @inbounds begin
+            # Choose thread-specific pre-allocated container
+            fstar_primary = fstar_primary_threaded[Threads.threadid()]
+            fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+            fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        for position in 1:4
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    normal_direction = get_normal_direction(cache.mpi_mortars, i, j,
-                                                            position, mortar)
+            for position in 1:4
+                for j in eachnode(dg)
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(cache.mpi_mortars,
+                                                                i, j, position, mortar)
 
-                    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                                       position,
-                                                       i, j, mortar)
+                        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                                           position, i, j, mortar)
 
-                    flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                                           equations_parabolic, parabolic_scheme)
+                        flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                                               equations_parabolic, parabolic_scheme)
 
-                    set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
-                                   i, j, position)
-                    set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
-                                   i, j, position)
+                        # As in `calc_interface_flux_gradient!`, no sign flip is
+                        # necessary for the fluxes used in gradient calculations
+                        set_node_vars!(fstar_primary, flux_, equations_parabolic, dg,
+                                       i, j, position)
+                        set_node_vars!(fstar_secondary, flux_, equations_parabolic, dg,
+                                       i, j, position)
+                    end
                 end
             end
+
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                    mesh, equations_parabolic,
+                                                    mortar_l2, dg, cache,
+                                                    mortar,
+                                                    fstar_primary, fstar_secondary,
+                                                    u_buffer, fstar_tmp)
         end
-
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                                mesh, equations_parabolic, mortar_l2,
-                                                dg, cache,
-                                                mortar, fstar_primary, fstar_secondary,
-                                                u_buffer, fstar_tmp)
     end
 
     return nothing
 end
 
-@inline function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
-                                                         mesh::P4estMeshParallel{3},
-                                                         equations_parabolic,
-                                                         mortar_l2::LobattoLegendreMortarL2,
-                                                         dg::DGSEM, cache, mortar,
-                                                         fstar_primary, fstar_secondary,
-                                                         u_buffer, fstar_tmp)
+# This version is called during `calc_gradients!` and must be specialized because the
+# MAGNITUDE of the flux does NOT depend on the outward normal.
+# Thus, you don't need to scale by 4 and flip the sign when storing the mortar fluxes
+# back into `surface_flux_values` (as in `mortar_fluxes_to_elements_gradient!`).
+Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                                          mesh::P4estMeshParallel{3},
+                                                                          equations_parabolic,
+                                                                          mortar_l2::LobattoLegendreMortarL2,
+                                                                          dg::DGSEM,
+                                                                          cache, mortar,
+                                                                          fstar_primary,
+                                                                          fstar_secondary,
+                                                                          u_buffer,
+                                                                          fstar_tmp)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
 
@@ -360,27 +381,28 @@ end
 
     for (element, position) in zip(local_neighbor_ids[mortar],
                                    local_neighbor_positions[mortar])
-        if position == 5
+        if position == 5 # -> large element
+            # Project small fluxes to large element.
             multiply_dimensionwise!(u_buffer,
                                     mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                                    view(fstar_secondary, .., 1),
-                                    fstar_tmp)
+                                    view(fstar_secondary, .., 1), fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_upper,
                                         mortar_l2.reverse_lower,
-                                        view(fstar_secondary, .., 2),
-                                        fstar_tmp)
+                                        view(fstar_secondary, .., 2), fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_lower,
                                         mortar_l2.reverse_upper,
-                                        view(fstar_secondary, .., 3),
-                                        fstar_tmp)
+                                        view(fstar_secondary, .., 3), fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_upper,
                                         mortar_l2.reverse_upper,
-                                        view(fstar_secondary, .., 4),
-                                        fstar_tmp)
+                                        view(fstar_secondary, .., 4), fstar_tmp)
 
+            # Copy interpolated flux values from buffer to large element face in the
+            # correct orientation.
+            # Note that the index of the small sides will always run forward but
+            # the index of the large side might need to run backwards for flipped sides.
             i_large = i_large_start
             j_large = j_large_start
             for j in eachnode(dg)
@@ -395,14 +417,13 @@ end
                 i_large += i_large_step_j
                 j_large += j_large_step_j
             end
-        else
+        else # position in (1, 2, 3, 4) -> small element
+            # Copy solution small to small
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v,
-                                                                                               i,
-                                                                                               j,
-                                                                                               position]
+                        surface_flux_values[v, i, j,
+                        small_direction, element] = fstar_primary[v, i, j, position]
                     end
                 end
             end
@@ -417,155 +438,163 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DGSEM)
-    @unpack node_indices = cache.mpi_mortars
+    @unpack node_indices, u = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.mpi_mortars, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for mortar in eachmpimortar(dg, cache)
-        local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
-        local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
+        @inbounds begin
+            local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+            local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
-        # Small side indexing
-        small_indices = node_indices[1, mortar]
-        direction_index = indices2direction(small_indices)
+            # Get start value and step size for indices on both sides to get the correct
+            # face and orientation
+            small_indices = node_indices[1, mortar]
+            small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                                               index_range)
-        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                                               index_range)
-        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                                               index_range)
+            i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                                   index_range)
+            j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                                   index_range)
+            k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                                   index_range)
 
-        # Large side indexing
-        large_indices = node_indices[2, mortar]
+            large_indices = node_indices[2, mortar]
+            large_direction = indices2direction(large_indices)
 
-        i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
-                                                                               index_range)
-        j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
-                                                                               index_range)
-        k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
-                                                                               index_range)
+            i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                                   index_range)
+            j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                                   index_range)
+            k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                                   index_range)
 
-        for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
-            if position == 5
-                # =========================
-                # LARGE ELEMENT
-                # =========================
-                u_buffer = cache.u_threaded[Threads.threadid()]
-                fstar_tmp = cache.fstar_tmp_threaded[Threads.threadid()]
+            for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
+                if position == 5 # -> large element
+                    # Buffer to copy solution values of the large element in the correct
+                    # orientation before interpolating
+                    u_buffer = cache.u_threaded[Threads.threadid()]
+                    # temporary buffer for projections
+                    fstar_tmp = cache.fstar_tmp_threaded[Threads.threadid()]
 
-                i_large = i_large_start
-                j_large = j_large_start
-                k_large = k_large_start
+                    i_large = i_large_start
+                    j_large = j_large_start
+                    k_large = k_large_start
+                    for j in eachnode(dg)
+                        for i in eachnode(dg)
+                            normal_direction = get_normal_direction(large_direction,
+                                                                    contravariant_vectors,
+                                                                    i_large, j_large,
+                                                                    k_large,
+                                                                    element)
 
-                for j in eachnode(dg)
-                    for i in eachnode(dg)
-                        normal_direction = get_normal_direction(direction_index,
-                                                                contravariant_vectors,
-                                                                i_large,
-                                                                j_large,
-                                                                k_large,
-                                                                element)
+                            for v in eachvariable(equations_parabolic)
+                                flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                               i_large,
+                                                                               j_large,
+                                                                               k_large,
+                                                                               element],
+                                                              flux_parabolic_y[v,
+                                                                               i_large,
+                                                                               j_large,
+                                                                               k_large,
+                                                                               element],
+                                                              flux_parabolic_z[v,
+                                                                               i_large,
+                                                                               j_large,
+                                                                               k_large,
+                                                                               element])
 
-                        for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v,
-                                                                 i_large,
-                                                                 j_large,
-                                                                 k_large,
-                                                                 element],
-                                                flux_parabolic_y[v,
-                                                                 i_large,
-                                                                 j_large,
-                                                                 k_large,
-                                                                 element],
-                                                flux_parabolic_z[v,
-                                                                 i_large,
-                                                                 j_large,
-                                                                 k_large,
-                                                                 element])
+                                # We prolong the parabolic flux dotted with respect the
+                                # outward normal on the small element. We scale by -1/4
+                                # here because the normal direction on the large element
+                                # is negative 4x that of the small element (these normal
+                                # directions are "scaled" by the surface Jacobian)
+                                u_buffer[v, i, j] = -0.25f0 *
+                                                    dot(flux_parabolic_node,
+                                                        normal_direction)
+                            end
 
-                            # same convention as local code
-                            u_buffer[v, i, j] = -0.5f0 *
-                                                dot(flux_node, normal_direction)
+                            i_large += i_large_step_i
+                            j_large += j_large_step_i
+                            k_large += k_large_step_i
                         end
-
-                        i_large += i_large_step_i
-                        j_large += j_large_step_i
-                        k_large += k_large_step_i
+                        i_large += i_large_step_j
+                        j_large += j_large_step_j
+                        k_large += k_large_step_j
                     end
-                    i_large += i_large_step_j
-                    j_large += j_large_step_j
-                    k_large += k_large_step_j
-                end
 
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, :,
-                                             mortar),
-                                        mortar_l2.forward_lower,
-                                        mortar_l2.forward_lower,
-                                        u_buffer, fstar_tmp)
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, :,
-                                             mortar),
-                                        mortar_l2.forward_upper,
-                                        mortar_l2.forward_lower,
-                                        u_buffer, fstar_tmp)
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 3, :, :,
-                                             mortar),
-                                        mortar_l2.forward_lower,
-                                        mortar_l2.forward_upper,
-                                        u_buffer, fstar_tmp)
-                multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 4, :, :,
-                                             mortar),
-                                        mortar_l2.forward_upper,
-                                        mortar_l2.forward_upper,
-                                        u_buffer, fstar_tmp)
+                    # Interpolate large element face data from buffer to small face
+                    # locations
+                    multiply_dimensionwise!(view(u, 2, :, 1, :, :, mortar),
+                                            mortar_l2.forward_lower,
+                                            mortar_l2.forward_lower,
+                                            u_buffer, fstar_tmp)
+                    multiply_dimensionwise!(view(u, 2, :, 2, :, :, mortar),
+                                            mortar_l2.forward_upper,
+                                            mortar_l2.forward_lower,
+                                            u_buffer, fstar_tmp)
+                    multiply_dimensionwise!(view(u, 2, :, 3, :, :, mortar),
+                                            mortar_l2.forward_lower,
+                                            mortar_l2.forward_upper,
+                                            u_buffer, fstar_tmp)
+                    multiply_dimensionwise!(view(u, 2, :, 4, :, :, mortar),
+                                            mortar_l2.forward_upper,
+                                            mortar_l2.forward_upper,
+                                            u_buffer, fstar_tmp)
+                else # position in (1, 2, 3, 4) -> small element
+                    # Copy solution data from the small elements
+                    i_small = i_small_start
+                    j_small = j_small_start
+                    k_small = k_small_start
+                    for j in eachnode(dg)
+                        for i in eachnode(dg)
+                            normal_direction = get_normal_direction(small_direction,
+                                                                    contravariant_vectors,
+                                                                    i_small, j_small,
+                                                                    k_small,
+                                                                    element)
 
-            else
-                # =========================
-                # SMALL ELEMENT (1–4)
-                # =========================
-                i_small = i_small_start
-                j_small = j_small_start
-                k_small = k_small_start
+                            for v in eachvariable(equations_parabolic)
+                                flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                               i_small,
+                                                                               j_small,
+                                                                               k_small,
+                                                                               element],
+                                                              flux_parabolic_y[v,
+                                                                               i_small,
+                                                                               j_small,
+                                                                               k_small,
+                                                                               element],
+                                                              flux_parabolic_z[v,
+                                                                               i_small,
+                                                                               j_small,
+                                                                               k_small,
+                                                                               element])
 
-                for j in eachnode(dg)
-                    for i in eachnode(dg)
-                        normal_direction = get_normal_direction(direction_index,
-                                                                contravariant_vectors,
-                                                                i_small,
-                                                                j_small,
-                                                                k_small,
-                                                                element)
+                                u[1, v, position, i, j, mortar] = dot(flux_parabolic_node,
+                                                                      normal_direction)
+                            end
 
-                        for v in eachvariable(equations_parabolic)
-                            flux_node = SVector(flux_parabolic_x[v,
-                                                                 i_small,
-                                                                 j_small,
-                                                                 k_small,
-                                                                 element],
-                                                flux_parabolic_y[v,
-                                                                 i_small,
-                                                                 j_small,
-                                                                 k_small,
-                                                                 element],
-                                                flux_parabolic_z[v,
-                                                                 i_small,
-                                                                 j_small,
-                                                                 k_small,
-                                                                 element])
-
-                            cache.mpi_mortars.u[1, v, position, i, j, mortar] = dot(flux_node,
-                                                                                    normal_direction)
+                            i_small += i_small_step_i
+                            j_small += j_small_step_i
+                            k_small += k_small_step_i
                         end
-
-                        i_small += i_small_step_i
-                        j_small += j_small_step_i
-                        k_small += k_small_step_i
+                        i_small += i_small_step_j
+                        j_small += j_small_step_j
+                        k_small += k_small_step_j
                     end
-                    i_small += i_small_step_j
-                    j_small += j_small_step_j
-                    k_small += k_small_step_j
                 end
             end
         end
@@ -581,55 +610,54 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
                                           dg::DG, parabolic_scheme, cache)
     @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
     @unpack u = cache.mpi_mortars
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mpi_mortars, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations_parabolic,
+                                       dg, cache)
+    end
+
     @threaded for mortar in eachmpimortar(dg, cache)
-        fstar = fstar_primary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        @inbounds begin
+            # Choose thread-specific pre-allocated container
+            fstar = fstar_primary_threaded[Threads.threadid()]
+            fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        for position in 1:4
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    normal_direction = get_normal_direction(cache.mpi_mortars, i, j,
-                                                            position, mortar)
+            for position in 1:4
+                for j in eachnode(dg)
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(cache.mpi_mortars,
+                                                                i, j, position, mortar)
 
-                    for v in eachvariable(equations_parabolic)
-                        parabolic_flux_normal_ll = u[1, v, position, i, j,
-                                                     mortar]
-                        parabolic_flux_normal_rr = u[2, v, position, i, j,
-                                                     mortar]
+                        for v in eachvariable(equations_parabolic)
+                            parabolic_flux_normal_ll = u[1, v, position, i, j, mortar]
+                            parabolic_flux_normal_rr = u[2, v, position, i, j, mortar]
 
-                        flux_ = flux_parabolic(parabolic_flux_normal_ll,
-                                               parabolic_flux_normal_rr,
-                                               normal_direction, Divergence(),
-                                               equations_parabolic, parabolic_scheme)
+                            flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                                   parabolic_flux_normal_rr,
+                                                   normal_direction, Divergence(),
+                                                   equations_parabolic,
+                                                   parabolic_scheme)
 
-                        fstar[v, i, j, position] = flux_
+                            # Sign flip (and scaling by 0.25) already handled above in
+                            # `prolong2mpimortars_divergence!`
+                            fstar[v, i, j, position] = flux_
+                        end
                     end
                 end
             end
+
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            # This reuses the hyperbolic version of `mpi_mortar_fluxes_to_elements!`
+            mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
+                                           equations_parabolic, mortar_l2, dg, cache,
+                                           mortar, fstar, fstar, u_buffer, fstar_tmp)
         end
-
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        mpi_mortar_fluxes_to_elements_divergence!(surface_flux_values, mesh,
-                                                  equations_parabolic, mortar_l2,
-                                                  dg, cache,
-                                                  mortar, fstar, u_buffer, fstar_tmp)
     end
-
-    return nothing
-end
-
-@inline function mpi_mortar_fluxes_to_elements_divergence!(surface_flux_values,
-                                                           mesh::P4estMeshParallel{3},
-                                                           equations_parabolic,
-                                                           mortar_l2::LobattoLegendreMortarL2,
-                                                           dg::DGSEM, cache, mortar,
-                                                           fstar, u_buffer, fstar_tmp)
-    @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
-
-    mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
-                                   equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar, fstar, u_buffer, fstar_tmp)
 
     return nothing
 end
