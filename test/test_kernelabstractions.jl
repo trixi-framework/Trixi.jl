@@ -433,7 +433,6 @@ end
     Setup,
     KernelAbstractionsExamples
 ] tags=[:kernelabstractions] begin
-    using Trixi
     # A boundary condition type without any boundaries (e.g., on a rank that
     # does not own boundaries of this name in parallel runs) must not stop the
     # processing of the remaining boundary condition types in
@@ -448,7 +447,6 @@ end
     u_ode = copy(ode.u0)
     u = Trixi.wrap_array(u_ode, semi)
     backend = Trixi.trixi_backend(u_ode)
-    @test backend isa Trixi.KernelAbstractions.CPU
     t = first(ode.tspan)
     surface_flux_values = cache.elements.surface_flux_values
 

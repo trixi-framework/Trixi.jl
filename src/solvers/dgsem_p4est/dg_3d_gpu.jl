@@ -1440,8 +1440,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             check_axes(boundaries, equations, dg, cache)
             check_axes(cache.elements, equations, dg, cache)
             check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
-                                           equations, dg,
-                                           cache)
+                                           equations, dg, cache)
         end
 
         index_range = eachnode(dg)
