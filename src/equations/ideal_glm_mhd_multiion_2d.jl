@@ -709,7 +709,7 @@ The term is composed of four individual non-conservative terms:
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-    total_electron_charge = zero(real(equations))
+    total_electron_charge = zero(eltype(u_ll))
     for k in eachcomponent(equations)
         rho_k = u_ll[3 + (k - 1) * 5 + 1]
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -834,7 +834,7 @@ end
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
-    total_electron_charge = zero(real(equations))
+    total_electron_charge = zero(eltype(u_ll))
     for k in eachcomponent(equations)
         rho_k = u_ll[3 + (k - 1) * 5 + 1]
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
@@ -1417,8 +1417,8 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations2D)
-    v1 = zero(real(equations))
-    v2 = zero(real(equations))
+    v1 = zero(eltype(u))
+    v2 = zero(eltype(u))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, _ = get_component(k, u, equations)
         v1 = max(v1, abs(rho_v1 / rho))
@@ -1440,7 +1440,7 @@ end
     B1, B2, B3 = magnetic_field(cons, equations)
     psi = divergence_cleaning_field(cons, equations)
 
-    c_f = zero(real(equations))
+    c_f = zero(eltype(cons))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
@@ -1484,7 +1484,7 @@ end
 
     norm_squared = (normal_direction[1]^2 + normal_direction[2]^2)
 
-    c_f = zero(real(equations))
+    c_f = zero(eltype(cons))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, cons, equations)
 
