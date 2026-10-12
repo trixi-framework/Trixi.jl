@@ -230,8 +230,18 @@ macro threaded(expr)
     expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
+        # Enzyme.jl cannot differentiate Polyester.jl's `@batch`, so we fall back to
+        # `Threads.@threads :static` inside of automatic differentiation.
         quote
-            $Trixi.@batch $(expr)
+            if $EnzymeCore.within_autodiff()
+                if $Threads.nthreads() == 1
+                    $(deepcopy(expr))
+                else
+                    $Threads.@threads :static $(deepcopy(expr))
+                end
+            else
+                $Trixi.@batch $(expr)
+            end
         end
     elseif _PREFERENCE_THREADING === :static ||
            _PREFERENCE_THREADING === :kernelabstractions

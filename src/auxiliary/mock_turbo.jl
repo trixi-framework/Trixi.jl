@@ -1,7 +1,7 @@
 # Copies some of the LoopVectorization functionality,
 # but solely using Julia base functionality. It is equivalent to `@simd`
 # at every loop level
-macro turbo(exprs...)
+macro mock_turbo(exprs...)
     # Find the outermost for loop
     body = nothing
     for expr in exprs
@@ -34,4 +34,10 @@ macro turbo(exprs...)
                 body,
                 Expr(:inbounds, :pop))
     return esc(body)
+end
+
+if !_PREFERENCE_LOOPVECTORIZATION
+    macro turbo(exprs...)
+        return esc(:(@mock_turbo($(exprs...))))
+    end
 end
