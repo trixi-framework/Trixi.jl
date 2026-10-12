@@ -320,6 +320,9 @@ struct TrixiAdaptor{Storage, RealT} end
     trixi_adapt(Storage, RealT, x)
 
 Adapt `x` to the storage type `Storage` and real type `RealT`.
+
+To adapt a semidiscretization, use the method
+`trixi_adapt(semi; storage_type, real_type)` with keyword arguments instead.
 """
 function trixi_adapt(Storage, RealT, x)
     return adapt(TrixiAdaptor{Storage, RealT}(), x)

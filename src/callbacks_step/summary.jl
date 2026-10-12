@@ -227,6 +227,19 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     summary_box(io, "Environment information", setup)
     println()
 
+    # `semidiscretize` converts the time span to the real type of the
+    # semidiscretization. However, the time integrator promotes the time to the
+    # type of `dt` passed to `solve`, e.g., `dt = 1.0` results in `Float64` time
+    # values for a `Float32` semidiscretization. Then, time-dependent initial
+    # conditions, boundary conditions, and source terms are evaluated in another
+    # precision than the solution.
+    if semi isa AbstractSemidiscretization && typeof(t) != real(semi)
+        @warn "The time `t` has the type $(typeof(t)) but the semidiscretization " *
+              "uses the real type $(real(semi)). Pass `dt` to `solve` as an integer " *
+              "(e.g., `dt = 1` with a `StepsizeCallback`) or in the real type " *
+              "of the semidiscretization."
+    end
+
     reset_timer!(timer())
 
     return nothing

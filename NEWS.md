@@ -8,6 +8,17 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
+  adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
+  `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
+  Previously, `semidiscretize` adapted the semidiscretization internally, so the
+  original `semi` was still used for callbacks and could share outdated data with the
+  adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
+  now part of the `cache` from the construction of the semidiscretization, and the
+  warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The `SummaryCallback` warns if the time type of the time integrator differs from the
+  real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
+  to `solve` for a `Float32` semidiscretization.
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -84,6 +95,15 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
+  semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
+  `Float32` semidiscretization. Previously, the time was only converted when passing
+  `real_type` to `semidiscretize`.
+
+#### Deprecated
+- The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
+  `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
+  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
 
 
 ## Changes when updating to v0.17 from v0.16.x

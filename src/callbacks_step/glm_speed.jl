@@ -92,9 +92,9 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     # c_h is proportional to its own time step divided by the complete MHD time step
     # We use @reset here since the equations are immutable (to work on GPUs etc.).
     # Thus, we need to modify the equations field of the semidiscretization.
-    # When using `real_type = Float32` in `semidiscretize`, the `equations`
-    # are converted correctly. However, callbacks are created later. Thus,
-    # they are not seen by the adaptors. To make it easier for people to
+    # When using `real_type = Float32` in `trixi_adapt`, the `equations`
+    # are converted correctly. However, callbacks are not adapted. To make it
+    # easier for people to
     # use the code without having to pay attention to the types of `glm_scale`
     # and `cfl` when constructing the `GlmSpeedCallback`, we `convert` the
     # numbers here for convenience. This is also done internally for the

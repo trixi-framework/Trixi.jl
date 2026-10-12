@@ -42,17 +42,16 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
-    end
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    # The elixir uses the adapted `semi` for the ODE problem and the time
+    @test semi === ode.p
+    @test eltype(ode.tspan) == Float32
+    @test sol.t[end] isa Float32
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
+    @test real(semi.mesh) == Float64
 end
 
 @testitem "P4estMesh2D: elixir_advection_nonconforming_flag.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin

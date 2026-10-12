@@ -51,8 +51,10 @@ tspan = (0.0, 5.0)
 # On such backends, `flux_differencing_kernel` selects the kernel used for the
 # flux differencing volume integral, one of `HalfSweep()` (default), `FullSweep()`,
 # or `FullSweepGlobal()`.
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing,
-                     flux_differencing_kernel = nothing)
+# `trixi_adapt` returns a new `semi`, which must be used from now on (e.g., for callbacks).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing,
+                   flux_differencing_kernel = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

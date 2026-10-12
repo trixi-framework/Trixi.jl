@@ -43,7 +43,9 @@ tspan = (0.0, 5.0)
 # Setting `real_type` allows to change the real number type, e.g., to `Float32`.
 # This is particularly useful when changing the `storage_type` to a GPU array
 # type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
+# `trixi_adapt` returns a new `semi`, which must be used from now on (e.g., for callbacks).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
