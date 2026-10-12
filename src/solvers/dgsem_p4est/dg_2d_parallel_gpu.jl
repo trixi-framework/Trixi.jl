@@ -123,9 +123,12 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u, local_sides,
-                                                 local_neighbor_ids, node_indices,
-                                                 index_range, variables_range, u)
+@kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u,
+                                                               local_sides,
+                                                               local_neighbor_ids,
+                                                               node_indices,
+                                                               index_range,
+                                                               variables_range, u)
     interface = @index(Global)
     prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface, local_sides,
                                          local_neighbor_ids, node_indices, index_range,
@@ -154,16 +157,18 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
 end
 
 @kernel inbounds=true function calc_mpi_interface_flux_KAkernel!(surface_flux_values,
-                                                   MeshT::Type{<:Union{P4estMeshParallel{2},
-                                                                       T8codeMeshParallel{2}}},
-                                                   have_nonconservative_terms,
-                                                   equations,
-                                                   surface_integral,
-                                                   SolverT::Type{<:DG},
-                                                   local_neighbor_ids, node_indices,
-                                                   local_sides, contravariant_vectors,
-                                                   u,
-                                                   index_range)
+                                                                 MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                                     T8codeMeshParallel{2}}},
+                                                                 have_nonconservative_terms,
+                                                                 equations,
+                                                                 surface_integral,
+                                                                 SolverT::Type{<:DG},
+                                                                 local_neighbor_ids,
+                                                                 node_indices,
+                                                                 local_sides,
+                                                                 contravariant_vectors,
+                                                                 u,
+                                                                 index_range)
     interface = @index(Global)
     calc_mpi_interface_flux_per_interface!(surface_flux_values, MeshT,
                                            have_nonconservative_terms, equations,
@@ -223,9 +228,11 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
     end
 end
 
-@kernel inbounds=true function start_mpi_send_KAkernel!(send_buffer, neighbor_interfaces, local_sides,
-                                          u_mpi_interfaces, ::Val{NVARS},
-                                          ::Val{2}) where {NVARS}
+@kernel inbounds=true function start_mpi_send_KAkernel!(send_buffer,
+                                                        neighbor_interfaces,
+                                                        local_sides,
+                                                        u_mpi_interfaces, ::Val{NVARS},
+                                                        ::Val{2}) where {NVARS}
     index_node, index_interface = @index(Global, NTuple)
     index_linear = @index(Global, Linear)
 
@@ -268,10 +275,12 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
     KernelAbstractions.synchronize(backend)
 end
 
-@kernel inbounds=true function finish_mpi_receive_KAkernel!(recv_buffer, neighbor_interfaces,
-                                              local_sides,
-                                              u_mpi_interfaces, ::Val{NVARS},
-                                              ::Val{2}) where {NVARS}
+@kernel inbounds=true function finish_mpi_receive_KAkernel!(recv_buffer,
+                                                            neighbor_interfaces,
+                                                            local_sides,
+                                                            u_mpi_interfaces,
+                                                            ::Val{NVARS},
+                                                            ::Val{2}) where {NVARS}
     index_node, index_interface = @index(Global, NTuple)
     index_linear = @index(Global, Linear)
     buffer_offset = (index_linear - 1) * NVARS

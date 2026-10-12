@@ -159,15 +159,20 @@ end
 
 # Inlined version of the interface flux computation for conservation laws
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                          MeshT::Type{<:Union{P4estMeshParallel{2},
-                                                              T8codeMeshParallel{2}}},
-                                          have_nonconservative_terms::False, equations,
-                                          surface_integral, SolverT::Type{<:DG},
-                                          u_mpi_interfaces,
-                                          interface_index, normal_direction,
-                                          interface_node_index, local_side,
-                                          surface_node_index, local_direction_index,
-                                          local_element_index)
+                                                           MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                               T8codeMeshParallel{2}}},
+                                                           have_nonconservative_terms::False,
+                                                           equations,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
+                                                           interface_index,
+                                                           normal_direction,
+                                                           interface_node_index,
+                                                           local_side,
+                                                           surface_node_index,
+                                                           local_direction_index,
+                                                           local_element_index)
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr = get_surface_node_vars(u_mpi_interfaces, equations, SolverT,
@@ -189,15 +194,20 @@ end
 
 # Inlined version of the interface flux computation for non-conservative equations
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                          MeshT::Type{<:Union{P4estMeshParallel{2},
-                                                              T8codeMeshParallel{2}}},
-                                          have_nonconservative_terms::True, equations,
-                                          surface_integral, SolverT::Type{<:DG},
-                                          u_mpi_interfaces,
-                                          interface_index, normal_direction,
-                                          interface_node_index, local_side,
-                                          surface_node_index, local_direction_index,
-                                          local_element_index)
+                                                           MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                               T8codeMeshParallel{2}}},
+                                                           have_nonconservative_terms::True,
+                                                           equations,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
+                                                           interface_index,
+                                                           normal_direction,
+                                                           interface_node_index,
+                                                           local_side,
+                                                           surface_node_index,
+                                                           local_direction_index,
+                                                           local_element_index)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
     u_ll, u_rr = get_surface_node_vars(u_mpi_interfaces, equations, SolverT,
