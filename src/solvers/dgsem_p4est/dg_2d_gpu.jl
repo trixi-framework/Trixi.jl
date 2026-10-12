@@ -71,6 +71,7 @@ end
 # Since these kernels need all nodes of an element in a single workgroup, a workgroup
 # contains several elements so that it is not too small, and the number of threads is
 # rounded down to full elements.
+# 128 was not beaten consistently by 64 or 256 on an NVIDIA GPU (polydeg 3 and 4, see #3329).
 const VOLUME_INTEGRAL_WORKGROUP_SIZE_2D = 128
 
 @inline function nelements_workgroup_2d(nnodes)
