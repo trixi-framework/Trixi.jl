@@ -127,8 +127,11 @@ end
     @test eltype(sol.u[end]) == Float32
     @test Trixi.storage_type(ode.p.cache.interfaces) === Array
     # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    # (e.g., from type instabilities).
+    # We need to use `ode.p` instead of `semi` since `semidiscretize` creates a
+    # new semidiscretization with adapted `real_type`. Only this one is updated
+    # by AMR, while `semi` shares the refined mesh but keeps outdated caches.
+    @test_allocations(Trixi.rhs_hyperbolic!, ode.p, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_advection_restart.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
