@@ -10,6 +10,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
+    @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
@@ -57,21 +58,27 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                                             local_element)
 
                     for v in eachvariable(equations_parabolic)
-                        f_parabolic = SVector(flux_parabolic_x[v, i_elem, j_elem,
+                        f_parabolic = SVector(flux_parabolic_x[v,
+                                                               i_elem,
+                                                               j_elem,
                                                                k_elem,
                                                                local_element],
-                                              flux_parabolic_y[v, i_elem, j_elem,
+                                              flux_parabolic_y[v,
+                                                               i_elem,
+                                                               j_elem,
                                                                k_elem,
                                                                local_element],
-                                              flux_parabolic_z[v, i_elem, j_elem,
+                                              flux_parabolic_z[v,
+                                                               i_elem,
+                                                               j_elem,
                                                                k_elem,
                                                                local_element])
-                        # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
-                        # Thus, the `orientation_factor` changes the logic such that the
-                        # flux which enters side 1 leaves side 2.
-                        cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientation_factor *
-                                                                                 dot(f_parabolic,
-                                                                                     normal_direction)
+                        # Side 1 and 2 must be consistent, i.e., with their
+                        # outward-pointing normals. Thus, the `orientation_factor` changes
+                        # the logic such that the flux which enters side 1 leaves side 2.
+                        flux_normal = dot(f_parabolic, normal_direction)
+                        u[local_side, v, i, j, interface] = orientation_factor *
+                                                            flux_normal
                     end
 
                     i_elem += i_step_i
@@ -115,10 +122,11 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             # The gradient flux must be evaluated with the normal direction of the
             # primary side (as in the serial `calc_interface_flux_gradient!`) since it
             # may depend on the normal direction, e.g., for `ParabolicFormulationLocalDG`.
-            # The normal direction of the secondary side is the negative of the primary one.
+            # The secondary side's normal direction is the negative of the primary one.
             orientation_factor = local_side == 1 ? 1 : -1
 
-            # Create the local i,j,k indexing on the local element used to pull normal direction information
+            # Create the local i,j,k indexing on the local element used to pull normal
+            # direction information
             i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
                                                                                          index_range)
             j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
@@ -131,7 +139,8 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             k_element = k_element_start
 
             # Initiate the node indices to be used in the surface for loop,
-            # the surface flux storage must be indexed in alignment with the local element indexing
+            # the surface flux storage must be indexed in alignment with the local
+            # element indexing
             local_surface_indices = surface_indices(local_indices)
             i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
                                                                                          index_range)
@@ -144,7 +153,8 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(local_direction,
                                                             contravariant_vectors,
-                                                            i_element, j_element,
+                                                            i_element,
+                                                            j_element,
                                                             k_element,
                                                             local_element)
 
@@ -223,7 +233,8 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             k_element = k_element_start
 
             # Initiate the node indices to be used in the surface for loop,
-            # the surface flux storage must be indexed in alignment with the local element indexing
+            # the surface flux storage must be indexed in alignment with the local
+            # element indexing
             local_surface_indices = surface_indices(local_indices)
             i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
                                                                                          index_range)
@@ -236,15 +247,16 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                 for i in eachnode(dg)
                     normal_direction = get_normal_direction(local_direction,
                                                             contravariant_vectors,
-                                                            i_element, j_element,
+                                                            i_element,
+                                                            j_element,
                                                             k_element,
                                                             local_element)
 
                     (parabolic_flux_normal_ll,
                     parabolic_flux_normal_rr) = get_surface_node_vars(u,
                                                                       equations_parabolic,
-                                                                      dg, i, j,
-                                                                      interface)
+                                                                      dg,
+                                                                      i, j, interface)
 
                     flux_ = flux_parabolic(parabolic_flux_normal_ll,
                                            parabolic_flux_normal_rr,
@@ -254,8 +266,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 
                     for v in eachvariable(equations_parabolic)
                         surface_flux_values[v, i_surface, j_surface,
-                        local_direction, local_element] = orientation_factor *
-                                                          flux_[v]
+                        local_direction, local_element] = orientation_factor * flux_[v]
                     end
 
                     # Increment local element indices to pull the normal direction
