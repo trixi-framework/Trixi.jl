@@ -705,6 +705,10 @@ function wrap_array(u_ode, semi::AbstractSemidiscretization)
     return wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
+# `wrap_array_native` was only needed while `wrap_array` returned `PtrArray`s.
+# Now, both are the same.
+Base.@deprecate wrap_array_native(args...) wrap_array(args...) false
+
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)

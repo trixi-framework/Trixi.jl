@@ -16,9 +16,29 @@ function set_zero!(::Nothing, du, dg, cache)
     # du .= zero(eltype(du)) doesn't scale when using multiple threads.
     # See https://github.com/trixi-framework/Trixi.jl/pull/924 for a performance comparison.
     @threaded for element in eachelement(dg, cache)
-        du[.., element] .= zero(eltype(du))
+        set_zero_element!(du, element)
     end
 
+    return nothing
+end
+
+@inline function set_zero_element!(du, element)
+    du[.., element] .= zero(eltype(du))
+    return nothing
+end
+
+# Workaround for https://github.com/JuliaArrays/FixedSizeArrays.jl/issues/200:
+# On Julia v1.13 and newer, `fill!` of (views of) `FixedSizeArray`s does not vectorize
+# since the bounds checks cannot be elided. Thus, we set the contiguous memory of the
+# `element` in the parent `Vector` directly.
+@inline function set_zero_element!(du::VectorBackedArray, element)
+    n = length(du) ÷ size(du, ndims(du))
+    data = parent(du)
+    @boundscheck checkbounds(data, (element - 1) * n + 1)
+    @boundscheck checkbounds(data, element * n)
+    @inbounds for i in ((element - 1) * n + 1):(element * n)
+        data[i] = zero(eltype(du))
+    end
     return nothing
 end
 

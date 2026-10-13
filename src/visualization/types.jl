@@ -574,7 +574,9 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
 
     # Use a plain `Array` so that the plotting data does not depend on the array type of
     # `u` (e.g., a `FixedSizeArray` slice of `wrap_array`).
-    u = Array(u)
+    if !(u isa Array)
+        u = Array(u)
+    end
 
     # build nodes on reference element (seems to be the right ordering)
     r, s = reference_node_coordinates_2d(dg)
