@@ -164,7 +164,6 @@ end
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
-wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 
 # used to initialize `u_ode` in `semidiscretize`
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)

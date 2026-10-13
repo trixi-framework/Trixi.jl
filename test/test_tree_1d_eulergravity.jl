@@ -54,7 +54,7 @@ end
 
     # The gravity file must contain the gravity state stored in `semi.cache.u_ode`
     # and not (a copy of) the Euler state
-    u_gravity = Trixi.wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
+    u_gravity = Trixi.wrap_array(semi.cache.u_ode, semi.semi_gravity)
     Trixi.h5open(solution_file("gravity", sol.stats.naccept), "r") do file
         @test read(Trixi.attributes(file)["equations"]) ==
               "HyperbolicDiffusionEquations1D"

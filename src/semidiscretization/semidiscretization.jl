@@ -651,21 +651,20 @@ end
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.
 #
-# Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` might
-# (and probably will) use `unsafe_wrap`. Hence, you have to remember to
-# `GC.@preserve` temporaries that are only used indirectly via `wrap_array`
-# to avoid stochastic memory errors.
+# Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` returns a
+# `VectorBackedArray` (if `u_ode` is a `Vector`) or uses `reshape` (otherwise, see
+# `wrap_storage`). Both keep a reference to `u_ode`, so temporaries such as copies of
+# `u_ode` that are only used indirectly via `wrap_array` do not need to be
+# `GC.@preserve`d.
 #
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
 function wrap_array(u_ode, semi::AbstractSemidiscretization)
     return wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
-# Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
-# for writing solution files etc.
-function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
-    return wrap_array_native(u_ode, mesh_equations_solver_cache(semi)...)
-end
+# `wrap_array_native` was only needed while `wrap_array` returned `PtrArray`s.
+# Now, both are the same.
+Base.@deprecate wrap_array_native(args...) wrap_array(args...) false
 
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement

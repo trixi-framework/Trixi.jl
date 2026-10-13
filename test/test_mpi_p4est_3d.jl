@@ -316,7 +316,7 @@ end
                         l2=[0.3917747509079011],
                         linf=[1.3569114615249707],
                         atol=5e-3, rtol=1e-2)
-    u = Trixi.wrap_array_native(sol.u[end], semi)
+    u = Trixi.wrap_array(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - Trixi.euler_arithmetic_tol(1e-3, 1e-3)
     @test length(global_limiter!.history_davis_yin_iterations) > 0

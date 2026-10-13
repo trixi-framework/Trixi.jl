@@ -51,7 +51,7 @@ Currently, implemented methods are restricted to
 """
 function compute_kinetic_energy_spectrum(u_ode,
                                          semi::AbstractSemidiscretization)
-    return compute_kinetic_energy_spectrum(wrap_array_native(u_ode, semi),
+    return compute_kinetic_energy_spectrum(wrap_array(u_ode, semi),
                                            mesh_equations_solver_cache(semi)...)
 end
 

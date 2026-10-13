@@ -30,10 +30,10 @@ mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     length::Int
 
     parent_ids        :: Vector{Int}
-    child_ids         :: Matrix{Int}    # unsafe_wrap view of _child_ids
-    neighbor_ids      :: Matrix{Int}    # unsafe_wrap view of _neighbor_ids
+    child_ids         :: VectorBackedArray{Int, 2}   # view of _child_ids
+    neighbor_ids      :: VectorBackedArray{Int, 2}   # view of _neighbor_ids
     levels            :: Vector{Int}
-    coordinates       :: Matrix{RealT}  # unsafe_wrap view of _coordinates
+    coordinates       :: VectorBackedArray{RealT, 2} # view of _coordinates
     original_cell_ids :: Vector{Int}
 
     # Resizable backing stores (flat 1-D vectors)
@@ -52,13 +52,12 @@ mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
 
         parent_ids = fill(typemin(Int), capacity + 1)
         _child_ids = fill(typemin(Int), 2^NDIMS * (capacity + 1))
-        child_ids = unsafe_wrap(Array, pointer(_child_ids), (2^NDIMS, capacity + 1))
+        child_ids = wrap_vector(_child_ids, (2^NDIMS, capacity + 1))
         _neighbor_ids = fill(typemin(Int), 2 * NDIMS * (capacity + 1))
-        neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                   (2 * NDIMS, capacity + 1))
+        neighbor_ids = wrap_vector(_neighbor_ids, (2 * NDIMS, capacity + 1))
         levels = fill(typemin(Int), capacity + 1)
         _coordinates = fill(convert(RealT, NaN), NDIMS * (capacity + 1))
-        coordinates = unsafe_wrap(Array, pointer(_coordinates), (NDIMS, capacity + 1))
+        coordinates = wrap_vector(_coordinates, (NDIMS, capacity + 1))
         original_cell_ids = fill(typemin(Int), capacity + 1)
         mpi_ranks = fill(typemin(Int), capacity + 1)
 
@@ -241,15 +240,12 @@ function resize_storage!(t::ParallelTree{NDIMS, RealT},
     @assert new_capacity >= 0
     resize!(t.parent_ids, new_capacity + 1)
     resize!(t._child_ids, 2^NDIMS * (new_capacity + 1))
-    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids),
-                              (2^NDIMS, new_capacity + 1))
+    t.child_ids = wrap_vector(t._child_ids, (2^NDIMS, new_capacity + 1))
     resize!(t._neighbor_ids, 2 * NDIMS * (new_capacity + 1))
-    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
-                                 (2 * NDIMS, new_capacity + 1))
+    t.neighbor_ids = wrap_vector(t._neighbor_ids, (2 * NDIMS, new_capacity + 1))
     resize!(t.levels, new_capacity + 1)
     resize!(t._coordinates, NDIMS * (new_capacity + 1))
-    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates),
-                                (NDIMS, new_capacity + 1))
+    t.coordinates = wrap_vector(t._coordinates, (NDIMS, new_capacity + 1))
     resize!(t.original_cell_ids, new_capacity + 1)
     resize!(t.mpi_ranks, new_capacity + 1)
     t.capacity = new_capacity
@@ -261,13 +257,12 @@ function reset_data_structures!(t::ParallelTree{NDIMS, RealT}) where {NDIMS,
                                                                       RealT <: Real}
     t.parent_ids = Vector{Int}(undef, t.capacity + 1)
     resize!(t._child_ids, 2^NDIMS * (t.capacity + 1))
-    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids), (2^NDIMS, t.capacity + 1))
+    t.child_ids = wrap_vector(t._child_ids, (2^NDIMS, t.capacity + 1))
     resize!(t._neighbor_ids, 2 * NDIMS * (t.capacity + 1))
-    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
-                                 (2 * NDIMS, t.capacity + 1))
+    t.neighbor_ids = wrap_vector(t._neighbor_ids, (2 * NDIMS, t.capacity + 1))
     t.levels = Vector{Int}(undef, t.capacity + 1)
     resize!(t._coordinates, NDIMS * (t.capacity + 1))
-    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates), (NDIMS, t.capacity + 1))
+    t.coordinates = wrap_vector(t._coordinates, (NDIMS, t.capacity + 1))
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
     resize!(t.mpi_ranks, t.capacity + 1)
 

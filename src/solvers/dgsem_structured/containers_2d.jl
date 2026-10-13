@@ -289,9 +289,9 @@ mutable struct NormalVectorContainer2D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 4} # [NDIMS, NNODES - 1, NNODES, NELEMENTS]
+    normal_vectors_1::VectorBackedArray{RealT, 4} # [NDIMS, NNODES - 1, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 4} # [NDIMS, NNODES, NNODES - 1, NELEMENTS]
+    normal_vectors_2::VectorBackedArray{RealT, 4} # [NDIMS, NNODES, NNODES - 1, NELEMENTS]
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
@@ -307,14 +307,14 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
     n_nodes = nnodes(dg.basis)
 
     _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
-    normal_vectors_1 = unsafe_wrap_or_alloc(Array, _normal_vectors_1,
-                                            (2, n_nodes - 1, n_nodes,
-                                             n_elements))
+    normal_vectors_1 = wrap_vector(_normal_vectors_1,
+                                   (2, n_nodes - 1, n_nodes,
+                                    n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
-    normal_vectors_2 = unsafe_wrap_or_alloc(Array, _normal_vectors_2,
-                                            (2, n_nodes, n_nodes - 1,
-                                             n_elements))
+    normal_vectors_2 = wrap_vector(_normal_vectors_2,
+                                   (2, n_nodes, n_nodes - 1,
+                                    n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
@@ -345,19 +345,18 @@ end
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2 = normal_vectors
-    ArrayType = storage_type(normal_vectors)
 
     resize!(_normal_vectors_1, 2 * (n_nodes - 1) * n_nodes * capacity)
-    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
-                                                           (2,
-                                                            n_nodes - 1, n_nodes,
-                                                            capacity))
+    normal_vectors.normal_vectors_1 = wrap_storage(_normal_vectors_1,
+                                                   (2,
+                                                    n_nodes - 1, n_nodes,
+                                                    capacity))
 
     resize!(_normal_vectors_2, 2 * n_nodes * (n_nodes - 1) * capacity)
-    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
-                                                           (2,
-                                                            n_nodes, n_nodes - 1,
-                                                            capacity))
+    normal_vectors.normal_vectors_2 = wrap_storage(_normal_vectors_2,
+                                                   (2,
+                                                    n_nodes, n_nodes - 1,
+                                                    capacity))
 
     return nothing
 end

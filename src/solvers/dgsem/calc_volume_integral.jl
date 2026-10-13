@@ -195,8 +195,12 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     end
 
     MeshT = typeof(mesh)
+    # Use views whose sizes of the variables and nodes are known at compile time to
+    # simplify the index computations in the kernels (see `static_view`)
+    du_ = static_view(du, equations, dg)
+    u_ = static_view(u, equations, dg)
     @threaded for element in eachelement(dg, cache)
-        @inbounds volume_integral_kernel!(du, u, element, MeshT,
+        @inbounds volume_integral_kernel!(du_, u_, element, MeshT,
                                           have_nonconservative_terms, equations,
                                           volume_integral, dg, cache)
     end

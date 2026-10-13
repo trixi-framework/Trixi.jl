@@ -215,6 +215,10 @@ function storage_type(::Type{<:Array})
     return Array
 end
 
+function storage_type(::Type{<:FixedSizeArray{T, N, Mem}}) where {T, N, Mem}
+    return storage_type(Mem)
+end
+
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
@@ -279,45 +283,22 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
-# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
-# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+# Wrap the internal (`resize!`able) storage `vector` of a container as a
+# multi-dimensional array of size `dims` without copying. This is used for the
+# containers (initial creation, `resize!`, and `Adapt.adapt_structure`). All callers
+# adapt or resize `vector` to the target storage type before wrapping it, so we can
+# dispatch on the type of `vector` itself.
 #
-# For some storage backends like CUDA.jl, empty arrays do seem to simply be
-# null pointers which can cause `unsafe_wrap` to fail when calling
-# Adapt.adapt (ArgumentError, see
-# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
-# To circumvent this, on length zero arrays this allocates
-# a separate empty array instead of wrapping.
-# However, since zero length arrays are not used in calculations,
-# it should be okay if the underlying storage vectors and wrapped arrays
-# are not the same as long as they are properly wrapped when `resize!`d etc.
+# For CPU `Vector`s, this returns a `VectorBackedArray` (see `wrap_vector`), which keeps
+# a reference to `vector`. This is safe with respect to the garbage collector for all
+# element types (including non-`isbits` ones) and allows `resize!`ing `vector`
+# afterwards (followed by wrapping it again), also on Julia v1.10.
 #
-# !!! danger "Non-`isbits` element types"
-#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
-#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
-#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
-#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
-#     is not rescanned during an incremental collection, and the stored objects can be
-#     freed while `vector` still refers to them. Hence, we use `reshape` for these
-#     element types, which shares the memory of `vector` in a way the garbage collector
-#     understands. On Julia v1.10, this marks `vector` as shared, so
-#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
-#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
-#     wrapped array is in use.
-function unsafe_wrap_or_alloc(to, vector, size)
-    if length(vector) == 0
-        return similar(vector, size)
-    elseif isbitstype(eltype(vector)) ||
-           eltype(vector) === Symbol ||
-           eltype(vector) <: NTuple{N, Symbol} where {N}
-        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
-        # are not `isbitstype`s, they are not freed, so we can also use
-        # `unsafe_wrap` for them.
-        return unsafe_wrap(to, pointer(vector), size)
-    else
-        return reshape(vector, size)
-    end
-end
+# For all other vectors, we use `reshape`. For GPU arrays such as `CuArray` or `ROCArray`,
+# the result shares the (reference-counted) buffer of `vector`. This also covers device
+# arrays used inside kernels (e.g., `CuDeviceArray`) and CPU views.
+@inline wrap_storage(vector::Vector, dims) = wrap_vector(vector, dims)
+@inline wrap_storage(vector::AbstractVector, dims) = reshape(vector, dims)
 
 struct TrixiAdaptor{Storage, RealT} end
 
@@ -374,7 +355,141 @@ end
 
 # 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
-function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
-    return unsafe_wrap_or_alloc(Storage, vec, size)
-end
 end # @muladd
+
+# An N-dimensional view of a `resize!`able backing `Vector`, used instead of
+# `unsafe_wrap(Array, pointer(v), dims)` in containers that are resized by AMR.
+# Since Julia v1.11, `Array` is a mutable struct, so its size and data pointer are
+# loaded from memory and LLVM often cannot hoist these loads out of inner loops.
+# A `FixedSizeArray` is immutable, so its dimensions are plain values. It holds a
+# reference to `v`, so the memory stays rooted (no `GC.@preserve` needed) and stores
+# of non-isbits elements get the necessary write barriers.
+# The view must be re-created after every `resize!` of `v`.
+const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
+
+@inline function wrap_vector(v::Vector, dims)
+    return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
+end
+
+# An `N`-dimensional array backed by the vector `data` (column-major, without copying),
+# whose sizes `S` (a `Tuple` type) of all but the last dimension are known at compile
+# time, while the size `nlast` of the last dimension is only known at runtime.
+# This is the typical layout of the solution and its time derivative in Trixi.jl
+# (`[variable, node..., element]`), where the number of variables and nodes is fixed
+# but the number of elements changes, e.g., with AMR. Knowing the strides at compile
+# time simplifies the index computations in performance-critical kernels.
+# The array keeps a reference to `data`, so the memory stays alive. It works with any
+# `AbstractVector` storage, e.g., GPU arrays, and is converted to a device array by Adapt.jl.
+# Polyester.jl converts it to a `PtrArray` with static sizes via the StaticArrayInterface.jl
+# traits defined below. See `static_view`.
+struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}} <: DenseArray{T, N}
+    data::P
+    nlast::Int
+
+    function StaticSizeArray{S}(data::AbstractVector{T}, nlast::Integer) where {S, T}
+        N = length(S.parameters) + 1
+        if length(data) != prod(S.parameters) * nlast
+            throw(DimensionMismatch("length of the data $(length(data)) does not match the size $((S.parameters..., nlast))"))
+        end
+        return new{T, N, S, typeof(data)}(data, nlast)
+    end
+end
+
+@inline Base.size(A::StaticSizeArray{T, N, S}) where {T, N, S} = (S.parameters..., A.nlast)
+@inline Base.parent(A::StaticSizeArray) = A.data
+Base.IndexStyle(::Type{<:StaticSizeArray}) = IndexCartesian()
+
+# Linear index in Horner form, e.g., `i + n1 * ((j - 1) + n2 * (k - 1))` in 3D, as in
+# StrideArraysCore.jl
+@generated function linear_index(::StaticSizeArray{T, N, S},
+                                 I::Vararg{Int, N}) where {T, N, S}
+    dims = S.parameters
+    ex = :(I[$N] - 1)
+    for d in (N - 1):-1:2
+        ex = :((I[$d] - 1) + $(dims[d]) * $ex)
+    end
+    return N == 1 ? :(I[1]) : :(I[1] + $(dims[1]) * $ex)
+end
+
+Base.@propagate_inbounds function Base.getindex(A::StaticSizeArray{T, N},
+                                                I::Vararg{Int, N}) where {T, N}
+    @boundscheck checkbounds(A, I...)
+    return @inbounds A.data[linear_index(A, I...)]
+end
+
+Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray{T, N}, x,
+                                                 I::Vararg{Int, N}) where {T, N}
+    @boundscheck checkbounds(A, I...)
+    @inbounds A.data[linear_index(A, I...)] = x
+    return A
+end
+
+# Strided array interface (for `pointer`, LoopVectorization.jl, and Polyester.jl)
+@generated function Base.strides(::StaticSizeArray{T, N, S}) where {T, N, S}
+    strides = Any[1]
+    for d in 2:N
+        push!(strides, strides[end] * S.parameters[d - 1])
+    end
+    return Expr(:tuple, strides...)
+end
+Base.elsize(::Type{<:StaticSizeArray{T}}) where {T} = Base.elsize(Vector{T})
+function Base.unsafe_convert(::Type{Ptr{T}}, A::StaticSizeArray{T}) where {T}
+    return Base.unsafe_convert(Ptr{T}, A.data)
+end
+
+# Static sizes and strides for StaticArrayInterface.jl
+function StaticArrayInterface.static_size(A::StaticSizeArray{T, N, S}) where {T, N, S}
+    return (map(StaticInt, Tuple(S.parameters))..., A.nlast)
+end
+@generated function StaticArrayInterface.static_strides(::StaticSizeArray{T, N,
+                                                                          S}) where {T, N,
+                                                                                     S}
+    strides = Any[1]
+    for d in 2:N
+        push!(strides, strides[end] * S.parameters[d - 1])
+    end
+    return Expr(:tuple, (:(StaticInt($s)) for s in strides)...)
+end
+
+function Adapt.adapt_structure(to, A::StaticSizeArray{T, N, S}) where {T, N, S}
+    return StaticSizeArray{S}(adapt(to, A.data), A.nlast)
+end
+
+KernelAbstractions.get_backend(A::StaticSizeArray) = get_backend(A.data)
+
+"""
+    static_view(A, equations, dg)
+
+Return a view of the solution-like array `A` with dimensions
+`[variable, node..., element]` whose sizes of all but the last dimension (i.e.,
+`nvariables(equations)` and `nnodes(dg)`) are known at compile time, without copying.
+Returns `A` itself for array types without such a view.
+"""
+@inline function static_view(A::VectorBackedArray, equations, dg)
+    S = Tuple{nvariables(equations), ntuple(_ -> nnodes(dg), ndims(A) - 2)...}
+    return StaticSizeArray{S}(parent(A), size(A, ndims(A)))
+end
+@inline static_view(A, equations, dg) = A
+
+# Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
+# `flux_differencing_kernel!`). We restrict the element types to those supported natively
+# by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
+# `LoopVectorization.check_args`.
+# With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
+# a `VectorBackedArray` for CPU `Vector`s, and a reshaped contiguous view of an `Array`,
+# e.g., a column of a matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode`
+# in coupled semidiscretizations, as well as their `static_view`s. Threading via
+# Polyester.jl may convert them to `PtrArray`s. With other threading backends, the
+# `@turbo` kernels are not selected for the arrays returned by `wrap_array` (see the
+# "Heisenbug" note in `@threaded`).
+@static if _PREFERENCE_THREADING === :polyester
+    const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
+                             VectorBackedArray{<:LoopVectorization.NativeTypes},
+                             StaticSizeArray{<:LoopVectorization.NativeTypes, N, S,
+                                             <:Vector} where {N, S},
+                             Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
+                                                <:Base.FastContiguousSubArray{<:Any, 1,
+                                                                              <:Array}} where {N}}
+else
+    const TurboArray = PtrArray{<:LoopVectorization.NativeTypes}
+end
