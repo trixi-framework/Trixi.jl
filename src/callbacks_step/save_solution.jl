@@ -303,15 +303,10 @@ end
     end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    # `u` keeps a reference to `u_ode` (see `wrap_array`), so the `GC.@preserve`
-    # below is not strictly necessary anymore. It is kept as a safeguard for array types
-    # that alias `u_ode` without referencing it.
-    GC.@preserve u_ode begin
-        save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
-                           solution_callback,
-                           element_variables,
-                           node_variables; system = system)
-    end
+    save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
+                       solution_callback,
+                       element_variables,
+                       node_variables; system = system)
 
     return nothing
 end
