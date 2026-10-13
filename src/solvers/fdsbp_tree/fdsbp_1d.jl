@@ -120,8 +120,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
     u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg), nelements(dg, cache)),
-         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du), nnodes(dg), nelements(dg, cache)))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nelements(dg, cache)))
     else
         (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
          reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
@@ -169,8 +171,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
     u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg), nelements(dg, cache)),
-         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du), nnodes(dg), nelements(dg, cache)))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nelements(dg, cache)))
     else
         (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
          reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))

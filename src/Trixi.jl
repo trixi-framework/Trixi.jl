@@ -97,10 +97,15 @@ using Static: Static, One, True, False
     Trixi.Threaded()
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms.
-OrdinaryDiffEq.jl uses Polyester.jl for its threaded stage updates. Since Polyester.jl's
-spinning worker threads interact badly with other shared-memory parallelism such as the
-threaded loops of Trixi.jl (see [`@threaded`](@ref)), `Trixi.Threaded()` disables
-threading in OrdinaryDiffEq.jl algorithms.
+
+OrdinaryDiffEq.jl implements threaded stage updates (`DiffEqBase.Threaded()`, i.e.,
+`FastBroadcast.Threaded()`) only through the Polyester.jl extension of FastBroadcast.jl.
+Trixi.jl no longer depends on Polyester.jl, and without Polyester.jl loaded,
+`FastBroadcast.Threaded()` throws a `MethodError`. With Polyester.jl loaded, its spinning
+worker tasks compete with the worker pool of [`@threaded`](@ref) for the same threads,
+which makes time stepping several times slower. Thus, `Trixi.Threaded()` currently
+disables threading in OrdinaryDiffEq.jl algorithms; only the right-hand side evaluation
+is multithreaded.
 """ Threaded
 
 @static if isdefined(DiffEqBase, :Threaded)
@@ -166,6 +171,8 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+# Persistent worker pool used by the default `:pool` backend of `@threaded`
+include("auxiliary/vendored/ParkedWorkers/ParkedWorkers.jl")
 include("auxiliary/threading.jl")
 include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")

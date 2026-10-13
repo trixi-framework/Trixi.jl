@@ -4,11 +4,14 @@
 # per thread of the default thread pool) and runs one chunk per thread. The way the
 # chunks are run is selected by the `backend` preference (see `set_threading_backend!`):
 #
-# - `:pool` (default): a small pool of persistent worker tasks, one sticky task per
-#   thread of the default thread pool, which spin for a short while after finishing
-#   a chunk before going to sleep. Waking up spinning workers is much cheaper than
-#   scheduling new tasks, which matters for the many small loops in `rhs!`.
-#   This replaces the role Polyester.jl's `@batch` used to play.
+# - `:pool` (default): the persistent worker pool of the vendored ParkedWorkers.jl package
+#   (`src/auxiliary/vendored/ParkedWorkers`): one sticky worker task per thread of the
+#   default thread pool, which spins for a short while after finishing a chunk before
+#   going to sleep. Handing chunks to spinning workers is much cheaper than scheduling new
+#   tasks, which matters for the many small loops in `rhs!`. The calling task runs the
+#   first chunk, and also every chunk that a worker has not picked up yet (e.g., because
+#   another process occupies its core). This replaces the role Polyester.jl's `@batch`
+#   used to play.
 # - `:static`: `Threads.@threads :static` over the chunks.
 # - `:dynamic`: `Threads.@threads :dynamic` over the chunks (tasks may run on any
 #   thread of the default pool, but not migrate while they do not yield).
@@ -16,9 +19,9 @@
 #   KernelAbstractions.jl kernels.
 # - `:serial`: no threading at all.
 #
-# The chunk-to-thread mapping is fixed for `:pool` and `:static`, so scratch buffers
-# indexed by `Threads.threadid()` are safe. They are also safe for `:dynamic` as long
-# as loop bodies do not yield, which is the case for all numerical kernels in Trixi.jl.
+# Chunks that run at the same time always run on different threads, so scratch buffers
+# indexed by `Threads.threadid()` are safe as long as loop bodies do not yield, which is
+# the case for all numerical kernels in Trixi.jl.
 
 # `_THREADING_BACKEND` is defined in `src/Trixi.jl`.
 
@@ -28,36 +31,19 @@
 @inline function threaded_nchunks(range)
     @static if _THREADING_BACKEND === :serial
         return 1
+    elseif _THREADING_BACKEND === :pool
+        # Also `1` while precompiling and while another task runs a threaded loop
+        return ParkedWorkers.nchunks(range)
     else
         n = Threads.threadpoolsize(:default)
         n == 1 && return 1
-        threaded_nested() && return 1
+        ccall(:jl_in_threaded_region, Cint, ()) != 0 && return 1
         return max(1, min(n, length(range)))
     end
 end
 
-@inline function threaded_nested()
-    @static if _THREADING_BACKEND === :pool
-        p = POOL[]
-        return p !== nothing && (p.busy[] != 0 || p.owner != Threads.threadid())
-    else
-        return ccall(:jl_in_threaded_region, Cint, ()) != 0
-    end
-end
-
 # The `chunk`-th of `nchunks` contiguous parts of `range`
-@inline function chunk_range(range::AbstractUnitRange, chunk, nchunks)
-    len = length(range)
-    lo = first(range) + div((chunk - 1) * len, nchunks)
-    hi = first(range) + div(chunk * len, nchunks) - 1
-    return lo:hi
-end
-@inline function chunk_range(range, chunk, nchunks)
-    len = length(range)
-    lo = div((chunk - 1) * len, nchunks) + 1
-    hi = div(chunk * len, nchunks)
-    return view(range, lo:hi)
-end
+@inline chunk_range(range, chunk, nchunks) = ParkedWorkers.chunk(range, chunk, nchunks)
 
 # Run `f(chunk)` for `chunk in 1:nchunks`, in parallel
 @inline function threaded_run(f::F, nchunks) where {F}
@@ -66,7 +52,7 @@ end
         return nothing
     end
     @static if _THREADING_BACKEND === :pool
-        pool_run(f, nchunks)
+        ParkedWorkers.run_chunks(f, nchunks)
     elseif _THREADING_BACKEND === :dynamic
         Threads.@threads :dynamic for chunk in 1:nchunks
             f(chunk)
@@ -81,21 +67,28 @@ end
 
 # Run `f(chunk)` for `chunk in 1:nchunks` in parallel and return the results of the
 # chunks combined with the reduction operators `ops` (one per entry of the tuple `init`).
-# `f` must return a tuple of the same type as `init`.
+# `f` must return a tuple with one entry per entry of `init`.
 @inline function threaded_mapreduce_chunks(f::F, ops::Ops, init, nchunks) where {F, Ops}
     if nchunks == 1
         return combine_reductions(ops, init, f(1))
     end
-    partials = Vector{typeof(init)}(undef, nchunks)
-    threaded_run(nchunks) do chunk
-        @inbounds partials[chunk] = f(chunk)
-        return nothing
+    @static if _THREADING_BACKEND === :pool
+        # Combines the chunk results in chunk order, without allocating
+        return combine_reductions(ops, init,
+                                  ParkedWorkers.run_fold(f, ParkedWorkers.TupleOp(ops),
+                                                         nchunks))
+    else
+        partials = Vector{typeof(init)}(undef, nchunks)
+        threaded_run(nchunks) do chunk
+            @inbounds partials[chunk] = f(chunk)
+            return nothing
+        end
+        result = init
+        for chunk in 1:nchunks
+            result = combine_reductions(ops, result, @inbounds partials[chunk])
+        end
+        return result
     end
-    result = init
-    for chunk in 1:nchunks
-        result = combine_reductions(ops, result, @inbounds partials[chunk])
-    end
-    return result
 end
 
 # Neutral elements of the reduction operators supported by `@threaded reduction = ...`
@@ -106,8 +99,9 @@ end
 # `Trixi.max` and `Trixi.min` are different from `Base.max` and `Base.min`
 @inline reduction_init(::typeof(Base.max), x) = typemin(x)
 @inline reduction_init(::typeof(Base.min), x) = typemax(x)
-@inline reduction_init(::typeof(&), x) = true
-@inline reduction_init(::typeof(|), x) = false
+@inline reduction_init(::typeof(&), x::Bool) = true
+@inline reduction_init(::typeof(&), x::Integer) = ~zero(x)
+@inline reduction_init(::typeof(|), x) = zero(x)
 
 @inline function combine_reductions(ops::Tuple, partials1::Tuple, partials2::Tuple)
     return map((op, a, b) -> op(a, b), ops, partials1, partials2)
@@ -212,14 +206,20 @@ macro threaded(args...)
                        for (op, v, i) in zip(ops, vars, inits)]
         let_bindings = [:($range = $range_expr)]
         append!(let_bindings, [:($i = $v) for (i, v) in zip(inits, vars)])
+        serial_bindings = [:($v = $i) for (v, i) in zip(vars, inits)]
+        # The result is assigned outside of the `let` blocks, so that this also works at
+        # top level (assigning globals).
         ex = quote
-            let $(let_bindings...)
+            $var_tuple = let $(let_bindings...)
                 $nchunks = $Trixi.threaded_nchunks($range)
                 if $nchunks == 1
-                    $serial_loop
+                    let $(serial_bindings...)
+                        $serial_loop
+                        $var_tuple
+                    end
                 else
-                    $var_tuple = $Trixi.threaded_mapreduce_chunks($op_tuple, $init_tuple,
-                                                                  $nchunks) do $chunk
+                    $Trixi.threaded_mapreduce_chunks($op_tuple, $init_tuple,
+                                                     $nchunks) do $chunk
                         $(local_inits...)
                         for $loopvar in $Trixi.chunk_range($range, $chunk, $nchunks)
                             $body
@@ -228,168 +228,10 @@ macro threaded(args...)
                     end
                 end
             end
+            nothing
         end
     end
     # Use `esc(quote ... end)` for nested macro calls as suggested in
     # https://github.com/JuliaLang/julia/issues/23221
     return esc(ex)
-end
-
-# A minimal pool of persistent worker tasks used by the `:pool` backend.
-#
-# There is one sticky worker task per thread of the default thread pool except one;
-# the calling task runs the first chunk itself. After finishing a chunk, workers spin
-# (yielding to other tasks regularly) for a short while before going to sleep on an
-# `Event`, so that back-to-back threaded loops do not pay for task creation and
-# scheduling. The pool is created lazily by the first threaded loop on the thread
-# `owner`; threaded loops started from other threads or while the pool is busy
-# (nested threading) run serially.
-mutable struct ThreadingPool
-    # `slot` is a `Base.RefValue{F}` holding the function `f::F` to run for each chunk
-    @atomic slot::Any
-    @atomic nchunks::Int
-    const nworkers::Int
-    const generation::Threads.Atomic{Int}
-    const done::Threads.Atomic{Int}
-    const sleeping::Vector{Threads.Atomic{Int}}
-    const events::Vector{Base.Event}
-    const owner::Int
-    const busy::Threads.Atomic{Int}
-    @atomic err::Any
-end
-
-const POOL = Ref{Union{Nothing, ThreadingPool}}(nothing)
-
-# One `Base.RefValue{F}` per type `F` of chunk functions passed to `pool_run`. Storing
-# `f` in such a typed slot and passing the slot (which is already heap-allocated) to the
-# workers avoids boxing `f` (which can be several hundred bytes for closures capturing
-# solver structs) on every threaded loop. The slots are only accessed by the owner of
-# the pool and by its workers while the pool is busy.
-const POOL_SLOTS = IdDict{Type, Any}()
-
-@noinline function pool_slot(::Type{F}) where {F}
-    return get!(() -> Base.RefValue{F}(), POOL_SLOTS, F)::Base.RefValue{F}
-end
-
-# Called by the workers (via `invokelatest`, so that new chunk function types defined
-# after the workers were started can be called)
-function pool_run_chunk(slot::Base.RefValue{F}, chunk) where {F}
-    slot[](chunk)
-    return nothing
-end
-# Number of busy-waiting iterations of a worker before it goes to sleep
-const POOL_SPIN = 1 << 14
-
-function pool_worker_loop(pool::ThreadingPool, worker::Int)
-    last_generation = 0
-    while true
-        spins = 0
-        while pool.generation[] == last_generation
-            spins += 1
-            if spins > POOL_SPIN
-                pool.sleeping[worker][] = 1
-                if pool.generation[] == last_generation
-                    wait(pool.events[worker])
-                end
-                pool.sleeping[worker][] = 0
-                spins = 0
-            elseif spins % 1024 == 0
-                yield()
-            else
-                ccall(:jl_cpu_pause, Cvoid, ())
-                GC.safepoint()
-            end
-        end
-        last_generation = pool.generation[]
-        try
-            # Chunks `2:nchunks` are run by workers `1:(nchunks - 1)`
-            chunk = worker + 1
-            if chunk <= @atomic(pool.nchunks)
-                Base.invokelatest(pool_run_chunk, @atomic(pool.slot), chunk)
-            end
-        catch err
-            @atomic pool.err = CapturedException(err, catch_backtrace())
-        end
-        Threads.atomic_add!(pool.done, 1)
-    end
-end
-
-function create_pool()
-    owner = Threads.threadid()
-    nworkers = Threads.threadpoolsize(:default) - 1
-    tids = [tid for tid in Threads.threadpooltids(:default) if tid != owner]
-    resize!(tids, nworkers)
-    pool = ThreadingPool(nothing, 0, nworkers, Threads.Atomic{Int}(0),
-                         Threads.Atomic{Int}(0),
-                         [Threads.Atomic{Int}(0) for _ in 1:nworkers],
-                         [Base.Event(true) for _ in 1:nworkers], owner,
-                         Threads.Atomic{Int}(0), nothing)
-    for (worker, tid) in enumerate(tids)
-        task = Task(() -> pool_worker_loop(pool, worker))
-        task.sticky = true
-        ccall(:jl_set_task_tid, Cint, (Any, Cint), task, tid - 1)
-        schedule(task)
-    end
-    return pool
-end
-
-@noinline function get_pool()
-    pool = POOL[]
-    if pool === nothing
-        pool = create_pool()
-        POOL[] = pool
-    end
-    return pool
-end
-
-function pool_run(f::F, nchunks) where {F}
-    # Never start worker tasks while precompiling
-    if ccall(:jl_generating_output, Cint, ()) == 1
-        for chunk in 1:nchunks
-            f(chunk)
-        end
-        return nothing
-    end
-    pool = get_pool()
-    if nchunks > pool.nworkers + 1 || pool.owner != Threads.threadid() ||
-       Threads.atomic_cas!(pool.busy, 0, 1) != 0
-        for chunk in 1:nchunks
-            f(chunk)
-        end
-        return nothing
-    end
-    try
-        slot = pool_slot(F)
-        slot[] = f
-        @atomic pool.slot = slot
-        @atomic pool.nchunks = nchunks
-        @atomic pool.err = nothing
-        pool.done[] = 0
-        Threads.atomic_add!(pool.generation, 1)
-        for worker in 1:(pool.nworkers)
-            if pool.sleeping[worker][] == 1
-                notify(pool.events[worker])
-            end
-        end
-        local main_err = nothing
-        try
-            f(1)
-        catch err
-            main_err = err
-        end
-        # Always wait for all workers, also if the first chunk threw an exception,
-        # so that no worker is still running when the next threaded loop starts
-        while pool.done[] < pool.nworkers
-            ccall(:jl_cpu_pause, Cvoid, ())
-            GC.safepoint()
-        end
-        main_err === nothing || throw(main_err)
-        err = @atomic pool.err
-        if err !== nothing
-            throw(err)
-        end
-    finally
-        pool.busy[] = 0
-    end
-    return nothing
 end

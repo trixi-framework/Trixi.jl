@@ -466,7 +466,7 @@ function integrate_via_indices(func::Func, u,
     total_volume_ = zero(eltype(inverse_jacobian))
 
     @threaded reduction=((+, integral), (+, total_volume_)) for element in eachelement(dg,
-                                                                                    cache)
+                                                                                       cache)
         for j in eachnode(dg)
             for i in eachnode(dg)
                 cell_volume = abs(inv(inverse_jacobian[i, j, element]))

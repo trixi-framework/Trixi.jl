@@ -25,7 +25,7 @@
             bounds_min = variable_bounds[key_min]
             bounds_max = variable_bounds[key_max]
             @threaded reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
-                                                                                                     cache)
+                                                                                                        cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
@@ -52,7 +52,8 @@
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
             sign_ = min_or_max(1.0, -1.0)
-            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver,
+                                                                            cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
@@ -79,7 +80,8 @@
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
-            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver,
+                                                                            cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
@@ -95,7 +97,8 @@
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
-            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver,
+                                                                            cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue

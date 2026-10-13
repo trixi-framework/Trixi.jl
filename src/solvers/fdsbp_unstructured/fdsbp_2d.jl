@@ -106,8 +106,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
     u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg), nnodes(dg), nelements(dg, cache)),
-         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nnodes(dg), nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nnodes(dg), nelements(dg, cache)))
     else
         (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
          reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
@@ -171,8 +173,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
     u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg), nnodes(dg), nelements(dg, cache)),
-         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nnodes(dg), nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nnodes(dg), nelements(dg, cache)))
     else
         (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
          reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
@@ -340,7 +344,7 @@ function integrate_via_indices(func::Func, u,
 
     # Use quadrature to numerically integrate over entire domain
     @threaded reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
-                                                                                   cache)
+                                                                                      cache)
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
