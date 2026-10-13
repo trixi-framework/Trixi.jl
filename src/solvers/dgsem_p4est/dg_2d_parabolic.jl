@@ -803,7 +803,10 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
                                                normal_direction, Divergence(),
                                                equations_parabolic, parabolic_scheme)
 
-                        # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
+                        # `prolong2mortars_divergence!` already flipped the sign and
+                        # scaled by 0.5 the normal flux of the large element. Thus, both
+                        # inputs and `flux_` refer to the outward normal direction of
+                        # the small element.
                         fstar[position][v, i] = flux_
                     end
                     i_small += i_small_step
@@ -815,7 +818,10 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
             # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
 
-            # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
+            # This reuses the hyperbolic version of `mortar_fluxes_to_elements!`.
+            # Since the outward normal direction of the large element is -2 times
+            # that of the small elements, it flips the sign and scales by 2 the
+            # fluxes projected to the large element.
             mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations_parabolic, mortar_l2, dg, cache,
                                        mortar, fstar, fstar, u_buffer)
