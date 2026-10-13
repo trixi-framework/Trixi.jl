@@ -340,6 +340,7 @@ export nelements, nnodes, nvariables,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+export trixi_adapt
 
 export SemidiscretizationParabolic
 

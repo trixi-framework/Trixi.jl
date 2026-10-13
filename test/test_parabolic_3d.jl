@@ -469,9 +469,9 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_navierstokes_convergence.jl"),
-                  initial_refinement_level = 1, tspan = (0.0, 0.01), sol = nothing,
-                  real_type = Float32, storage_type = Array)
-    semi32 = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+                  initial_refinement_level = 1, tspan = (0.0, 0.01), sol = nothing)
+    semi32 = trixi_adapt(semi; real_type = Float32, storage_type = Array)
+    ode = semidiscretize(semi32, tspan)
     @test real(semi32.solver) == Float32
     @test typeof(semi32.equations_parabolic.mu) == Float32
     @test ode.u0 isa Vector{Float32}
