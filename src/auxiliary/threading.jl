@@ -245,7 +245,9 @@ end
 # `owner`; threaded loops started from other threads or while the pool is busy
 # (nested threading) run serially.
 mutable struct ThreadingPool
-    @atomic work::Any
+    # `slot` is a `Base.RefValue{F}` holding the function `f::F` to run for each chunk
+    @atomic slot::Any
+    @atomic nchunks::Int
     const nworkers::Int
     const generation::Threads.Atomic{Int}
     const done::Threads.Atomic{Int}
@@ -257,6 +259,24 @@ mutable struct ThreadingPool
 end
 
 const POOL = Ref{Union{Nothing, ThreadingPool}}(nothing)
+
+# One `Base.RefValue{F}` per type `F` of chunk functions passed to `pool_run`. Storing
+# `f` in such a typed slot and passing the slot (which is already heap-allocated) to the
+# workers avoids boxing `f` (which can be several hundred bytes for closures capturing
+# solver structs) on every threaded loop. The slots are only accessed by the owner of
+# the pool and by its workers while the pool is busy.
+const POOL_SLOTS = IdDict{Type, Any}()
+
+@noinline function pool_slot(::Type{F}) where {F}
+    return get!(() -> Base.RefValue{F}(), POOL_SLOTS, F)::Base.RefValue{F}
+end
+
+# Called by the workers (via `invokelatest`, so that new chunk function types defined
+# after the workers were started can be called)
+function pool_run_chunk(slot::Base.RefValue{F}, chunk) where {F}
+    slot[](chunk)
+    return nothing
+end
 # Number of busy-waiting iterations of a worker before it goes to sleep
 const POOL_SPIN = 1 << 14
 
@@ -282,7 +302,11 @@ function pool_worker_loop(pool::ThreadingPool, worker::Int)
         end
         last_generation = pool.generation[]
         try
-            Base.invokelatest(@atomic(pool.work), worker + 1)
+            # Chunks `2:nchunks` are run by workers `1:(nchunks - 1)`
+            chunk = worker + 1
+            if chunk <= @atomic(pool.nchunks)
+                Base.invokelatest(pool_run_chunk, @atomic(pool.slot), chunk)
+            end
         catch err
             @atomic pool.err = CapturedException(err, catch_backtrace())
         end
@@ -295,7 +319,7 @@ function create_pool()
     nworkers = Threads.threadpoolsize(:default) - 1
     tids = [tid for tid in Threads.threadpooltids(:default) if tid != owner]
     resize!(tids, nworkers)
-    pool = ThreadingPool(nothing, nworkers, Threads.Atomic{Int}(0),
+    pool = ThreadingPool(nothing, 0, nworkers, Threads.Atomic{Int}(0),
                          Threads.Atomic{Int}(0),
                          [Threads.Atomic{Int}(0) for _ in 1:nworkers],
                          [Base.Event(true) for _ in 1:nworkers], owner,
@@ -335,9 +359,10 @@ function pool_run(f::F, nchunks) where {F}
         return nothing
     end
     try
-        # Chunks `2:nchunks` are run by workers `1:(nchunks - 1)`, the remaining
-        # workers run a no-op.
-        @atomic pool.work = chunk -> (chunk <= nchunks && f(chunk); nothing)
+        slot = pool_slot(F)
+        slot[] = f
+        @atomic pool.slot = slot
+        @atomic pool.nchunks = nchunks
         @atomic pool.err = nothing
         pool.done[] = 0
         Threads.atomic_add!(pool.generation, 1)
@@ -346,12 +371,19 @@ function pool_run(f::F, nchunks) where {F}
                 notify(pool.events[worker])
             end
         end
-        f(1)
+        local main_err = nothing
+        try
+            f(1)
+        catch err
+            main_err = err
+        end
+        # Always wait for all workers, also if the first chunk threw an exception,
+        # so that no worker is still running when the next threaded loop starts
         while pool.done[] < pool.nworkers
             ccall(:jl_cpu_pause, Cvoid, ())
             GC.safepoint()
         end
-        @atomic pool.work = nothing
+        main_err === nothing || throw(main_err)
         err = @atomic pool.err
         if err !== nothing
             throw(err)
