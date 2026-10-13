@@ -29,9 +29,8 @@ function rebalance_solver!(u_ode::AbstractVector,
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
-        # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
-        # nicely with non-base array types
-        old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
+        # `MPI.Isend`/`MPI.Irecv!` below only use contiguous views of `old_u`
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)
@@ -39,7 +38,7 @@ function rebalance_solver!(u_ode::AbstractVector,
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array_native(u_ode, mesh, equations, dg, cache)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "exchange data" begin
             # Collect MPI requests for MPI_Waitall

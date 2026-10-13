@@ -105,7 +105,9 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
 
     # Transform the parent indices into view indices.
-    interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
+    # Fill the existing array (instead of allocating a new one) to keep it aliased
+    # with the internal storage `interfaces._neighbor_ids`.
+    fill!(interfaces.neighbor_ids, 0)
     for interface in 1:size(neighbor_ids)[2]
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
                                                               neighbor_ids[1,
@@ -183,10 +185,9 @@ function extract_boundaries(mesh::P4estMeshView{2},
     capacity = length(boundaries.neighbor_ids)
 
     resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
-    boundaries.u = unsafe_wrap_or_alloc(Array, boundaries._u,
-                                        (n_variables,
-                                         ntuple(_ -> n_nodes, n_dims - 1)...,
-                                         capacity))
+    boundaries.u = wrap_vector(boundaries._u,
+                               (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                                capacity))
 
     return boundaries
 end
