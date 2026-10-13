@@ -1052,9 +1052,10 @@ end
     @test ode.u0 isa Vector{Float32}
     @test eltype(ode.tspan) == Float32
     parabolic_container = semi32.cache_parabolic.parabolic_container
-    @test parabolic_container.u_transformed isa Array{Float32, 4}
-    @test all(x -> x isa Array{Float32, 4}, parabolic_container.gradients)
-    @test all(x -> x isa Array{Float32, 4}, parabolic_container.flux_parabolic)
+    @test parabolic_container.u_transformed isa Trixi.VectorBackedArray{Float32, 4}
+    @test all(x -> x isa Trixi.VectorBackedArray{Float32, 4}, parabolic_container.gradients)
+    @test all(x -> x isa Trixi.VectorBackedArray{Float32, 4},
+              parabolic_container.flux_parabolic)
 
     # The right-hand side agrees with the one of the original `Float64` semidiscretization
     t = 0.005

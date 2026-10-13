@@ -95,8 +95,8 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(elements::P4estElementContainer, capacity)
     @unpack _node_coordinates, _jacobian_matrix, _contravariant_vectors,
     _inverse_jacobian, _surface_flux_values = elements
@@ -104,41 +104,35 @@ function Base.resize!(elements::P4estElementContainer, capacity)
     n_dims = ndims(elements)
     n_nodes = size(elements.node_coordinates, 2)
     n_variables = size(elements.surface_flux_values, 1)
-    ArrayType = storage_type(elements)
 
     resize!(_node_coordinates, n_dims * n_nodes^n_dims * capacity)
-    elements.node_coordinates = unsafe_wrap_or_alloc(ArrayType,
-                                                     _node_coordinates,
-                                                     (n_dims,
-                                                      ntuple(_ -> n_nodes, n_dims)...,
-                                                      capacity))
+    elements.node_coordinates = wrap_storage(_node_coordinates,
+                                             (n_dims,
+                                              ntuple(_ -> n_nodes, n_dims)...,
+                                              capacity))
 
     resize!(_jacobian_matrix, n_dims^2 * n_nodes^n_dims * capacity)
-    elements.jacobian_matrix = unsafe_wrap_or_alloc(ArrayType,
-                                                    _jacobian_matrix,
-                                                    (n_dims, n_dims,
-                                                     ntuple(_ -> n_nodes, n_dims)...,
-                                                     capacity))
+    elements.jacobian_matrix = wrap_storage(_jacobian_matrix,
+                                            (n_dims, n_dims,
+                                             ntuple(_ -> n_nodes, n_dims)...,
+                                             capacity))
 
     resize!(_contravariant_vectors, length(_jacobian_matrix))
-    elements.contravariant_vectors = unsafe_wrap_or_alloc(ArrayType,
-                                                          _contravariant_vectors,
-                                                          size(elements.jacobian_matrix))
+    elements.contravariant_vectors = wrap_storage(_contravariant_vectors,
+                                                  size(elements.jacobian_matrix))
 
     resize!(_inverse_jacobian, n_nodes^n_dims * capacity)
-    elements.inverse_jacobian = unsafe_wrap_or_alloc(ArrayType,
-                                                     _inverse_jacobian,
-                                                     (ntuple(_ -> n_nodes, n_dims)...,
-                                                      capacity))
+    elements.inverse_jacobian = wrap_storage(_inverse_jacobian,
+                                             (ntuple(_ -> n_nodes, n_dims)...,
+                                              capacity))
 
     resize!(_surface_flux_values,
             n_variables * n_nodes^(n_dims - 1) * (n_dims * 2) * capacity)
-    elements.surface_flux_values = unsafe_wrap_or_alloc(ArrayType,
-                                                        _surface_flux_values,
-                                                        (n_variables,
-                                                         ntuple(_ -> n_nodes,
-                                                                n_dims - 1)...,
-                                                         n_dims * 2, capacity))
+    elements.surface_flux_values = wrap_storage(_surface_flux_values,
+                                                (n_variables,
+                                                 ntuple(_ -> n_nodes,
+                                                        n_dims - 1)...,
+                                                 n_dims * 2, capacity))
 
     return nothing
 end
@@ -153,52 +147,47 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
     nelements = ncells(mesh)
 
     _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
-    node_coordinates = unsafe_wrap_or_alloc(Array, _node_coordinates,
-                                            (NDIMS,
-                                             ntuple(_ -> nnodes(basis), NDIMS)...,
-                                             nelements))
+    node_coordinates = wrap_vector(_node_coordinates,
+                                   (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                    nelements))
 
     _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * nnodes(basis)^NDIMS * nelements)
-    jacobian_matrix = unsafe_wrap_or_alloc(Array, _jacobian_matrix,
-                                           (NDIMS, NDIMS,
-                                            ntuple(_ -> nnodes(basis), NDIMS)...,
-                                            nelements))
+    jacobian_matrix = wrap_vector(_jacobian_matrix,
+                                  (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                   nelements))
 
     _contravariant_vectors = similar(_jacobian_matrix)
-    contravariant_vectors = unsafe_wrap_or_alloc(Array, _contravariant_vectors,
-                                                 size(jacobian_matrix))
+    contravariant_vectors = wrap_vector(_contravariant_vectors, size(jacobian_matrix))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
-    inverse_jacobian = unsafe_wrap_or_alloc(Array, _inverse_jacobian,
-                                            (ntuple(_ -> nnodes(basis), NDIMS)...,
-                                             nelements))
+    inverse_jacobian = wrap_vector(_inverse_jacobian,
+                                   (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
 
     _surface_flux_values = Vector{uEltype}(undef,
                                            nvariables(equations) *
                                            nnodes(basis)^(NDIMS - 1) * (NDIMS * 2) *
                                            nelements)
-    surface_flux_values = unsafe_wrap_or_alloc(Array, _surface_flux_values,
-                                               (nvariables(equations),
-                                                ntuple(_ -> nnodes(basis),
-                                                       NDIMS - 1)...,
-                                                NDIMS * 2, nelements))
+    surface_flux_values = wrap_vector(_surface_flux_values,
+                                      (nvariables(equations),
+                                       ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                       NDIMS * 2, nelements))
 
     elements = P4estElementContainer{NDIMS, RealT, uEltype,
                                      NDIMS + 1, NDIMS + 2, NDIMS + 3,
-                                     Array{RealT, NDIMS + 1},
-                                     Array{RealT, NDIMS + 2},
-                                     Array{RealT, NDIMS + 3},
+                                     typeof(inverse_jacobian),
+                                     typeof(node_coordinates),
+                                     typeof(jacobian_matrix),
                                      Vector{RealT},
-                                     Array{uEltype, NDIMS + 2}, Vector{uEltype}}(node_coordinates,
-                                                                                 jacobian_matrix,
-                                                                                 contravariant_vectors,
-                                                                                 inverse_jacobian,
-                                                                                 surface_flux_values,
-                                                                                 _node_coordinates,
-                                                                                 _jacobian_matrix,
-                                                                                 _contravariant_vectors,
-                                                                                 _inverse_jacobian,
-                                                                                 _surface_flux_values)
+                                     typeof(surface_flux_values), Vector{uEltype}}(node_coordinates,
+                                                                                   jacobian_matrix,
+                                                                                   contravariant_vectors,
+                                                                                   inverse_jacobian,
+                                                                                   surface_flux_values,
+                                                                                   _node_coordinates,
+                                                                                   _jacobian_matrix,
+                                                                                   _contravariant_vectors,
+                                                                                   _inverse_jacobian,
+                                                                                   _surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
@@ -223,16 +212,16 @@ function Adapt.adapt_structure(to,
     uEltype = eltype(_surface_flux_values)
 
     # Wrap arrays again
-    node_coordinates = unsafe_wrap_or_alloc(to, _node_coordinates,
-                                            size(elements.node_coordinates))
-    jacobian_matrix = unsafe_wrap_or_alloc(to, _jacobian_matrix,
-                                           size(elements.jacobian_matrix))
-    contravariant_vectors = unsafe_wrap_or_alloc(to, _contravariant_vectors,
-                                                 size(jacobian_matrix))
-    inverse_jacobian = unsafe_wrap_or_alloc(to, _inverse_jacobian,
-                                            size(elements.inverse_jacobian))
-    surface_flux_values = unsafe_wrap_or_alloc(to, _surface_flux_values,
-                                               size(elements.surface_flux_values))
+    node_coordinates = wrap_storage(_node_coordinates,
+                                    size(elements.node_coordinates))
+    jacobian_matrix = wrap_storage(_jacobian_matrix,
+                                   size(elements.jacobian_matrix))
+    contravariant_vectors = wrap_storage(_contravariant_vectors,
+                                         size(jacobian_matrix))
+    inverse_jacobian = wrap_storage(_inverse_jacobian,
+                                    size(elements.inverse_jacobian))
+    surface_flux_values = wrap_storage(_surface_flux_values,
+                                       size(elements.surface_flux_values))
 
     new_type_params = (NDIMS,
                        RealT, uEltype,
@@ -329,33 +318,31 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
     n_dims = ndims(interfaces)
     n_nodes = size(interfaces.u, 3)
     n_variables = size(interfaces.u, 2)
-    ArrayType = storage_type(interfaces)
 
     resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
-    interfaces.u = unsafe_wrap_or_alloc(ArrayType, _u,
-                                        (2, n_variables,
-                                         ntuple(_ -> n_nodes, n_dims - 1)...,
-                                         capacity))
+    interfaces.u = wrap_storage(_u,
+                                (2, n_variables,
+                                 ntuple(_ -> n_nodes, n_dims - 1)...,
+                                 capacity))
 
     if _normal_directions === nothing # trivial interface normals, e.g. for Lobatto-Legendre basis
         interfaces.normal_directions = nothing
     else # non-trivial interface normals, e.g. for Gauss-Legendre basis
         resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
-        interfaces.normal_directions = unsafe_wrap_or_alloc(ArrayType,
-                                                            _normal_directions,
-                                                            (n_dims,
-                                                             ntuple(_ -> n_nodes,
-                                                                    n_dims - 1)...,
-                                                             capacity))
+        interfaces.normal_directions = wrap_storage(_normal_directions,
+                                                    (n_dims,
+                                                     ntuple(_ -> n_nodes,
+                                                            n_dims - 1)...,
+                                                     capacity))
     end
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = unsafe_wrap_or_alloc(ArrayType, _neighbor_ids,
-                                                   (2, capacity))
+    interfaces.neighbor_ids = wrap_storage(_neighbor_ids,
+                                           (2, capacity))
 
     resize!(_node_indices, 2 * capacity)
-    interfaces.node_indices = unsafe_wrap_or_alloc(ArrayType, _node_indices,
-                                                   (2, capacity))
+    interfaces.node_indices = wrap_storage(_node_indices,
+                                           (2, capacity))
 
     return nothing
 end
@@ -373,30 +360,28 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_interfaces)
-    u = unsafe_wrap_or_alloc(Array, _u,
-                             (2, nvariables(equations),
-                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                              n_interfaces))
+    u = wrap_vector(_u,
+                    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                     n_interfaces))
 
     if !trivial_interface_normals(basis)
         _normal_directions = Vector{RealT}(undef,
                                            NDIMS * nnodes(basis)^(NDIMS - 1) *
                                            n_interfaces)
-        normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
-                                                 (NDIMS,
-                                                  ntuple(_ -> nnodes(basis),
-                                                         NDIMS - 1)...,
-                                                  n_interfaces))
+        normal_directions = wrap_vector(_normal_directions,
+                                        (NDIMS,
+                                         ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                         n_interfaces))
     else
         _normal_directions = nothing
         normal_directions = nothing
     end
 
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
-    neighbor_ids = unsafe_wrap_or_alloc(Array, _neighbor_ids, (2, n_interfaces))
+    neighbor_ids = wrap_vector(_neighbor_ids, (2, n_interfaces))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
-    node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_interfaces))
+    node_indices = wrap_vector(_node_indices, (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, RealT, uEltype,
                                          NDIMS + 1, NDIMS + 2,
@@ -447,14 +432,14 @@ function Adapt.adapt_structure(to,
     _neighbor_ids = adapt(to, interfaces._neighbor_ids)
     _node_indices = adapt(to, interfaces._node_indices)
     # Wrap arrays again
-    u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
+    u = wrap_storage(_u, size(interfaces.u))
     normal_directions = _normal_directions === nothing ? nothing : # Check if interface normals are trivial
-                        unsafe_wrap_or_alloc(to, _normal_directions,
-                                             size(interfaces.normal_directions))
-    neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
-                                        size(interfaces.neighbor_ids))
-    node_indices = unsafe_wrap_or_alloc(to, _node_indices,
-                                        size(interfaces.node_indices))
+                        wrap_storage(_normal_directions,
+                                     size(interfaces.normal_directions))
+    neighbor_ids = wrap_storage(_neighbor_ids,
+                                size(interfaces.neighbor_ids))
+    node_indices = wrap_storage(_node_indices,
+                                size(interfaces.node_indices))
 
     new_type_params = (NDIMS,
                        RealT, eltype(_u),
@@ -523,13 +508,12 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
     n_dims = ndims(boundaries)
     n_nodes = size(boundaries.u, 2)
     n_variables = size(boundaries.u, 1)
-    ArrayType = storage_type(boundaries)
 
     resize!(_u, n_variables * n_nodes^(n_dims - 1) * capacity)
-    boundaries.u = unsafe_wrap_or_alloc(ArrayType, _u,
-                                        (n_variables,
-                                         ntuple(_ -> n_nodes, n_dims - 1)...,
-                                         capacity))
+    boundaries.u = wrap_storage(_u,
+                                (n_variables,
+                                 ntuple(_ -> n_nodes, n_dims - 1)...,
+                                 capacity))
 
     resize!(neighbor_ids, capacity)
 
@@ -552,10 +536,9 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _u = Vector{uEltype}(undef,
                          nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_boundaries)
-    u = unsafe_wrap_or_alloc(Array, _u,
-                             (nvariables(equations),
-                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                              n_boundaries))
+    u = wrap_vector(_u,
+                    (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                     n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
     node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
@@ -619,7 +602,7 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     _u = adapt(to, boundaries._u)
-    u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
+    u = wrap_storage(_u, size(boundaries.u))
     neighbor_ids = adapt(to, boundaries.neighbor_ids)
     node_indices = adapt(to, boundaries.node_indices)
     name = boundaries.name
@@ -697,20 +680,18 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
     n_dims = ndims(mortars)
     n_nodes = size(mortars.u, 4)
     n_variables = size(mortars.u, 2)
-    ArrayType = storage_type(mortars)
 
     resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
-    mortars.u = unsafe_wrap_or_alloc(ArrayType, _u,
-                                     (2, n_variables, 2^(n_dims - 1),
-                                      ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
+    mortars.u = wrap_storage(_u,
+                             (2, n_variables, 2^(n_dims - 1),
+                              ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
 
     resize!(_neighbor_ids, (2^(n_dims - 1) + 1) * capacity)
-    mortars.neighbor_ids = unsafe_wrap_or_alloc(ArrayType, _neighbor_ids,
-                                                (2^(n_dims - 1) + 1, capacity))
+    mortars.neighbor_ids = wrap_storage(_neighbor_ids,
+                                        (2^(n_dims - 1) + 1, capacity))
 
     resize!(_node_indices, 2 * capacity)
-    mortars.node_indices = unsafe_wrap_or_alloc(ArrayType, _node_indices,
-                                                (2, capacity))
+    mortars.node_indices = wrap_storage(_node_indices, (2, capacity))
 
     return nothing
 end
@@ -727,16 +708,15 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * 2^(NDIMS - 1) *
                          nnodes(basis)^(NDIMS - 1) * n_mortars)
-    u = unsafe_wrap_or_alloc(Array, _u,
-                             (2, nvariables(equations), 2^(NDIMS - 1),
-                              ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
+    u = wrap_vector(_u,
+                    (2, nvariables(equations), 2^(NDIMS - 1),
+                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
 
     _neighbor_ids = Vector{Int}(undef, (2^(NDIMS - 1) + 1) * n_mortars)
-    neighbor_ids = unsafe_wrap_or_alloc(Array, _neighbor_ids,
-                                        (2^(NDIMS - 1) + 1, n_mortars))
+    neighbor_ids = wrap_vector(_neighbor_ids, (2^(NDIMS - 1) + 1, n_mortars))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
-    node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_mortars))
+    node_indices = wrap_vector(_node_indices, (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                    typeof(neighbor_ids), typeof(node_indices),
@@ -774,9 +754,9 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     _node_indices = adapt(to, mortars._node_indices)
 
     # Wrap arrays again
-    u = unsafe_wrap_or_alloc(to, _u, size(mortars.u))
-    neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids, size(mortars.neighbor_ids))
-    node_indices = unsafe_wrap_or_alloc(to, _node_indices, size(mortars.node_indices))
+    u = wrap_storage(_u, size(mortars.u))
+    neighbor_ids = wrap_storage(_neighbor_ids, size(mortars.neighbor_ids))
+    node_indices = wrap_storage(_node_indices, size(mortars.node_indices))
 
     NDIMS = ndims(mortars)
     new_type_params = (NDIMS,

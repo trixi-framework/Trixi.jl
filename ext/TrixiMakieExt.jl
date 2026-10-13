@@ -12,7 +12,7 @@ using Trixi
 using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
              PlotData1D, PlotData2D, PlotData2DCartesian, PlotData2DTriangulated,
              TrixiODESolution,
-             wrap_array_native, mesh_equations_solver_cache
+             wrap_array, mesh_equations_solver_cache
 
 # Import functions such that they can be extended with new methods
 import Trixi: iplot, iplot!, trixiheatmap, trixiheatmap!
@@ -288,7 +288,7 @@ end
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 function iplot(u, semi; kwargs...)
-    return iplot(wrap_array_native(u, semi), mesh_equations_solver_cache(semi)...;
+    return iplot(wrap_array(u, semi), mesh_equations_solver_cache(semi)...;
                  kwargs...)
 end
 

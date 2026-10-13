@@ -489,11 +489,14 @@ mutable struct NormalVectorContainer3D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    normal_vectors_1::Array{RealT, 5} # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
+    # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
+    normal_vectors_1::VectorBackedArray{RealT, 5}
     # For normal vectors computed from second contravariant vectors
-    normal_vectors_2::Array{RealT, 5} # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
+    # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
+    normal_vectors_2::VectorBackedArray{RealT, 5}
     # For normal vectors computed from third contravariant vectors
-    normal_vectors_3::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
+    # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
+    normal_vectors_3::VectorBackedArray{RealT, 5}
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
@@ -512,23 +515,23 @@ function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
     _normal_vectors_1 = Vector{RealT}(undef,
                                       3 * (n_nodes - 1) * n_nodes * n_nodes *
                                       n_elements)
-    normal_vectors_1 = unsafe_wrap_or_alloc(Array, _normal_vectors_1,
-                                            (3, n_nodes - 1, n_nodes, n_nodes,
-                                             n_elements))
+    normal_vectors_1 = wrap_vector(_normal_vectors_1,
+                                   (3, n_nodes - 1, n_nodes, n_nodes,
+                                    n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef,
                                       3 * n_nodes * (n_nodes - 1) * n_nodes *
                                       n_elements)
-    normal_vectors_2 = unsafe_wrap_or_alloc(Array, _normal_vectors_2,
-                                            (3, n_nodes, n_nodes - 1, n_nodes,
-                                             n_elements))
+    normal_vectors_2 = wrap_vector(_normal_vectors_2,
+                                   (3, n_nodes, n_nodes - 1, n_nodes,
+                                    n_elements))
 
     _normal_vectors_3 = Vector{RealT}(undef,
                                       3 * n_nodes * n_nodes * (n_nodes - 1) *
                                       n_elements)
-    normal_vectors_3 = unsafe_wrap_or_alloc(Array, _normal_vectors_3,
-                                            (3, n_nodes, n_nodes, n_nodes - 1,
-                                             n_elements))
+    normal_vectors_3 = wrap_vector(_normal_vectors_3,
+                                   (3, n_nodes, n_nodes, n_nodes - 1,
+                                    n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
                                    mesh, dg, cache_containers)
@@ -543,31 +546,30 @@ end
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function Base.resize!(normal_vectors::NormalVectorContainer3D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2, _normal_vectors_3 = normal_vectors
-    ArrayType = storage_type(normal_vectors)
 
     resize!(_normal_vectors_1, 3 * (n_nodes - 1) * n_nodes * n_nodes * capacity)
-    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
-                                                           (3,
-                                                            n_nodes - 1,
-                                                            n_nodes,
-                                                            n_nodes,
-                                                            capacity))
+    normal_vectors.normal_vectors_1 = wrap_storage(_normal_vectors_1,
+                                                   (3,
+                                                    n_nodes - 1,
+                                                    n_nodes,
+                                                    n_nodes,
+                                                    capacity))
 
     resize!(_normal_vectors_2, 3 * n_nodes * (n_nodes - 1) * n_nodes * capacity)
-    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
-                                                           (3,
-                                                            n_nodes,
-                                                            n_nodes - 1,
-                                                            n_nodes,
-                                                            capacity))
+    normal_vectors.normal_vectors_2 = wrap_storage(_normal_vectors_2,
+                                                   (3,
+                                                    n_nodes,
+                                                    n_nodes - 1,
+                                                    n_nodes,
+                                                    capacity))
 
     resize!(_normal_vectors_3, 3 * n_nodes * n_nodes * (n_nodes - 1) * capacity)
-    normal_vectors.normal_vectors_3 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_3,
-                                                           (3,
-                                                            n_nodes,
-                                                            n_nodes,
-                                                            n_nodes - 1,
-                                                            capacity))
+    normal_vectors.normal_vectors_3 = wrap_storage(_normal_vectors_3,
+                                                   (3,
+                                                    n_nodes,
+                                                    n_nodes,
+                                                    n_nodes - 1,
+                                                    capacity))
 
     return nothing
 end

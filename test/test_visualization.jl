@@ -99,10 +99,7 @@ end
                 end
                 scalar_data = StructArrays.component(u, 1)
             else
-                # There are some issues with `PtrArray`s returned by default
-                # by `Trixi.wrap_array`, see
-                # https://github.com/trixi-framework/Trixi.jl/issues/2797
-                u = Trixi.wrap_array_native(sol.u[end], semi)
+                u = Trixi.wrap_array(sol.u[end], semi)
                 scalar_data = u[1, :, :, :]
             end
 
