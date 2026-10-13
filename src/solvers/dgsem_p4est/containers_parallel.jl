@@ -13,7 +13,7 @@
 # ranks use bitwise identical normal directions and compute the same numerical fluxes,
 # as in the serial code. This makes the fluxes conservative across MPI interfaces up to
 # machine precision and is required for numerical fluxes that depend discontinuously on
-# the normal direction, e.g., the switch of `ParabolicFormulationLocalDG`.
+# the normal direction, e.g., the `ldg_switch` of `ParabolicFormulationLocalDG`.
 mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           uArray <: DenseArray{uEltype, NDIMSP2},
                                           VecInt <: DenseVector{Int},

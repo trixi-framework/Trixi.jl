@@ -130,8 +130,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index,
                                        interface_index)
 
-    # `normal_direction` is the normal direction of the primary element. The flux
-    # entering the primary element leaves the secondary element.
+    # `normal_direction` is the normal direction of the primary element.
+    # The flux entering the primary element leaves the secondary element
+    # (note the `-` for the `else` case).
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
     else # local_side == 2
@@ -169,6 +170,8 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
 
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element.
+    # The flux entering the primary element leaves the secondary element
+    # (note the `-` for the `else` case).
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
         noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
