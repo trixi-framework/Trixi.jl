@@ -786,8 +786,14 @@ end
     # kernel launch. Use a second boundary condition type for `y_pos` (hyperbolic and
     # parabolic) and compare with a single type. The surface flux values are set to NaN
     # before, so that missing boundaries are detected.
-    boundary_condition_slip_wall_y_pos(args...) = boundary_condition_slip_wall(args...)
-    boundary_condition_top_bottom_y_pos(args...) = boundary_condition_top_bottom(args...)
+    # The closures capture the boundary conditions, since the GPU kernels cannot access
+    # (non-constant) global variables
+    boundary_condition_slip_wall_y_pos = let bc = boundary_condition_slip_wall
+        (args...) -> bc(args...)
+    end
+    boundary_condition_top_bottom_y_pos = let bc = boundary_condition_top_bottom
+        (args...) -> bc(args...)
+    end
     semi_types = Trixi.remake(semi,
                               boundary_conditions = (; boundary_conditions...,
                                                      y_pos = boundary_condition_slip_wall_y_pos),
