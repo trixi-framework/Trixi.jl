@@ -261,7 +261,8 @@ tspan = (0.0, 0.2)
 # Setting `real_type` allows to change the real number type, e.g., to `Float32`.
 # This is particularly useful when changing the `storage_type` to a GPU array
 # type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
@@ -273,6 +274,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
+# A `Rational` initial time step `dt` keeps the real type of `semi` for the time
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
-            abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
+            abstol = time_int_tol, reltol = time_int_tol, dt = 1 // 100_000,
             ode_default_options()..., callback = callbacks)

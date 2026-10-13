@@ -307,14 +307,14 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
     n_nodes = nnodes(dg.basis)
 
     _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
-    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
-                                   (2, n_nodes - 1, n_nodes,
-                                    n_elements))
+    normal_vectors_1 = unsafe_wrap_or_alloc(Array, _normal_vectors_1,
+                                            (2, n_nodes - 1, n_nodes,
+                                             n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
-    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
-                                   (2, n_nodes, n_nodes - 1,
-                                    n_elements))
+    normal_vectors_2 = unsafe_wrap_or_alloc(Array, _normal_vectors_2,
+                                            (2, n_nodes, n_nodes - 1,
+                                             n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)

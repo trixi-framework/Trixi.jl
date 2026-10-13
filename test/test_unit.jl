@@ -4860,6 +4860,134 @@ end
                                                                                       semi)
 end
 
+@testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mesh = P4estMesh((2, 2), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+
+    # Without keyword arguments, nothing is adapted
+    @test trixi_adapt(semi) === semi
+    # The flux differencing kernel is part of the `cache` from the beginning
+    @test semi.cache.flux_differencing_kernel === HalfSweep()
+
+    # Only the real type is changed, the current array type is kept
+    @test Trixi.storage_type(semi) === Array
+    semi32 = trixi_adapt(semi; real_type = Float32)
+    @test real(semi32) == Float32
+    @test Trixi.storage_type(semi32) === Array
+    @test Trixi.storage_type(semi32.cache.elements) === Array
+    # The containers of other meshes do not support other array types
+    semi_tree = SemidiscretizationHyperbolic(TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                                      initial_refinement_level = 1,
+                                                      periodicity = true),
+                                             equations, initial_condition_convergence_test,
+                                             solver;
+                                             boundary_conditions = boundary_condition_periodic)
+    @test Trixi.storage_type(semi_tree) === Array
+    @test semi32.cache.flux_differencing_kernel === HalfSweep()
+
+    # An explicitly selected kernel is kept when adapting the semidiscretization again
+    semi_global = trixi_adapt(semi; flux_differencing_kernel = FullSweepGlobal())
+    @test real(semi_global) == Float64
+    @test semi_global.cache.flux_differencing_kernel === FullSweepGlobal()
+    semi_global32 = trixi_adapt(semi_global; storage_type = Array, real_type = Float32)
+    @test real(semi_global32) == Float32
+    @test semi_global32.cache.flux_differencing_kernel === FullSweepGlobal()
+
+    # The kernel can only be selected if it is used
+    solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    semi_weak_form = SemidiscretizationHyperbolic(mesh, equations,
+                                                  initial_condition_convergence_test,
+                                                  solver_weak_form;
+                                                  boundary_conditions = boundary_condition_periodic)
+    @test !haskey(semi_weak_form.cache, :flux_differencing_kernel)
+    @test real(trixi_adapt(semi_weak_form; real_type = Float32)) == Float32
+    @test_throws ArgumentError trixi_adapt(semi_weak_form;
+                                           flux_differencing_kernel = FullSweep())
+
+    # The volume integral cache of a `P4estMeshView` is created differently
+    mesh_view = P4estMeshView(mesh, [1, 2])
+    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
+                                    Float64)
+    @test cache_view.flux_differencing_kernel === HalfSweep()
+
+    # The GPU resource limits are not checked for CPU arrays, see also
+    # "Unit: check_flux_differencing_shared_memory"
+    mesh_3d = P4estMesh((1, 1, 1), polydeg = 1,
+                        coordinates_min = (-1.0, -1.0, -1.0),
+                        coordinates_max = (1.0, 1.0, 1.0),
+                        periodicity = true)
+    solver_3d = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                      volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi_3d = SemidiscretizationHyperbolic(mesh_3d,
+                                           LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0),
+                                           initial_condition_constant, solver_3d;
+                                           boundary_conditions = boundary_condition_periodic)
+    @test semi_3d.cache.flux_differencing_kernel === HalfSweep()
+    semi_3d_full_sweep = @test_logs min_level=Base.CoreLogging.Warn trixi_adapt(semi_3d;
+                                                                                storage_type = Array,
+                                                                                flux_differencing_kernel = FullSweep())
+    @test semi_3d_full_sweep.cache.flux_differencing_kernel === FullSweep()
+
+    # `semidiscretize` uses the real type of `semi` for the time span
+    ode = semidiscretize(semi32, (0.0, 1.0))
+    @test ode.p === semi32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = semidiscretize(semi, (0.0f0, 1.0f0))
+    @test ode.p === semi
+    @test ode.tspan === (0.0, 1.0)
+
+    # Deprecated keyword arguments of `semidiscretize`
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
+    @test real(ode.p) == Float32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
+                                          flux_differencing_kernel = FullSweep())
+    @test real(ode.p) == Float64
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+
+    # The `SummaryCallback` warns if the time type differs from the real type of
+    # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
+    ode = semidiscretize(semi32, (0.0, 2.0e-3))
+    callbacks = CallbackSet(SummaryCallback())
+    alg = Trixi.CarpenterKennedy2N54()
+    @test_logs (:warn, r"The time `t` has the type Float64") match_mode=:any redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0e-3, callback = callbacks)
+    end
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0f-3, callback = callbacks)
+    end
+
+    # Custom semidiscretizations do not need to implement `real`, see the tutorial
+    # `docs/literate/src/files/custom_semidiscretization.jl`
+    struct CustomSemidiscretization{Semi} <: Trixi.AbstractSemidiscretization
+        semi::Semi
+    end
+    Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
+    function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
+        return Trixi.mesh_equations_solver_cache(semi.semi)
+    end
+    function rhs_custom!(du_ode, u_ode, semi_custom, t)
+        return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_custom.semi, t)
+    end
+    semi_custom = CustomSemidiscretization(semi32)
+    @test !applicable(real, semi_custom)
+    @test Trixi.convert_tspan(semi_custom, (0.0, 1.0)) === (0.0, 1.0)
+    ode = semidiscretize(semi32, (0.0f0, 2.0f-3))
+    ode_custom = Trixi.ODEProblem(rhs_custom!, ode.u0, (0.0, 2.0e-3), semi_custom)
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode_custom, alg; dt = 1.0e-3, callback = callbacks)
+    end
+end
+
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
     Setup,
     UnitTests
