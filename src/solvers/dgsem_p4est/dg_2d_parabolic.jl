@@ -489,10 +489,12 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_primary,
+                    flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                   i_primary,
                                                                    j_primary,
                                                                    primary_element],
-                                                  flux_parabolic_y[v, i_primary,
+                                                  flux_parabolic_y[v,
+                                                                   i_primary,
                                                                    j_primary,
                                                                    primary_element])
 
@@ -678,10 +680,12 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                             i_small, j_small, element)
 
                     for v in eachvariable(equations_parabolic)
-                        flux_parabolic_node = SVector(flux_parabolic_x[v, i_small,
+                        flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                       i_small,
                                                                        j_small,
                                                                        element],
-                                                      flux_parabolic_y[v, i_small,
+                                                      flux_parabolic_y[v,
+                                                                       i_small,
                                                                        j_small,
                                                                        element])
 
@@ -716,9 +720,13 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                         i_large, j_large, element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_large, j_large,
+                    flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                   i_large,
+                                                                   j_large,
                                                                    element],
-                                                  flux_parabolic_y[v, i_large, j_large,
+                                                  flux_parabolic_y[v,
+                                                                   i_large,
+                                                                   j_large,
                                                                    element])
 
                     # We prolong the parabolic flux dotted with respect the outward normal
@@ -865,7 +873,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
 
                     calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                                mesh, equations_parabolic,
-                                               dg, parabolic_scheme, cache,
+                                               dg, parabolic_scheme, cache.mortars.u,
                                                mortar, position, normal_direction, i)
 
                     i_small += i_small_step
@@ -893,19 +901,20 @@ end
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a parabolic conservative "flux") and thus no
 # non-conservative terms are present.
+# The mortar data `mortars_u` is passed explicitly (instead of `cache`) such that this
+# function can be used for both the serial mortars (`cache.mortars.u`) and the MPI
+# mortars (`cache.mpi_mortars.u`).
 Base.@propagate_inbounds function calc_mortar_flux_gradient!(fstar_primary,
                                                              fstar_secondary,
                                                              mesh::P4estMesh{2},
                                                              equations_parabolic,
                                                              dg::DG, parabolic_scheme,
-                                                             cache,
+                                                             mortars_u,
                                                              mortar_index,
                                                              position_index,
                                                              normal_direction,
                                                              node_index)
-    @unpack u = cache.mortars
-
-    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations_parabolic, dg,
                                        position_index, node_index, mortar_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
@@ -965,9 +974,13 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                                                         i_node, j_node, element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_node, j_node,
+                    flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                   i_node,
+                                                                   j_node,
                                                                    element],
-                                                  flux_parabolic_y[v, i_node, j_node,
+                                                  flux_parabolic_y[v,
+                                                                   i_node,
+                                                                   j_node,
                                                                    element])
 
                     boundaries.u[v, i, boundary] = dot(flux_parabolic_node,

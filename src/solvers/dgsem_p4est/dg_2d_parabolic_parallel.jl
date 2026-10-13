@@ -292,6 +292,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
+    @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -332,16 +333,19 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                                         local_element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_parabolic_node = SVector(flux_parabolic_x[v, i_elem, j_elem,
+                    flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                   i_elem,
+                                                                   j_elem,
                                                                    local_element],
-                                                  flux_parabolic_y[v, i_elem, j_elem,
+                                                  flux_parabolic_y[v,
+                                                                   i_elem,
+                                                                   j_elem,
                                                                    local_element])
-                    # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
-                    # Thus, the `orientation_factor` changes the logic such that the
-                    # flux which enters side 1 leaves side 2.
-                    cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
-                                                                          dot(flux_parabolic_node,
-                                                                              normal_direction)
+                    # Side 1 and 2 must be consistent, i.e., with their outward-pointing
+                    # normals. Thus, the `orientation_factor` changes the logic such that
+                    # the flux which enters side 1 leaves side 2.
+                    flux_normal = dot(flux_parabolic_node, normal_direction)
+                    u[local_side, v, i, interface] = orientation_factor * flux_normal
                 end
 
                 i_elem += i_step
@@ -522,7 +526,6 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                                         dg::DG, parabolic_scheme, cache)
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
-    @unpack u = cache.mpi_mortars
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -541,19 +544,17 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
 
             for position in 1:2
                 for i in eachnode(dg)
+                    # Use the normal direction of the small element, which is
+                    # available on all MPI ranks of this mortar
                     normal_direction = get_normal_direction(cache.mpi_mortars, i,
                                                             position, mortar)
 
-                    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                                       position, i, mortar)
-
-                    flux = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                                          equations_parabolic, parabolic_scheme)
-
-                    set_node_vars!(fstar_primary[position], flux,
-                                   equations_parabolic, dg, i)
-                    set_node_vars!(fstar_secondary[position], flux,
-                                   equations_parabolic, dg, i)
+                    # This reuses the serial version with the MPI mortar data
+                    calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                               mesh, equations_parabolic,
+                                               dg, parabolic_scheme,
+                                               cache.mpi_mortars.u,
+                                               mortar, position, normal_direction, i)
                 end
             end
 
@@ -692,10 +693,12 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_large,
+                            flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                           i_large,
                                                                            j_large,
                                                                            element],
-                                                          flux_parabolic_y[v, i_large,
+                                                          flux_parabolic_y[v,
+                                                                           i_large,
                                                                            j_large,
                                                                            element])
 
@@ -732,10 +735,12 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                 element)
 
                         for v in eachvariable(equations_parabolic)
-                            flux_parabolic_node = SVector(flux_parabolic_x[v, i_small,
+                            flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                           i_small,
                                                                            j_small,
                                                                            element],
-                                                          flux_parabolic_y[v, i_small,
+                                                          flux_parabolic_y[v,
+                                                                           i_small,
                                                                            j_small,
                                                                            element])
 

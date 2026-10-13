@@ -43,7 +43,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 10.0)
-ode = semidiscretize(semi, tspan)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# Setting `storage_type` allows to change the array type, e.g., to a GPU array type.
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 

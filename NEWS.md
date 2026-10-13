@@ -21,6 +21,8 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh{2}`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314]).
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -66,7 +68,8 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
-- The parabolic terms on conforming `P4estMesh3D`s now support MPI parallelization ([#3291]).
+- The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
+  ([#3291]) and nonconforming meshes ([#2894]).
 
 #### Changed
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
@@ -98,6 +101,9 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
+  `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
+  boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
 - `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing

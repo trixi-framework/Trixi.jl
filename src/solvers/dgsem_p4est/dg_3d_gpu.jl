@@ -1162,10 +1162,12 @@ end
     return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
 end
 
-Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
-                                                       node_indices,
-                                                       contravariant_vectors,
-                                                       index_range, i, j, interface)
+# Compute the elements, directions, and volume node indices on both sides of an
+# interface for the surface node `(i, j)` (counted along the primary side) as
+# well as the surface node indices `(i_secondary, j_secondary)` on the secondary
+# element, which might run backwards or be transposed for flipped sides.
+Base.@propagate_inbounds function get_interface_indices(neighbor_ids, node_indices,
+                                                        index_range, i, j, interface)
     n = length(index_range)
 
     primary_element = neighbor_ids[1, interface]
@@ -1212,6 +1214,23 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
                                    i_secondary_step_start_j, i, j, n)
     j_secondary = delayed_index_3d(j_secondary_step_start, j_secondary_step_start_i,
                                    j_secondary_step_start_j, i, j, n)
+
+    return (primary_direction, primary_element, i_primary, j_primary, k_primary,
+            i_secondary, j_secondary, secondary_direction, secondary_element,
+            i_secondary_node, j_secondary_node, k_secondary_node)
+end
+
+Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
+                                                       node_indices,
+                                                       contravariant_vectors,
+                                                       index_range, i, j, interface)
+    (primary_direction, primary_element, i_primary, j_primary, k_primary,
+    i_secondary, j_secondary, secondary_direction, secondary_element,
+    i_secondary_node, j_secondary_node, k_secondary_node) = get_interface_indices(neighbor_ids,
+                                                                                  node_indices,
+                                                                                  index_range,
+                                                                                  i, j,
+                                                                                  interface)
 
     u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, k_primary,
                          primary_element)
@@ -1442,37 +1461,42 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
                                      node_coordinates, contravariant_vectors)
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
-    length(boundary_condition_indices) == 0 && return nothing
-    @unpack boundaries = cache
-    @unpack neighbor_ids, node_indices = boundaries
-    # Explicit bounds check, which allows us to assume inbounds access in the kernel
-    @boundscheck begin
-        check_axes(boundaries, equations, dg, cache)
-        check_axes(cache.elements, equations, dg, cache)
-        check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
-                                       equations, dg,
-                                       cache)
+
+    # A boundary condition type without any boundaries (e.g., in parallel
+    # runs, where not every rank owns boundaries of every name) must not stop
+    # the processing of the remaining boundary condition types below.
+    n_boundaries = length(boundary_condition_indices)
+    if n_boundaries > 0
+        @unpack boundaries = cache
+        @unpack neighbor_ids, node_indices = boundaries
+        # Explicit bounds check, which allows us to assume inbounds access in the kernel
+        @boundscheck begin
+            check_axes(boundaries, equations, dg, cache)
+            check_axes(cache.elements, equations, dg, cache)
+            check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
+                                           equations, dg, cache)
+        end
+
+        index_range = eachnode(dg)
+        kernel_cache = kernel_filter_cache(cache)
+        kernel! = calc_boundary_flux_kernel!(backend)
+        kernel!(boundaries.u,
+                cache.elements.surface_flux_values,
+                boundary_condition_indices,
+                neighbor_ids,
+                node_indices,
+                t,
+                boundary_condition,
+                index_range,
+                typeof(mesh),
+                equations,
+                surface_integral,
+                dg,
+                kernel_cache, node_coordinates, contravariant_vectors;
+                ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
     end
 
-    index_range = eachnode(dg)
-    n_boundaries = length(boundary_condition_indices)
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = calc_boundary_flux_kernel!(backend)
-    kernel!(boundaries.u,
-            cache.elements.surface_flux_values,
-            boundary_condition_indices,
-            neighbor_ids,
-            node_indices,
-            t,
-            boundary_condition,
-            index_range,
-            typeof(mesh),
-            equations,
-            surface_integral,
-            dg,
-            kernel_cache, node_coordinates, contravariant_vectors;
-            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
-
+    # Recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
                                 Base.tail(BC_indices),

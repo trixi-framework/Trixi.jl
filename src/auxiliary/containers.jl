@@ -307,7 +307,12 @@ end
 function unsafe_wrap_or_alloc(to, vector, size)
     if length(vector) == 0
         return similar(vector, size)
-    elseif isbitstype(eltype(vector))
+    elseif isbitstype(eltype(vector)) ||
+           eltype(vector) === Symbol ||
+           eltype(vector) <: NTuple{N, Symbol} where {N}
+        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
+        # are not `isbitstype`s, they are not freed, so we can also use
+        # `unsafe_wrap` for them.
         return unsafe_wrap(to, pointer(vector), size)
     else
         return reshape(vector, size)
