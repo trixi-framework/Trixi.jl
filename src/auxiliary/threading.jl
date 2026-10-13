@@ -28,6 +28,11 @@
 # Number of chunks a threaded loop over `range` is split into.
 # Returns `1` if the loop should be run serially, e.g., because only a single thread
 # is available, or when called from inside another threaded loop (nested threading).
+# This is inlined in front of the serial loop of `@threaded`, so it must not contain
+# acquire (or stronger) atomic loads: LLVM's MemoryDependenceAnalysis treats them as
+# clobbers ("FIXME: This is overly conservative"), so that GVN cannot merge loads before
+# and after them, e.g., array sizes checked by `check_axes`. This cost 4-8% in several
+# kernels on Julia v1.13. `ParkedWorkers.nchunks` only uses relaxed loads.
 @inline function threaded_nchunks(range)
     @static if _THREADING_BACKEND === :serial
         return 1
