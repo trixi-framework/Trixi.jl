@@ -124,7 +124,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
     uEltype = eltype(B1)
     linf_divB = zero(uEltype)
     local_divB = zeros(uEltype, size(B1, 1))
-    @batch reduction=(max, linf_divb) for e in eachelement(mesh, dg, cache)
+    @threaded reduction=(max, linf_divb) for e in eachelement(mesh, dg, cache)
         compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
         # compute maximum norm

@@ -418,7 +418,7 @@ function max_dt(u, t, mesh::P4estMesh{2}, constant_speed::False, equations,
     @unpack normal_x, normal_y = cache
     max_scaled_speed = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             lambda1, lambda2 = max_abs_speeds(u_node, equations)
@@ -440,7 +440,7 @@ function max_dt(u, t, mesh::P4estMesh{2}, constant_speed::True, equations,
     max_scaled_speed = nextfloat(zero(t))
     lambda1, lambda2 = max_abs_speeds(equations)
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             speed = max_face_speed(normal_x, normal_y, i, j, element, lambda1, lambda2)
             cell_volume = abs(inv(inverse_jacobian[i, j, element]))
@@ -465,7 +465,7 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
     total_volume_ = zero(eltype(inverse_jacobian))
 
-    @batch reduction=((+, integral), (+, total_volume_)) for element in eachelement(dg,
+    @threaded reduction=((+, integral), (+, total_volume_)) for element in eachelement(dg,
                                                                                     cache)
         for j in eachnode(dg)
             for i in eachnode(dg)

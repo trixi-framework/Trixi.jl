@@ -18,7 +18,10 @@ module Trixi
 using Preferences: @load_preference, set_preferences!
 const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "polyester"))
+const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "pool"))
+# The former `:polyester` backend is mapped to `:pool` (with a warning in `__init__`).
+const _THREADING_BACKEND = _PREFERENCE_THREADING === :polyester ? :pool :
+                           _PREFERENCE_THREADING
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
 const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 
@@ -82,8 +85,7 @@ end
 
 using StaticArrayInterface: StaticArrayInterface, static_length # used by LoopVectorization
 using MuladdMacro: @muladd
-using Octavian: Octavian, matmul!
-using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
+using Octavian: Octavian, matmul_serial!
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
@@ -94,25 +96,17 @@ using Static: Static, One, True, False
 @doc """
     Trixi.Threaded()
 
-Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
-[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
-Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend,
-(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms,
-since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
+Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms.
+OrdinaryDiffEq.jl uses Polyester.jl for its threaded stage updates. Since Polyester.jl's
+spinning worker threads interact badly with other shared-memory parallelism such as the
+threaded loops of Trixi.jl (see [`@threaded`](@ref)), `Trixi.Threaded()` disables
+threading in OrdinaryDiffEq.jl algorithms.
 """ Threaded
 
-@static if _PREFERENCE_THREADING === :polyester
-    @static if isdefined(DiffEqBase, :Threaded)
-        Threaded() = DiffEqBase.Threaded()
-    else
-        Threaded() = True()
-    end
+@static if isdefined(DiffEqBase, :Threaded)
+    Threaded() = DiffEqBase.Serial()
 else
-    @static if isdefined(DiffEqBase, :Threaded)
-        Threaded() = DiffEqBase.Serial()
-    else
-        Threaded() = False()
-    end
+    Threaded() = False()
 end
 
 @reexport using StaticArrays: SVector
@@ -172,6 +166,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+include("auxiliary/threading.jl")
 include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
@@ -405,6 +400,10 @@ function __init__()
     # then the MPI launcher will error if more processes than asked for are launched.
     if ccall(:jl_generating_output, Cint, ()) == 1
         return nothing
+    end
+
+    if _PREFERENCE_THREADING === :polyester
+        @warn "The `:polyester` threading backend has been removed from Trixi.jl; using `:pool` instead. Call `Trixi.set_threading_backend!(:pool)` to silence this warning."
     end
 
     init_mpi()

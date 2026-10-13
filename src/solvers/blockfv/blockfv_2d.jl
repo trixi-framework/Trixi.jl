@@ -138,7 +138,7 @@ function integrate_via_indices(func::Func, u,
 
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
-    @batch reduction=(+, integral) for element in eachelement(dg, cache)
+    @threaded reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for j in eachnode(dg)
             for i in eachnode(dg)
@@ -196,7 +196,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda_sum = zero(max_scaled_speed)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
