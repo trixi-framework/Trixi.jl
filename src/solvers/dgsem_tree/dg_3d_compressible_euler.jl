@@ -13,10 +13,10 @@
 # We do not wrap this code in `@muladd begin ... end` block. Optimizations like
 # this are handled automatically by LoopVectorization.jl.
 
-# We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
+# We specialize on `TurboArray`s since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
+@inline function flux_differencing_kernel!(_du::TurboArray, u_cons::TurboArray,
                                            element, MeshT::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,
@@ -262,7 +262,7 @@
     end
 end
 
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
+@inline function flux_differencing_kernel!(_du::TurboArray, u_cons::TurboArray,
                                            element, MeshT::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,

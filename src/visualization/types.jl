@@ -233,7 +233,7 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 function PlotData2D(u_ode, semi; kwargs...)
-    return PlotData2D(wrap_array_native(u_ode, semi),
+    return PlotData2D(wrap_array(u_ode, semi),
                       mesh_equations_solver_cache(semi)...;
                       kwargs...)
 end
@@ -244,7 +244,7 @@ function PlotData2D(u_ode, semi::SemidiscretizationCoupled; kwargs...)
 
     foreach_enumerate(semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
-        u_loc_wrapped = wrap_array_native(u_loc, semi_)
+        u_loc_wrapped = wrap_array(u_loc, semi_)
 
         return push!(plot_data_array,
                      PlotData2D(u_loc_wrapped,
@@ -257,7 +257,7 @@ end
 
 # Redirect `PlotDataTriangulated2D` constructor.
 function PlotData2DTriangulated(u_ode, semi; kwargs...)
-    return PlotData2DTriangulated(wrap_array_native(u_ode, semi),
+    return PlotData2DTriangulated(wrap_array(u_ode, semi),
                                   mesh_equations_solver_cache(semi)...;
                                   kwargs...)
 end
@@ -572,6 +572,10 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
 
+    # Use a plain `Array` so that the plotting data does not depend on the array type of
+    # `u` (e.g., a `FixedSizeArray` slice of `wrap_array`).
+    u = Array(u)
+
     # build nodes on reference element (seems to be the right ordering)
     r, s = reference_node_coordinates_2d(dg)
 
@@ -643,7 +647,7 @@ This is done with the keyword argument `curve`. It can be set to a list of 2D/3D
 which define the curve. When using `curve` any other input from `slice` or `point` will be ignored.
 """
 function PlotData1D(u_ode, semi; kwargs...)
-    return PlotData1D(wrap_array_native(u_ode, semi),
+    return PlotData1D(wrap_array(u_ode, semi),
                       mesh_equations_solver_cache(semi)...;
                       kwargs...)
 end

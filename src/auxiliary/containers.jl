@@ -215,6 +215,10 @@ function storage_type(::Type{<:Array})
     return Array
 end
 
+function storage_type(::Type{<:FixedSizeArray{T, N, Mem}}) where {T, N, Mem}
+    return storage_type(Mem)
+end
+
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
@@ -279,45 +283,22 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
-# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
-# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+# Wrap the internal (`resize!`able) storage `vector` of a container as a
+# multi-dimensional array of size `dims` without copying. This is used for the
+# containers (initial creation, `resize!`, and `Adapt.adapt_structure`). All callers
+# adapt or resize `vector` to the target storage type before wrapping it, so we can
+# dispatch on the type of `vector` itself.
 #
-# For some storage backends like CUDA.jl, empty arrays do seem to simply be
-# null pointers which can cause `unsafe_wrap` to fail when calling
-# Adapt.adapt (ArgumentError, see
-# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
-# To circumvent this, on length zero arrays this allocates
-# a separate empty array instead of wrapping.
-# However, since zero length arrays are not used in calculations,
-# it should be okay if the underlying storage vectors and wrapped arrays
-# are not the same as long as they are properly wrapped when `resize!`d etc.
+# For CPU `Vector`s, this returns a `VectorBackedArray` (see `wrap_vector`), which keeps
+# a reference to `vector`. This is safe with respect to the garbage collector for all
+# element types (including non-`isbits` ones) and allows `resize!`ing `vector`
+# afterwards (followed by wrapping it again), also on Julia v1.10.
 #
-# !!! danger "Non-`isbits` element types"
-#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
-#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
-#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
-#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
-#     is not rescanned during an incremental collection, and the stored objects can be
-#     freed while `vector` still refers to them. Hence, we use `reshape` for these
-#     element types, which shares the memory of `vector` in a way the garbage collector
-#     understands. On Julia v1.10, this marks `vector` as shared, so
-#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
-#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
-#     wrapped array is in use.
-function unsafe_wrap_or_alloc(to, vector, size)
-    if length(vector) == 0
-        return similar(vector, size)
-    elseif isbitstype(eltype(vector)) ||
-           eltype(vector) === Symbol ||
-           eltype(vector) <: NTuple{N, Symbol} where {N}
-        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
-        # are not `isbitstype`s, they are not freed, so we can also use
-        # `unsafe_wrap` for them.
-        return unsafe_wrap(to, pointer(vector), size)
-    else
-        return reshape(vector, size)
-    end
-end
+# For all other vectors, we use `reshape`. For GPU arrays such as `CuArray` or `ROCArray`,
+# the result shares the (reference-counted) buffer of `vector`. This also covers device
+# arrays used inside kernels (e.g., `CuDeviceArray`) and CPU views.
+@inline wrap_storage(vector::Vector, dims) = wrap_vector(vector, dims)
+@inline wrap_storage(vector::AbstractVector, dims) = reshape(vector, dims)
 
 struct TrixiAdaptor{Storage, RealT} end
 
@@ -374,9 +355,6 @@ end
 
 # 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
-function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
-    return unsafe_wrap_or_alloc(Storage, vec, size)
-end
 end # @muladd
 
 # An N-dimensional view of a `resize!`able backing `Vector`, used instead of
@@ -392,3 +370,11 @@ const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
 @inline function wrap_vector(v::Vector, dims)
     return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
 end
+
+# Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
+# `flux_differencing_kernel!`). `wrap_array` returns a `VectorBackedArray` for CPU
+# `Vector`s, and threading via Polyester.jl may convert them to `PtrArray`s.
+# We restrict the element types to those supported natively by LoopVectorization.jl
+# (e.g., no `ForwardDiff.Dual`s), mirroring `LoopVectorization.check_args`.
+const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
+                         VectorBackedArray{<:LoopVectorization.NativeTypes}}

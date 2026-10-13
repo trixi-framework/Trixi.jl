@@ -573,14 +573,14 @@ end
     # The `element_variables` and `node_variables` are computed for the Euler system since
     # `mesh_equations_solver_cache(semi)` returns the data of `semi.semi_euler`. We store
     # them in both files since they are defined on the same mesh.
-    u_euler = wrap_array_native(u_ode, semi.semi_euler)
+    u_euler = wrap_array(u_ode, semi.semi_euler)
     filename_euler = save_solution_file(u_euler, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_euler)...,
                                         solution_callback, element_variables,
                                         node_variables,
                                         system = system_euler)
 
-    u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
+    u_gravity = wrap_array(semi.cache.u_ode, semi.semi_gravity)
     filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                           mesh_equations_solver_cache(semi.semi_gravity)...,
                                           solution_callback, element_variables,
