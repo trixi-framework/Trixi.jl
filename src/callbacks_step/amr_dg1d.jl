@@ -122,7 +122,7 @@ function refine_element!(u::AbstractArray{<:Any, 3}, element_id,
 
     # Interpolate to left element
     for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, old_element_id))
         for k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
                    forward_lower[i, k]
@@ -132,7 +132,7 @@ function refine_element!(u::AbstractArray{<:Any, 3}, element_id,
 
     # Interpolate to right element
     for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, old_element_id))
         for k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
                    forward_upper[i, k]
@@ -255,7 +255,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
     end
 
     for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, old_element_id))
 
         # Project from lower left element
         for k in eachnode(dg)
