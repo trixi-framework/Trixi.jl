@@ -892,7 +892,8 @@ function PlotData2D(u::StructArray,
     reference_vertex_coordinates = map(coordinates -> SVector{4, RealT}(coordinates),
                                        StartUpDG.nodes(Tet(), 1))
     reference_coordinates = ntuple(_ -> Vector{RealT}(undef, num_triangle_nodes), 3)
-    element_vandermonde = StartUpDG.vandermonde(Tet(), rd.N, rd.rst...)
+    element_vandermonde_factorization = lu(StartUpDG.vandermonde(Tet(), rd.N,
+                                                                 rd.rst...))
     solution_variables_ = digest_solution_variables(equations, solution_variables)
 
     slice_element = 0
@@ -921,7 +922,7 @@ function PlotData2D(u::StructArray,
             # Evaluate the source element's basis there, then go to the plotting nodes.
             interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
                                                          reference_coordinates...) /
-                                   element_vandermonde
+                                   element_vandermonde_factorization
             apply_to_each_field(mul_by!(interpolation_matrix), u_slice,
                                 view(u, :, element))
             apply_to_each_field(mul_by!(rd_slice.Vp), view(u_plot, :, slice_element),
@@ -934,7 +935,7 @@ function PlotData2D(u::StructArray,
     x_face, y_face, face_data = slice_plotting_wireframe(u, intersection_polygons, rd,
                                                          (orientation_x, orientation_y),
                                                          reference_vertex_coordinates,
-                                                         element_vandermonde,
+                                                         element_vandermonde_factorization,
                                                          equations, solution_variables_;
                                                          nvisnodes)
 

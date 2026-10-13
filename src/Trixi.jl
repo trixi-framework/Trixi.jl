@@ -28,7 +28,7 @@ const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 using Accessors: @reset
 using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal,
                      I, UniformScaling,
-                     det, diag, dot, eigvals, mul!, norm, cross, normalize
+                     det, diag, dot, eigvals, lu, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros, dropzeros!
