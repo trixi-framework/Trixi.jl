@@ -139,6 +139,12 @@ Some discussion can be found at [https://discourse.julialang.org/t/overhead-of-t
 and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435](https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435).
 """
 macro threaded(args...)
+    # !!! danger "Heisenbug"
+    #     `wrap_array` used to return `PtrArray`s only for Polyester.jl since
+    #     `Threads.@threads` combined with them caused sporadic, huge slowdowns.
+    #     The hand-written `@turbo` kernels are still only selected for the `:pool`
+    #     backend (see `TurboArray`). Keep this in mind when considering to change this
+    #     macro.
     expr = args[end]
     reductions = Tuple{Any, Symbol}[]
     for arg in args[1:(end - 1)]
