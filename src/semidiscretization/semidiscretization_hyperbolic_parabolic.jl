@@ -221,6 +221,10 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolicParabolic) = real(semi.solver)
 
+function storage_type(semi::SemidiscretizationHyperbolicParabolic)
+    return storage_type(semi.mesh, semi.cache)
+end
+
 # retain dispatch on hyperbolic equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicParabolic)
     @unpack mesh, equations, solver, cache = semi
@@ -258,16 +262,14 @@ end
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                    jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                   storage_type = nothing,
-                   real_type = nothing,
-                   flux_differencing_kernel = nothing)
+                   colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
+The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
 - `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
@@ -277,12 +279,9 @@ Optional keyword arguments:
   The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
-- `storage_type` and `real_type`: Configure the underlying computational datastructures.
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
-  or other GPU array types. `real_type` changes the computational data type being used.
-- `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
-  volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
-  [`FullSweepGlobal()`](@ref).
+
+The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
+deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
@@ -298,8 +297,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         Polyester.reset_threads!()
     end
 
-    semi, tspan = adapt_semidiscretization(semi, tspan; storage_type, real_type,
-                                           flux_differencing_kernel)
+    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
+                                  flux_differencing_kernel)
+    tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
@@ -342,6 +342,7 @@ will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 
 The initial condition etc. is taken from the `restart_file`.
+The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
 - `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
@@ -364,6 +365,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         Polyester.reset_threads!()
     end
 
+    tspan = convert_tspan(semi, tspan)
     u0_ode = load_restart_file(semi, restart_file)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())

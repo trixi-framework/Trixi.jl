@@ -5,6 +5,16 @@
 @muladd begin
 #! format: noindent
 
+# The GPU kernel used for `VolumeIntegralFluxDifferencing` is stored in the `cache` so
+# that it can be selected via `trixi_adapt`. Creating it together with the `cache`
+# ensures that it is available for all backends, e.g., the KernelAbstractions.jl
+# CPU backend without calling `trixi_adapt`.
+function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
+                      ::VolumeIntegralFluxDifferencing, dg::DG, cache_containers,
+                      uEltype)
+    return (; flux_differencing_kernel = HalfSweep())
+end
+
 # The half sweep and full sweep kernels have a shared memory within an element,
 # and therefore, they need all nodes of an element in a single workgroup.
 @inline function flux_differencing_workgroupsize_3d(::Union{HalfSweep, FullSweep},
