@@ -38,7 +38,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
     # Avoid division by zero if the diffusivity vanishes everywhere
     max_scaled_diffusivity = nextfloat(zero(t))
 
-    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity_ = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -132,7 +133,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -222,7 +224,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             # Local diffusivity transformed to the reference element

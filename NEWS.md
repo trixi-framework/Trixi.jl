@@ -81,11 +81,13 @@ for human readability.
   The internal function `wrap_array_native` is deprecated; use `wrap_array` instead.
   The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
 - Trixi.jl no longer depends on Polyester.jl. The default threading backend of `@threaded`
-  is now `:pool`, a small pool of persistent worker tasks; `Threads.@threads :static`
-  and `:dynamic` are available via `Trixi.set_threading_backend!`. The `:polyester`
-  preference is treated as `:pool`. `@threaded` supports Polyester.jl-style
-  `reduction = ...` arguments, which replace the direct uses of `@batch`.
-  `Trixi.Threaded()` now always disables threading in OrdinaryDiffEq.jl, and the
+  is now `:pool`, a small pool of persistent worker tasks (a vendored copy of
+  ParkedWorkers.jl). `Threads.@threads :static` and `:dynamic` are available via
+  `Trixi.set_threading_backend!`. The `:polyester` preference is treated as `:pool`, with
+  a warning. `@threaded` supports Polyester.jl-style `reduction = ...` arguments, which
+  replace the direct uses of `@batch`. Threaded loops no longer allocate, and exceptions in
+  threaded loops are propagated. `Trixi.Threaded()` now always disables threading in
+  OrdinaryDiffEq.jl (its threaded stage updates require Polyester.jl), and the
   `reset_threads` keyword arguments have no effect anymore.
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and

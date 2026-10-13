@@ -166,7 +166,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -245,7 +246,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
         for j in eachnode(dg), i in eachnode(dg)
             # Local diffusivity transformed to the reference element
