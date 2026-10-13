@@ -209,7 +209,7 @@ end
        return nothing
    end
 
-   @kernel function rhs_fct_kernel!(unpacked_args, args)
+   @kernel inbounds=true function rhs_fct_kernel!(unpacked_args, args)
        element = @index(Global)
        rhs_fct_per_element(element, unpacked_args, args)
    end

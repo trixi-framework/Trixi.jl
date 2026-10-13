@@ -16,18 +16,19 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
+                               dg)
     end
 
     # Prolong solution to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars" begin
-        prolong2mpimortars!(cache, u, mesh, equations,
+        prolong2mpimortars!(backend, cache, u, mesh, equations,
                             dg.mortar, dg)
     end
 
     # Start to send MPI data
     @trixi_timeit timer() "start MPI send" begin
-        start_mpi_send!(cache.mpi_cache, mesh, equations, dg, cache)
+        start_mpi_send!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Reset du
@@ -78,12 +79,12 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Finish to receive MPI data
     @trixi_timeit timer() "finish MPI receive" begin
-        finish_mpi_receive!(cache.mpi_cache, mesh, equations, dg, cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Calculate MPI interface fluxes
     @trixi_timeit timer() "MPI interface flux" begin
-        calc_mpi_interface_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mpi_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
@@ -116,70 +117,87 @@ function rhs_hyperbolic!(backend::Nothing,
     return nothing
 end
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::Union{P4estMeshParallel{3},
                                             T8codeMeshParallel{3}},
                                 equations, surface_integral, dg::DG)
-    @unpack mpi_interfaces = cache
+    @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
+    mpi_interfaces_u = cache.mpi_interfaces.u
     index_range = eachnode(dg)
+    variables_range = eachvariable(equations)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
-        check_axes(mpi_interfaces, equations, dg, cache)
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        @inbounds begin
-            # Copy solution data from the local element using "delayed indexing" with
-            # a start value and a step size to get the correct face and orientation.
-            # Note that in the current implementation, the interface will be
-            # "aligned at the primary element", i.e., the index of the primary side
-            # will always run forwards.
-            local_side = mpi_interfaces.local_sides[interface]
-            local_element = mpi_interfaces.local_neighbor_ids[interface]
-            local_indices = mpi_interfaces.node_indices[interface]
-
-            i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
-                                                                                         index_range)
-            j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
-                                                                                         index_range)
-            k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
-                                                                                         index_range)
-
-            i_element = i_element_start
-            j_element = j_element_start
-            k_element = k_element_start
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    for v in eachvariable(equations)
-                        mpi_interfaces.u[local_side, v, i, j, interface] = u[v,
-                                                                             i_element,
-                                                                             j_element,
-                                                                             k_element,
-                                                                             local_element]
-                    end
-                    i_element += i_element_step_i
-                    j_element += j_element_step_i
-                    k_element += k_element_step_i
-                end
-                i_element += i_element_step_j
-                j_element += j_element_step_j
-                k_element += k_element_step_j
-            end
-        end
+        prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, typeof(mesh), interface,
+                                             local_sides, local_neighbor_ids,
+                                             node_indices,
+                                             index_range, variables_range, u)
     end
 
     return nothing
 end
 
-function calc_mpi_interface_flux!(surface_flux_values,
+@inline function prolong2mpiinterfaces_per_interface!(mpi_interfaces_u,
+                                                      ::Type{<:Union{P4estMeshParallel{3},
+                                                                     T8codeMeshParallel{3}}},
+                                                      interface,
+                                                      local_sides, local_neighbor_ids,
+                                                      node_indices, index_range,
+                                                      variables_range, u)
+    @inbounds begin
+        # Copy solution data from the local element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
+        local_side = local_sides[interface]
+        local_element = local_neighbor_ids[interface]
+        local_indices = node_indices[interface]
+
+        i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                     index_range)
+        j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                     index_range)
+        k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                     index_range)
+
+        i_element = i_element_start
+        j_element = j_element_start
+        k_element = k_element_start
+        for j in index_range
+            for i in index_range
+                for v in variables_range
+                    mpi_interfaces_u[local_side, v, i, j, interface] = u[v,
+                                                                         i_element,
+                                                                         j_element,
+                                                                         k_element,
+                                                                         local_element]
+                end
+                i_element += i_element_step_i
+                j_element += j_element_step_i
+                k_element += k_element_step_i
+            end
+            i_element += i_element_step_j
+            j_element += j_element_step_j
+            k_element += k_element_step_j
+        end
+    end
+    return nothing
+end
+
+function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                                   mesh::Union{P4estMeshParallel{3},
                                               T8codeMeshParallel{3}},
                                   have_nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
+    @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -190,85 +208,107 @@ function calc_mpi_interface_flux!(surface_flux_values,
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        @inbounds begin
-            # Get element and side index information on the local element
-            local_element = local_neighbor_ids[interface]
-            local_indices = node_indices[interface]
-            local_direction = indices2direction(local_indices)
-            local_side = local_sides[interface]
-
-            # Create the local i,j,k indexing on the local element used to pull normal direction information
-            i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
-                                                                                         index_range)
-            j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
-                                                                                         index_range)
-            k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
-                                                                                         index_range)
-
-            i_element = i_element_start
-            j_element = j_element_start
-            k_element = k_element_start
-
-            # Initiate the node indices to be used in the surface for loop,
-            # the surface flux storage must be indexed in alignment with the local element indexing
-            local_surface_indices = surface_indices(local_indices)
-            i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
-                                                                                         index_range)
-            j_surface_start, j_surface_step_i, j_surface_step_j = index_to_start_step_3d(local_surface_indices[2],
-                                                                                         index_range)
-            i_surface = i_surface_start
-            j_surface = j_surface_start
-
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    # Get the normal direction on the local element
-                    # Contravariant vectors at interfaces in negative coordinate direction
-                    # are pointing inwards. This is handled by `get_normal_direction`.
-                    normal_direction = get_normal_direction(local_direction,
-                                                            contravariant_vectors,
-                                                            i_element,
-                                                            j_element,
-                                                            k_element,
-                                                            local_element)
-
-                    calc_mpi_interface_flux!(surface_flux_values, mesh,
-                                             have_nonconservative_terms, equations,
-                                             surface_integral, dg, cache,
-                                             interface, normal_direction,
-                                             i, j, local_side,
-                                             i_surface, j_surface, local_direction,
-                                             local_element)
-
-                    # Increment local element indices to pull the normal direction
-                    i_element += i_element_step_i
-                    j_element += j_element_step_i
-                    k_element += k_element_step_i
-                    # Increment the surface node indices along the local element
-                    i_surface += i_surface_step_i
-                    j_surface += j_surface_step_i
-                end
-                # Increment local element indices to pull the normal direction
-                i_element += i_element_step_j
-                j_element += j_element_step_j
-                k_element += k_element_step_j
-                # Increment the surface node indices along the local element
-                i_surface += i_surface_step_j
-                j_surface += j_surface_step_j
-            end
-        end
+        calc_mpi_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+                                               have_nonconservative_terms, equations,
+                                               surface_integral, typeof(dg),
+                                               local_neighbor_ids, node_indices,
+                                               local_sides, contravariant_vectors, u,
+                                               index_range, interface)
     end
 
     return nothing
 end
 
+@inline function calc_mpi_interface_flux_per_interface!(surface_flux_values,
+                                                        MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                            T8codeMeshParallel{3}}},
+                                                        have_nonconservative_terms,
+                                                        equations,
+                                                        surface_integral,
+                                                        SolverT::Type{<:DG},
+                                                        local_neighbor_ids,
+                                                        node_indices, local_sides,
+                                                        contravariant_vectors,
+                                                        u_mpi_interfaces,
+                                                        index_range, interface)
+    @inbounds begin
+        # Get element and side index information on the local element
+        local_element = local_neighbor_ids[interface]
+        local_indices = node_indices[interface]
+        local_direction = indices2direction(local_indices)
+        local_side = local_sides[interface]
+
+        # Create the local i,j,k indexing on the local element used to pull normal direction information
+        i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                     index_range)
+        j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                     index_range)
+        k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                     index_range)
+
+        i_element = i_element_start
+        j_element = j_element_start
+        k_element = k_element_start
+
+        # Initiate the node indices to be used in the surface for loop,
+        # the surface flux storage must be indexed in alignment with the local element indexing
+        local_surface_indices = surface_indices(local_indices)
+        i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
+                                                                                     index_range)
+        j_surface_start, j_surface_step_i, j_surface_step_j = index_to_start_step_3d(local_surface_indices[2],
+                                                                                     index_range)
+        i_surface = i_surface_start
+        j_surface = j_surface_start
+
+        for j in index_range
+            for i in index_range
+                # Get the normal direction on the local element
+                # Contravariant vectors at interfaces in negative coordinate direction
+                # are pointing inwards. This is handled by `get_normal_direction`.
+                normal_direction = get_normal_direction(local_direction,
+                                                        contravariant_vectors,
+                                                        i_element,
+                                                        j_element,
+                                                        k_element,
+                                                        local_element)
+
+                calc_mpi_interface_flux!(surface_flux_values, MeshT,
+                                         have_nonconservative_terms, equations,
+                                         surface_integral, SolverT,
+                                         u_mpi_interfaces, interface, normal_direction,
+                                         i, j, local_side,
+                                         i_surface, j_surface, local_direction,
+                                         local_element)
+
+                # Increment local element indices to pull the normal direction
+                i_element += i_element_step_i
+                j_element += j_element_step_i
+                k_element += k_element_step_i
+                # Increment the surface node indices along the local element
+                i_surface += i_surface_step_i
+                j_surface += j_surface_step_i
+            end
+            # Increment local element indices to pull the normal direction
+            i_element += i_element_step_j
+            j_element += j_element_step_j
+            k_element += k_element_step_j
+            # Increment the surface node indices along the local element
+            i_surface += i_surface_step_j
+            j_surface += j_surface_step_j
+        end
+    end
+    return nothing
+end
+
 # Inlined version of the interface flux computation for conservation laws
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                                           mesh::Union{P4estMeshParallel{3},
-                                                                       T8codeMeshParallel{3}},
+                                                           MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                               T8codeMeshParallel{3}}},
                                                            have_nonconservative_terms::False,
                                                            equations,
-                                                           surface_integral, dg::DG,
-                                                           cache,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
                                                            interface_index,
                                                            normal_direction,
                                                            interface_i_node_index,
@@ -278,10 +318,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            surface_j_node_index,
                                                            local_direction_index,
                                                            local_element_index)
-    @unpack u = cache.mpi_interfaces
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+    u_ll, u_rr = get_surface_node_vars(u_mpi_interfaces, equations, SolverT,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
 
@@ -301,12 +340,13 @@ end
 
 # Inlined version of the interface flux computation for non-conservative equations
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                                           mesh::Union{P4estMeshParallel{3},
-                                                                       T8codeMeshParallel{3}},
+                                                           MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                               T8codeMeshParallel{3}}},
                                                            have_nonconservative_terms::True,
                                                            equations,
-                                                           surface_integral, dg::DG,
-                                                           cache,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
                                                            interface_index,
                                                            normal_direction,
                                                            interface_i_node_index,
@@ -317,12 +357,12 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            local_direction_index,
                                                            local_element_index)
     calc_mpi_interface_flux!(surface_flux_values,
-                             mesh,
+                             MeshT,
                              have_nonconservative_terms,
                              combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                              equations),
                              equations,
-                             surface_integral, dg, cache,
+                             surface_integral, SolverT, u_mpi_interfaces,
                              interface_index, normal_direction,
                              interface_i_node_index,
                              interface_j_node_index, local_side,
@@ -332,13 +372,14 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
 end
 
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                                           mesh::Union{P4estMeshParallel{3},
-                                                                       T8codeMeshParallel{3}},
+                                                           MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                               T8codeMeshParallel{3}}},
                                                            have_nonconservative_terms::True,
                                                            combine_conservative_and_nonconservative_fluxes::False,
                                                            equations,
-                                                           surface_integral, dg::DG,
-                                                           cache,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
                                                            interface_index,
                                                            normal_direction,
                                                            interface_i_node_index,
@@ -348,10 +389,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            surface_j_node_index,
                                                            local_direction_index,
                                                            local_element_index)
-    @unpack u = cache.mpi_interfaces
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+    u_ll, u_rr = get_surface_node_vars(u_mpi_interfaces, equations, SolverT,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
 
@@ -374,13 +414,14 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
 end
 
 Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
-                                                           mesh::Union{P4estMeshParallel{3},
-                                                                       T8codeMeshParallel{3}},
+                                                           MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                               T8codeMeshParallel{3}}},
                                                            have_nonconservative_terms::True,
                                                            combine_conservative_and_nonconservative_fluxes::True,
                                                            equations,
-                                                           surface_integral, dg::DG,
-                                                           cache,
+                                                           surface_integral,
+                                                           SolverT::Type{<:DG},
+                                                           u_mpi_interfaces,
                                                            interface_index,
                                                            normal_direction,
                                                            interface_i_node_index,
@@ -390,10 +431,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            surface_j_node_index,
                                                            local_direction_index,
                                                            local_element_index)
-    @unpack u = cache.mpi_interfaces
     surface_flux = surface_integral.surface_flux
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+    u_ll, u_rr = get_surface_node_vars(u_mpi_interfaces, equations, SolverT,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
 
@@ -414,7 +454,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
