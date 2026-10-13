@@ -55,7 +55,8 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
-- The parabolic terms on conforming `P4estMesh3D`s now support MPI parallelization ([#3291]).
+- The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
+  ([#3291]) and nonconforming meshes ([#2894]).
 
 #### Changed
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element

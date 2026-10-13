@@ -30,6 +30,35 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_taylor_green_vortex_amr.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0011069115461970517,
+                            0.013872454764036899,
+                            0.013872454764036934,
+                            0.012060120516483785,
+                            0.14491993697252206
+                        ],
+                        linf=[
+                            0.004408900543641403,
+                            0.05154019471576565,
+                            0.051540194715650245,
+                            0.035283556918085636,
+                            0.6804810816393854
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
 @testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_freestream_boundaries.jl" setup=[
     Setup,
     MPIP4estMesh3DParabolic
@@ -107,4 +136,68 @@ end
     dt = max_dt_parabolic(semi, ode)
     @test is_identical_on_all_ranks(dt)
     @test isapprox(dt, 1.6071428571428439, rtol = 1.0e-12)
+end
+
+@testitem "P4estMesh MPI 3D Parabolic: nonconforming meshes (linear solution)" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The parabolic terms must vanish for a linear solution, in particular
+    # at nonconforming interfaces (mortars), including MPI mortars. The mortars
+    # are created by the initial adaptation of the AMR callback on an unstructured
+    # curved mesh with trees of different orientations. The slope of the linear
+    # initial condition is chosen such that this adaptation refines only up to
+    # `med_level = 2` (`u > med_threshold = 0.1` in a part of the domain, but nowhere
+    # `u > max_threshold = 0.6`) to keep the mesh small, while still creating
+    # MPI mortars for 2 and 3 MPI ranks.
+    function initial_condition_linear(x, t, equations)
+        return SVector(0.01 * (x[1] + 2 * x[2] + 3 * x[3]))
+    end
+
+    function max_abs_rhs_parabolic(semi)
+        # Use the mesh after the initial adaptation of the AMR callback
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return Trixi.MPI.Allreduce(maximum(abs, du_ode; init = zero(eltype(du_ode))),
+                                   max, Trixi.mpi_comm())
+    end
+
+    function test_mpi_surfaces_and_axes(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic, cache_parabolic) = semi
+
+        # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+        @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                                  Trixi.mpi_comm()) > 0
+        @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +,
+                                  Trixi.mpi_comm()) > 0
+
+        # Check the axes of the parabolic arrays after the initial adaptation
+        (; u_transformed, gradients, flux_parabolic) = cache_parabolic.parabolic_container
+        for array in (u_transformed, gradients..., flux_parabolic...)
+            @test Trixi.check_axes(array, mesh, equations_parabolic, dg, cache) ===
+                  nothing
+        end
+        # The parabolic terms reuse the containers of the hyperbolic `cache`
+        for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                          cache.boundaries, cache.mortars, cache.mpi_mortars)
+            @test Trixi.check_axes(container, equations_parabolic, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_curved.jl"),
+                        initial_condition=initial_condition_linear,
+                        tspan=(0.0, 0.0))
+    test_mpi_surfaces_and_axes(semi)
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_curved.jl"),
+                        initial_condition=initial_condition_linear,
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        tspan=(0.0, 0.0))
+    test_mpi_surfaces_and_axes(semi)
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
 end
