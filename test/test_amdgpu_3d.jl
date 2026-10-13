@@ -536,3 +536,97 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "AMDGPU 3D: elixir_navierstokes_convergence.jl Float64 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00026599105557723507,
+                            0.00046187779448444603,
+                            0.0005424899076194272,
+                            0.00046187779448445546,
+                            0.0015846392584275121
+                        ],
+                        linf=[
+                            0.0025241668964857134,
+                            0.006308461684409397,
+                            0.004334939668473314,
+                            0.006308461684396753,
+                            0.03176343483364796
+                        ],
+                        storage_type=ROCArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float64
+    @test typeof(semi.equations_parabolic.mu) == Float64
+
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa ROCArray
+    @test all(x -> x isa ROCArray, semi.cache_parabolic.parabolic_container.gradients)
+    @test all(x -> x isa ROCArray,
+              semi.cache_parabolic.parabolic_container.flux_parabolic)
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: elixir_navierstokes_convergence.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        # The default `time_int_tol = 1e-8` of the adaptive time
+                        # integrator is below the machine epsilon of `Float32`.
+                        # Then, the step size controller reacts to round-off
+                        # errors and the results depend on the hardware.
+                        time_int_tol=1e-6,
+                        l2=Float32[0.00026599237563895863,
+                                   0.0004618770409481977,
+                                   0.0005424902199947988,
+                                   0.00046187821240216285,
+                                   0.0015847432617011525],
+                        linf=Float32[0.0025286846703638233,
+                                     0.0063080801628530025,
+                                     0.004338984007198565,
+                                     0.006308289710432291,
+                                     0.031785004991078836],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float32
+    @test typeof(semi.equations_parabolic.mu) == Float32
+    @test ode.u0 isa ROCArray{Float32}
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa ROCArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
