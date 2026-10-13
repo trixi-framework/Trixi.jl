@@ -72,7 +72,7 @@ for human readability.
 #### Changed
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR on
   `TreeMesh{1}` and `TreeMesh{2}`. For non-`isbits` element types such as `BigFloat`, this
-  threw an `UndefRefError` ([#PRNUMBER]).
+  threw an `UndefRefError` ([#3361]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
   the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
