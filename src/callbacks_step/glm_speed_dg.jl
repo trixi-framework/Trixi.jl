@@ -62,12 +62,13 @@ function calc_dt_for_cleaning_speed(cfl::Real,
     return cfl * 2 / (nnodes(dg) * max_scaled_speed_for_c_h)
 end
 
-function calc_max_scaled_speed_for_c_h(backend::Nothing, mesh, dg, cache)
+function calc_max_scaled_speed_for_c_h(backend::Nothing, mesh::MeshT, dg,
+                                       cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     max_scaled_speed = zero(eltype(inverse_jacobian))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_for_c_h_per_element(typeof(mesh), dg,
+        max_lambda = max_scaled_speed_for_c_h_per_element(MeshT, dg,
                                                           contravariant_vectors,
                                                           inverse_jacobian,
                                                           element)
@@ -78,7 +79,7 @@ function calc_max_scaled_speed_for_c_h(backend::Nothing, mesh, dg, cache)
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed_for_c_h(backend::Backend, ::MeshT, dg,
+function calc_max_scaled_speed_for_c_h(backend::Backend, mesh::MeshT, dg,
                                        cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
