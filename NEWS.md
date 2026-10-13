@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -53,10 +55,19 @@ for human readability.
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
+  ([#3291]) and nonconforming meshes ([#2894]).
 - For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
   unity is now supported, which then results in a different temperature `T` ([#3165])
 
 #### Changed
+- Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
+  type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
+  the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
+  `unsafe_wrap` for such element types, so that the garbage collector keeps the stored
+  objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
+  supported for non-`isbits` element types anymore.
+  `isbits` element types such as `Float64` are not affected ([#3306]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
@@ -65,6 +76,12 @@ for human readability.
   fluxes of the large elements at mortars were computed with the wrong normal direction
   and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
   (e.g., with AMR) change.
+- Fixes two bugs in the MPI-parallel parabolic terms of `P4estMesh2D`s ([#3344]):
+  The gradient fluxes at MPI interfaces were computed with the normal direction of the
+  local instead of the primary element. Thus, results of MPI-parallel simulations with
+  `ParabolicFormulationLocalDG` change and now agree with serial simulations.
+  Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
+  is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
 - Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
   `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
   in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
@@ -73,6 +90,9 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
+  `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
+  boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
