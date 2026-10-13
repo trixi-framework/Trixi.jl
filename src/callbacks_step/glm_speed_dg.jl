@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-function calc_dt_for_cleaning_speed(cfl::Real, mesh,
+function calc_dt_for_cleaning_speed(cfl::Real,
+                                    mesh::TreeMesh,
                                     equations::Union{AbstractIdealGlmMhdEquations,
                                                      AbstractIdealGlmMhdMulticomponentEquations,
                                                      AbstractIdealGlmMhdMultiIonEquations},
