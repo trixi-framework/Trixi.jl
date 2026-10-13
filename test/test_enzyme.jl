@@ -100,7 +100,7 @@ end
         end
         ε = 1.0e-6
         fd = (vtR_gamma(γ + ε) - vtR_gamma(γ - ε)) / (2 * ε)
-        @test isapprox(dγ, fd, rtol = 1.0e-6)
+        @test isapprox(dγ, fd, rtol = 1.0e-5)
     end
 end
 

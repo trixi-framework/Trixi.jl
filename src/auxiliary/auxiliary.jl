@@ -230,18 +230,17 @@ macro threaded(expr)
     expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
-        # Enzyme.jl cannot differentiate Polyester.jl's `@batch`, so we fall back to
-        # `Threads.@threads :static` inside of automatic differentiation.
+        # Enzyme.jl cannot differentiate Polyester.jl's `@batch`, so we run the loop
+        # serially inside of automatic differentiation. A `Threads.@threads` loop here
+        # would add another closure, which can box captured variables and allocate in
+        # the primal code. Threaded reverse passes are currently also slower than serial
+        # ones due to atomic updates of shadows (EnzymeAD/Enzyme.jl#3820).
         # `EnzymeCore.within_autodiff()` is `false` and constant-folded in the primal
         # code. Enzyme.jl compiles code with its own abstract interpreter, in which it
         # is constant-folded to `true`. Thus, only one of the branches is compiled.
         quote
             if $EnzymeCore.within_autodiff()
-                if $Threads.nthreads() == 1
-                    $(deepcopy(expr))
-                else
-                    $Threads.@threads :static $(deepcopy(expr))
-                end
+                $(deepcopy(expr))
             else
                 $Trixi.@batch $(expr)
             end
