@@ -4518,8 +4518,13 @@ end
 end
 
 @testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    # We only need the semidiscretizations of the elixirs below. Thus, we do not run the
+    # simulations by replacing `sol = solve(...)` with `sol = nothing`. This avoids
+    # compiling the time integration methods and the callbacks, which dominated the run
+    # time of this test.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_1d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4539,8 +4544,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4561,8 +4567,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                 "elixir_euler_mortar.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_3d_dgsem",
+                           "elixir_euler_mortar.jl"); sol = nothing)
 
     @testset "TreeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4583,9 +4590,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_1d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_1d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4606,9 +4613,9 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_2d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4626,9 +4633,9 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
-                                 "elixir_euler_basic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "unstructured_2d_dgsem",
+                           "elixir_euler_basic.jl"); sol = nothing)
 
     @testset "UnstructuredMesh2D" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4651,9 +4658,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic_curved.jl");
+                  sol = nothing)
 
     @testset "StructuredMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4671,9 +4679,10 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4718,9 +4727,10 @@ end
                                                                             dg, cache)
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4745,9 +4755,12 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_advection_diffusion_nonperiodic_amr.jl"); sol = nothing)
+    # Refine the mesh as the AMR callback does for the initial condition when running
+    # the simulation. This creates mortars and resizes the parabolic cache.
+    @test amr_callback.affect!(ode.u0, semi, first(tspan), 0; only_refine = true)
 
     @testset "P4estMesh{2}, parabolic" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4783,9 +4796,10 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4810,9 +4824,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
