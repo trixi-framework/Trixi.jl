@@ -67,7 +67,7 @@ for human readability.
 - The GPU/KernelAbstractions.jl backends need fewer kernel launches on `P4estMesh`es and
   `T8codeMesh`es: the boundary fluxes of all boundary condition types are computed in a
   single kernel launch (instead of one launch per boundary condition type), and the
-  parabolic right-hand side on `P4estMesh{2}` computes the parabolic fluxes in the same
+  parabolic right-hand side on `P4estMesh{2}` and `P4estMesh{3}` computes the parabolic fluxes in the same
   kernel as the surface integral of the gradients ([#3354]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
