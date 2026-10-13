@@ -378,3 +378,17 @@ function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage
     return unsafe_wrap_or_alloc(Storage, vec, size)
 end
 end # @muladd
+
+# An N-dimensional view of a `resize!`able backing `Vector`, used instead of
+# `unsafe_wrap(Array, pointer(v), dims)` in containers that are resized by AMR.
+# Since Julia v1.11, `Array` is a mutable struct, so its size and data pointer are
+# loaded from memory and LLVM often cannot hoist these loads out of inner loops.
+# A `FixedSizeArray` is immutable, so its dimensions are plain values. It holds a
+# reference to `v`, so the memory stays rooted (no `GC.@preserve` needed) and stores
+# of non-isbits elements get the necessary write barriers.
+# The view must be re-created after every `resize!` of `v`.
+const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
+
+@inline function wrap_vector(v::Vector, dims)
+    return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
+end
