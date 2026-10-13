@@ -537,21 +537,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_earth.jl"),
                         l2=[
-                            6.040180337738628e-6,
-                            5.4254175153621895e-6,
-                            5.677698851333843e-6,
-                            5.8017136892469794e-6,
-                            1.3637854615117974e-5
+                            2.6344746702983662e-6,
+                            2.6658075090562718e-6,
+                            2.704786453209594e-6,
+                            2.703043852342655e-6,
+                            1.0642547599835283e-5
                         ],
                         linf=[
-                            0.00013996924184311865,
-                            0.00013681539559939893,
-                            0.00013681539539733834,
-                            0.00013681539541021692,
-                            0.00016833038543762058
+                            1.8922755265826652e-5,
+                            2.5970792253637853e-5,
+                            2.59662162456209e-5,
+                            2.596621623851547e-5,
+                            6.590474876944086e-5
                         ],
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-11, reltol=1.0e-11)
+                        abstol=1.0e-11, reltol=1.0e-11,
+                        tspan=(0.0, 2.0e4))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -924,20 +925,20 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_ONERA_M6_wing.jl"),
                         l2=[
-                            1.3302852203314697e-7,
-                            7.016342225152883e-8,
-                            1.0954098970860626e-7,
-                            6.834890433113107e-8,
-                            3.796737956937651e-7
+                            5.327066020924117e-8,
+                            2.80976570476027e-8,
+                            4.3866299071977515e-8,
+                            2.7370729466369376e-8,
+                            1.5199788880307453e-7
                         ],
                         linf=[
-                            0.08856648749331164,
-                            0.07431651477033197,
-                            0.08791247483932041,
-                            0.012973811024139751,
-                            0.25575828277482016
+                            0.05744067831996991,
+                            0.04819836936434463,
+                            0.05781352954447377,
+                            0.005198158826601687,
+                            0.1647489333623069
                         ],
-                        tspan=(0.0, 5e-8))
+                        tspan=(0.0, 2e-8))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

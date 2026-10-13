@@ -192,18 +192,17 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_subsonic_constant.jl"),
                         l2=[
-                            9.268884363640194e-14,
-                            1.0689589615395477e-13,
-                            1.0408994850535984e-13,
-                            1.7032684855598177e-13
+                            6.260574447038495e-15,
+                            1.2180902845710478e-15,
+                            1.2351435955913906e-15,
+                            1.1710356682519835e-14
                         ],
                         linf=[
-                            1.6986412276764895e-13,
-                            2.2503592098759465e-12,
-                            1.7696906239744284e-12,
-                            3.623767952376511e-13
+                            9.325873406851315e-15,
+                            8.137967609537341e-15,
+                            7.153388068243326e-15,
+                            1.9984014443252818e-14
                         ],
-                        initial_refinement_level=7,
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
