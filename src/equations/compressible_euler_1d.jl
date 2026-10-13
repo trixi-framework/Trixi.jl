@@ -847,8 +847,8 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer,
-                   equations::CompressibleEulerEquations1D)
+@inline function flux_hllc(u_ll, u_rr, orientation::Integer,
+                           equations::CompressibleEulerEquations1D)
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_e_total_rr = u_rr
@@ -927,8 +927,8 @@ end
 # The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by
 # the normal for the 1D HLLC flux, then scaling the resulting momentum flux again.
 # Moreover, the 2D HLLC flux reduces to this if the normal vector is [n, 0].
-function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
-                   equations::CompressibleEulerEquations1D)
+@inline function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                           equations::CompressibleEulerEquations1D)
     norm_ = abs(normal_direction[1])
     normal_direction_unit = normal_direction[1] * inv(norm_)
 

@@ -932,8 +932,8 @@ This flux (together with the MHD non-conservative term) is consistent in the cas
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
-                                equations::IdealGlmMhdMultiIonEquations2D)
+@inline function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
+                                        equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
@@ -1172,8 +1172,8 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     return SVector(f)
 end
 
-function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
-                                equations::IdealGlmMhdMultiIonEquations2D)
+@inline function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                        equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     # Unpack left and right states to get the magnetic field
     B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
