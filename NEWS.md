@@ -68,6 +68,8 @@ for human readability.
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 - The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
   ([#3291]) and nonconforming meshes ([#2894]).
+- `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
+  tetrahedral elements ([#3296]).
 
 #### Changed
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
