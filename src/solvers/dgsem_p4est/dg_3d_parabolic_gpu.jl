@@ -142,7 +142,6 @@ end
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     du_node = zero(get_node_vars(du, equations_parabolic, dg, i, j, k, element))
-    du_node = zero(get_node_vars(du, equations_parabolic, dg, i, j, k, element))
 
     for ii in eachnode(dg)
         flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,

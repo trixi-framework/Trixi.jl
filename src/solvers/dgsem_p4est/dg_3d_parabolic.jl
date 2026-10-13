@@ -53,8 +53,6 @@ Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_fl
 
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.
-    # Note that the index of the small sides will always run forward but
-    # the index of the large side might need to run backwards for flipped sides.
     large_element = neighbor_ids[5, mortar]
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
@@ -268,7 +266,7 @@ function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{3},
                 end
 
                 # Compute the contravariant flux by taking the scalar product of the
-                # second contravariant vector Ja^2 and the flux vector
+                # third contravariant vector Ja^3 and the flux vector
                 Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
                                                             i, j, k, element)
                 contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
@@ -473,9 +471,6 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
             secondary_direction_index = indices2direction(secondary_indices)
             secondary_surface_indices = surface_indices(secondary_indices)
 
-            # Initiate the secondary index to be used in the surface for loop.
-            # This index on the primary side will always run forward but
-            # the secondary index might need to run backwards for flipped sides.
             # Get the surface indexing on the secondary element.
             # Note that the indices of the primary side will always run forward but
             # the secondary indices might need to run backwards for flipped sides.
@@ -764,7 +759,10 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                                    equations_parabolic,
                                                    parabolic_scheme)
 
-                            # Sign flip (and scaling by 0.25) already handled above in `prolong2mortars_divergence!`
+                            # `prolong2mortars_divergence!` already flipped the sign and
+                            # scaled by 0.25 the normal flux of the large element. Thus,
+                            # both inputs and `flux_` refer to the outward normal
+                            # direction of the small element.
                             fstar[v, i, j, position] = flux_
                         end
 
@@ -782,7 +780,10 @@ function calc_mortar_flux_divergence!(surface_flux_values,
             # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
 
-            # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
+            # This reuses the hyperbolic version of `mortar_fluxes_to_elements!`.
+            # Since the outward normal direction of the large element is -4 times
+            # that of the small elements, it flips the sign and scales by 4 the
+            # fluxes projected to the large element.
             mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                        equations_parabolic, mortar_l2, dg, cache,
                                        mortar, fstar, fstar, u_buffer,
@@ -863,11 +864,6 @@ function calc_mortar_flux_gradient!(surface_flux_values,
             # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
 
-            # in calc_interface_flux!, the interface flux is computed once over each
-            # interface using the normal from the "primary" element. The result is then
-            # passed back to the "secondary" element, flipping the sign to account for the
-            # change in the normal direction. For mortars, this sign flip occurs in
-            # "mortar_fluxes_to_elements_gradient!" instead.
             mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                 mesh, equations_parabolic, mortar_l2,
                                                 dg, cache,
