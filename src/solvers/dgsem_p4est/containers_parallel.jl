@@ -14,14 +14,14 @@
 # as in the serial code. This makes the fluxes conservative across MPI interfaces up to
 # machine precision and is required for numerical fluxes that depend discontinuously on
 # the normal direction, e.g., the `ldg_switch` of `ParabolicFormulationLocalDG`.
-mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
+mutable struct P4estMPIInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                          NDIMSP1, NDIMSP2,
                                           uArray <: DenseArray{uEltype, NDIMSP2},
+                                          NormalArray <: DenseArray{RealT, NDIMSP1},
                                           VecInt <: DenseVector{Int},
                                           IndicesVector <:
                                           DenseVector{NTuple{NDIMS, Symbol}},
                                           uVector <: DenseVector{uEltype},
-                                          RealT <: Real, NDIMSP1,
-                                          NormalArray <: DenseArray{RealT, NDIMSP1},
                                           NormalVector <: DenseVector{RealT}} <:
                AbstractMPIInterfaceContainer
     u::uArray                      # [primary/secondary, variable, i, j, interface]
@@ -122,11 +122,11 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
 
     local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
-    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
-                                                typeof(u), typeof(local_neighbor_ids),
+    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, RealT, uEltype,
+                                                NDIMS + 1, NDIMS + 2,
+                                                typeof(u), typeof(normal_directions),
+                                                typeof(local_neighbor_ids),
                                                 typeof(node_indices), typeof(_u),
-                                                RealT, NDIMS + 1,
-                                                typeof(normal_directions),
                                                 typeof(_normal_directions)}(u,
                                                                             normal_directions,
                                                                             local_neighbor_ids,
@@ -147,6 +147,7 @@ function init_mpi_interfaces!(mpi_interfaces, mesh::P4estMeshParallel)
 end
 
 function Adapt.parent_type(::Type{<:Trixi.P4estMPIInterfaceContainer{<:Any, <:Any,
+                                                                     <:Any, <:Any,
                                                                      <:Any, A}}) where {A}
     return A
 end
@@ -166,12 +167,11 @@ function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
                                              size(mpi_interfaces.normal_directions))
 
     NDIMS = ndims(mpi_interfaces)
-    return P4estMPIInterfaceContainer{NDIMS, eltype(u),
-                                      NDIMS + 2,
-                                      typeof(u), typeof(local_neighbor_ids),
+    return P4estMPIInterfaceContainer{NDIMS, eltype(_normal_directions), eltype(u),
+                                      NDIMS + 1, NDIMS + 2,
+                                      typeof(u), typeof(normal_directions),
+                                      typeof(local_neighbor_ids),
                                       typeof(node_indices), typeof(_u),
-                                      eltype(_normal_directions), NDIMS + 1,
-                                      typeof(normal_directions),
                                       typeof(_normal_directions)}(u,
                                                                   normal_directions,
                                                                   local_neighbor_ids,
