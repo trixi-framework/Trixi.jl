@@ -1408,6 +1408,86 @@ end
                                      callback = StepsizeCallback(cfl = 1.0))
 end
 
+@testitem "Unit: GlmSpeedCallback time step for c_h = 1" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The time step of the GLM waves with `c_h = 1` used by the `GlmSpeedCallback` must
+    # agree for Cartesian elements on all mesh types and be invariant under rotations
+    # of the mesh, see https://github.com/trixi-framework/Trixi.jl/issues/3336
+    function dt_cleaning(mesh, equations, solver)
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        return Trixi.calc_dt_for_cleaning_speed(0.5, mesh, equations, solver, cache)
+    end
+
+    polydeg = 3
+    volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+    dg = DGSEM(polydeg = polydeg, surface_flux = volume_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+
+    # 2D
+    equations = IdealGlmMhdEquations2D(5 / 3)
+    dg_multi = DGMulti(polydeg = polydeg, element_type = Quad(),
+                       approximation_type = Polynomial(),
+                       surface_integral = SurfaceIntegralWeakForm(volume_flux),
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+    for level in (2, 3)
+        n = 2^level
+        dx = 2 / n
+        # `cfl * 2 / (nnodes * ndims * inverse_jacobian)` with `inverse_jacobian = 2 / dx`
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = level,
+                        periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n), (-1.0, -1.0), (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        s, c = sincospi(1 / 6)
+        mesh = StructuredMesh((n, n),
+                              (xi, eta) -> SVector(c * xi - s * eta,
+                                                   s * xi + c * eta),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = T8codeMesh((n, n), polydeg = polydeg,
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                          periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = DGMultiMesh(dg_multi, (n, n), coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg_multi) ≈ dt_expected
+    end
+
+    # 3D
+    equations = IdealGlmMhdEquations3D(5 / 3)
+    for level in (1, 2)
+        n = 2^level
+        dx = 2 / n
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                        initial_refinement_level = level, periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n, n), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0, -1.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+    end
+end
+
 @testitem "Unit: TimeSeriesCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
