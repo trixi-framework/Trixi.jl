@@ -25,7 +25,6 @@ coordinates_min = (0.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -42,6 +41,7 @@ ode = semidiscretize(semi, tspan)
 steady_state_prob = SteadyStateProblem(ode)
 
 alg = NewtonRaphson(autodiff = AutoFiniteDiff())
+
 sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg)
 
 # Supply steady state solution as initial condition for time-dependent run
