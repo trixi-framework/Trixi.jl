@@ -20,7 +20,7 @@ for human readability.
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
-can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
