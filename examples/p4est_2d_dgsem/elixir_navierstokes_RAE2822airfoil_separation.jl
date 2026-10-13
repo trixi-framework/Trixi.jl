@@ -128,7 +128,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-ode_algorithm = SSPRK43(thread = Trixi.True())
+ode_algorithm = SSPRK43(thread = Trixi.Threaded())
 
 time_int_tol = 1e-4
 sol = solve(ode, ode_algorithm;

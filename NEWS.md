@@ -5,28 +5,270 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.17 lifecycle
+
+#### Added
+- The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
+  adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
+  `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
+  Previously, `semidiscretize` adapted the semidiscretization internally, so the
+  original `semi` was still used for callbacks and could share outdated data with the
+  adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
+  now part of the `cache` from the construction of the semidiscretization, and the
+  warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The `SummaryCallback` warns if the time type of the time integrator differs from the
+  real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
+  to `solve` for a `Float32` semidiscretization.
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
+  arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
+  `P4estMesh` ([#3313]).
+- `boundary_condition_slip_wall` and the less diffusive wave speed estimate
+  `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
+- New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
+  which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
+- Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
+- TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
+  When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
+  toggles the bars visualizing the fraction of time and allocations spent in
+  each section of the timer output of the `SummaryCallback`. The bars are
+  disabled by default.
+- `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
+  kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
+- The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
+  `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
+  while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
+- `PlotData2D` now visualizes finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or
+  `BlockFV`) as distinct cells instead of interpolating between neighboring cell values,
+  for both `Plots.jl` and `Makie.jl` ([#3150]).
+- The GPU kernel of `VolumeIntegralFluxDifferencing` on `P4estMesh{3}`/`T8codeMesh{3}`
+  can now be chosen via the new keyword argument `flux_differencing_kernel` of
+  `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
+  `FullSweepGlobal` ([#3206]).
+- Add `@inbounds` statements and their correct propagation through `Base.@propagate_inbounds`,
+  which substitutes `@inline` to correctly propagate inbounds access for
+  - `TreeMesh1D` ([#3267], [#3268])
+  - `TreeMesh2D` ([#3262], [#3266])
+  - `TreeMesh3D` ([#3208], [#3263])
+  - `StructuredMesh1D` ([#3283])
+  - `StructuredMesh2D` ([#3274])
+  - `StructuredMesh3D` ([#3272])
+  - `UnstructuredMesh2D` ([#3282])
+  - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
+  - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
+    `P4estMesh2D` ([#3289])
+  - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
+
+  Moreover, explicit bounds checks are added before assuming inbounds access.
+  This improves the performance in common cases; developers are encouraged to
+  start Julia with `julia --check-bounds=yes` during development in case of issues.
+- The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
+  ([#3291]) and nonconforming meshes ([#2894]).
+- `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
+  tetrahedral elements ([#3296]).
+
+#### Changed
+- Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
+  type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
+  the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
+  `unsafe_wrap` for such element types, so that the garbage collector keeps the stored
+  objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
+  supported for non-`isbits` element types anymore.
+  `isbits` element types such as `Float64` are not affected ([#3306]).
+- The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
+  The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
+  Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
+  a reduction factor of `2.5`.
+- Fixes a bug in the parabolic terms on nonconforming `P4estMesh3D`s: The parabolic
+  fluxes of the large elements at mortars were computed with the wrong normal direction
+  and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
+  (e.g., with AMR) change.
+- Fixes two bugs in the MPI-parallel parabolic terms of `P4estMesh2D`s ([#3344]):
+  The gradient fluxes at MPI interfaces were computed with the normal direction of the
+  local instead of the primary element. Thus, results of MPI-parallel simulations with
+  `ParabolicFormulationLocalDG` change and now agree with serial simulations.
+  Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
+  is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
+- Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
+  `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
+  in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
+  `normal_direction` used both states instead of only the left state for the minimum
+  wave speed estimate (inconsistent with `min_max_speed_naive` with an `orientation`).
+  Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
+  e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
+  meshes, change.
+- Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
+  `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
+  boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
+- Fixes a bug in the `GlmSpeedCallback` on curvilinear meshes (`StructuredMesh`,
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`) and for `DGMulti` solvers in multiple
+  space dimensions: the divergence cleaning speed `c_h` was computed from the Jacobian
+  determinant and thus decreased with mesh refinement (like `Δx^(ndims - 1)`). Now, it
+  takes the metric terms into account and agrees with the value on a `TreeMesh` for
+  Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
+  meshes change ([#3360]).
+- `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
+  semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
+  `Float32` semidiscretization. Previously, the time was only converted when passing
+  `real_type` to `semidiscretize`.
+
+#### Deprecated
+- The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
+  `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
+  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
+
+
+## Changes when updating to v0.17 from v0.16.x
+
+#### Changed
+- The `NonConservativeJump` terms now require `normal_direction_ll` and
+  `normal_direction_rr` as function arguments instead of the previous averaged
+  `normal_direction` ([#2890]).
+  This is necessary because the averaged `normal_direction` did not yield a consistent
+  jump term.
+- Renamed the hyperbolic right-hand side function `rhs!` to `rhs_hyperbolic!` at
+  the semidiscretization and solver levels for consistency with `rhs_parabolic!` ([#2921]).
+  The internal `default_rhs` helper now rejects `SemidiscretizationHyperbolicParabolic`,
+  which has separate hyperbolic and parabolic right-hand sides and thus lacks a single
+  default right-hand side function.
+- The internal ODE right-hand side functions such as `rhs_hyperbolic!` and
+  `rhs_parabolic!` now dispatch additionally on the backend type ([#3113]).
+  The public interface `rhs_hyperbolic!(du_ode, u_ode, semi, t)` is unchanged.
+- Trixi.jl now uses t8code v4 through T8code.jl v0.9 ([#2706]).
+  This results in some changes to the t8code API in examples and internally in Trixi.jl.
+  Moreover, the `T8codeMesh` constructors gained the keyword argument
+  `partition_allow_for_coarsening`, which keeps same-level sibling elements together
+  during mesh partitioning to allow later coarsening.
+- The function `cons2prim` for `CompressibleNavierStokesDiffusion` has been changed ([#3125]).
+  It now returns the primitive variables `(rho, v1, v2, v3, p)` (identical to the
+  `CompressibleEulerEquations`) instead of `(rho, v1, v2, v3, T)`.
+  The latter functionality is now provided by `cons2prim_temperature` instead
+  (although it may change in future releases since it is labeled as experimental for now).
+
+
+#### Deprecated
+
+#### Removed
+
+- The unnecessary method of `flux_nonconservative_chan_etal` accepting two normal
+  directions was removed ([#3147]). The other methods are still there and unchanged.
+- The keyword argument `n_cells_max` has been removed from the `TreeMesh`
+  constructor and from `load_mesh` ([#3021]). Previously it set the initial
+  capacity of the internal tree data structure; since `TreeMesh` now auto-resizes
+  as needed, the argument is no longer necessary. To migrate, simply remove any
+  `n_cells_max = ...` argument from existing code. `TreeMesh` mesh files no longer
+  store the internal `capacity` HDF5 attribute; new versions derive storage from
+  `n_cells` when loading, while older files that still contain `capacity` remain
+  readable.
+
+
+## Changes in the v0.16 lifecycle
+
+#### Added
+- Extended `PositivityPreservingLimiterLiuZhang` to `P4estMesh`, and added an example using `CompressibleNavierStokesDiffusion` ([#3100]).
+- Extended `PositivityPreservingLimiterLiuZhang` to `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D` ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` and supports lower bounds on both density and internal energy (or both density and pressure).
+- Added `PositivityPreservingLimiterLiuZhang` for `TreeMesh`, which enforces global positivity of cell averages through an iterative algorithm ([#3063]). Currently only implemented for `LinearScalarAdvectionEquation`.
+- Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
+- The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
+- The `BlockFV` solver now supports conforming `P4estMesh`es in 2D ([#3128]).
+- Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
+- `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
+- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
+  ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
+- A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
+  The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
+- A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
+- GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
+- Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
+- Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
+- Added postprocessing for kinetic energy spectral analysis via `compute_kinetic_energy_spectrum` for `AbstractCompressibleEulerEquations` on `TreeMesh`/`DGSEM` and on `DGMultiMesh`/`DGMultiSBP` in 2D and 3D; the routine returns matching integer wavenumber shells and the isotropic 1D spectrum `E(k)`.
+- Added the wrapper `FluxTurbo` that enables SIMD optimized implementations for conservative systems. Precomputation of primitive variables or other more efficient sets of variables can be enabled by specifying the number of precomputed variables, `nturbovars`; the transformation from conservative to precomputed variables, `cons2turbo`; and the `volume_flux_turbo`, which computes the numerical flux in terms of the precomputed variables. ([#3090])
+- `FluxTurbo` support was extended to nonconservative systems (mainly for the `P4estMesh` in 3D). ([#3094])
+- For the `NonIdealCompressibleEulerEquations` with a non-ideal equation of state a new Newton solver interface for the
+  temperature has been added.
+  This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
+  The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
+  analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
+- Added support to apply the positivity-preserving limiter after coarsening and refinement steps in AMR via the keyword argument `limiter!` in `AMRCallback` ([#2396]).
+- To model a calorically imperfect but thermally perfect gas, a new equation of state `ThermallyPerfectGas9PolyFit` has been added.
+  This is a concrete implementation for `AbstractThermallyPerfectGas` that uses a 9th order polynomial fit to the NASA polynomials for specific heat capacities, as described in the corresponding [NASA Technical Publication](https://ntrs.nasa.gov/citations/20020085330).
+  This EOS allows for temperature-dependent specific heat capacities (`c_p(T)`, `c_v(T)`) and ratio of specific heats (`\gamma(T)`), while obeying the ideal gas law to relate pressure, density, and temperature ([#3079]).
+  This equation of state needs to be supplied to `NonIdealCompressibleEulerEquations`.
+- Added support for one-block periodic SBP operators (finite differences, CGSEM, etc.) on `DGMultiMesh`es with nonconservative terms ([#3144]).
+
+#### Changed
+- Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]).
+- For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
+- Removed the requirement to pass `uEltype = real(dg)` to the `AnalysisCallback` for `DGMulti` solvers ([#3143]).
+
+
+## Changes when updating to v0.16 from v0.15.x
+
+#### Changed
+
+- The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
+In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
+i.e., summing up the normal components, the `ldg_switch` is now selected as
+the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the dominant direction of the interface normal.
+This might change results slightly for some meshes where the sum of the normal might be close to zero,
+thus introducing some spurious switch assignments ([#2871]).
+- The word "viscous" is now used only where it refers specifically to fluid viscosity.
+The word "parabolic" is used in more general contexts.
+In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
+For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
+`ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
+For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
+Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
+
+#### Added
+
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, Trixi.jl can
+  now partly be executed on GPUs. This includes simulations with flux differencing on
+  `P4estMesh` in 2D and 3D. Adaptive mesh refinement, multi-GPU, source terms, and callbacks
+  are not available, yet. Offloading is achieved via KernelAbstractions.jl kernels,
+  which, at the moment, execute the same code as usually run on CPUs. A backend is selected
+  by passing an appropriate data type as keyword argument `storage_type` to
+  `semidiscretize`. See the
+  [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
+  section for some instructions on how to port kernels. This is however still preliminaray
+  and will change.
+  GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
+  `TRIXI_TEST=CUDA` ([#2590]).
+
+
 ## Changes in the v0.15 lifecycle
 
 #### Added
 
+- Added shock capturing support for `DGMulti` solvers with `SBP()` approximation types on triangular (`Tri`), tetrahedral (`Tet`), quadrilateral (`Quad`), and hexahedral (`Hex`) elements. `GaussSBP()` approximation types are also supported on `Quad` and `Hex` elements.
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
 - Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `NonIdealCompressibleEuler2D` ([#2768]).
-- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the 
+- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the
   non-stabilized and stabilized elements/cells.
   The generalized volume integral is called `VolumeIntegralShockCapturingHGType` and takes the three keyword arguments `volume_integral_default`,
   `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
   In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
   the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
-- Added `IndicatorEntropyCorrection`. When combined with `VolumeIntegralAdaptive`, this blends together a stabilized and non-stabilized 
-  volume integral based on the violation of a volume entropy condition. `IndicatorEntropyCorrectionShockCapturingCombined` additionally 
-  guides the blending by taking the maximum of the entropy correction indicator and a shock capturing indicator ([#2764]). 
+- Added `IndicatorEntropyCorrection`. When combined with `VolumeIntegralAdaptive`, this blends together a stabilized and non-stabilized
+  volume integral based on the violation of a volume entropy condition. `IndicatorEntropyCorrectionShockCapturingCombined` additionally
+  guides the blending by taking the maximum of the entropy correction indicator and a shock capturing indicator ([#2764]).
 - The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
   Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
   `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
 - Add Legendre-Gauss basis for DGSEM and implement solver (`VolumeIntegralWeakForm` and `SurfaceIntegralWeakForm` only) support for conforming 1D & 2D `TreeMesh`es ([#1965]).
+- Extended 3D support for subcell limiting was added ([#2763], [#2846], [#2844], [#2848]).
+  In the new version, local (minimum and maximum) limiting for conservative variables (using the
+  keyword `local_twosided_variables_cons` in `SubcellLimiterIDP()`) with `P4estMesh` is supported.
+  The support was extended to nonperiodic `P4estMesh{3}`es.
+  Moreover, initial support for `TreeMesh{3}` including positivity limiting and local limiting on periodic meshes was added.
 
 ## Changes when updating to v0.15 from v0.14.x
 

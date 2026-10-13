@@ -6,11 +6,11 @@
 #! format: noindent
 
 function perform_idp_correction!(u, dt,
-                                 mesh::P4estMesh{3},
-                                 equations, dg, cache)
+                                 mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                 equations, dg, limiter::SubcellLimiterIDP, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
-    @unpack alpha = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
     # The following code implements the IDP correction in flux-differencing form:
     # u[v, i, j, k, element] += dt * -inverse_jacobian[i, j, k, element] *
@@ -31,6 +31,10 @@ function perform_idp_correction!(u, dt,
     # interfaces.
 
     @threaded for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+
         # Perform correction in 1st/x-direction
         for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
             # Subcell interface between nodes (i - 1, j, k) and (i, j, k)

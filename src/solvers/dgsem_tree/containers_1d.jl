@@ -68,6 +68,20 @@ function TreeElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
                                                   _surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer1D, equations, solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(1),
+                eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
+    check_axes(elements.cell_ids, (eachelement(solver, cache),))
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(1), equations,
+                                   solver, cache)
+    return nothing
+end
+
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh1D,
                        equations::AbstractEquations{1},
@@ -171,6 +185,17 @@ function TreeInterfaceContainer1D{uEltype}(capacity::Integer,
 
     return TreeInterfaceContainer1D{uEltype}(u, neighbor_ids, orientations,
                                              _u, _neighbor_ids)
+end
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer1D, equations, solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.neighbor_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.orientations, (eachinterface(solver, cache),))
+    return nothing
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -335,16 +360,31 @@ function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer,
                                                    _u, _node_coordinates)
 end
 
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG, cache)
+    check_axes(boundaries.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(1),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
+    check_axes(boundaries.orientations, (eachboundary(solver, cache),))
+    check_axes(boundaries.neighbor_sides, (eachboundary(solver, cache),))
+    return nothing
+end
+
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh1D,
-                         elements::TreeElementContainer1D)
+                         elements::TreeElementContainer1D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer1D{real(elements), eltype(elements)}(n_boundaries,
                                                                            nvariables(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -373,15 +413,62 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
     return count
 end
 
+# For Lobtto points, we can simply use the outer nodes of the elements as boundary nodes.
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh1D,
+                                         basis::LobattoLegendreBasis)
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    orientation = 1 # always 1 in 1D
+    if direction == 1
+        bnd_node_coords[orientation, count] = el_node_coords[orientation, 1,
+                                                             element]
+    elseif direction == 2
+        bnd_node_coords[orientation, count] = el_node_coords[orientation, end,
+                                                             element]
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
+# For Gauss points, we need to interpolate the boundary node coordinates.
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh1D,
+                                         basis::GaussLegendreBasis)
+    boundary_matrix = basis.boundary_interpolation
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    orientation = 1 # always 1 in 1D
+    if direction == 1
+        @views x_interpolated_left = dot(boundary_matrix[:, 1],
+                                         el_node_coords[orientation, :,
+                                                        element])
+        bnd_node_coords[orientation, count] = x_interpolated_left
+    elseif direction == 2
+        @views x_interpolated_right = dot(boundary_matrix[:, 2],
+                                          el_node_coords[orientation, :,
+                                                         element])
+        bnd_node_coords[orientation, count] = x_interpolated_right
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh1D, basis)
     # Reset boundaries count
     count = 0
 
     # Initialize boundary counts
     counts_per_direction = MVector(0, 0)
 
-    # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+    # Note: Iterate over directions first, then over elements, and count boundaries in each direction
     # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
     #            obviating the need to store the boundary condition to be applied explicitly.
     # Loop over directions
@@ -418,15 +505,9 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
             # Set orientation (x -> 1)
             boundaries.orientations[count] = 1
 
-            # Store node coordinates
-            enc = elements.node_coordinates
-            if direction == 1 # -x direction
-                boundaries.node_coordinates[:, count] .= enc[:, 1, element]
-            elseif direction == 2 # +x direction
-                boundaries.node_coordinates[:, count] .= enc[:, end, element]
-            else
-                error("should not happen")
-            end
+            # Calculate node coordinates
+            calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                            elements, mesh, basis)
         end
     end
 
@@ -462,7 +543,7 @@ function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache
     # re-initialize boundaries container
     @unpack boundaries = cache
     resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, dg.basis)
 
     return nothing
 end

@@ -1,4 +1,5 @@
 using Trixi
+using TrixiData # for the mesh file
 using OrdinaryDiffEqLowStorageRK
 
 ###############################################################################
@@ -57,9 +58,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 # $EndPhysicalNames
 #
 # in the .msh file.
-
-mesh_file = Trixi.download("https://rwth-aachen.sciebo.de/s/pioS9PmdSWnLc8D/download/TandemSpheresHexMesh1P2_fixed.inp",
-                           joinpath(@__DIR__, "TandemSpheresHexMesh1P2_fixed.inp"))
+mesh_file = mesh_tandem_spheres_hex_p2()
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:FrontSphere, :BackSphere, :FarField]
@@ -99,6 +98,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 
 tols = 1e-5
-sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.Threaded());
             abstol = tols, reltol = tols,
             ode_default_options()..., callback = callbacks);

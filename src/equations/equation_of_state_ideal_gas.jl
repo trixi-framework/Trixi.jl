@@ -24,13 +24,21 @@ end
 """
     IdealGas(gamma = 1.4, R = 287)
 
-If not specified, `R` is taken to be the gas constant for air. However, the 
+If not specified, `R` is taken to be the gas constant for air. However, the
 precise value does not matter since eliminating temperature yields non-dimensional
-formulas in terms of only `gamma`. 
+formulas in terms of only `gamma`.
 """
 function IdealGas(gamma = 1.4, R = 287)
     cv = R / (gamma - 1)
     return IdealGas(promote(gamma, R, cv)...)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eos::IdealGas, ::Type{NewRealT}) where {NewRealT}
+    return IdealGas(convert(NewRealT, eos.gamma), convert(NewRealT, eos.R))
 end
 
 """
@@ -71,9 +79,9 @@ function speed_of_sound(V, T, eos::IdealGas)
     return sqrt(c2)
 end
 
-# This is not a required interface function, but specializing it 
+# This is not a required interface function, but specializing it
 # if an explicit function is available can improve performance.
-# For general EOS, this is calculated via a Newton solve. 
+# For general EOS, this is calculated via a Newton solve.
 function temperature(V, e_internal, eos::IdealGas)
     (; cv) = eos
     T = e_internal / cv

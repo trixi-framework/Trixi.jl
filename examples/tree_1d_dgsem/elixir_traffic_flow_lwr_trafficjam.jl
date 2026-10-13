@@ -13,7 +13,6 @@ coordinates_max = 1.0 # maximum coordinate
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 9,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # Example taken from http://www.clawpack.org/riemann_book/html/Traffic_flow.html#Example:-Traffic-jam

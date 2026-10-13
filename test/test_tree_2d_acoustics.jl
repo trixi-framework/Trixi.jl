@@ -1,16 +1,11 @@
-module TestExamples2DAcousticPerturbation
+@testsnippet TreeMesh2DAcoustics begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Acoustic Perturbation" begin
-#! format: noindent
-
-@trixi_testset "elixir_acoustics_convergence.jl" begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_convergence.jl"),
                         l2=[
                             0.0019921138796370834,
@@ -32,10 +27,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_acoustics_gauss.jl" begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss.jl"),
                         l2=[
                             0.08005276517890283,
@@ -57,10 +55,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_acoustics_gaussian_source.jl" begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gaussian_source.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gaussian_source.jl"),
                         l2=[
                             0.004296394903650806,
@@ -82,25 +83,70 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_acoustics_gauss_wall.jl" begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
-                        l2=[0.019419398248465843, 0.019510701017551826,
+                        l2=[
+                            0.019419398248465843,
+                            0.019510701017551826,
                             0.04818246051887614,
-                            7.382060834820337e-17, 0.0, 1.4764121669640674e-16,
+                            7.382060834820337e-17,
+                            0.0,
+                            1.4764121669640674e-16,
                             1.4764121669640674e-16],
-                        linf=[0.18193631937316496, 0.1877464607867628,
+                        linf=[
+                            0.18193631937316496,
+                            0.1877464607867628,
                             1.0355388011792845,
-                            2.220446049250313e-16, 0.0, 4.440892098500626e-16,
+                            2.220446049250313e-16,
+                            0.0,
+                            4.440892098500626e-16,
                             4.440892098500626e-16])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_acoustics_monopole.jl" begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl (Gauss Legendre)" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
+                        solver=DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
+                                     basis_type = GaussLegendreBasis),
+                        cfl=0.6,
+                        l2=[
+                            0.01944153623864891,
+                            0.01952877141847981,
+                            0.04820571764883919,
+                            1.1071998298551595e-16,
+                            0.0,
+                            2.214399659710319e-16,
+                            2.214399659710319e-16
+                        ],
+                        linf=[
+                            0.1828989576562236,
+                            0.18857385551148917,
+                            1.036543390095062,
+                            3.3306690738754696e-16,
+                            0.0,
+                            6.661338147750939e-16,
+                            6.661338147750939e-16
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_monopole.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_monopole.jl"),
                         l2=[0.006816790293009947, 0.0065068948357351625,
                             0.008724512056168938,
@@ -112,8 +158,5 @@ end
                         maxiters=50)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-end # module

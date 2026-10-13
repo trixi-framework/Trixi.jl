@@ -87,7 +87,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
@@ -124,7 +124,8 @@ end
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
-                                     mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
+                                     ::Type{<:AbstractMesh{1}}, equations, dg::DGSEM,
+                                     cache,
                                      args...) where {Func}
     @unpack weights = dg.basis
 
@@ -142,9 +143,9 @@ end
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
 function entropy_change_reference_element(du, u, element,
-                                          mesh::AbstractMesh{1},
+                                          MeshT::Type{<:AbstractMesh{1}},
                                           equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
                                        du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
         du_node = get_node_vars(du, equations, dg, i, element)
@@ -155,7 +156,8 @@ end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                            ::Type{<:Union{TreeMesh{1},
+                                                           StructuredMesh{1}}},
                                             equations, dg::DGSEM,
                                             cache, args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
@@ -194,16 +196,17 @@ function integrate_via_indices(func::Func, u,
                                mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
     @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for i in eachnode(dg)
-            jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, element]))
+            jacobian_volume = abs(inv(inverse_jacobian[i, element]))
             integral += jacobian_volume * weights[i] *
                         func(u, i, element, equations, dg, args...)
             total_volume += jacobian_volume * weights[i]

@@ -27,6 +27,15 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
     return LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearScalarAdvectionEquation3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearScalarAdvectionEquation3D(SVector{3, NewRealT}(equations.advection_velocity))
+end
+
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 
@@ -156,14 +165,14 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction,
                  equations::LinearScalarAdvectionEquation3D)
 
 Godunov (upwind) flux for the 3D linear scalar advection equation.
 Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -175,8 +184,8 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 

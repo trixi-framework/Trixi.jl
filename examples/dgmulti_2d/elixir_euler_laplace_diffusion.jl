@@ -34,7 +34,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
@@ -42,6 +42,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-alg = RDPK3SpFSAL35()
+alg = RDPK3SpFSAL35(thread = Trixi.Threaded())
 sol = solve(ode, alg; abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

@@ -1,175 +1,186 @@
-module TestVisualization
+@testsnippet Visualization begin
+    using Plots
+    # We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
+    # interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
+    # Makie-based visualization.
+    using CairoMakie
 
-using Test
-using Trixi
-using Plots
+    EXAMPLES_DIR = examples_dir()
+end
 
-# We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
-# interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
-# Makie-based visualization.
-using CairoMakie
+@testitem "Visualization: PlotData2D, PlotDataSeries, PlotMesh" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-include("test_trixi.jl")
+    # Run 2D tests with elixirs for different mesh and solver types
+    test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
+                                           "elixir_euler_blast_wave_amr.jl"),
+                            "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
+                                                   "elixir_euler_convergence.jl"),
+                            "StructuredMesh" => ("structured_2d_dgsem",
+                                                 "elixir_euler_source_terms_waving_flag.jl"),
+                            "UnstructuredMesh" => ("unstructured_2d_dgsem",
+                                                   "elixir_euler_basic.jl"),
+                            "P4estMesh" => ("p4est_2d_dgsem",
+                                            "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                            "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+                            "DGMulti (FDSBP)" => ("dgmulti_2d",
+                                                  "elixir_euler_cgsbp_periodic.jl"))
 
-EXAMPLES_DIR = examples_dir()
+    @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+        # Run Trixi.jl
+        directory, elixir = test_examples_2d[mesh]
+        @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
+                            tspan=(0, 0.1))
 
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-# Run various visualization tests
-@testset "Visualization tests" begin
-#! format: noindent
-
-# Run 2D tests with elixirs for different mesh and solver types
-test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
-                                       "elixir_euler_blast_wave_amr.jl"),
-                        "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
-                                               "elixir_euler_convergence.jl"),
-                        "StructuredMesh" => ("structured_2d_dgsem",
-                                             "elixir_euler_source_terms_waving_flag.jl"),
-                        "UnstructuredMesh" => ("unstructured_2d_dgsem",
-                                               "elixir_euler_basic.jl"),
-                        "P4estMesh" => ("p4est_2d_dgsem",
-                                        "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
-
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
-    # Run Trixi.jl
-    directory, elixir = test_examples_2d[mesh]
-    @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
-                        tspan=(0, 0.1))
-
-    # Constructor tests
-    if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)"
-        @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
-        @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
-                         solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
-        if semi.solver isa DGSEM
-            @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        # Constructor tests
+        if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)"
+            @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+            @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
+                             solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
+            if semi.solver isa DGSEM
+                @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+            end
+        else
+            @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+            @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
+                  Trixi.PlotData2DTriangulated
         end
-    else
-        @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
-        @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
-              Trixi.PlotData2DTriangulated
-    end
-    pd = PlotData2D(sol)
-
-    # show
-    @trixi_test_nowarn show(stdout, pd)
-    println(stdout)
-
-    # getindex
-    @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
-    @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
-    @test pd["v2"] == Trixi.PlotDataSeries(pd, 3)
-    @test pd["p"] == Trixi.PlotDataSeries(pd, 4)
-    @test_throws KeyError pd["does not exist"]
-
-    # convenience methods for mimicking a dictionary
-    @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
-    @test pd[end] == Trixi.PlotDataSeries(pd, 4)
-    @test length(pd) == 4
-    @test size(pd) == (4,)
-    @test keys(pd) == ("rho", "v1", "v2", "p")
-    @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
-    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
-        "v1" => Trixi.PlotDataSeries(pd, 2),
-        "v2" => Trixi.PlotDataSeries(pd, 3),
-        "p" => Trixi.PlotDataSeries(pd, 4)]
-
-    # PlotDataSeries
-    pds = pd["p"]
-    @test pds.plot_data == pd
-    @test pds.variable_id == 4
-    @trixi_test_nowarn show(stdout, pds)
-    println(stdout)
-
-    # getmesh/PlotMesh
-    @test getmesh(pd) == Trixi.PlotMesh(pd)
-    @test getmesh(pd).plot_data == pd
-    @trixi_test_nowarn show(stdout, getmesh(pd))
-    println(stdout)
-
-    @testset "2D plot recipes" begin
         pd = PlotData2D(sol)
 
-        @trixi_test_nowarn Plots.plot(sol)
-        @trixi_test_nowarn Plots.plot(pd)
-        @trixi_test_nowarn Plots.plot(pd["p"])
-        @trixi_test_nowarn Plots.plot(getmesh(pd))
+        # show
+        @trixi_test_nowarn show(stdout, pd)
+        println(stdout)
 
-        semi = sol.prob.p
-        if mesh == "DGMulti"
-            if sol.u[end] isa Trixi.VectorOfArray
-                u = parent(sol.u[end])
-            else
-                u = sol.u[end]
-            end
-            scalar_data = StructArrays.component(u, 1)
-        else
-            # There are some issues with `PtrArray`s returned by default
-            # by `Trixi.wrap_array`, see
-            # https://github.com/trixi-framework/Trixi.jl/issues/2797
-            u = Trixi.wrap_array_native(sol.u[end], semi)
-            scalar_data = u[1, :, :, :]
-        end
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
-                                                       sol.u[end], semi))
+        # getindex
+        @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
+        @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
+        @test pd["v2"] == Trixi.PlotDataSeries(pd, 3)
+        @test pd["p"] == Trixi.PlotDataSeries(pd, 4)
+        @test_throws KeyError pd["does not exist"]
 
-        # test for consistency between the two ScalarPlotData2D constructions
-        if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
-            spd_no_function = ScalarPlotData2D(scalar_data, semi)
-            spd_function = ScalarPlotData2D((u, equations) -> u[1],
-                                            sol.u[end], semi)
-            @test typeof(spd_no_function) == typeof(spd_function)
-            for property in propertynames(spd_function)
-                if property == :data
-                    @test spd_no_function.data.data ≈ spd_function.data.data
-                elseif property == :variable_names
-                    @test getproperty(spd_no_function, property) ==
-                          getproperty(spd_function, property)
+        # convenience methods for mimicking a dictionary
+        @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
+        @test pd[end] == Trixi.PlotDataSeries(pd, 4)
+        @test length(pd) == 4
+        @test size(pd) == (4,)
+        @test keys(pd) == ("rho", "v1", "v2", "p")
+        @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
+        @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
+            "v1" => Trixi.PlotDataSeries(pd, 2),
+            "v2" => Trixi.PlotDataSeries(pd, 3),
+            "p" => Trixi.PlotDataSeries(pd, 4)]
+
+        # PlotDataSeries
+        pds = pd["p"]
+        @test pds.plot_data == pd
+        @test pds.variable_id == 4
+        @trixi_test_nowarn show(stdout, pds)
+        println(stdout)
+
+        # getmesh/PlotMesh
+        @test getmesh(pd) == Trixi.PlotMesh(pd)
+        @test getmesh(pd).plot_data == pd
+        @trixi_test_nowarn show(stdout, getmesh(pd))
+        println(stdout)
+
+        @testset "2D plot recipes" begin
+            pd = PlotData2D(sol)
+
+            @trixi_test_nowarn Plots.plot(sol)
+            @trixi_test_nowarn Plots.plot(pd)
+            @trixi_test_nowarn Plots.plot(pd["p"])
+            @trixi_test_nowarn Plots.plot(getmesh(pd))
+
+            semi = sol.prob.p
+            if mesh == "DGMulti"
+                if sol.u[end] isa Trixi.VectorOfArray
+                    u = parent(sol.u[end])
                 else
-                    @test getproperty(spd_no_function, property) ≈
-                          getproperty(spd_function, property)
+                    u = sol.u[end]
+                end
+                scalar_data = StructArrays.component(u, 1)
+            else
+                # There are some issues with `PtrArray`s returned by default
+                # by `Trixi.wrap_array`, see
+                # https://github.com/trixi-framework/Trixi.jl/issues/2797
+                u = Trixi.wrap_array_native(sol.u[end], semi)
+                scalar_data = u[1, :, :, :]
+            end
+
+            if mesh != "DGMulti (FDSBP)"
+                @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+                @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                               sol.u[end], semi))
+            end
+
+            # test for consistency between the two ScalarPlotData2D constructions
+            if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
+                spd_no_function = ScalarPlotData2D(scalar_data, semi)
+                spd_function = ScalarPlotData2D((u, equations) -> u[1],
+                                                sol.u[end], semi)
+                @test typeof(spd_no_function) == typeof(spd_function)
+                for property in propertynames(spd_function)
+                    if property == :data
+                        @test spd_no_function.data.data ≈ spd_function.data.data
+                    elseif property == :variable_names
+                        @test getproperty(spd_no_function, property) ==
+                              getproperty(spd_function, property)
+                    else
+                        @test getproperty(spd_no_function, property) ≈
+                              getproperty(spd_function, property)
+                    end
                 end
             end
+
+            # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
+            if mesh == "TreeMesh (FDSBP)"
+                (; volume_integral, surface_integral) = semi.solver
+                solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
+                                     volume_integral)
+                @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
+                          Trixi.reference_node_coordinates_2d(solver_fdsbp))
+            end
         end
 
-        # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
-        if mesh == "TreeMesh (FDSBP)"
-            (; volume_integral, surface_integral) = semi.solver
-            solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
-                                 volume_integral)
-            @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
-                      Trixi.reference_node_coordinates_2d(solver_fdsbp))
-        end
-    end
-
-    @testset "1D plot from 2D solution" begin
-        if mesh != "DGMulti"
-            @testset "Create 1D plot as slice" begin
-                @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
-                                   PlotData1D
-                @trixi_test_nowarn PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
-                                   PlotData1D
-                pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
-                @trixi_test_nowarn Plots.plot(pd1D)
-
-                @testset "Create 1D plot along curve" begin
-                    curve = zeros(2, 10)
-                    curve[1, :] = range(-1, 1, length = 10)
-                    @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
-                    pd1D = PlotData1D(sol, curve = curve)
+        @testset "1D plot from 2D solution" begin
+            if mesh != "DGMulti" && mesh != "DGMulti (FDSBP)"
+                @testset "Create 1D plot as slice" begin
+                    @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
+                                       PlotData1D
+                    @trixi_test_nowarn PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
+                                       PlotData1D
+                    pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
                     @trixi_test_nowarn Plots.plot(pd1D)
+
+                    @testset "Create 1D plot along curve" begin
+                        curve = zeros(2, 10)
+                        curve[1, :] = range(-1, 1, length = 10)
+                        @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
+                        pd1D = PlotData1D(sol, curve = curve)
+                        @trixi_test_nowarn Plots.plot(pd1D)
+                    end
                 end
             end
         end
     end
 end
+@testitem "Visualization: ScalarPlotData2D with DGMulti Quad elements" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
 
-@timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
+    # check that ScalarPlotData2D works for Quad elements
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        tspan=(0.0, 0.0),
+                        element_type=Quad(),
+                        cells_per_dimension=(2, 2))
+    semi = sol.prob.p
+    u = parent(sol.u[end])
+    scalar_data = StructArrays.component(u, 1)
+    @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+end
+@testitem "Visualization: PlotData1D, PlotDataSeries, PlotMesh" setup=[Setup, Visualization] tags=[:misc_part1] begin
+
     # Run Trixi.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_euler_blast_wave.jl"),
@@ -253,8 +264,56 @@ end
         @trixi_test_nowarn Plots.plot(fake2d)
     end
 end
+@testitem "Visualization: FV testsets" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    @trixi_testset "BlockFV 1D Visualization" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_advection_basic.jl"),
+                            n_nodes=4,
+                            initial_refinement_level=3)
 
-@timed_testset "1D plot from 2D solution" begin
+        pd_fv_wrapped = @test_nowarn PlotData1D(sol)
+        @test pd_fv_wrapped isa PlotData1D
+    end
+
+    @trixi_testset "DGSEM vs BlockFV 1D Visualization" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                     "elixir_advection_finite_volume.jl"),
+                            polydeg=0,
+                            initial_refinement_level=5)
+
+        pd_dgsem_polydeg0 = @test_nowarn PlotData1D(sol)
+
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_advection_basic.jl"),
+                            n_nodes=4,
+                            initial_refinement_level=3)
+
+        pd_blockfv = @test_nowarn PlotData1D(sol)
+
+        @test pd_blockfv.data ≈ pd_dgsem_polydeg0.data
+    end
+
+    @trixi_testset "Constant IC" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_euler_source_term_nonperiodic.jl"),
+                            n_nodes=4,
+                            initial_refinement_level=3,
+                            initial_condition=initial_condition_constant,
+                            tspan=(0.0, 0.0))
+
+        pd = @test_nowarn PlotData1D(sol)
+        @test pd isa PlotData1D
+
+        ref_cons = initial_condition_constant(SVector(0.0), 0.0,
+                                              semi.equations)
+        ref_prim = cons2prim(ref_cons, semi.equations)
+
+        @test all(x -> isapprox(x, ref_prim[1]), pd.data[:, 1]) # rho
+        @test all(x -> isapprox(x, ref_prim[2]), pd.data[:, 2]) # v1
+        @test all(x -> isapprox(x, ref_prim[3]), pd.data[:, 3]) # p
+    end
+end
+@testitem "Visualization: 1D plot from 2D solution" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
         using Trixi
@@ -306,7 +365,6 @@ end
         initial_refinement_level = 3
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                             n_cells_max = 10^5,
                              initial_refinement_level,
                              periodicity = true)
         trees_per_dimension = (1, 1)
@@ -440,8 +498,169 @@ end
         end
     end
 end
+@testitem "Visualization: PlotData2D Regression Tests" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    using Trixi
+    equations = CompressibleEulerEquations2D(1.4)
+    solver = DGSEM(polydeg = 3,
+                   surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
-@timed_testset "PlotData1D (DGMulti)" begin
+    coordinates_min = (-1.0, -1.0)
+    coordinates_max = (1.0, 1.0)
+    initial_refinement_level = 3
+
+    # Manually initialize meshes
+    mesh_tree = TreeMesh(coordinates_min, coordinates_max;
+                         initial_refinement_level,
+                         periodicity = true)
+
+    trees_per_dimension = (1, 1)
+    mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 3,
+                           coordinates_min, coordinates_max,
+                           initial_refinement_level,
+                           periodicity = true)
+
+    cells_per_dimension = (2, 2) .^ initial_refinement_level
+    mesh_structured = StructuredMesh(cells_per_dimension,
+                                     coordinates_min, coordinates_max,
+                                     periodicity = true)
+
+    function initial_condition_taylor_green_vortex(x, t,
+                                                   equations::CompressibleEulerEquations2D)
+        A = 1.0 # magnitude of speed
+        Ms = 0.1 # maximum Mach number
+
+        rho = 1.0
+        v1 = A * sin(x[1]) * cos(x[2])
+        v2 = -A * cos(x[1]) * sin(x[2])
+        p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
+        p = p +
+            1.0 / 16.0 * A^2 * rho *
+            (cos(2 * x[1]) + 2 * cos(2 * x[2]) +
+             2 * cos(2 * x[1]) + cos(2 * x[2]))
+
+        return prim2cons(SVector(rho, v1, v2, p), equations)
+    end
+
+    @testset "Constant IC (Exact Checks)" begin
+        ic = initial_condition_constant
+
+        @testset "TreeMesh" begin
+            semi_tree = SemidiscretizationHyperbolic(mesh_tree, equations, ic, solver;
+                                                     boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_tree.equations)
+            ref_prim = cons2prim(ref_cons, semi_tree.equations)
+
+            @test all(x -> isapprox(x, ref_prim[1]), pd.data[1]) # rho
+            @test all(x -> isapprox(x, ref_prim[2]), pd.data[2]) # v1
+            @test all(x -> isapprox(x, ref_prim[3]), pd.data[3]) # v2
+            @test all(x -> isapprox(x, ref_prim[4]), pd.data[4]) # p
+        end
+
+        @testset "StructuredMesh" begin
+            semi_struct = SemidiscretizationHyperbolic(mesh_structured, equations, ic,
+                                                       solver;
+                                                       boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_struct.equations)
+            ref_prim = cons2prim(ref_cons, semi_struct.equations)
+
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
+        end
+
+        @testset "P4estMesh" begin
+            semi_p4est = SemidiscretizationHyperbolic(mesh_p4est, equations, ic, solver;
+                                                      boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_p4est.equations)
+            ref_prim = cons2prim(ref_cons, semi_p4est.equations)
+
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
+        end
+    end
+
+    @testset "Non-Constant IC (Taylor-Green Vortex)" begin
+        ic = initial_condition_taylor_green_vortex
+
+        @testset "TreeMesh" begin
+            semi_tree = SemidiscretizationHyperbolic(mesh_tree, equations, ic, solver;
+                                                     boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for (j, y) in enumerate(pd.y), (i, x) in enumerate(pd.x)
+                u_exact = ic(SVector(x, y), 0.0, semi_tree.equations)
+                prim_exact = cons2prim(u_exact, semi_tree.equations)
+                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j],
+                                      pd.data[3][i, j], pd.data[4][i, j])
+
+                current_error = maximum(abs.(prim_interp - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            # Note that PlotData2D for TreeMesh uses a different algorithm that interpolates
+            # the solution onto a uniform Cartesian grid. This is less accurate than the
+            # exact nodal evaluations above, so we need to use a larger tolerance.
+            @test max_error < 1.05
+        end
+
+        @testset "StructuredMesh" begin
+            semi_struct = SemidiscretizationHyperbolic(mesh_structured, equations, ic,
+                                                       solver;
+                                                       boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = ic(SVector(x, y), 0.0, semi_struct.equations)
+                prim_exact = cons2prim(u_exact, semi_struct.equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 1.0e-5
+        end
+
+        @testset "P4estMesh" begin
+            semi_p4est = SemidiscretizationHyperbolic(mesh_p4est, equations, ic, solver;
+                                                      boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = ic(SVector(x, y), 0.0, semi_p4est.equations)
+                prim_exact = cons2prim(u_exact, semi_p4est.equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 1.0e-5
+        end
+    end
+end
+@testitem "Visualization: PlotData1D (DGMulti)" setup=[Setup, Visualization] tags=[:misc_part1] begin
+
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
     # - array of structures for `SBP()`
@@ -462,8 +681,165 @@ end
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
+@testitem "Visualization: PlotData2D (DGMulti 3D Tet slice)" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    function initial_condition_linear(x, t, equations)
+        return SVector(10 + x[1] + 2 * x[2] + 3 * x[3], 0.1, -0.2, 0.7, 20.0)
+    end
 
-@timed_testset "1D plot recipes (StructuredMesh)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
+                                 "elixir_euler_weakform_periodic.jl"),
+                        cells_per_dimension=(2, 2, 2), tspan=(0.0, 0.0),
+                        initial_condition=initial_condition_linear, source_terms=nothing)
+
+    kwargs = (; slice = :xz, point = (0.0, 0.125, 0.0), solution_variables = cons2cons,
+              nvisnodes = 12)
+    pd = @inferred PlotData2D(sol; kwargs...)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test size(pd.t, 1) > 0
+
+    @testset "Constructors and plotting" begin
+        pd_triangulated = @inferred Trixi.PlotData2DTriangulated(sol; kwargs...)
+        pd_array = PlotData2D(collect(parent(sol.u[end])), semi; kwargs...)
+        for plot_data in (pd_triangulated, pd_array)
+            @test plot_data.x ≈ pd.x
+            @test plot_data.y ≈ pd.y
+            @test plot_data.data ≈ pd.data
+            @test size(plot_data.x_face) == size(pd.x_face)
+        end
+
+        pd_without_mesh = PlotData2D(sol; kwargs..., nvisnodes = 0)
+        @test isempty(pd_without_mesh.x_face)
+        @test pd_without_mesh.data ≈ pd.data
+
+        @trixi_test_nowarn Plots.plot(pd["rho"])
+        @trixi_test_nowarn Plots.plot!(getmesh(pd))
+        @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
+        @trixi_test_nowarn Trixi.iplot(pd)
+    end
+
+    @testset "Slice planes" begin
+        slice_point(::Val{:xy}, x, y, c) = SVector(x, y, c)
+        slice_point(::Val{:xz}, x, y, c) = SVector(x, c, y)
+        slice_point(::Val{:yz}, x, y, c) = SVector(c, x, y)
+
+        for slice in (:xy, :xz, :yz), coordinate in (-1.0, 0.0, 0.125, 1.0)
+            point = slice_point(Val(slice), 0.0, 0.0, coordinate)
+            pd_slice = PlotData2D(sol; slice, point, solution_variables = cons2cons)
+            @test !isempty(pd_slice.data)
+            @test all(pd_slice.data[i] ≈
+                      initial_condition_linear(slice_point(Val(slice), pd_slice.x[i],
+                                                           pd_slice.y[i], coordinate),
+                                               0.0, equations)
+                      for i in eachindex(pd_slice.data))
+        end
+
+        @test_throws r"illegal dimension 'yx'" PlotData2D(sol; slice = :yx)
+        @test_throws r"Slice plane is outside of domain" PlotData2D(sol;
+                                                                    point = (0.0, 0.0, 2.0))
+    end
+
+    @testset "Polynomial interpolation" begin
+        dg = DGMulti(polydeg = 3, element_type = Tet(), Nplot = 6)
+        state(x, y, z) = SVector(2 + x^2 + y^2 + z^2, 0.1 + x, -0.2 + y,
+                                 0.7 + z, 20 + x^3 + x * y * z)
+
+        # A triangular cut gives one patch; a quadrilateral cut gives two.
+        for (coordinate, z_vertices, num_patches, num_edges) in ((0.25,
+                                                                  [0.0, 0.0, 0.0, 1.0], 1,
+                                                                  3),
+                                                                 (0.0,
+                                                                  [-1.0, -1.0, 1.0, 1.0], 2,
+                                                                  4))
+            vertices = ([0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], z_vertices)
+            mesh = DGMultiMesh(dg, vertices, [1 2 3 4])
+            u = state.(mesh.md.x, mesh.md.y, mesh.md.z)
+
+            for solution_variables in (cons2cons, cons2prim)
+                pd_slice = PlotData2D(u, mesh, equations, dg, nothing;
+                                      point = (0.0, 0.0, coordinate), solution_variables)
+                @test size(pd_slice.data, 2) == num_patches
+                expected = solution_variables.(state.(pd_slice.x, pd_slice.y, coordinate),
+                                               Ref(equations))
+                @test pd_slice.data ≈ expected
+
+                # Mesh lines sample the same polynomial at the requested resolution.
+                finite = isfinite.(pd_slice.x_face)
+                @test count(finite) ==
+                      num_edges * (2 * (Trixi.polydeg(dg) + 1) - 1) + 1
+                expected_face = solution_variables.(state.(pd_slice.x_face[finite],
+                                                           pd_slice.y_face[finite],
+                                                           coordinate),
+                                                    Ref(equations))
+                @test pd_slice.face_data[finite] ≈ expected_face
+
+                pd_custom = PlotData2D(u, mesh, equations, dg, nothing;
+                                       point = (0.0, 0.0, coordinate), solution_variables,
+                                       nvisnodes = 12)
+                @test count(isfinite, pd_custom.x_face) == num_edges * 11 + 1
+                @test pd_custom.data ≈ pd_slice.data
+            end
+        end
+    end
+
+    @testset "Discontinuous solution" begin
+        dg = DGMulti(polydeg = 1, element_type = Tet(), Nplot = 2)
+        equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+        vertices = ([0.0, 0.0, 0.0, -1.0, 1.0], [0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0])
+        mesh = DGMultiMesh(dg, vertices, [1 2 4 3; 1 5 2 3])
+        u = [SVector(value) for _ in axes(mesh.md.x, 1), value in (1.0, 3.0)]
+        pd_slice = PlotData2D(u, mesh, equations, dg, nothing;
+                              point = (0.0, 0.0, 0.25), nvisnodes = 3)
+
+        # Both traces remain distinct at the shared edge of the slice.
+        shared = findall(i -> isapprox(pd_slice.x_face[i], 0.0; atol = 1.0e-12) &&
+                             isapprox(pd_slice.y_face[i], 0.375; atol = 1.0e-12),
+                         eachindex(pd_slice.x_face))
+        @test sort([pd_slice.face_data[i][1] for i in shared]) ≈ [1.0, 3.0]
+        @test all(column -> all(u -> u ≈ first(column), column), eachcol(pd_slice.data))
+
+        pd_face = PlotData2D(u, mesh, equations, dg, nothing; slice = :yz)
+        @test size(pd_face.data, 2) == 1
+        @test all(u -> u ≈ SVector(3.0), pd_face.data)
+    end
+
+    @testset "Unsupported meshes" begin
+        dg_hex = DGMulti(polydeg = 1, element_type = Hex())
+        mesh_hex = DGMultiMesh(dg_hex, (1, 1, 1))
+        u_hex = fill(SVector(1.0), size(mesh_hex.md.x))
+        scalar_equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+        expected_error = r"got a mesh with `Affine` geometry and `Hex\(\)` elements"
+        @test_throws expected_error PlotData2D(u_hex, mesh_hex, scalar_equations, dg_hex,
+                                               nothing)
+
+        dg_curved = DGMulti(polydeg = 2, element_type = Tet())
+        mapping(x, y, z) = SVector(x, y, z + 0.1 * x * y)
+        mesh_curved = DGMultiMesh(dg_curved, (1, 1, 1), mapping)
+        u_curved = fill(SVector(1.0), size(mesh_curved.md.x))
+        expected_error = r"got a mesh with `NonAffine` geometry and `Tet\(\)` elements"
+        @test_throws expected_error PlotData2D(u_curved, mesh_curved, scalar_equations,
+                                               dg_curved, nothing)
+    end
+end
+
+@testitem "Visualization: PlotData2D (DGMulti Tri SBP)" setup=[Setup, Visualization] tags=[:misc_part1] begin
+
+    # Regression test for plotting with SBP on triangular elements (reference triangulation of rstp).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+                        tspan=(0.0, 0.0))
+
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test size(pd.t, 1) > 0
+
+    @trixi_test_nowarn Plots.plot(pd)
+    @trixi_test_nowarn Plots.plot(pd["rho"])
+end
+@testitem "Visualization: 1D plot recipes (StructuredMesh)" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         tspan=(0.0, 0.0))
@@ -477,8 +853,7 @@ end
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
-
-@timed_testset "plot time series" begin
+@testitem "Visualization: plot time series" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_acoustics_gaussian_source.jl"),
                         tspan=(0, 0.05))
@@ -486,8 +861,7 @@ end
     @trixi_test_nowarn Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
-
-@timed_testset "adapt_to_mesh_level" begin
+@testitem "Visualization: adapt_to_mesh_level" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback())
@@ -500,8 +874,7 @@ end
     @test adapt_to_mesh_level!(sol, 5) isa Tuple
     @test isapprox(sol.u[end], u_ode_level5, atol = 1e-13)
 end
-
-@timed_testset "plot 3D" begin
+@testitem "Visualization: plot 3D" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback(),
@@ -527,6 +900,21 @@ end
             @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve = curve)
             @trixi_test_nowarn Plots.plot(pd1D)
+        end
+    end
+
+    @testset "PlotData2D finite volume (polydeg = 0) from 3D solution" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                     "elixir_advection_basic.jl"),
+                            analysis_callback=Trixi.TrivialCallback(),
+                            initial_refinement_level=1,
+                            polydeg=0)
+        for slice in (:xy, :yz, :xz)
+            pd = PlotData2D(sol, slice = slice)
+            @test pd isa Trixi.PlotData2DCartesian
+            @test !pd.point_values
+            @test !isempty(pd.data)
+            @trixi_test_nowarn Plots.plot(pd)
         end
     end
 
@@ -605,7 +993,6 @@ end
         initial_refinement_level = 3
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                             n_cells_max = 10^6,
                              initial_refinement_level,
                              periodicity = true)
         trees_per_dimension = (1, 1, 1)
@@ -746,16 +1133,16 @@ end
         end
     end
 end
-
-@timed_testset "plotting TimeIntegratorSolution" begin
+@testitem "Visualization: plotting TimeIntegratorSolution" setup=[Setup, Visualization] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
                         initial_refinement_level=1)
     @trixi_test_nowarn Plots.plot(sol)
 end
+@testitem "Visualization: VisualizationCallback" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    outdir = "out"
 
-@timed_testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -795,8 +1182,170 @@ end
         end
     end
 end
+@testitem "Visualization: Makie visualization tests for 1D" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData1D(sol)
 
-@timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
+    # convert_arguments enables lines(pd["scalar"])
+    @trixi_test_nowarn lines(pd["scalar"])
+
+    # plottype for 1D PlotDataSeries is Lines
+    @test Makie.plottype(pd["scalar"]) == Makie.Lines
+
+    # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
+
+    # plot_mesh kwarg triggers vlines!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], plot_mesh = true)
+
+    # kwargs are forwarded to lines!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], color = :red, linewidth = 2)
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+
+    # plot_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+
+    # Makie.plot(sol) for 1D solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to vlines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+
+    # contour plots are only defined for 2D solutions
+    @test_throws ArgumentError Makie.contour(sol)
+    @test_throws ArgumentError Makie.contourf(sol)
+end
+@testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    using CairoMakie
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = @inferred PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+
+    # plottype for 2D PlotDataSeries is Heatmap
+    @test Makie.plottype(pd["scalar"]) == Makie.Heatmap
+
+    # convert_arguments enables Makie.heatmap(pd["scalar"])
+    @trixi_test_nowarn Makie.heatmap(pd["scalar"])
+
+    # Makie.plot(pds) gives title, xlabel, ylabel and colorbar
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
+
+    # kwargs are forwarded to heatmap!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], colormap = :heat)
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = @trixi_test_nowarn Makie.plot(pd)
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+
+    # Makie.plot(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to lines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+
+    # Makie.contour(pds) gives title, xlabel, ylabel and colorbar
+    @trixi_test_nowarn Makie.contour(pd["scalar"])
+
+    # kwargs are forwarded to contour!
+    @trixi_test_nowarn Makie.contour(pd["scalar"], levels = 5)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    @trixi_test_nowarn Makie.contourf(pd["scalar"])
+    @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"], levels = 5, color = :white)
+
+    # FV (polydeg = 0): `pd_fv.x`/`.y` are the `length(data)+1` cell edges.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test !pd_fv.point_values
+    @test length(pd_fv.x) == size(pd_fv.data[1], 1) + 1
+
+    _, ax_fv, plt_fv = Makie.plot(pd_fv["scalar"])
+    @test collect(plt_fv[1][]) == pd_fv.x
+    @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
+    @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
+
+    # Contours need one coordinate per value, so they use the cell centers instead.
+    x_centers = 0.5 .* (pd_fv.x[begin:(end - 1)] .+ pd_fv.x[(begin + 1):end])
+    y_centers = 0.5 .* (pd_fv.y[begin:(end - 1)] .+ pd_fv.y[(begin + 1):end])
+    _, _, plt_fv_contour = Makie.contour(pd_fv["scalar"])
+    @test collect(plt_fv_contour[1][]) ≈ x_centers
+    @test collect(plt_fv_contour[2][]) ≈ y_centers
+    @trixi_test_nowarn Makie.contourf(pd_fv["scalar"])
+    @trixi_test_nowarn Makie.contour(pd_fv)
+
+    # Constant variables give a zero-width color range, which Makie only expands if the
+    # color range is passed explicitly. `elixir_acoustics_gauss.jl` has four constant
+    # variables (`v1_mean`, `v2_mean`, `c_mean`, `rho_mean`).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_acoustics_gauss.jl"))
+    pd_const = PlotData2D(sol)
+    fig_const, axes_const = @trixi_test_nowarn Makie.plot(pd_const)
+    Makie.update_state_before_display!(fig_const)
+    for content in fig_const.content
+        content isa Makie.Colorbar || continue
+        limits = content.limits[]
+        @test limits[1] < limits[2]
+    end
+    @trixi_test_nowarn Makie.plot(pd_const["v1_mean"])
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["v1_mean"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["v1_mean"])
+
+    # The seven variables do not fill the 3x3 layout, so the unused cells must still
+    # hold (empty) axes instead of undefined references.
+    @test size(axes_const) == (3, 3)
+    @test all(i -> isassigned(axes_const, i), eachindex(axes_const))
+end
+@testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
 
@@ -816,6 +1365,20 @@ end
     # test heatmap plot
     @trixi_test_nowarn Makie.plot(sol, plot_mesh = true)
 
+    # single-variable plot with axis and colorbar (works for all PlotData2DTriangulated meshes)
+    pd = @inferred PlotData2D(sol)
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    # plot_mesh = true
+    @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
+
+    # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd))
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd), color = :black,
+                                   linestyle = :dash)
+
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)
     fig, axes = fa
@@ -830,6 +1393,110 @@ end
     end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
+@testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_curved.jl"))
+
+    @trixi_test_nowarn Trixi.iplot(sol)
 end
 
-end #module
+@testitem "Visualization: PlotData2D Finite Volume (polydeg = 0, BlockFV) Examples" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # FV (`polydeg = 0`) with AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_amr.jl"),
+                        polydeg=0)
+    pd_amr = PlotData2D(sol)
+    @test pd_amr isa Trixi.PlotData2DCartesian
+    @test !pd_amr.point_values
+    @test !isempty(pd_amr.data)
+    @trixi_test_nowarn Plots.plot(pd_amr)
+
+    # DG with no AMR (point values, default)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=1)
+    pd_basic = PlotData2D(sol)
+    @test pd_basic isa Trixi.PlotData2DCartesian
+    @test pd_basic.point_values
+    @test !isempty(pd_basic.data)
+    @trixi_test_nowarn Plots.plot(pd_basic)
+
+    # FV (`polydeg = 0`) with no AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test pd_fv isa Trixi.PlotData2DCartesian
+    @test !pd_fv.point_values
+    @test !isempty(pd_fv.data)
+    @trixi_test_nowarn Plots.plot(pd_fv)
+
+    # `nvisnodes` has no effect on finite volume data (nothing to interpolate): every
+    # value gives the native-resolution result
+    for value in (0, 1, 5, 100)
+        pd_fv_other_nvisnodes = PlotData2D(sol; nvisnodes = value)
+        @test pd_fv_other_nvisnodes.x == pd_fv.x
+        @test pd_fv_other_nvisnodes.data == pd_fv.data
+    end
+
+    # The mesh overlay should cover the full domain, not just the region between the
+    # first and last cell center.
+    plt_fv_mesh = Plots.plot(pd_fv)
+    Plots.plot!(plt_fv_mesh, getmesh(pd_fv))
+    @test Plots.xlims(plt_fv_mesh) == (-1.0, 1.0)
+    @test Plots.ylims(plt_fv_mesh) == (-1.0, 1.0)
+
+    # A `TreeMesh` with just a single cell (`initial_refinement_level = 0`)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0, polydeg=0)
+    pd_single_cell = PlotData2D(sol)
+    @test pd_single_cell.x == [-1.0, 1.0]
+    @test pd_single_cell.y == [-1.0, 1.0]
+    @trixi_test_nowarn Plots.plot(pd_single_cell)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0)
+    pd_single_cell_blockfv = PlotData2D(sol)
+    @test extrema(pd_single_cell_blockfv.x) == (-1.0, 1.0)
+    @test extrema(pd_single_cell_blockfv.y) == (-1.0, 1.0)
+    @trixi_test_nowarn Plots.plot(pd_single_cell_blockfv)
+
+    # BlockFV with multiple finite volume cells per element
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        n_nodes=2)
+    pd_blockfv = PlotData2D(sol)
+    @test pd_blockfv isa Trixi.PlotData2DCartesian
+    @test !pd_blockfv.point_values
+    @test !isempty(pd_blockfv.data)
+    @trixi_test_nowarn Plots.plot(pd_blockfv)
+
+    # Unlike point values, cell (mean) values cannot be downsampled by interpolation,
+    # so the native resolution (`n_nodes`) must fit within what `max_supported_level`
+    # allows at the finest refinement level (here: level 4, so `max_supported_level`
+    # must be at least 5 to fit the `n_nodes = 2` cells per element).
+    @test_throws ArgumentError PlotData2D(sol; max_supported_level = 4)
+    @test PlotData2D(sol; max_supported_level = 5) isa Trixi.PlotData2DCartesian
+end
+
+@testitem "Visualization: PlotData2D elixir_advection_finite_volume.jl" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # example elixir for finite volume (`polydeg = 0`) plotting
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_finite_volume.jl"))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+    @test !pd.point_values
+    @test !isempty(pd.data)
+    @trixi_test_nowarn Plots.plot(pd)
+end

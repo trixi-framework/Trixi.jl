@@ -70,6 +70,7 @@ struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
     mesh_vertices_y::Vertices
     orientation_x::Int
     orientation_y::Int
+    point_values::Bool
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -179,9 +180,9 @@ getmesh(pd::AbstractPlotData) = PlotMesh(pd)
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                slice=:xy, point=(0.0, 0.0, 0.0))
 
-Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
-`u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
+Create a `PlotData2D` object for visualizing 2D data or slices of 3D solution data `u`
+with Plots.jl or Makie.jl. Geometrical information is extracted from the semidiscretization
+`semi`. By default, the primitive variables (if available) or the conservative variables (otherwise)
 from the solution are used for plotting. This can be changed by passing an appropriate conversion
 function to `solution_variables`.
 
@@ -189,17 +190,30 @@ For coupled semidiscretizations, i.e., `semi isa` [`SemidiscretizationCoupled`](
 `PlotData2D` objects is returned, one for each semidiscretization which is part of the
 coupled semidiscretization.
 
-If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
+For `TreeMesh`, if `grid_lines` is `true`, also extract vertices for visualizing the mesh. The output
 resolution is indirectly set via `max_supported_level`: all data is interpolated to
 `2^max_supported_level` uniformly distributed points in each spatial direction, also setting the
 maximum allowed refinement level in the solution. `nvisnodes` specifies the number of visualization
 nodes to be used. If it is `nothing`, twice the number of solution DG nodes are used for
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
+Finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or `BlockFV`) is piecewise constant, so
+there is nothing to interpolate: `nvisnodes` is ignored, and cells are always drawn with as
+many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough
+to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an
+error telling you to increase it.
+
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
-Both of these values are ignored when visualizing 2D data.
+For two-dimensional `TreeMesh` data, `slice` and `point` are ignored.
+
+For three-dimensional [`DGMultiMesh`](@ref) solutions, slicing supports affine (straight-sided)
+tetrahedral elements and returns a `PlotData2DTriangulated` object. Curved meshes and other
+element shapes raise an error. Set `Nplot` when constructing [`DGMulti`](@ref), e.g.,
+`DGMulti(polydeg = 3, element_type = Tet(), Nplot = 15)`, to control surface sampling.
+As for 2D DGMulti plots, `nvisnodes` sets the number of points along each mesh edge
+(default: `2 * (polydeg(dg) + 1)`); use `nvisnodes = 0` to omit mesh lines.
 
 # Examples
 ```julia
@@ -258,6 +272,28 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+# Convenience constructor defaulting to point values
+function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                             mesh_vertices_y, orientation_x, orientation_y)
+    return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                               mesh_vertices_y, orientation_x, orientation_y,
+                               true)
+end
+
+# point values (default) or cell values,
+# e.g., for finite volume methods.
+visualize_point_values(mesh, solver) = true
+
+function visualize_point_values(mesh, solver::DGSEM)
+    # We interpret DG methods with polynomial degree 0 as
+    # first-order finite volume methods, which should be
+    # visualized as cell (mean) values.
+    return polydeg(solver) > 0
+end
+# `BlockFV` always holds piecewise constant cell (mean) values, regardless of how
+# many finite volume cells (`nnodes(solver)`) each element is subdivided into.
+visualize_point_values(mesh, solver::BlockFV) = false
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -266,6 +302,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              slice = :xy, point = (0.0, 0.0, 0.0))
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    point_values = visualize_point_values(mesh, solver)
 
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
@@ -286,14 +324,15 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                grid_lines,
                                                                max_supported_level,
                                                                nvisnodes,
-                                                               slice, point)
+                                                               slice, point;
+                                                               point_values = point_values)
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,
-                               orientation_x, orientation_y)
+                               orientation_x, orientation_y, point_values)
 end
 
 """
@@ -313,7 +352,7 @@ function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
-function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
+function PlotData2D(u::Array{<:SVector}, mesh, equations, dg::DGMulti, cache;
                     solution_variables = nothing, nvisnodes = 2 * nnodes(dg))
     nvars = length(first(u))
     u_structarray = StructArray{eltype(u)}(ntuple(_ -> zeros(eltype(first(u)), size(u)),
@@ -373,6 +412,15 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data,
                                   variable_names)
+end
+
+# One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
+function PlotData2DTriangulated(u, mesh, equations, dg::DGMulti, cache;
+                                solution_variables = nothing,
+                                nvisnodes = 2 * nnodes(dg))
+    return PlotData2D(u, mesh, equations, dg, cache;
+                      solution_variables = solution_variables,
+                      nvisnodes = nvisnodes)
 end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
@@ -449,7 +497,7 @@ end
 Returns a `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 
-The optional argument `function_to_visualize(u, equations)` should be a function which takes 
+The optional argument `function_to_visualize(u, equations)` should be a function which takes
 in the conservative variables and equations as input and outputs a scalar variable to be visualized,
 e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
@@ -471,8 +519,8 @@ end
 
 function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
                                            dg::DGMulti, cache)
-    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
-    # broadcasting `func_to_visualize` over the solution array will work. 
+    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so
+    # broadcasting `func_to_visualize` over the solution array will work.
     return function_to_visualize.(u, equations)
 end
 
@@ -678,6 +726,113 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                       orientation_x)
 end
 
+function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
+                    solution_variables = nothing, nvisnodes = nothing,
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing)
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
+    unstructured_data = get_unstructured_data(u, solution_variables_, mesh,
+                                              equations, solver, cache)
+
+    n_nodes = size(unstructured_data, 1)  # number of subcells per cell
+    n_elements = nelements(solver, cache) # number of cells
+    total_plot_points = 2 * n_nodes * n_elements # The total array size we need
+
+    x = Vector{Float64}(undef, total_plot_points)
+    data = Array{Float64}(undef, total_plot_points, length(variable_names_))
+    mesh_vertices_x = Vector{Float64}(undef, n_elements + 1)
+
+    left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
+
+    if ndims(mesh) === 1
+        orientation_x = 1
+
+        for i in 1:n_elements #the loop over the cells
+            element_width = 2.0 / cache.elements.inverse_jacobian[i]
+            sub_cell_width = element_width / n_nodes
+
+            for j in 1:n_nodes #the loop over the subscells
+                idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1 #slot number in the list x for the left side of this subcell
+                idx_right = (i - 1) * (2 * n_nodes) + 2 * j #slot number in the list x for the right side of this subcell
+
+                x[idx_left] = left_boundary + (j - 1) * sub_cell_width #coordinate for the left edge of the subcell
+                x[idx_right] = left_boundary + j * sub_cell_width #coordinate for the right edge of the subcell
+
+                for v in 1:length(variable_names_) #loop over the values
+                    data[idx_left, v] = unstructured_data[j, i, v] #value for quantity v at left edge of subcell
+                    data[idx_right, v] = unstructured_data[j, i, v] #value for quantity v at right edge of subcell
+                end
+            end
+
+            mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x
+            left_boundary += element_width #go to the left boundary of the next cell
+        end
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+
+    else
+        error("BlockFV is not yet supported for 2D and 3D.")
+    end
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
+end
+
+# PlotData2DTriangulated for BlockFV on P4estMesh{2}.
+# Each FV cell becomes a flat-colored quad (split into 2 triangles) so that
+# cell-to-cell jumps are visible rather than smoothed away by interpolation.
+function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
+                                solution_variables = nothing, kwargs...)
+    @assert ndims(mesh)==2 "Input must be two-dimensional."
+
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names = SVector(varnames(solution_variables_, equations))
+    nvars = length(variable_names)
+    uEltype = eltype(u)
+
+    n = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    n_cells = n^2 * n_elements
+
+    corners_x, corners_y = calc_fv_cell_corners(mesh, dg, cache)
+
+    x = Array{Float64}(undef, 4, n_cells)
+    y = similar(x)
+    data = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype, 4, n_cells),
+                                                       nvars))
+
+    cell = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            cell += 1
+            x[1, cell] = corners_x[i, j, element]
+            x[2, cell] = corners_x[i + 1, j, element]
+            x[3, cell] = corners_x[i + 1, j + 1, element]
+            x[4, cell] = corners_x[i, j + 1, element]
+            y[1, cell] = corners_y[i, j, element]
+            y[2, cell] = corners_y[i + 1, j, element]
+            y[3, cell] = corners_y[i + 1, j + 1, element]
+            y[4, cell] = corners_y[i, j + 1, element]
+
+            u_node = solution_variables_(get_node_vars(u, equations, dg, i, j, element),
+                                         equations)
+            data[1, cell] = u_node
+            data[2, cell] = u_node
+            data[3, cell] = u_node
+            data[4, cell] = u_node
+        end
+    end
+
+    # Reference triangulation: split each quad (corners 1-2-3-4) into 2 triangles.
+    # The plotting recipe expands this to all cells.
+    t = [1 2 3; 1 3 4]
+
+    x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
+
+    return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
+                                  variable_names)
+end
+
 # unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
                                                                                              mesh,
@@ -691,6 +846,135 @@ PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) 
                                                                                              dg,
                                                                                              cache;
                                                                                              kwargs...)
+
+# Slice affine tetrahedra into triangular patches for the existing plotting recipes.
+function PlotData2D(u::StructArray,
+                    mesh::DGMultiMesh{3, <:Affine},
+                    equations,
+                    dg::DGMulti{3, Tet},
+                    cache;
+                    solution_variables = nothing,
+                    nvisnodes = 2 * (polydeg(dg) + 1),
+                    slice = :xy,
+                    point = (0.0, 0.0, 0.0))
+    if slice !== :yz && slice !== :xz && slice !== :xy
+        error("illegal dimension '$slice', supported dimensions are :yz, :xz, and :xy")
+    end
+    orientation_x, orientation_y = _get_orientations(mesh, slice)
+
+    @assert length(point)>=3 "Point must be three-dimensional."
+
+    slice_dimension = 6 - orientation_x - orientation_y
+    RealT = real(dg)
+    slice_coordinate = convert(RealT, point[slice_dimension])
+
+    rd = dg.basis
+    intersection_polygons = tetrahedral_slice_polygons(mesh, dg, slice_dimension,
+                                                       slice_coordinate)
+
+    # A triangular cut yields one patch, a quadrilateral two.
+    # Keep separate patches for each tetrahedron to preserve DG discontinuities.
+    num_slice_elements = sum(length(polygon) - 2
+                             for (_, polygon, _) in intersection_polygons)
+
+    # Restriction to a plane preserves polynomial degree, so triangle nodes suffice.
+    rd_slice = RefElemData(Tri(), rd.N; Nplot = rd.Nplot)
+    num_plotting_points = size(rd_slice.Vp, 1)
+    num_triangle_nodes = rd_slice.Np
+    triangle_vertex_interpolation = rd_slice.Vp * rd_slice.V1
+
+    x_plot = zeros(RealT, num_plotting_points, num_slice_elements)
+    y_plot = similar(x_plot)
+
+    u_plot = similar(u, (num_plotting_points, num_slice_elements))
+    u_slice = similar(u, (num_triangle_nodes,))
+
+    reference_vertex_coordinates = map(coordinates -> SVector{4, RealT}(coordinates),
+                                       StartUpDG.nodes(Tet(), 1))
+    reference_coordinates = ntuple(_ -> Vector{RealT}(undef, num_triangle_nodes), 3)
+    element_vandermonde_factorization = lu(StartUpDG.vandermonde(Tet(), rd.N,
+                                                                 rd.rst...))
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    slice_element = 0
+    for (element, polygon, vertex_coordinates) in intersection_polygons
+        # Fan triangulation from the first vertex, valid because the cut polygon is
+        # convex and cyclically ordered.
+        for last_vertex in 3:length(polygon)
+            slice_element += 1
+            triangle = (1, last_vertex - 1, last_vertex)
+            function barycentric_corner_values(vertex_values)
+                return SVector{3, RealT}(ntuple(corner -> dot(polygon[triangle[corner]],
+                                                              vertex_values), 3))
+            end
+
+            # Patch coordinates in the slice plane, affine in the barycentric weights.
+            mul!(view(x_plot, :, slice_element), triangle_vertex_interpolation,
+                 barycentric_corner_values(vertex_coordinates[orientation_x]))
+            mul!(view(y_plot, :, slice_element), triangle_vertex_interpolation,
+                 barycentric_corner_values(vertex_coordinates[orientation_y]))
+            # Where the triangle nodes sit inside the reference tetrahedron.
+            for dimension in 1:3
+                mul!(reference_coordinates[dimension], rd_slice.V1,
+                     barycentric_corner_values(reference_vertex_coordinates[dimension]))
+            end
+
+            # Evaluate the source element's basis there, then go to the plotting nodes.
+            interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
+                                                         reference_coordinates...) /
+                                   element_vandermonde_factorization
+            apply_to_each_field(mul_by!(interpolation_matrix), u_slice,
+                                view(u, :, element))
+            apply_to_each_field(mul_by!(rd_slice.Vp), view(u_plot, :, slice_element),
+                                u_slice)
+            transform_to_solution_variables!(view(u_plot, :, slice_element),
+                                             solution_variables_, equations)
+        end
+    end
+
+    x_face, y_face, face_data = slice_plotting_wireframe(u, intersection_polygons, rd,
+                                                         (orientation_x, orientation_y),
+                                                         reference_vertex_coordinates,
+                                                         element_vandermonde_factorization,
+                                                         equations, solution_variables_;
+                                                         nvisnodes)
+
+    triangulation = reference_plotting_triangulation(rd_slice.rstp)
+    variable_names = SVector(varnames(solution_variables_, equations))
+
+    return PlotData2DTriangulated(x_plot, y_plot, u_plot, triangulation,
+                                  x_face, y_face, face_data, variable_names)
+end
+
+function PlotData2D(u::Array{<:SVector}, mesh::DGMultiMesh{3}, equations,
+                    dg::DGMulti{3}, cache; kwargs...)
+    return PlotData2D(StructArray(u), mesh, equations, dg, cache; kwargs...)
+end
+
+function PlotData2DTriangulated(u, mesh::DGMultiMesh{3}, equations,
+                                dg::DGMulti{3}, cache; kwargs...)
+    return PlotData2D(u, mesh, equations, dg, cache; kwargs...)
+end
+
+function PlotData2D(u::VectorOfArray, mesh::DGMultiMesh{3}, equations,
+                    dg::DGMulti{3}, cache; kwargs...)
+    return PlotData2D(parent(u), mesh, equations, dg, cache; kwargs...)
+end
+
+# Report unsupported geometries instead of recursing through the generic constructors.
+function PlotData2D(u::StructArray, mesh::DGMultiMesh{3}, equations, dg::DGMulti{3},
+                    cache;
+                    kwargs...)
+    return throw_unsupported_dgmulti_3d(mesh, dg)
+end
+
+function throw_unsupported_dgmulti_3d(mesh::DGMultiMesh{3, MeshType},
+                                      dg::DGMulti{3}) where {MeshType}
+    return error("`PlotData2D` for three-dimensional `DGMultiMesh` solutions is only ",
+                 "implemented for `Affine` meshes with `Tet()` elements, got a mesh with `",
+                 nameof(MeshType), "` geometry and `",
+                 nameof(typeof(dg.basis.element_type)), "()` elements")
+end
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,

@@ -58,10 +58,10 @@ end
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
     y = x[2]
 
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -119,7 +119,7 @@ end
     E_y = p_y * inv_gamma_minus_one + rho_y * v1^2 + 2.0 * rho * v1 * v1_y
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1.0 / (rho^3)
 
     # compute the source terms
@@ -203,7 +203,7 @@ boundary_conditions = (; x_neg = boundary_condition_left_right,
                        y_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left_right,
                                  x_pos = boundary_condition_left_right,
                                  y_neg = boundary_condition_top_bottom,
@@ -232,5 +232,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
             ode_default_options()..., callback = callbacks)

@@ -9,7 +9,7 @@
     PassiveTracerEquations(flow_equations; n_tracers)
 
 Adds passive tracers to the `flow_equations`. The tracers are advected by the flow velocity.
-These work for arbitrary dimensions with arbitrary numbers of tracers `n_tracers`, for conservative and non-conservative equations. For one dimension, with 
+These work for arbitrary dimensions with arbitrary numbers of tracers `n_tracers`, for conservative and non-conservative equations. For one dimension, with
 one tracer ``\chi`` and flow with density and velocity ``\rho, v`` respectively, the equation of the
 passive tracer is
 ```math
@@ -25,6 +25,17 @@ end
 function PassiveTracerEquations(flow_equations::AbstractEquations; n_tracers::Int)
     return PassiveTracerEquations{ndims(flow_equations),
                                   nvariables(flow_equations) + n_tracers, n_tracers,
+                                  typeof(flow_equations)}(flow_equations)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::PassiveTracerEquations{NDIMS, NVARS, NTracers},
+                      ::Type{NewRealT}) where {NDIMS, NVARS, NTracers, NewRealT}
+    flow_equations = similar(equations.flow_equations, NewRealT)
+    return PassiveTracerEquations{NDIMS, NVARS, NTracers,
                                   typeof(flow_equations)}(flow_equations)
 end
 
@@ -206,17 +217,42 @@ end
                                flow_equations)
 end
 
+# Less diffusive estimate of the maximum wave speed, using only the flow equations.
+@inline function max_abs_speed(u_ll, u_rr, orientation_or_normal,
+                               tracer_equations::PassiveTracerEquations)
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+
+    @unpack flow_equations = tracer_equations
+    return max_abs_speed(u_flow_ll, u_flow_rr, orientation_or_normal, flow_equations)
+end
+
 @inline function max_abs_speeds(u, tracer_equations::PassiveTracerEquations)
     u_flow = flow_variables(u, tracer_equations)
 
     return max_abs_speeds(u_flow, tracer_equations.flow_equations)
 end
 
-"""
+@doc raw"""
     FluxTracerEquationsCentral(flow_flux)
 
-Get an entropy conserving flux for the equations with tracers corresponding to the given entropy conserving flux `flow_flux` for the flow equations. The study of this flux is part of ongoing 
-research.
+Numerical flux for the equations with tracers based on the numerical flux `flow_flux`
+for the flow equations. The tracer flux is obtained by multiplying the numerical mass
+flux ``f_\rho`` of `flow_flux` with the arithmetic mean of the tracers, i.e.,
+```math
+f_{\rho\chi} = f_\rho \{\!\{\chi\}\!\}.
+```
+If `flow_flux` is entropy conservative for the flow equations, this flux is entropy
+conservative for the equations with tracers and the [`entropy`](@ref) of
+[`PassiveTracerEquations`](@ref).
+Thus, it is an entropy-conservative volume flux to be combined with the entropy-stable
+surface flux [`FluxTracerEquationsUpwind`](@ref) (if the latter is based on an
+entropy-stable flux for the flow equations).
+For a single tracer, this flux is used in
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras turbulence model
+  for the compressible Reynolds averaged Navier-Stokes equations
+  [DOI: 10.1016/j.jcp.2022.110998](https://doi.org/10.1016/j.jcp.2022.110998)
 """
 struct FluxTracerEquationsCentral{FlowFlux}
     flow_flux::FlowFlux
@@ -238,6 +274,102 @@ end
     flux_tracer = 0.5f0 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
                                  Val(ntracers(tracer_equations))))
     flux_tracer = flux_rho * flux_tracer
+    return SVector(flux_flow..., flux_tracer...)
+end
+
+@doc raw"""
+    FluxTracerEquationsUpwind(flow_flux)
+
+Numerical flux for the equations with tracers based on the numerical flux `flow_flux`
+for the flow equations. The tracer flux is obtained by upwinding the tracers with the
+numerical mass flux ``f_\rho`` of `flow_flux`, i.e.,
+```math
+f_{\rho\chi} =
+\begin{cases}
+f_\rho \chi_{ll}, & f_\rho \geq 0, \\
+f_\rho \chi_{rr}, & f_\rho < 0,
+\end{cases}
+\quad\text{or, equivalently,}\quad
+f_{\rho\chi} = f_\rho \{\!\{\chi\}\!\} - \frac{|f_\rho|}{2} [\![\chi]\!].
+```
+If `flow_flux` is entropy stable for the flow equations, this flux is entropy stable for the
+equations with tracers and the [`entropy`](@ref) of [`PassiveTracerEquations`](@ref).
+Thus, it is an entropy-stable surface flux to be combined with the entropy-conservative
+volume flux [`FluxTracerEquationsCentral`](@ref) (if the latter is based on an
+entropy-conservative flux for the flow equations).
+For a single tracer, this flux is used in
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras turbulence model
+  for the compressible Reynolds averaged Navier-Stokes equations
+  [DOI: 10.1016/j.jcp.2022.110998](https://doi.org/10.1016/j.jcp.2022.110998)
+"""
+struct FluxTracerEquationsUpwind{FlowFlux}
+    flow_flux::FlowFlux
+end
+
+@inline function (f::FluxTracerEquationsUpwind)(u_ll, u_rr,
+                                                orientation_or_normal_direction,
+                                                tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+
+    flux_flow = f.flow_flux(u_flow_ll, u_flow_rr, orientation_or_normal_direction,
+                            flow_equations)
+    flux_rho = density(flux_flow, flow_equations)
+    tracers_ll = tracers(u_ll, tracer_equations)
+    tracers_rr = tracers(u_rr, tracer_equations)
+    flux_tracer = SVector(ntuple(@inline(v->ifelse(flux_rho >= 0,
+                                                   flux_rho * tracers_ll[v],
+                                                   flux_rho * tracers_rr[v])),
+                                 Val(ntracers(tracer_equations))))
+    return SVector(flux_flow..., flux_tracer...)
+end
+
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 tracer_equations::PassiveTracerEquations)
+    boundary_condition_slip_wall(u_inner, orientation_or_normal, direction, x, t,
+                                 surface_flux_function,
+                                 tracer_equations::PassiveTracerEquations)
+
+Slip wall boundary condition for the flow equations, see
+[`boundary_condition_slip_wall`](@ref) of the flow equations. The tracer fluxes are
+the mass flux of the flow equations (which vanishes at the wall) times the inner tracer values.
+
+The first method is used for meshes with a `normal_direction` (e.g., [`P4estMesh`](@ref)),
+the second one for the [`TreeMesh`](@ref) (`orientation`) and the
+[`StructuredMesh`](@ref) (`normal_direction`), where the `direction` is passed as well.
+Both forward to the corresponding method of the flow equations.
+"""
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t, surface_flux_function,
+                                              tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    flux_flow = boundary_condition_slip_wall(u_flow, normal_direction, x, t,
+                                             surface_flux_function, flow_equations)
+    return append_tracer_fluxes(flux_flow, u_inner, tracer_equations)
+end
+
+@inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
+                                              x, t, surface_flux_function,
+                                              tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    flux_flow = boundary_condition_slip_wall(u_flow, orientation_or_normal, direction,
+                                             x, t, surface_flux_function,
+                                             flow_equations)
+    return append_tracer_fluxes(flux_flow, u_inner, tracer_equations)
+end
+
+# Append the tracer fluxes `f_rho * chi` (mass flux times the tracer values of `u`)
+# to the flux `flux_flow` of the flow equations, consistent with `flux` and
+# `FluxTracerEquationsCentral`.
+@inline function append_tracer_fluxes(flux_flow, u,
+                                      tracer_equations::PassiveTracerEquations)
+    flux_rho = density(flux_flow, tracer_equations.flow_equations)
+    flux_tracer = flux_rho * tracers(u, tracer_equations)
     return SVector(flux_flow..., flux_tracer...)
 end
 end # muladd

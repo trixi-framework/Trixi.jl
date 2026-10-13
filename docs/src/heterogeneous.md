@@ -2,11 +2,63 @@
 
 Support for heterogeneous computing is currently being worked on.
 
-## The use of Adapt.jl
+
+## User-facing interface
+
+GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is controlled via
+the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretization:
+
+- `storage_type`: the array type used for all internal data structures.
+  Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs
+  or `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs.
+  Defaults to `nothing`, which keeps the current array type (usually the standard
+  CPU `Array`).
+- `real_type`: the floating-point element type. GPU workflows typically benefit from
+  setting this to `Float32`. Defaults to `nothing`, which keeps the current real type
+  (usually `Float64`).
+- `flux_differencing_kernel`: the GPU kernel used for
+  [`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default),
+  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). Defaults to `nothing`, which
+  keeps the current kernel.
+
+All arguments can be used independently. A typical GPU setup looks like:
+
+```julia
+using CUDA   # or using AMDGPU
+semi = trixi_adapt(semi; real_type = Float32, storage_type = CuArray)
+ode = semidiscretize(semi, tspan)
+```
+
+The adapted semidiscretization replaces the original one, which may share data with
+the adapted one and must not be used anymore. Thus, create the callbacks after calling
+`trixi_adapt` so that they use the adapted semidiscretization. Otherwise, the rest of
+the elixir (callbacks, ODE solver call) remains unchanged. [`semidiscretize`](@ref)
+converts the time span `tspan` to the real type of the semidiscretization, so you can
+keep, e.g., `tspan = (0.0, 1.0)`. See, e.g.,
+`examples/p4est_2d_dgsem/elixir_euler_source_terms.jl` for a concrete example.
+
+Mixed hyperbolic-parabolic problems, i.e., a [`SemidiscretizationHyperbolicParabolic`](@ref),
+are supported on conforming (non-adaptive) `P4estMesh{2}`s and `P4estMesh{3}`s as well,
+see, e.g., `examples/p4est_2d_dgsem/elixir_navierstokes_lid_driven_cavity.jl` and
+`examples/p4est_3d_dgsem/elixir_navierstokes_convergence.jl`.
+
+!!! note "Single-precision computations using `Float32`"
+    To use `Float32` consistently, make sure to write all equations, initial conditions,
+    boundary conditions, and source terms in a type-stable manner — avoid hard-coded
+    `Float64` literals and instead use, e.g., the `f0` suffix (`0.5f0`) for exact values
+    or `convert(RealT, ...)` for non-exact ones, where `RealT = eltype(u)`.
+    When using a [`StepsizeCallback`](@ref) for CFL-based step size control, also pass
+    `dt = 1` (an integer) rather than `dt = 1.0` to `solve`. Otherwise, the time
+    integrator promotes the time to `Float64`, and the [`SummaryCallback`](@ref)
+    warns about it.
+    See [Numeric types and type stability](@ref numeric-types) for detailed guidelines.
+
+
+## Internal use of Adapt.jl
 
 [Adapt.jl](https://github.com/JuliaGPU/Adapt.jl) is a package in the
 [JuliaGPU](https://github.com/JuliaGPU) family that allows for
-the translation of nested data structures. The primary goal is to allow the substitution of `Array` 
+the translation of nested data structures. The primary goal is to allow the substitution of `Array`
 at the storage level with a GPU array like `CuArray` from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl).
 
 To facilitate this, data structures must be parameterized, so instead of:
@@ -29,7 +81,7 @@ end
 ```
 
 furthermore, we need to define a function that allows for the conversion of storage
-of our types: 
+of our types:
 
 ```jldoctest adapt; output = false
 using Adapt
@@ -80,9 +132,9 @@ julia> Trixi.storage_type(C)
 CuArray
 ```
 
-## Element-type conversion with `Trixi.trixi_adapt`.
+## Element-type conversion with `trixi_adapt`
 
-We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption:
+We can use [`trixi_adapt`](@ref) to perform both an element-type and a storage-type adaptation:
 
 ```jldoctest adapt
 julia> C = Container(zeros(3))
@@ -110,7 +162,7 @@ allowing for vendor-agnostic GPU code.
 
 ### Example
 
-Given the following Trixi.jl code, which would typically be called from within `rhs!`:
+Given the following Trixi.jl code, which would typically be called from within `rhs_hyperbolic!`:
 
 ```julia
 function trixi_rhs_fct(mesh, equations, solver, cache, args)
@@ -120,9 +172,14 @@ function trixi_rhs_fct(mesh, equations, solver, cache, args)
 end
 ```
 
-1. Put the inner code in a new function `rhs_fct_per_element`. Besides the index
-   `element`, pass all required fields as arguments, but make sure to `@unpack` them from
-   their structs in advance.
+1. Move the inner code into a new inlined function `rhs_fct_per_element`.
+   ```julia
+   @inline function rhs_fct_per_element(..., element, ...)
+       ...
+   end
+   ```
+   Besides the index `element`, pass all required fields as arguments, but make sure to
+   `@unpack` them from their structs in advance.
 2. Where `trixi_rhs_fct` is called, get the backend, i.e., the hardware we are currently
    running on via `trixi_backend(x)`.
    This will, e.g., work with `u_ode`. Internally, KernelAbstractions.jl's `get_backend`
@@ -151,7 +208,7 @@ end
                ndrange = nelements(solver, cache))
        return nothing
    end
-   
+
    @kernel function rhs_fct_kernel!(unpacked_args, args)
        element = @index(Global)
        rhs_fct_per_element(element, unpacked_args, args)

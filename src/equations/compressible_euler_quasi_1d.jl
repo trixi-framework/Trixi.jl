@@ -61,6 +61,15 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::CompressibleEulerEquationsQuasi1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return CompressibleEulerEquationsQuasi1D(convert(NewRealT, equations.gamma))
+end
+
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquationsQuasi1D)
     return ("a_rho", "a_rho_v1", "a_e_total", "a")
@@ -179,8 +188,6 @@ end
                                    equations::CompressibleEulerEquationsQuasi1D)
     flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction,
                                    equations::CompressibleEulerEquationsQuasi1D)
-    flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, normal_rr,
-                                   equations::CompressibleEulerEquationsQuasi1D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the pressure  [`CompressibleEulerEquationsQuasi1D`](@ref)
@@ -216,14 +223,6 @@ end
                                                 equations::CompressibleEulerEquationsQuasi1D)
     return normal_direction[1] *
            flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
-end
-
-@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
-                                                normal_ll::AbstractVector,
-                                                normal_rr::AbstractVector,
-                                                equations::CompressibleEulerEquationsQuasi1D)
-    # normal_ll should be equal to normal_rr in 1D
-    return flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, equations)
 end
 
 """

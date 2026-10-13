@@ -104,7 +104,7 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    const f::F # `rhs!` of the semidiscretization
+    const f::F # right-hand side of the semidiscretization
     const alg::Alg # SimpleAlgorithm2N
     opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
@@ -116,6 +116,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
     integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
                                     (prob = ode,), ode.f, alg,
@@ -170,7 +171,7 @@ end
 get_tmp_cache(integrator::SimpleIntegrator2N) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegrator2N, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator2N)

@@ -42,7 +42,6 @@ refinement_patches = ((type = "box",
 # Make sure to turn periodicity explicitly off as special boundary conditions are specified
 mesh = TreeMesh(coordinate_min, coordinate_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000,
                 refinement_patches = refinement_patches,
                 periodicity = false)
 
@@ -98,6 +97,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK54();
+sol = solve(ode, SSPRK54(thread = Trixi.Threaded());
             dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -47,6 +47,15 @@ struct IdealGlmMhdEquations1D{RealT <: Real} <: AbstractIdealGlmMhdEquations{1, 
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::IdealGlmMhdEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations1D(convert(NewRealT, equations.gamma))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = False()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D)
     return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3")
@@ -161,8 +170,8 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
-                          equations::IdealGlmMhdEquations1D)
+@inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
+                                  equations::IdealGlmMhdEquations1D)
     # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr = u_rr
@@ -294,8 +303,8 @@ end
 An HLLC Riemann solver for magneto-hydrodynamics
 [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer,
-                   equations::IdealGlmMhdEquations1D)
+@inline function flux_hllc(u_ll, u_rr, orientation::Integer,
+                           equations::IdealGlmMhdEquations1D)
     # Unpack left and right states
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
@@ -791,7 +800,7 @@ Default entropy is the mathematical entropy
 end
 
 # Calculate the magnetic energy for a conservative state `cons`.
-#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
+#  Note: For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations1D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end

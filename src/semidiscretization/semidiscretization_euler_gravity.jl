@@ -205,7 +205,7 @@ end
 
 # The compressible Euler semidiscretization is considered to be the main semidiscretization.
 # The hyperbolic diffusion equations part is only used internally to update the gravitational
-# potential during an rhs! evaluation of the flow solver.
+# potential during an rhs_hyperbolic! evaluation of the flow solver.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)
     return mesh_equations_solver_cache(semi.semi_euler)
 end
@@ -234,7 +234,7 @@ end
 # Coupled Euler and gravity solver at each Runge-Kutta stage,
 # corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020),
 # https://dx.doi.org/10.1016/j.jcp.2021.110467
-function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 
     u_euler = wrap_array(u_ode, semi_euler)
@@ -245,7 +245,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     time_start = time_ns()
 
     # standard semidiscretization of the compressible Euler equations
-    @trixi_timeit timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
+    @trixi_timeit timer() "Euler solver" rhs_hyperbolic!(du_ode, u_ode, semi_euler, t)
 
     # compute gravitational potential and forces
     @trixi_timeit timer() "gravity solver" update_gravity!(semi, u_ode)
@@ -353,7 +353,7 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
     rho0 = gravity_parameters.background_density
     grav_scale = -4.0 * pi * G
 
-    # Note that `u_ode` is `u_gravity` in `rhs!` above
+    # Note that `u_ode` is `u_gravity` in `rhs_hyperbolic!` above
     @unpack u_ode, du_ode, u_tmp1_ode = cache
     n_elements = size(u_euler)[end]
 
@@ -363,14 +363,14 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
-        # rhs! has the source term for the harmonic problem
-        # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
-        # included in the `rhs!` call.
-        rhs!(du_ode, u_ode, semi_gravity, tau_stage)
+        # rhs_hyperbolic! has the source term for the harmonic problem
+        # We don't need a `@trixi_timeit timer() "rhs_hyperbolic!"` here since that's already
+        # included in the `rhs_hyperbolic!` call.
+        rhs_hyperbolic!(du_ode, u_ode, semi_gravity, tau_stage)
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
-        # OBS! subtract off the background density ρ_0 (spatial mean value)
+        # Note: subtract off the background density ρ_0 (spatial mean value)
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
@@ -421,7 +421,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
     rho0 = gravity_parameters.background_density
     grav_scale = -4 * G * pi
 
-    # Note that `u_ode` is `u_gravity` in `rhs!` above
+    # Note that `u_ode` is `u_gravity` in `rhs_hyperbolic!` above
     @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
     n_elements = size(u_euler)[end]
 
@@ -432,14 +432,14 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
-        # rhs! has the source term for the harmonic problem
-        # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
-        # included in the `rhs!` call.
-        rhs!(du_ode, u_ode, semi_gravity, tau_stage)
+        # rhs_hyperbolic! has the source term for the harmonic problem
+        # We don't need a `@trixi_timeit timer() "rhs_hyperbolic!"` here since that's already
+        # included in the `rhs_hyperbolic!` call.
+        rhs_hyperbolic!(du_ode, u_ode, semi_gravity, tau_stage)
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
-        # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+        # Note: subtract off the background density ρ_0 around which the Jeans instability is perturbed
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
@@ -557,7 +557,8 @@ end
 @inline function save_solution_file(u_ode, t, dt, iter,
                                     semi::SemidiscretizationEulerGravity,
                                     solution_callback,
-                                    element_variables = Dict{Symbol, Any}();
+                                    element_variables = Dict{Symbol, Any}(),
+                                    node_variables = Dict{Symbol, Any}();
                                     system = "")
     # If this is called already as part of a multi-system setup (i.e., system is non-empty),
     # we build a combined system name
@@ -569,16 +570,21 @@ end
         system_gravity = "gravity"
     end
 
+    # The `element_variables` and `node_variables` are computed for the Euler system since
+    # `mesh_equations_solver_cache(semi)` returns the data of `semi.semi_euler`. We store
+    # them in both files since they are defined on the same mesh.
     u_euler = wrap_array_native(u_ode, semi.semi_euler)
     filename_euler = save_solution_file(u_euler, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_euler)...,
                                         solution_callback, element_variables,
+                                        node_variables,
                                         system = system_euler)
 
     u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
     filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                           mesh_equations_solver_cache(semi.semi_gravity)...,
                                           solution_callback, element_variables,
+                                          node_variables,
                                           system = system_gravity)
 
     return filename_euler, filename_gravity

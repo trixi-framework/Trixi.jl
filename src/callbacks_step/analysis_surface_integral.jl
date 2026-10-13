@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-# This file contains analysis computations that are performed on the surface, 
+# This file contains analysis computations that are performed on the surface,
 # such as aerodynamic coefficients.
 
 """
@@ -16,7 +16,7 @@ This struct is used to compute the surface integral of a quantity of interest `v
 the boundary/boundaries associated with particular names given in `boundary_symbols`.
 For instance, this can be used to compute the lift [`LiftCoefficientPressure2D`](@ref) or
 drag coefficient [`DragCoefficientPressure2D`](@ref) of e.g. an 2D airfoil with the boundary
-names `:AirfoilTop`, `:AirfoilBottom` which would be supplied as 
+names `:AirfoilTop`, `:AirfoilBottom` which would be supplied as
 `boundary_symbols = (:AirfoilTop, :AirfoilBottom)`.
 A single boundary name can also be supplied, e.g. `boundary_symbols = (:AirfoilTop,)`.
 
@@ -54,7 +54,7 @@ end
 
 # Abstract base type used for dispatch of `analyze` for quantities
 # requiring gradients of the velocity field.
-abstract type VariableViscous end
+abstract type VariableParabolic end
 
 struct LiftCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
@@ -64,11 +64,11 @@ struct DragCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 

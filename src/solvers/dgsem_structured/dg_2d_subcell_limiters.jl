@@ -10,7 +10,7 @@
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                ::Type{<:Union{StructuredMesh{2}, P4estMesh{2}}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     (; contravariant_vectors) = cache.elements
@@ -60,9 +60,11 @@
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
-        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -91,9 +93,11 @@
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
-        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+        end
     end
 
     return nothing
@@ -111,8 +115,8 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                nonconservative_terms::True, equations,
+                                ::Type{<:Union{StructuredMesh{2}, P4estMesh{2}}},
+                                have_nonconservative_terms::True, equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
                                 cache) where {
@@ -315,8 +319,8 @@ end
 # The calculation of the non-conservative staggered "fluxes" requires non-conservative
 # terms that can be written as a product of local and jump contributions.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                nonconservative_terms::True, equations,
+                                ::Type{<:Union{StructuredMesh{2}, P4estMesh{2}}},
+                                have_nonconservative_terms::True, equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
                                 cache) where {
@@ -376,7 +380,8 @@ end
                                        equations, dg, ii, j)
             for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                flux1_noncons = volume_flux_noncons(u_node, u_node_ii, Ja1_avg,
+                flux1_noncons = volume_flux_noncons(u_node, u_node_ii,
+                                                    Ja1_node, Ja1_node_ii,
                                                     equations,
                                                     NonConservativeJump(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
@@ -439,10 +444,10 @@ end
             u_i = get_node_vars(u, equations, dg, i, j, element)
             Ja1_node_i = get_contravariant_vector(1, contravariant_vectors, i, j,
                                                   element)
-            Ja1_avg = 0.5f0 * (Ja1_node_0 + Ja1_node_i)
 
             for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-                phi_jump = volume_flux_noncons(u_0, u_i, Ja1_avg, equations,
+                phi_jump = volume_flux_noncons(u_0, u_i, Ja1_node_0, Ja1_node_i,
+                                               equations,
                                                NonConservativeJump(), noncons)
 
                 for v in eachvariable(equations)
@@ -455,10 +460,9 @@ end
         u_N = get_node_vars(u, equations, dg, nnodes(dg), j, element)
         Ja1_node_N = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j,
                                               element)
-        Ja1_avg = 0.5f0 * (Ja1_node_0 + Ja1_node_N)
 
         for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-            phi_jump = volume_flux_noncons(u_0, u_N, Ja1_avg, equations,
+            phi_jump = volume_flux_noncons(u_0, u_N, Ja1_node_0, Ja1_node_N, equations,
                                            NonConservativeJump(), noncons)
 
             for v in eachvariable(equations)
@@ -493,7 +497,8 @@ end
                                        equations, dg, i, jj)
             for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
                 # We multiply by 0.5 because that is done in other parts of Trixi
-                flux2_noncons = volume_flux_noncons(u_node, u_node_jj, Ja2_avg,
+                flux2_noncons = volume_flux_noncons(u_node, u_node_jj,
+                                                    Ja2_node, Ja2_node_jj,
                                                     equations,
                                                     NonConservativeJump(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
@@ -556,10 +561,10 @@ end
             u_j = get_node_vars(u, equations, dg, i, j, element)
             Ja2_node_j = get_contravariant_vector(2, contravariant_vectors, i, j,
                                                   element)
-            Ja2_avg = 0.5f0 * (Ja2_node_0 + Ja2_node_j)
 
             for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-                phi_jump = volume_flux_noncons(u_0, u_j, Ja2_avg, equations,
+                phi_jump = volume_flux_noncons(u_0, u_j, Ja2_node_0, Ja2_node_j,
+                                               equations,
                                                NonConservativeJump(), noncons)
 
                 for v in eachvariable(equations)
@@ -572,10 +577,10 @@ end
         u_N = get_node_vars(u, equations, dg, i, nnodes(dg), element)
         Ja2_node_N = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg),
                                               element)
-        Ja2_avg = 0.5f0 * (Ja2_node_0 + Ja2_node_N)
 
         for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-            phi_jump = volume_flux_noncons(u_0, u_N, Ja2_avg, equations,
+            phi_jump = volume_flux_noncons(u_0, u_N, Ja2_node_0, Ja2_node_N,
+                                           equations,
                                            NonConservativeJump(), noncons)
 
             for v in eachvariable(equations)

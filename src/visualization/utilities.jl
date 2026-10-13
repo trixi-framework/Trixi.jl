@@ -100,11 +100,6 @@ function get_face_node_indices(r, s, dg::Union{<:DGSEM, <:FDSBP}, tol = 100 * ep
     return Fmask
 end
 
-# dispatch on semi
-function mesh_plotting_wireframe(u, semi)
-    return mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
-end
-
 #     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
 #
 # Generates data for plotting a mesh wireframe given StartUpDG data types.
@@ -219,18 +214,42 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations,
     return xfp, yfp, ufp
 end
 
+function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Tri})
+    # this assumes that the nodes of the first face on the reference element correspond to a face where
+    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis.
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
+    return reshape(basis.r[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
+end
+
+function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Quad})
+    # this assumes that the nodes of the first face on the reference element correspond to a face where
+    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis.
+    # For quadrilateral elements, this is true since the faces are ordered r = ±1, s = ±1.
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
+    return reshape(basis.s[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
+end
+
 function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache;
                                  nvisnodes = 2 * nnodes(dg))
     @unpack md = mesh
     rd = dg.basis
-
-    # Construct 1D plotting interpolation matrix `Vp1D` for a single face
     @unpack N, Fmask = rd
-    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+
+    # number of points on a single face, assuming all faces have the same number of points
+    # note that since `ScalarPlotData2D` is restricted to Tri and Quad types, this should always be true.
+    num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
+
+    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations,
+    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can
+    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations.
+    face_nodes_1D = extract_face_nodes_1D(dg.basis)
+
+    # Construct 1D plotting interpolation matrix `Vp1D` for a single face.
+    # Since num_face_points may be larger than N+1, this is doing a least squares projection
+    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, face_nodes_1D)
     rplot = LinRange(-1, 1, nvisnodes)
     Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-    num_face_points = N + 1
     num_faces_total = num_faces(rd.element_type) * md.num_elements
     xf, yf, uf = map(x -> reshape(view(x, Fmask, :), num_face_points, num_faces_total),
                      (md.xyz..., u.data))
@@ -328,7 +347,7 @@ end
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels,
                      ndims, unstructured_data, n_nodes,
                      grid_lines = false, max_supported_level = 11, nvisnodes = nothing,
-                     slice = :xy, point = (0.0, 0.0, 0.0))
+                     slice = :xy, point = (0.0, 0.0, 0.0); point_values = true)
     # Determine resolution for data interpolation
     max_level = maximum(levels)
     if max_level > max_supported_level
@@ -336,7 +355,22 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
               "maximum supported level $max_supported_level")
     end
     max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
-    if nvisnodes === nothing
+    if !point_values
+        # Finite volume data (`polydeg = 0` DGSEM, or `BlockFV` with one or more
+        # cells per element) consists of piecewise constant (mean) values, so there
+        # is nothing to interpolate. Thus, we ignore `nvisnodes`.
+        if n_nodes > max_available_nodes_per_finest_element
+            # Unlike point values, cell (mean) values cannot be downsampled by
+            # (polynomial) interpolation, so the native resolution must fit within
+            # what `max_supported_level` allows at the finest level in the mesh.
+            min_max_supported_level = max_level + ceil(Int, log2(n_nodes))
+            throw(ArgumentError("The native resolution (`n_nodes = $n_nodes`) at refinement level $max_level " *
+                                "exceeds the resolution supported by `max_supported_level = $max_supported_level` " *
+                                "(allows only $max_available_nodes_per_finest_element cells per element at this level). " *
+                                "Increase `max_supported_level` to at least $min_max_supported_level."))
+        end
+        max_nvisnodes = n_nodes
+    elseif nvisnodes === nothing
         max_nvisnodes = 2 * n_nodes
     elseif nvisnodes == 0
         max_nvisnodes = n_nodes
@@ -369,18 +403,34 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     end
 
     # Interpolate unstructured DG data to structured data
-    (structured_data = unstructured2structured(unstructured_data,
-                                               normalized_coordinates,
-                                               levels, resolution, nvisnodes_per_level))
+    structured_data = unstructured2structured(unstructured_data,
+                                              normalized_coordinates,
+                                              levels, resolution, nvisnodes_per_level;
+                                              point_values = point_values)
 
-    # Interpolate cell-centered values to node-centered values
-    node_centered_data = cell2node(structured_data)
-
-    # Determine axis coordinates for contour plot
+    # `xs`/`ys` always have `resolution + 1` entries spanning the full domain.
+    # Point-value `data` is brought up to that size by `cell2node` below; cell-value
+    # `data` is left at `resolution`, so `xs`/`ys` become its cell edges instead.
     xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
          center_level_0[1]
     ys = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
          center_level_0[2]
+
+    if point_values
+        # Interpolate cell-centered values to node-centered values
+        data = cell2node(structured_data)
+    else
+        # Keep the piecewise constant cell (mean) values as-is.
+        data = structured_data
+    end
+
+    # `data` (in both branches above) is indexed as `[x, y]`.
+    # `Plots.heatmap` expects the opposite (`[y, x]`),
+    # so we transpose here once for all data.
+    # `Makie.heatmap` uses `[x, y]`, so we transpose the data
+    # once more for it since we use the data layout of Plots.jl
+    # for now.
+    data = [permutedims(d) for d in data]
 
     # Determine element vertices to plot grid lines
     if grid_lines
@@ -391,7 +441,7 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
         mesh_vertices_y = Vector{Float64}(undef, 0)
     end
 
-    return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
+    return xs, ys, data, mesh_vertices_x, mesh_vertices_y
 end
 
 # For finite difference methods (FDSBP), we do not want to reinterpolate the data, but use the same
@@ -556,12 +606,178 @@ function cell2node(cell_centered_data)
         end
     end
 
-    # Transpose
-    for (index, data) in enumerate(node_centered_data)
-        node_centered_data[index] = permutedims(data)
+    return node_centered_data
+end
+
+# Collect intersection polygons while retaining their tetrahedron's coordinates and index.
+function tetrahedral_slice_polygons(mesh, dg, slice_dimension, slice_coordinate)
+    RealT = real(dg)
+    rd = dg.basis
+    md = mesh.md
+    global_vertex_coordinates = get_VXYZ(md)
+    element_to_vertex = get_EToV(md)
+
+    function element_vertex_coordinates(element)
+        return ntuple(3) do dimension
+            SVector{4, RealT}(ntuple(4) do local_vertex
+                                  vertex = element_to_vertex[element, local_vertex]
+                                  global_vertex_coordinates[dimension][vertex]
+                              end)
+        end
     end
 
-    return node_centered_data
+    lower_limit, upper_limit = extrema(global_vertex_coordinates[slice_dimension])
+    domain_tolerance = slice_plane_tolerance(lower_limit, upper_limit, slice_coordinate)
+    if slice_coordinate < lower_limit - domain_tolerance ||
+       slice_coordinate > upper_limit + domain_tolerance
+        error(string("Slice plane is outside of domain.",
+                     " point[$slice_dimension]=$slice_coordinate must be between $lower_limit and $upper_limit"))
+    end
+
+    intersection_polygons = Tuple{Int, Vector{SVector{4, RealT}},
+                                  NTuple{3, SVector{4, RealT}}}[]
+    for element in eachelement(mesh, dg)
+        vertex_coordinates = element_vertex_coordinates(element)
+        minimum_coordinate, maximum_coordinate = extrema(vertex_coordinates[slice_dimension])
+        # Use the element size so distant vertices do not inflate the intersection tolerance.
+        tolerance = slice_plane_tolerance(minimum_coordinate, maximum_coordinate,
+                                          slice_coordinate)
+        # Assign shared faces to the tetrahedron on the positive side of the slice.
+        intersects_half_open = (minimum_coordinate - slice_coordinate <= tolerance &&
+                                maximum_coordinate - slice_coordinate > tolerance)
+        intersects_upper_boundary = (abs(slice_coordinate - upper_limit) <= tolerance &&
+                                     abs(maximum_coordinate - upper_limit) <= tolerance)
+        if !intersects_half_open && !intersects_upper_boundary
+            # Keep exposed boundary faces even below the domain's upper limit.
+            intersects_boundary_face = any(eachindex(rd.fv)) do face
+                global_face = (element - 1) * rd.num_faces + face
+                md.FToF[face, element] == global_face &&
+                    all(vertex -> abs(vertex_coordinates[slice_dimension][vertex] -
+                                      slice_coordinate) <= tolerance, rd.fv[face])
+            end
+            intersects_boundary_face || continue
+        end
+
+        polygon = intersect_tetrahedron_with_plane(vertex_coordinates, slice_dimension,
+                                                   slice_coordinate;
+                                                   tolerance = tolerance)
+        if !isempty(polygon)
+            push!(intersection_polygons, (element, polygon, vertex_coordinates))
+        end
+    end
+
+    isempty(intersection_polygons) &&
+        error("Slice plane at coordinate $slice_coordinate does not intersect the mesh.")
+
+    return intersection_polygons
+end
+
+# Sample each polygon's mesh lines in physical coordinates and solution variables.
+function slice_plotting_wireframe(u, intersection_polygons, rd, orientations,
+                                  reference_vertex_coordinates,
+                                  element_vandermonde_factorization,
+                                  equations, solution_variables; nvisnodes)
+    RealT = real(rd)
+    orientation_x, orientation_y = orientations
+
+    # Sample each edge, omitting its duplicated endpoint.
+    edge_fractions = LinRange(0, 1, nvisnodes)[1:(end - 1)]
+    num_face_points = isempty(edge_fractions) ? 0 : 4 * length(edge_fractions) + 1
+
+    # Store closed polylines and pad unused rows with NaN separators.
+    x_face = fill(RealT(NaN), num_face_points, length(intersection_polygons))
+    y_face = fill(RealT(NaN), size(x_face))
+    face_data = similar(u, size(x_face))
+    StructArrays.foreachfield(data -> fill!(data, NaN), face_data)
+    isempty(edge_fractions) && return x_face, y_face, face_data
+    for (polygon_id, (element, polygon, vertex_coordinates)) in enumerate(intersection_polygons)
+        wireframe = [(1 - fraction) * polygon[vertex] +
+                     fraction * polygon[mod1(vertex + 1, length(polygon))]
+                     for vertex in eachindex(polygon) for fraction in edge_fractions]
+        push!(wireframe, first(wireframe))
+        for node in eachindex(wireframe)
+            x_face[node, polygon_id] = dot(wireframe[node],
+                                           vertex_coordinates[orientation_x])
+            y_face[node, polygon_id] = dot(wireframe[node],
+                                           vertex_coordinates[orientation_y])
+        end
+
+        face_coordinates = ntuple(dimension -> [dot(node,
+                                                    reference_vertex_coordinates[dimension])
+                                                for node in wireframe], 3)
+        interpolation_matrix = StartUpDG.vandermonde(Tet(), rd.N,
+                                                     face_coordinates...) /
+                               element_vandermonde_factorization
+        polygon_data = view(face_data, 1:length(wireframe), polygon_id)
+        StructArrays.foreachfield((output, input) -> mul!(output, interpolation_matrix,
+                                                          input),
+                                  polygon_data, view(u, :, element))
+        transform_to_solution_variables!(polygon_data, solution_variables, equations)
+    end
+
+    return x_face, y_face, face_data
+end
+
+# Account for element size and rounding of translated coordinates.
+function slice_plane_tolerance(lower_limit, upper_limit, slice_coordinate)
+    extent = upper_limit - lower_limit
+    scale = max(abs(lower_limit), abs(upper_limit), abs(slice_coordinate))
+    return max(100 * eps(typeof(scale)) * extent, 2 * eps(scale))
+end
+
+# Return the tetrahedron-plane intersection as cyclically ordered barycentric vertices.
+function intersect_tetrahedron_with_plane(vertex_coordinates::NTuple{3,
+                                                                     SVector{4, RealT}},
+                                          slice_dimension, slice_coordinate;
+                                          tolerance) where {RealT <: Real}
+    plane_coordinates = vertex_coordinates[slice_dimension]
+    slice_coordinate_ = convert(RealT, slice_coordinate)
+    distances = plane_coordinates .- slice_coordinate_
+    tolerance_ = convert(RealT, tolerance)
+
+    # In-plane directions in ascending order, matching `_get_orientations`.
+    orientation_x, orientation_y = filter(!=(slice_dimension), (1, 2, 3))
+
+    # Each identity column gives the barycentric coordinates of one tetrahedron vertex.
+    barycentric_vertices = SMatrix{4, 4, RealT}(I)
+    intersections = sizehint!(SVector{4, RealT}[], 4)
+
+    # Add vertices lying on the plane once. Strict crossings below cannot duplicate them.
+    for vertex in 1:4
+        if abs(distances[vertex]) <= tolerance_
+            push!(intersections, barycentric_vertices[:, vertex])
+        end
+    end
+
+    edges = ((1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4))
+    for (left, right) in edges
+        distance_left = distances[left]
+        distance_right = distances[right]
+        if abs(distance_left) > tolerance_ && abs(distance_right) > tolerance_ &&
+           signbit(distance_left) != signbit(distance_right)
+            fraction = distance_left / (distance_left - distance_right)
+            push!(intersections,
+                  (one(RealT) - fraction) * barycentric_vertices[:, left] +
+                  fraction * barycentric_vertices[:, right])
+        end
+    end
+
+    # Touching only a vertex or edge does not produce a two-dimensional polygon.
+    if length(intersections) < 3
+        empty!(intersections)
+        return intersections
+    end
+
+    # Sort vertices cyclically to triangulate quadrilaterals without crossing edges.
+    centroid = sum(intersections) / length(intersections)
+    sort!(intersections;
+          by = barycentric_coordinates -> begin
+              offset = barycentric_coordinates - centroid
+              atan(dot(offset, vertex_coordinates[orientation_y]),
+                   dot(offset, vertex_coordinates[orientation_x]))
+          end)
+
+    return intersections
 end
 
 # Convert 3d unstructured data to 2d data.
@@ -1366,6 +1582,21 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes,
                        new_unstructured_data[:, 1:new_id, :], nvisnodes, reinterpolate)
 end
 
+# Build a reconstruction matrix mapping `n_nodes_in` equidistant cell (mean) values to
+# `n_nodes_out` equidistant output pixels by replication, so without blending
+# neighboring cells together. `n_nodes_out` must be an integer multiple of `n_nodes_in`,
+# which always holds by construction of `nvisnodes_per_level`.
+function piecewise_constant_interpolation_matrix(n_nodes_in, n_nodes_out)
+    n_repeat, remainder = divrem(n_nodes_out, n_nodes_in)
+    @assert remainder==0 "n_nodes_out ($n_nodes_out) must be an integer multiple of n_nodes_in ($n_nodes_in)"
+
+    matrix = zeros(n_nodes_out, n_nodes_in)
+    for i in 1:n_nodes_in
+        matrix[((i - 1) * n_repeat + 1):(i * n_repeat), i] .= 1
+    end
+    return matrix
+end
+
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
 # This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformly
@@ -1374,22 +1605,31 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function unstructured2structured(unstructured_data, normalized_coordinates,
-                                 levels, resolution, nvisnodes_per_level)
+                                 levels, resolution, nvisnodes_per_level;
+                                 point_values = true)
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
-    # Get node coordinates for DG locations on reference element
-    nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-
-    # Calculate interpolation vandermonde matrices for each level
+    # Calculate reconstruction matrices for each level: a smooth polynomial
+    # interpolation for point values (e.g., DG data), or a piecewise constant
+    # replication for cell (mean) values (e.g., finite volume data), so that
+    # individual cells are not blended together.
     max_level = length(nvisnodes_per_level) - 1
     vandermonde_per_level = []
+    if point_values
+        nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+    end
     for l in 0:max_level
         n_nodes_out = nvisnodes_per_level[l + 1]
-        dx = 2 / n_nodes_out
-        nodes_out = collect(range(-1 + dx / 2, 1 - dx / 2, length = n_nodes_out))
-        push!(vandermonde_per_level,
-              polynomial_interpolation_matrix(nodes_in, nodes_out))
+        if point_values
+            dx = 2 / n_nodes_out
+            nodes_out = collect(range(-1 + dx / 2, 1 - dx / 2, length = n_nodes_out))
+            push!(vandermonde_per_level,
+                  polynomial_interpolation_matrix(nodes_in, nodes_out))
+        else
+            push!(vandermonde_per_level,
+                  piecewise_constant_interpolation_matrix(n_nodes_in, n_nodes_out))
+        end
     end
 
     # For each element, calculate index position at which to insert data in global data structure
@@ -1510,104 +1750,6 @@ function calc_vertices(coordinates, levels, length_level_0)
     return x, y
 end
 
-# Calculate the vertices to plot each grid line for StructuredMesh
-#
-# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
-#       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh)
-    @unpack cells_per_dimension = mesh
-    @assert size(node_coordinates, 1)==2 "only works in 2D"
-
-    linear_indices = LinearIndices(size(mesh))
-
-    # Initialize output arrays
-    n_lines = sum(cells_per_dimension) + 2
-    max_length = maximum(cells_per_dimension)
-    n_nodes = size(node_coordinates, 2)
-
-    # Create output as two matrices `x` and `y`, each holding the node locations for each of the `n_lines` grid lines
-    # The # of rows in the matrices must be sufficient to store the longest dimension (`max_length`),
-    # and for each the node locations without doubling the corner nodes (`n_nodes-1`), plus the final node (`+1`)
-    # Rely on Plots.jl to ignore `NaN`s (i.e., they are not plotted) to handle shorter lines
-    x = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
-    y = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
-
-    line_index = 1
-    # Lines in x-direction
-    # Bottom boundary
-    i = 1
-    for cell_x in axes(mesh, 1)
-        for node in 1:(n_nodes - 1)
-            x[i, line_index] = node_coordinates[1, node, 1, linear_indices[cell_x, 1]]
-            y[i, line_index] = node_coordinates[2, node, 1, linear_indices[cell_x, 1]]
-
-            i += 1
-        end
-    end
-    # Last point on bottom boundary
-    x[i, line_index] = node_coordinates[1, end, 1, linear_indices[end, 1]]
-    y[i, line_index] = node_coordinates[2, end, 1, linear_indices[end, 1]]
-
-    # Other lines in x-direction
-    line_index += 1
-    for cell_y in axes(mesh, 2)
-        i = 1
-        for cell_x in axes(mesh, 1)
-            for node in 1:(n_nodes - 1)
-                x[i, line_index] = node_coordinates[1, node, end,
-                                                    linear_indices[cell_x, cell_y]]
-                y[i, line_index] = node_coordinates[2, node, end,
-                                                    linear_indices[cell_x, cell_y]]
-
-                i += 1
-            end
-        end
-        # Last point on line
-        x[i, line_index] = node_coordinates[1, end, end, linear_indices[end, cell_y]]
-        y[i, line_index] = node_coordinates[2, end, end, linear_indices[end, cell_y]]
-
-        line_index += 1
-    end
-
-    # Lines in y-direction
-    # Left boundary
-    i = 1
-    for cell_y in axes(mesh, 2)
-        for node in 1:(n_nodes - 1)
-            x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, cell_y]]
-            y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, cell_y]]
-
-            i += 1
-        end
-    end
-    # Last point on left boundary
-    x[i, line_index] = node_coordinates[1, 1, end, linear_indices[1, end]]
-    y[i, line_index] = node_coordinates[2, 1, end, linear_indices[1, end]]
-
-    # Other lines in y-direction
-    line_index += 1
-    for cell_x in axes(mesh, 1)
-        i = 1
-        for cell_y in axes(mesh, 2)
-            for node in 1:(n_nodes - 1)
-                x[i, line_index] = node_coordinates[1, end, node,
-                                                    linear_indices[cell_x, cell_y]]
-                y[i, line_index] = node_coordinates[2, end, node,
-                                                    linear_indices[cell_x, cell_y]]
-
-                i += 1
-            end
-        end
-        # Last point on line
-        x[i, line_index] = node_coordinates[1, end, end, linear_indices[cell_x, end]]
-        y[i, line_index] = node_coordinates[2, end, end, linear_indices[cell_x, end]]
-
-        line_index += 1
-    end
-
-    return x, y
-end
-
 # Convert `slice` to orientations (1 -> `x`, 2 -> `y`, 3 -> `z`) for the two axes in a 2D plot
 function _get_orientations(mesh, slice)
     if ndims(mesh) == 2 || (ndims(mesh) == 3 && slice === :xy)
@@ -1678,14 +1820,14 @@ function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
 end
 
 function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
 function face_plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
@@ -1800,5 +1942,51 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
     end
 
     return curve
+end
+
+#####################################################################
+# BlockFV plotting helpers for P4estMesh{2}.
+# Returns the physical (x,y) corners of all FV cells as two arrays of shape
+# (n+1, n+1, n_elements): one corner shared by up to 4 neighboring FV cells.
+
+function calc_fv_cell_corners(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    n = nnodes(solver)
+    n_elements = nelements(solver, cache)
+    # n+1 equidistant boundary nodes in [-1,1] — the cell edges, not the cell centers.
+    boundary_nodes = SVector{n + 1}(range(-1, 1, length = n + 1))
+    corner_coordinates = Array{Float64}(undef, 2, n + 1, n + 1, n_elements)
+    calc_node_coordinates!(corner_coordinates, mesh, boundary_nodes)
+
+    return corner_coordinates[1, :, :, :], corner_coordinates[2, :, :, :]
+end
+
+# Edge segments for all FV cell boundaries.
+# Returns (x_face, y_face), each (2, n_faces): one column per edge segment.
+function calc_fv_grid_wireframe(corners_x, corners_y)
+    n_plus_1, _, n_elements = size(corners_x)
+    n = n_plus_1 - 1
+    n_faces = 4 * n^2 * n_elements
+    x_face = Array{Float64}(undef, 2, n_faces)
+    y_face = similar(x_face)
+
+    face = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            corners_i = (i, i + 1, i + 1, i)
+            corners_j = (j, j, j + 1, j + 1)
+            for k in 1:4
+                k_next = k == 4 ? 1 : k + 1
+                face += 1
+                x_face[1, face] = corners_x[corners_i[k], corners_j[k], element]
+                x_face[2, face] = corners_x[corners_i[k_next], corners_j[k_next],
+                                            element]
+                y_face[1, face] = corners_y[corners_i[k], corners_j[k], element]
+                y_face[2, face] = corners_y[corners_i[k_next], corners_j[k_next],
+                                            element]
+            end
+        end
+    end
+
+    return x_face, y_face
 end
 end # @muladd

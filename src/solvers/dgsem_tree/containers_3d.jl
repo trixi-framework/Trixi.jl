@@ -70,6 +70,20 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                   _surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
+    check_axes(elements.cell_ids, (eachelement(solver, cache),))
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(3), equations,
+                                   solver, cache)
+    return nothing
+end
+
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
                        equations::AbstractEquations{3},
@@ -179,6 +193,18 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
                                              _u, _neighbor_ids)
+end
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer3D, equations, solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.neighbor_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.orientations, (eachinterface(solver, cache),))
+    return nothing
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -348,9 +374,26 @@ function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                    _u, _node_coordinates)
 end
 
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, cache)
+    check_axes(boundaries.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
+    check_axes(boundaries.orientations, (eachboundary(solver, cache),))
+    check_axes(boundaries.neighbor_sides, (eachboundary(solver, cache),))
+    return nothing
+end
+
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh3D,
-                         elements::TreeElementContainer3D)
+                         elements::TreeElementContainer3D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
@@ -358,7 +401,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh3D,
                                                                            nnodes(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -388,14 +431,14 @@ function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
 end
 
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh3D, basis)
     # Reset boundaries count
     count = 0
 
     # Initialize boundary counts
     counts_per_direction = MVector(0, 0, 0, 0, 0, 0)
 
-    # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+    # Note: Iterate over directions first, then over elements, and count boundaries in each direction
     # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
     #            obviating the need to store the boundary condition to be applied explicitly.
     # Loop over directions
@@ -606,6 +649,35 @@ function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer3D)
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
+    return nothing
+end
+
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver), eachnode(solver),
+                     eachmortar(solver, cache))
+    check_axes(mortars.u_lower_left, u_mortar_axes)
+    check_axes(mortars.u_lower_right, u_mortar_axes)
+    check_axes(mortars.u_upper_left, u_mortar_axes)
+    check_axes(mortars.u_upper_right, u_mortar_axes)
+    check_axes(mortars.neighbor_ids, (Base.OneTo(5), eachmortar(solver, cache)))
+    check_axes(mortars.large_sides, (eachmortar(solver, cache),))
+    check_axes(mortars.orientations, (eachmortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp1_threaded, fstar_axes)
     return nothing
 end
 
@@ -845,6 +917,11 @@ function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
     antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
                                         (n_variables, n_nodes, n_nodes, n_nodes + 1,
                                          capacity))
+
+    reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                antidiffusive_flux2_L, antidiffusive_flux2_R,
+                                antidiffusive_flux3_L, antidiffusive_flux3_R)
+
     return ContainerAntidiffusiveFlux3D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
                                                  antidiffusive_flux2_L,
@@ -908,22 +985,28 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
 
-    uEltype = eltype(fluxes.antidiffusive_flux1_L)
-    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 5)
-        fluxes.antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, :, element] .= zero(uEltype)
+    return nothing
+end
 
-        fluxes.antidiffusive_flux2_L[:, :, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, :, element] .= zero(uEltype)
+function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                     antidiffusive_flux2_L, antidiffusive_flux2_R,
+                                     antidiffusive_flux3_L, antidiffusive_flux3_R)
+    uEltype = eltype(antidiffusive_flux1_L)
+    @threaded for element in axes(antidiffusive_flux1_L, 5)
+        antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_L[:, end, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, end, :, :, element] .= zero(uEltype)
 
-        fluxes.antidiffusive_flux3_L[:, :, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux3_L[:, :, :, n_nodes + 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux3_R[:, :, :, n_nodes + 1, element] .= zero(uEltype)
+        antidiffusive_flux2_L[:, :, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux2_L[:, :, end, :, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, end, :, element] .= zero(uEltype)
+
+        antidiffusive_flux3_L[:, :, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux3_L[:, :, :, end, element] .= zero(uEltype)
+        antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux3_R[:, :, :, end, element] .= zero(uEltype)
     end
 
     return nothing

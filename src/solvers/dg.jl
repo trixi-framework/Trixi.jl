@@ -7,6 +7,9 @@
 
 abstract type AbstractVolumeIntegral end
 
+# Element type used to store the conservative variables in solver caches.
+@inline solution_eltype(solver, cache) = eltype(cache.elements)
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)
     return nothing
@@ -38,7 +41,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -142,6 +160,12 @@ create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = N
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
 
+function create_cache_subcell_limiting(mesh, equations,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       dg, cache_containers, uEltype)
+    return NamedTuple()
+end
+
 struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
                                           VolumeIntegralBlendLowOrder} <:
@@ -151,7 +175,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     indicator::Indicator
 
     # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
-    # This implementation is a generalization, which allows also usage of e.g. 
+    # This implementation is a generalization, which allows also usage of e.g.
     # the (potentially) cheaper weak form volume integral.
     volume_integral_default::VolumeIntegralDefault
 
@@ -272,12 +296,12 @@ end
 Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
-In the non-stabilized region, `volume_integral_default` is used, 
+In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
-the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour.
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
 but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 
@@ -409,13 +433,15 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
     return nothing
 end
 
-"""
+@doc raw"""
     VolumeIntegralAdaptive(;
                            indicator = IndicatorEntropyChange(),
                            volume_integral_default,
                            volume_integral_stabilized)
 
-This volume integral allows for a-posteriori style adaptation of the volume integral/term computation.
+This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
+
+Choosing `indicator` as [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
 At every Runge-Kutta stage and for every element, the volume update is computed using
 `volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
 If the `indicator` deems the default volume integral unstable, the default update is discarded
@@ -426,7 +452,21 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+For reference, see
+- Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
+  Volume Term Adaptivity for Discontinuous Galerkin Schemes
+  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+
+especially Sections 3 and 3.1 for a detailed description of the method.
+
+In turn, choosing `indicator` as [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
+Similar to [`VolumeIntegralShockCapturingHGType`](@ref), the indicator is evaluated before any volume update is performed.
+If the indicator value ``\alpha`` is zero (i.e., below ``\alpha_\text{min}``) the `volume_integral_default` is used.
+Otherwise, the `volume_integral_stabilized` is used.
+This kind strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
+- Bilocq, Borbouse, Levaux, Terrapon, Hillewaert (2025)
+  Comparison of stabilization strategies applied to scale-resolved simulations using the discontinuous Galerkin method
+  [DOI: 10.1016/j.jcp.2025.114238](https://doi.org/10.1016/j.jcp.2025.114238)
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -434,7 +474,7 @@ The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
        AbstractVolumeIntegral
-    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    indicator::Indicator # A-priori or A-posteriori indicator to determine whether the default or stabilized volume integral should be used for a given element
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
@@ -443,10 +483,6 @@ function VolumeIntegralAdaptive(;
                                 indicator = IndicatorEntropyChange(),
                                 volume_integral_default,
                                 volume_integral_stabilized)
-    if !(indicator isa IndicatorEntropyChange)
-        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
-    end
-
     return VolumeIntegralAdaptive{typeof(indicator),
                                   typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized)}(indicator,
@@ -667,10 +703,14 @@ end
 """
     VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg = flux_central,
-                                  volume_flux_fv = flux_lax_friedrichs)
+                                  volume_flux_fv = flux_lax_friedrichs,
+                                  volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv))
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. The low-order method can be selected with `volume_integral_low_order`;
+by default, the first-order subcell finite volume scheme [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with [`FluxLaxFriedrichs`](@ref) is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides
+a second-order alternative. Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -678,19 +718,29 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
 """
-struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       AbstractVolumeIntegral
+struct VolumeIntegralSubcellLimiting{VolumeIntegralLowOrder, VolumeFluxDG, Limiter} <:
+       AbstractVolumeIntegralSubcell
+    volume_integral_low_order::VolumeIntegralLowOrder
     volume_flux_dg::VolumeFluxDG
-    volume_flux_fv::VolumeFluxFV
     limiter::Limiter
 end
 
 function VolumeIntegralSubcellLimiting(limiter;
                                        volume_flux_dg = flux_central,
-                                       volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                         typeof(limiter)}(volume_flux_dg,
-                                                          volume_flux_fv,
+                                       volume_flux_fv = nothing,
+                                       volume_integral_low_order = nothing)
+    if volume_flux_fv === nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order !== nothing
+        throw(ArgumentError("Both `volume_flux_fv` and `volume_integral_low_order` are specified. Please specify only one of them."))
+    end
+
+    return VolumeIntegralSubcellLimiting{typeof(volume_integral_low_order),
+                                         typeof(volume_flux_dg),
+                                         typeof(limiter)}(volume_integral_low_order,
+                                                          volume_flux_dg,
                                                           limiter)
 end
 
@@ -702,25 +752,20 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume integral low order",
+                     integral.volume_integral_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.volume_integral_low_order)
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
     end
 end
 
-# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
-
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
-end
+# Check if subcell limiting should be performed for a given element.
+# Always true for pure `VolumeIntegralSubcellLimiting`,
+# but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
+@inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
@@ -925,6 +970,66 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
     return nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 end
 
+# Check whether the array `A` has exactly the axes `expected_axes` we assume in the
+# inner loops of Trixi.jl before assuming inbounds access.
+# All other methods of `check_axes` compute the expected axes and call this method.
+@inline function check_axes(A, expected_axes::Tuple)
+    axes(A) == expected_axes || throw_axes_mismatch(axes(A), expected_axes)
+    return nothing
+end
+
+# Keep the error path out of the inlined code above. The lazy string defers
+# formatting the message until it is actually displayed.
+@noinline function throw_axes_mismatch(found_axes, expected_axes)
+    throw(DimensionMismatch(lazy"axes $(found_axes) found, but $(expected_axes) expected"))
+end
+
+# Check whether the array `u` has the axes we assume it must have in the inner loops
+# of Trixi.jl.
+@inline function check_axes(u, mesh::AbstractMesh, equations, solver, cache)
+    return check_axes(u, Val(ndims(mesh)), equations, solver, cache)
+end
+
+@inline function check_axes(u, ::Val{NDIMS}, equations, solver,
+                            cache) where {NDIMS}
+    return check_axes(u,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS)...,
+                       eachelement(solver, cache)))
+end
+
+# Check whether the array `surface_flux_values` has the axes we assume it must have
+# in the inner loops of Trixi.jl.
+# Note that the number of spatial dimensions is taken from the `mesh`, since it can
+# differ from the one of the `equations`, e.g., for 2D manifolds in 3D space in
+# TrixiAtmo.jl (`P4estMesh{2}` with `AbstractEquations{3}`).
+@inline function check_axes_surface_flux_values(surface_flux_values, mesh::AbstractMesh,
+                                                equations, solver, cache)
+    return check_axes_surface_flux_values(surface_flux_values, Val(ndims(mesh)),
+                                          equations, solver, cache)
+end
+
+@inline function check_axes_surface_flux_values(surface_flux_values, ::Val{NDIMS},
+                                                equations, solver,
+                                                cache) where {NDIMS}
+    return check_axes(surface_flux_values,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                       Base.OneTo(2 * NDIMS),
+                       eachelement(solver, cache)))
+end
+
+# Check whether the thread-local storage `values` (one array per thread) has one entry
+# per thread and whether each of these arrays has the axes `expected_axes` we assume
+# in the inner loops of Trixi.jl.
+@inline function check_axes_threaded(values, expected_axes::Tuple)
+    check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+    for thread_id in Base.OneTo(Threads.maxthreadid())
+        check_axes(values[thread_id], expected_axes)
+    end
+    return nothing
+end
+
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM
 """
     eachnode(dg::DG)
@@ -1013,8 +1118,13 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/88
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
-@inline function get_node_coords(x, equations, solver::DG, indices...)
-    return SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
+Base.@propagate_inbounds function get_node_coords(x, equations, solver::DG,
+                                                  indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(x, 1:ndims(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(idx->@inbounds x[idx, indices...]),
+                          Val(ndims(equations))))
 end
 
 """
@@ -1031,7 +1141,7 @@ i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
 For more details, see the documentation:
 https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
 """
-@inline function get_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
@@ -1042,28 +1152,53 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     # compiler for standard `Array`s but not necessarily for more
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
-    return SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
+                          Val(nvariables(equations))))
 end
 
-@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
+                                                        indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
-    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
-    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
+                          Val(nvariables(equations))))
     return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
+# As above but dispatches on an type argument
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
+                                                        indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
+    # Assume inbounds access now
+    u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
+                          Val(nvariables(equations))))
+    return u_ll, u_rr
+end
+
+Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
+                                                 indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
     return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
+Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,
+                                                    indices...)
     for v in eachvariable(equations)
         u[v, indices...] += u_node[v]
     end
@@ -1073,8 +1208,9 @@ end
 # Use this function instead of `add_to_node_vars` to speed up
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
-@inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG,
-                                            indices...)
+Base.@propagate_inbounds function multiply_add_to_node_vars!(u, factor, u_node,
+                                                             equations, solver::DG,
+                                                             indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u[v, indices...] + factor * u_node[v]
     end
@@ -1097,6 +1233,13 @@ include("dgsem/dgsem.jl")
 include("fdsbp_tree/fdsbp.jl")
 include("fdsbp_unstructured/fdsbp.jl")
 
+# Block-structured finite volume methods
+include("blockfv/blockfv.jl")
+include("blockfv/containers_1d.jl")
+include("blockfv/containers_2d.jl")
+include("blockfv/blockfv_1d.jl")
+include("blockfv/blockfv_2d.jl")
+
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
@@ -1115,9 +1258,12 @@ end
     end
     # We would like to use
     #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    # but that results in
+    # but, on Julia v1.10, that results in
     #     ERROR: LoadError: cannot resize array with shared data
-    # when we resize! `u_ode` during AMR.
+    # when we resize! `u_ode` during AMR. Thus, `unsafe_wrap_or_alloc` uses `unsafe_wrap`
+    # for `isbits` element types and `reshape` only for other element types, for which
+    # `unsafe_wrap` is not safe with respect to the garbage collector (see the comment
+    # there).
     #
     # !!! danger "Segfaults"
     #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
@@ -1146,9 +1292,10 @@ end
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
         ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(ArrayType, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1169,9 +1316,10 @@ end
                   ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                    (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                     nelements(dg, cache)))
+        unsafe_wrap_or_alloc(Array, u_ode,
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelements(dg, cache)))
     end
 end
 
@@ -1190,9 +1338,10 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    return unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
-                       (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                        nelements(dg, cache)))
+    return unsafe_wrap_or_alloc(Array, u_ode,
+                                (nvariables(equations),
+                                 ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                                 nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
@@ -1218,55 +1367,49 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
     return nothing
 end
 
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Nothing, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
     @threaded for element in eachelement(dg, cache)
-        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                      element)
+        compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                          element, node_indices)
     end
 
     return nothing
 end
 
-function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Backend, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+
     @unpack node_coordinates = cache.elements
-    kernel! = compute_coefficients_kernel!(backend)
-    kernel!(u, func, t, equations, dg, node_coordinates,
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
+
+    kernel! = compute_coefficients_KAkernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates, node_indices,
             ndrange = nelements(dg, cache))
     return nothing
 end
 
-@kernel function compute_coefficients_kernel!(u, func, t, equations,
-                                              dg::DG, node_coordinates)
+@kernel function compute_coefficients_KAkernel!(u, func::Func, t, equations,
+                                                dg::DG, node_coordinates,
+                                                node_indices) where {Func}
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                  element)
+    compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                      element,
+                                      node_indices)
 end
 
-function compute_coefficients_element!(u, func, t, equations, dg::DG,
-                                       node_coordinates, element)
-    for j in eachnode(dg), i in eachnode(dg)
-        x_node = get_node_coords(node_coordinates, equations, dg, i,
-                                 j, element)
+@inline function compute_coefficients_per_element!(u, func, t, equations, dg::DG,
+                                                   node_coordinates, element,
+                                                   node_indices)
+    for indices in node_indices
+        x_node = get_node_coords(node_coordinates, equations, dg, indices, element)
         u_node = func(x_node, t, equations)
-        set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-
-    return nothing
-end
-
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
-                               equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, k, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
-        end
+        set_node_vars!(u, u_node, equations, dg, indices, element)
     end
 
     return nothing
@@ -1286,4 +1429,5 @@ include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
 include("dgsem_t8code/dg.jl")
+include("blockfv/blockfv_p4est_2d.jl")
 end # @muladd

@@ -19,7 +19,7 @@ initial_condition = initial_condition_const
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
-solver_parabolic = ViscousFormulationBassiRebay1()
+solver_parabolic = ParabolicFormulationBassiRebay1()
 
 mu() = 0.5
 prandtl_number() = 0.72
@@ -30,9 +30,8 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
 # Get the uncurved mesh from a file (downloads the file if not available locally)
 
 default_mesh_file = joinpath(@__DIR__, "mesh_cube_with_boundaries.inp")
-isfile(default_mesh_file) ||
-    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/710eab379fe3042dc08af6f2d1076e49/raw/38e9803bc0dab9b32a61d9542feac5343c3e6f4b/mesh_cube_with_boundaries.inp",
-                   default_mesh_file)
+Trixi.download("https://gist.githubusercontent.com/DanielDoehring/710eab379fe3042dc08af6f2d1076e49/raw/38e9803bc0dab9b32a61d9542feac5343c3e6f4b/mesh_cube_with_boundaries.inp",
+               default_mesh_file)
 mesh_file = default_mesh_file
 
 boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]

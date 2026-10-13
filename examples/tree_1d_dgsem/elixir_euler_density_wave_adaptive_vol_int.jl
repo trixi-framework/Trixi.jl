@@ -26,7 +26,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 # `volume_integral_stabilized` is used instead of the `volume_integral_default`.
 indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
-# Adaptive volume integral using the entropy production comparison indicator to perform the 
+# Adaptive volume integral using the entropy production comparison indicator to perform the
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
                                          volume_integral_stabilized = volume_integral_fluxdiff,
@@ -38,7 +38,6 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -67,6 +66,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.True());
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks);

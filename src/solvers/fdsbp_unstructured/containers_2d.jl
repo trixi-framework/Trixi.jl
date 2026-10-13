@@ -9,7 +9,7 @@
 #! format: noindent
 
 # initialize all the values in the container of a general FD block (either straight sided or curved)
-# OBS! Requires the SBP derivative matrix in order to compute metric terms.
+# Note: Requires the SBP derivative matrix in order to compute metric terms.
 function init_element!(elements, element, basis::AbstractDerivativeOperator,
                        corners_or_surface_curves)
     calc_node_coordinates!(elements.node_coordinates, element, get_nodes(basis),
@@ -78,7 +78,7 @@ end
 
 # construct the normal direction vectors (but not actually normalized) for a curved sided FDSBP element "block"
 # normalization occurs on the fly during the surface flux computation
-# OBS! This assumes that the boundary points are included.
+# Note: This assumes that the boundary points are included.
 function calc_normal_directions!(normal_directions, element, jacobian_matrix)
 
     # normal directions on the boundary for the left (local side 4) and right (local side 2)

@@ -48,7 +48,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)
 analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
@@ -56,7 +56,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(); adaptive = false,
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            adaptive = false,
             dt = 0.5 * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);

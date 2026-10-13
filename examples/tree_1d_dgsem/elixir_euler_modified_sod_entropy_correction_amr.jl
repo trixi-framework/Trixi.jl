@@ -39,7 +39,6 @@ coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
@@ -79,6 +78,6 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 callbacks = CallbackSet(summary_callback, save_solution, amr_callback,
                         analysis_callback, alive_callback)
-sol = solve(ode, SSPRK43();
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
             abstol = 1e-6, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);

@@ -91,7 +91,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    const f::F # `rhs!` of the semidiscretization
+    const f::F # right-hand side of the semidiscretization
     const alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
@@ -124,6 +124,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
@@ -131,10 +132,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
                                      false, true, false)
-
-    # resize container
-    resize!(integrator.p, integrator.p.solver.volume_integral,
-            nelements(integrator.p.solver, integrator.p.cache))
 
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
@@ -175,6 +172,7 @@ function step!(integrator::SimpleIntegratorSSP)
     @unpack alg = integrator
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
+    (; numerator_a, numerator_b, denominator) = alg
 
     @assert !integrator.finalstep
     if isnan(integrator.dt)
@@ -185,23 +183,35 @@ function step!(integrator::SimpleIntegratorSSP)
 
     limit_dt!(integrator, t_end)
 
-    @. integrator.u_tmp = integrator.u
+    (; u, u_tmp, du, dt) = integrator
+    @threaded for i in eachindex(u)
+        u_tmp[i] = u[i]
+    end
     for stage in eachindex(alg.c)
-        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        t_stage = integrator.t + dt * alg.c[stage]
         # compute du
-        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+        integrator.f(du, u, integrator.p, t_stage)
 
         # perform forward Euler step
-        @. integrator.u = integrator.u + integrator.dt * integrator.du
+        @threaded for i in eachindex(integrator.u)
+            u[i] = u[i] + dt * du[i]
+        end
 
         for stage_callback in alg.stage_callbacks
             stage_callback(integrator.u, integrator, stage)
         end
 
         # perform convex combination
-        @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
-                           alg.numerator_b[stage] * integrator.u) /
-                          alg.denominator[stage]
+        a = numerator_a[stage]
+        # Skip the convex combination if a = 0. In that case, b = denominator = 1 holds
+        # as well, such that the combination reduces to the identity u = u.
+        if !iszero(a)
+            b = numerator_b[stage]
+            d = denominator[stage]
+            @threaded for i in eachindex(integrator.u)
+                u[i] = (a * u_tmp[i] + b * u[i]) / d
+            end
+        end
     end
     integrator.iter += 1
     integrator.t += integrator.dt
@@ -217,7 +227,7 @@ end
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
@@ -257,11 +267,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
-    # Resize container
-    # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 
     return nothing
 end

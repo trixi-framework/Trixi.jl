@@ -16,7 +16,7 @@ coordinate_max = 1.0
 
 mesh = TreeMesh(coordinate_min, coordinate_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000, periodicity = true)
+                periodicity = true)
 
 initial_condition = initial_condition_convergence_test
 
@@ -48,6 +48,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

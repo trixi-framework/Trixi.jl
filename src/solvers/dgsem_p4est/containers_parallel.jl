@@ -34,9 +34,10 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     ArrayType = storage_type(mpi_interfaces)
 
     resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
-    mpi_interfaces.u = unsafe_wrap(ArrayType, pointer(_u),
-                                   (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
-                                    capacity))
+    mpi_interfaces.u = unsafe_wrap_or_alloc(ArrayType, _u,
+                                            (2, n_variables,
+                                             ntuple(_ -> n_nodes, n_dims - 1)...,
+                                             capacity))
 
     resize!(local_neighbor_ids, capacity)
 
@@ -44,6 +45,20 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
 
     resize!(local_sides, capacity)
 
+    return nothing
+end
+
+# Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_interfaces::P4estMPIInterfaceContainer{NDIMS}, equations,
+                    solver::DG, cache) where {NDIMS}
+    check_axes(mpi_interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                eachmpiinterface(solver, cache)))
+    check_axes(mpi_interfaces.local_neighbor_ids, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.node_indices, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.local_sides, (eachmpiinterface(solver, cache),))
     return nothing
 end
 
@@ -59,9 +74,10 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_mpi_interfaces)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                     n_mpi_interfaces))
+    u = unsafe_wrap_or_alloc(Array, _u,
+                             (2, nvariables(equations),
+                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                              n_mpi_interfaces))
 
     local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
@@ -149,22 +165,24 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     n_variables = size(mpi_mortars.u, 2)
 
     resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
-    mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
-                                (2, n_variables, 2^(n_dims - 1),
-                                 ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
+    mpi_mortars.u = unsafe_wrap_or_alloc(Array, _u,
+                                         (2, n_variables, 2^(n_dims - 1),
+                                          ntuple(_ -> n_nodes, n_dims - 1)...,
+                                          capacity))
 
     resize!(mpi_mortars.local_neighbor_ids, capacity)
     resize!(mpi_mortars.local_neighbor_positions, capacity)
 
     resize!(_node_indices, 2 * capacity)
-    mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+    mpi_mortars.node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, capacity))
 
     resize!(_normal_directions,
             n_dims * n_nodes^(n_dims - 1) * 2^(n_dims - 1) * capacity)
-    mpi_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                                (n_dims,
-                                                 ntuple(_ -> n_nodes, n_dims - 1)...,
-                                                 2^(n_dims - 1), capacity))
+    mpi_mortars.normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
+                                                         (n_dims,
+                                                          ntuple(_ -> n_nodes,
+                                                                 n_dims - 1)...,
+                                                          2^(n_dims - 1), capacity))
 
     return nothing
 end
@@ -182,22 +200,23 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * 2^(NDIMS - 1) *
                          nnodes(basis)^(NDIMS - 1) * n_mpi_mortars)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, nvariables(equations), 2^(NDIMS - 1),
-                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
+    u = unsafe_wrap_or_alloc(Array, _u,
+                             (2, nvariables(equations), 2^(NDIMS - 1),
+                              ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
 
     local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
     local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
-    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mpi_mortars))
+    node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_mpi_mortars))
 
     _normal_directions = Vector{RealT}(undef,
                                        NDIMS * nnodes(basis)^(NDIMS - 1) *
                                        2^(NDIMS - 1) * n_mpi_mortars)
-    normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     2^(NDIMS - 1), n_mpi_mortars))
+    normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
+                                             (NDIMS,
+                                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                              2^(NDIMS - 1), n_mpi_mortars))
 
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
                                           NDIMS + 3, typeof(u),
@@ -252,8 +271,10 @@ end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must
 # call the appropriate init_surfaces! function for parallel p4est meshes
-function init_interfaces!(interfaces, mesh::P4estMeshParallel)
+function init_interfaces!(interfaces, elements,
+                          mesh::P4estMeshParallel, basis)
     init_surfaces!(interfaces, nothing, nothing, nothing, nothing, mesh)
+    init_normal_directions!(interfaces, basis, elements)
 
     return interfaces
 end
@@ -312,6 +333,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # the number of iterations over the mesh in p4est
     init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
+    # init_normal_directions! requires that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
     # re-initialize MPI cache
     @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
@@ -320,7 +344,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
     # the MPI cache must be re-initialized before
     init_normal_directions!(mpi_mortars, dg.basis, elements)
-    return exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+    exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+
+    return nothing
 end
 
 # A helper struct used in initialization methods below

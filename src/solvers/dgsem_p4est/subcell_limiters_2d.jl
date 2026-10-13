@@ -5,15 +5,13 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::P4estMesh{2}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -67,11 +65,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
             j_secondary += j_secondary_step
         end
     end
-
-    # Calc bounds at physical boundaries
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end
@@ -133,16 +126,14 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                         mesh::P4estMesh{2})
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::P4estMesh{2})
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
-    index_end = last(index_range)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -168,11 +159,8 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
         j_secondary = j_secondary_start
 
         for node in eachnode(dg)
-            var_primary = variable(get_node_vars(u, equations, dg, i_primary, j_primary,
-                                                 primary_element), equations)
-            var_secondary = variable(get_node_vars(u, equations, dg, i_secondary,
-                                                   j_secondary, secondary_element),
-                                     equations)
+            var_primary = variable_values[i_primary, j_primary, primary_element]
+            var_secondary = variable_values[i_secondary, j_secondary, secondary_element]
 
             var_minmax[i_primary, j_primary, primary_element] = minmax(var_minmax[i_primary,
                                                                                   j_primary,
@@ -190,11 +178,6 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
             j_secondary += j_secondary_step
         end
     end
-
-    # Calc bounds at physical boundaries
-    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end
@@ -242,7 +225,8 @@ end
                                                    i_node, j_node, element)
                 var_outer = variable(u_outer, equations)
 
-                var_minmax[i_node, j_node, element] = minmax(var_minmax[i_node, j_node,
+                var_minmax[i_node, j_node, element] = minmax(var_minmax[i_node,
+                                                                        j_node,
                                                                         element],
                                                              var_outer)
 
