@@ -558,6 +558,36 @@ end
                             0.03176343483364796
                         ],
                         storage_type=CuArray)
+    # The boundary fluxes of all boundary condition types are computed by a single
+    # kernel launch. Use a second boundary condition type for `y_pos` (hyperbolic and
+    # parabolic) and compare with a single type. The surface flux values are set to NaN
+    # before, so that missing boundaries are detected.
+    # The closures capture the boundary conditions, since the GPU kernels cannot access
+    # (non-constant) global variables
+    boundary_condition_slip_wall_y_pos = let bc = boundary_condition_slip_wall
+        (args...) -> bc(args...)
+    end
+    boundary_condition_top_bottom_y_pos = let bc = boundary_condition_top_bottom
+        (args...) -> bc(args...)
+    end
+    semi_types = Trixi.remake(semi,
+                              boundary_conditions = (; boundary_conditions...,
+                                                     y_pos = boundary_condition_slip_wall_y_pos),
+                              boundary_conditions_parabolic = (;
+                                                               boundary_conditions_parabolic...,
+                                                               y_pos = boundary_condition_top_bottom_y_pos))
+    ode_types = semidiscretize(semi_types, ode.tspan, storage_type = CuArray)
+    @test length(ode_types.p.boundary_conditions.boundary_condition_types) == 2
+    @test length(ode_types.p.boundary_conditions_parabolic.boundary_condition_types) == 2
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    du_ode_types = similar(u_ode)
+    for rhs! in (Trixi.rhs_hyperbolic!, Trixi.rhs_parabolic!)
+        rhs!(du_ode, u_ode, ode.p, first(ode.tspan))
+        fill!(ode_types.p.cache.elements.surface_flux_values, NaN)
+        rhs!(du_ode_types, u_ode, ode_types.p, first(ode.tspan))
+        @test du_ode_types ≈ du_ode
+    end
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test typeof(semi.equations_parabolic.mu) == Float64

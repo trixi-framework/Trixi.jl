@@ -7,7 +7,7 @@
 
 # KernelAbstractions.jl kernels of the parabolic right-hand side for the 3D
 # `P4estMesh`. The functions launching the kernels (`rhs_parabolic!`,
-# `calc_gradient!`, `calc_volume_integral!`, ...) are generic in the number of
+# `calc_gradient_and_parabolic_fluxes!`, `calc_volume_integral!`, ...) are generic in the number of
 # spatial dimensions and live in `dg_2d_parabolic_gpu.jl`, which also explains
 # the fusion of the steps of the CPU implementation. This file only contains
 # the 3D versions of the kernels and of the `per_node!` functions they call,
@@ -100,34 +100,13 @@ end
                    i, j, k, element)
 end
 
-@kernel inbounds=true function calc_parabolic_fluxes_KAkernel!(flux_parabolic,
-                                                               gradients,
-                                                               u_transformed,
-                                                               MeshT::Type{<:P4estMesh{3}},
-                                                               equations_parabolic,
-                                                               dg)
-    i, j, k, element = @index(Global, NTuple)
-    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
-    gradients_x, gradients_y, gradients_z = gradients
-
-    u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k, element)
-    gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
-                                     i, j, k, element)
-    gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
-                                     i, j, k, element)
-    gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg,
-                                     i, j, k, element)
-    gradients_node = (gradients_1_node, gradients_2_node, gradients_3_node)
-
-    flux_parabolic_node_x = flux(u_node, gradients_node, 1, equations_parabolic)
-    flux_parabolic_node_y = flux(u_node, gradients_node, 2, equations_parabolic)
-    flux_parabolic_node_z = flux(u_node, gradients_node, 3, equations_parabolic)
-    set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
-                   dg, i, j, k, element)
-    set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
-                   dg, i, j, k, element)
-    set_node_vars!(flux_parabolic_z, flux_parabolic_node_z, equations_parabolic,
-                   dg, i, j, k, element)
+# Parabolic fluxes in all three coordinate directions at one node, see the 2D
+# version `flux_parabolic_xy`
+@inline function flux_parabolic_xyz(u, gradients, equations_parabolic)
+    flux_x = @inline flux(u, gradients, 1, equations_parabolic)
+    flux_y = @inline flux(u, gradients, 2, equations_parabolic)
+    flux_z = @inline flux(u, gradients, 3, equations_parabolic)
+    return flux_x, flux_y, flux_z
 end
 
 # In contrast to the CPU version, this computes the complete volume integral of
@@ -366,36 +345,37 @@ end
 
 @kernel inbounds=true function calc_boundary_flux_KAkernel!(surface_flux_values,
                                                             u_or_flux,
-                                                            boundary_condition_indices,
+                                                            boundary_indices,
                                                             neighbor_ids,
                                                             node_indices_arr,
                                                             t,
-                                                            boundary_condition::BC,
+                                                            boundary_condition_types,
                                                             operator_type,
                                                             index_range,
-                                                            MeshT::Type{<:P4estMesh{3}},
+                                                            ::Type{MeshT},
                                                             equations_parabolic,
                                                             dg,
                                                             node_coordinates,
-                                                            contravariant_vectors) where {BC}
-    i, j, local_index = @index(Global, NTuple)
-    # Use the local index to get the global boundary index from the pre-sorted list
-    boundary = boundary_condition_indices[local_index]
-
-    calc_boundary_flux_per_node!(surface_flux_values, u_or_flux, t,
-                                 boundary_condition, operator_type, MeshT,
-                                 equations_parabolic, dg, boundary, neighbor_ids,
-                                 node_indices_arr, index_range, node_coordinates,
-                                 contravariant_vectors, i, j)
+                                                            contravariant_vectors) where {MeshT <:
+                                                                                          P4estMesh{3}}
+    i, j, local_index, type_index = @index(Global, NTuple)
+    calc_boundary_flux_per_node_by_type!(calc_boundary_flux_per_node!, type_index,
+                                         local_index, boundary_condition_types,
+                                         boundary_indices, surface_flux_values,
+                                         u_or_flux, t, operator_type, MeshT,
+                                         equations_parabolic, dg, neighbor_ids,
+                                         node_indices_arr, index_range,
+                                         node_coordinates, contravariant_vectors, i, j)
 end
 
-Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_values,
+Base.@propagate_inbounds function calc_boundary_flux_per_node!(boundary_condition,
+                                                               boundary,
+                                                               surface_flux_values,
                                                                u_or_flux, t,
-                                                               boundary_condition,
                                                                operator_type,
                                                                MeshT::Type{<:P4estMesh{3}},
                                                                equations_parabolic,
-                                                               dg, boundary,
+                                                               dg,
                                                                neighbor_ids,
                                                                node_indices_arr,
                                                                index_range,
@@ -467,17 +447,19 @@ end
 ###############################################################################
 # Surface integrals, Jacobian, and source terms
 
-@kernel inbounds=true function calc_surface_integral_and_apply_jacobian_gradient_KAkernel!(gradients,
-                                                                                           MeshT::Type{<:P4estMesh{3}},
-                                                                                           equations_parabolic::AbstractEquationsParabolic{3},
-                                                                                           factor,
-                                                                                           ::Val{NNODES},
-                                                                                           surface_flux_values,
-                                                                                           dg::DGSEM,
-                                                                                           contravariant_vectors,
-                                                                                           inverse_jacobian) where {
-                                                                                                                    NNODES
-                                                                                                                    }
+@kernel inbounds=true function calc_surface_integral_and_apply_jacobian_gradient_and_calc_parabolic_fluxes_KAkernel!(gradients,
+                                                                                                                     flux_parabolic,
+                                                                                                                     u_transformed,
+                                                                                                                     MeshT::Type{<:P4estMesh{3}},
+                                                                                                                     equations_parabolic::AbstractEquationsParabolic{3},
+                                                                                                                     factor,
+                                                                                                                     ::Val{NNODES},
+                                                                                                                     surface_flux_values,
+                                                                                                                     dg::DGSEM,
+                                                                                                                     contravariant_vectors,
+                                                                                                                     inverse_jacobian) where {
+                                                                                                                                              NNODES
+                                                                                                                                              }
     i, j, k, element = @index(Global, NTuple)
     gradients_x, gradients_y, gradients_z = gradients
     # Note that all fluxes have been computed with outward-pointing normal vectors.
@@ -558,6 +540,21 @@ end
                    i, j, k, element)
     set_node_vars!(gradients_z, gradient_z_node, equations_parabolic, dg,
                    i, j, k, element)
+
+    # Calculate the parabolic fluxes with the final gradients of this node
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+    u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k, element)
+    flux_parabolic_node_x, flux_parabolic_node_y, flux_parabolic_node_z = flux_parabolic_xyz(u_node,
+                                                                                             (gradient_x_node,
+                                                                                              gradient_y_node,
+                                                                                              gradient_z_node),
+                                                                                             equations_parabolic)
+    set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
+                   dg, i, j, k, element)
+    set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
+                   dg, i, j, k, element)
+    set_node_vars!(flux_parabolic_z, flux_parabolic_node_z, equations_parabolic,
+                   dg, i, j, k, element)
 end
 
 # This is distinguished from the hyperbolic kernel of the same name by the
