@@ -5016,6 +5016,15 @@ end
     @test all(chi -> 1 + chi * Trixi.sa_fn(chi, model) > 0, range(-50, 0, length = 1001))
     # No eddy viscosity for negative nu_tilde
     @test Trixi.sa_eddy_viscosity(1.0, -1.0e-3, 1.0e-3, model) == 0
+    # The wall function f_w and its derivative are accurate in `Float32` up to
+    # g ~ 3e5 (r = rlim), where g^6 alone is close to the range of `Float32`
+    model_32 = SpalartAllmarasNeg(Float32)
+    for g in (0.5, 220.8, 4691.0, 78648.8, 282451.0)
+        @test Trixi.sa_fw(Float32(g), model_32) ≈ Trixi.sa_fw(g, model)
+        @test isapprox(ForwardDiff.derivative(g -> Trixi.sa_fw(g, model_32), Float32(g)),
+                       ForwardDiff.derivative(g -> Trixi.sa_fw(g, model), g);
+                       rtol = 1.0e-4)
+    end
 
     # Entropy gradient variables: the gradients of the entropy variables are converted
     # correctly to gradients of (rho, v1, v2, T, nu_tilde), and both gradient variables
