@@ -8,7 +8,7 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
-- Added multi-GPU support for 2D P4estMesh. A local CUDA-aware MPI installation is required.
+- Added multi-GPU support for 2D and 3D P4estMesh. A local CUDA-aware MPI installation is required.
   For configuration see [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs.
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`

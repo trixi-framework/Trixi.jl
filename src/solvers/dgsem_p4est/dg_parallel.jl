@@ -637,6 +637,7 @@ end
 include("dg_2d_parallel.jl")
 include("dg_2d_parallel_gpu.jl")
 include("dg_3d_parallel.jl")
+include("dg_3d_parallel_gpu.jl")
 include("dg_2d_parabolic_parallel.jl")
 include("dg_3d_parabolic_parallel.jl")
 end # muladd

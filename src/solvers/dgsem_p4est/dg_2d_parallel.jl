@@ -21,7 +21,7 @@ function prolong2mpiinterfaces!(backend::Nothing, cache, u,
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface,
+        prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, typeof(mesh), interface,
                                              local_sides, local_neighbor_ids,
                                              node_indices,
                                              index_range, variables_range, u)
@@ -30,7 +30,10 @@ function prolong2mpiinterfaces!(backend::Nothing, cache, u,
     return nothing
 end
 
-@inline function prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface,
+@inline function prolong2mpiinterfaces_per_interface!(mpi_interfaces_u,
+                                                      ::Type{<:Union{P4estMeshParallel{2},
+                                                                     T8codeMeshParallel{2}}},
+                                                      interface,
                                                       local_sides, local_neighbor_ids,
                                                       node_indices, index_range,
                                                       variables_range, u)

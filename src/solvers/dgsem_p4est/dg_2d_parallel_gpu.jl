@@ -117,22 +117,24 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     variables_range = eachvariable(equations)
 
     kernel! = prolong2mpiinterfaces_KAkernel!(backend)
-    kernel!(cache.mpi_interfaces.u, local_sides, local_neighbor_ids, node_indices,
-            index_range, variables_range, u,
+    kernel!(cache.mpi_interfaces.u, typeof(mesh), local_sides, local_neighbor_ids,
+            node_indices, index_range, variables_range, u,
             ndrange = nmpiinterfaces(dg, cache))
     return nothing
 end
 
 @kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u,
+                                                               MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                                   T8codeMeshParallel{2}}},
                                                                local_sides,
                                                                local_neighbor_ids,
                                                                node_indices,
                                                                index_range,
                                                                variables_range, u)
     interface = @index(Global)
-    prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface, local_sides,
-                                         local_neighbor_ids, node_indices, index_range,
-                                         variables_range, u)
+    prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, MeshT, interface,
+                                         local_sides, local_neighbor_ids, node_indices,
+                                         index_range, variables_range, u)
 end
 
 function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
