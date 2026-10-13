@@ -1,9 +1,9 @@
 # Vendored from ParkedWorkers.jl by Valentin Churavy (not yet published or registered),
-# commit fcd3f0256d0f1232b09f1d479f08e17048a224c9,
+# commit b91941470a5a29dcbc6cd9e55131924a92ecaa10,
 # file `src/ParkedWorkers.jl`, formatted with the JuliaFormatter settings of Trixi.jl and otherwise
-# unchanged. Do not edit here; change the package and
-# copy it again. Replace this copy by a package dependency once ParkedWorkers.jl is
-# registered. See `LICENSE` in this directory.
+# unchanged. Do not edit here; change the package and copy it again. Replace this copy by
+# a package dependency once ParkedWorkers.jl is registered. See `LICENSE` in this
+# directory.
 #
 # MIT License. Copyright (c) 2026 Valentin Churavy.
 

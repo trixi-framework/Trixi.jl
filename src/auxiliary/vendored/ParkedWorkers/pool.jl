@@ -1,9 +1,9 @@
 # Vendored from ParkedWorkers.jl by Valentin Churavy (not yet published or registered),
-# commit fcd3f0256d0f1232b09f1d479f08e17048a224c9,
+# commit b91941470a5a29dcbc6cd9e55131924a92ecaa10,
 # file `src/pool.jl`, formatted with the JuliaFormatter settings of Trixi.jl and otherwise
-# unchanged. Do not edit here; change the package and
-# copy it again. Replace this copy by a package dependency once ParkedWorkers.jl is
-# registered. See `LICENSE` in this directory.
+# unchanged. Do not edit here; change the package and copy it again. Replace this copy by
+# a package dependency once ParkedWorkers.jl is registered. See `LICENSE` in this
+# directory.
 #
 # MIT License. Copyright (c) 2026 Valentin Churavy.
 
@@ -47,9 +47,6 @@ WorkerState() = WorkerState(0, false, ntuple(_ -> 0, Val(14)))
 mutable struct Pool
     # `Base.RefValue{F}` holding the chunk function of the current parallel region
     @atomic job::Any
-    @atomic busy::Bool
-    # Task that started the current parallel region (to detect `shutdown!` calls from it)
-    @atomic owner::Any
     const workers::Vector{WorkerState}
     const events::Vector{Base.Event}
     const tasks::Vector{Task}
@@ -58,16 +55,20 @@ mutable struct Pool
     # `tid2worker[tid]`: index of the worker running on thread `tid`, or `0`
     const tid2worker::Vector{Int}
     # One `Base.RefValue{F}` per chunk function type `F`, and one partials buffer per
-    # result type of a reduction. Only accessed while holding `busy`.
+    # result type of a reduction. Only accessed while holding `POOL.busy`.
     const slots::IdDict{Type, Any}
     const buffers::IdDict{Type, Any}
 end
 
+# Global state. `busy` is held by the task running a parallel region (and by `shutdown!`);
+# `pool` is only created, replaced or used while holding `busy`.
 mutable struct PoolHolder
+    @atomic busy::Bool
+    # Task that holds `busy` (to detect `shutdown!` calls from inside a region)
+    @atomic owner::Any
     @atomic pool::Union{Nothing, Pool}
 end
-const POOL = PoolHolder(nothing)
-const POOL_LOCK = ReentrantLock()
+const POOL = PoolHolder(false, nothing, nothing)
 
 # Spin time of an idle worker before it goes to sleep, in nanoseconds
 const SPIN_NS = Threads.Atomic{Int}(100_000)
@@ -175,7 +176,7 @@ function Pool()
     for (k, tid) in enumerate(tids)
         tid2worker[tid] = k
     end
-    pool = Pool(nothing, false, nothing, [WorkerState() for _ in 1:nw],
+    pool = Pool(nothing, [WorkerState() for _ in 1:nw],
                 [Base.Event(true) for _ in 1:nw], Task[], Any[nothing for _ in 1:nw],
                 tid2worker, IdDict{Type, Any}(), IdDict{Type, Any}())
     for (k, tid) in enumerate(tids)
@@ -188,40 +189,47 @@ function Pool()
     return pool
 end
 
-@noinline function create_pool()
-    lock(POOL_LOCK) do
-        pool = @atomic POOL.pool
-        if pool === nothing
-            pool = Pool()
-            @atomic POOL.pool = pool
-        end
-        return pool
-    end
-end
-
-@inline function get_pool()
-    pool = @atomic POOL.pool
-    return pool === nothing ? create_pool() : pool
-end
-
 # Is a parallel region active (in this task or any other)?
-@inline function pool_busy()
-    pool = @atomic POOL.pool
-    return pool !== nothing && @atomic(pool.busy)
-end
+#
+# This check is inlined into every parallel loop in front of the serial fallback loop, so
+# it must only use relaxed (`:monotonic`) loads. LLVM's MemoryDependenceAnalysis treats any
+# acquire (or stronger) load as a clobber of all memory, even for `!invariant.load` queries
+# ("FIXME: This is overly conservative" in MemoryDependenceAnalysis.cpp). An acquire load
+# here stops GVN from merging loads after it with loads before it (e.g., array sizes
+# checked by the caller), so the serial loop would lose constant strides and other facts
+# (Trixi.jl: +4 to +8% time in several kernels on Julia 1.13). A stale value is harmless:
+# it only makes us try the pool (and fall back to serial in `acquire_pool`) or run one loop
+# serially. Data is only published with acquire/release in the non-inlined `run_chunks`,
+# `run_fold` and `dispatch!`.
+@inline pool_busy() = @atomic :monotonic POOL.busy
 
-# Take the pool for a parallel region; `nothing` if the loop has to run serially.
+# Take the pool for a parallel region (starting it if needed); `nothing` if the loop has to
+# run serially. Only called from non-inlined functions.
 @inline function acquire_pool()
     generating_output() && return nothing
-    pool = get_pool()
-    (@atomicreplace pool.busy false=>true).success || return nothing
-    @atomic :monotonic pool.owner=current_task()
+    (@atomicreplace POOL.busy false=>true).success || return nothing
+    @atomic :monotonic POOL.owner=current_task()
+    pool = @atomic :acquire POOL.pool
+    if pool === nothing
+        pool = try
+            new_pool()
+        catch
+            release_pool()
+            rethrow()
+        end
+    end
     return pool
 end
 
-@inline function release_pool(pool::Pool)
-    @atomic :monotonic pool.owner=nothing
-    @atomic :release pool.busy=false
+@noinline function new_pool()
+    pool = Pool()
+    @atomic :release POOL.pool=pool
+    return pool
+end
+
+@inline function release_pool()
+    @atomic :monotonic POOL.owner=nothing
+    @atomic :release POOL.busy=false
     return nothing
 end
 
@@ -259,7 +267,7 @@ end
                                          (skip != 0 && k >= skip) ? k + 1 :
                                          k)
 
-# Run `f(chunk)` for `chunk in 1:n` in parallel; the caller holds `pool.busy`.
+# Run `f(chunk)` for `chunk in 1:n` in parallel; the caller holds `POOL.busy`.
 function dispatch!(pool::Pool, f::F, n::Int) where {F}
     slot = job_slot(pool, F)
     slot[] = f
@@ -333,7 +341,8 @@ end
 
 # Run `f(chunk)` for `chunk in 1:n`, in parallel if the pool is free, else serially.
 # `n` must not exceed `nworkers()`.
-@inline function run_chunks(f::F, n::Int) where {F}
+# Not inlined: the atomics in here must stay out of the caller (see `pool_busy`).
+@noinline function run_chunks(f::F, n::Int) where {F}
     pool = acquire_pool()
     if pool === nothing
         for chunk in 1:n
@@ -344,7 +353,7 @@ end
     try
         dispatch!(pool, f, n)
     finally
-        release_pool(pool)
+        release_pool()
     end
     return nothing
 end
@@ -358,7 +367,8 @@ end
 # Compute `op(op(f(1), f(2)), ...)` over `1:n` with the `f(chunk)` evaluated in parallel
 # (`n ≥ 2`). The partial results are combined in chunk order, so the result is
 # deterministic for a given `n`.
-@inline function run_fold(f::F, op::Op, n::Int) where {F, Op}
+# Not inlined: the atomics in here must stay out of the caller (see `pool_busy`).
+@noinline function run_fold(f::F, op::Op, n::Int) where {F, Op}
     pool = acquire_pool()
     if pool === nothing
         acc = f(1)
@@ -378,7 +388,7 @@ end
         end
         return acc
     finally
-        release_pool(pool)
+        release_pool()
     end
 end
 
@@ -393,18 +403,17 @@ a new pool.
 Throws an error when called from inside a parallel loop.
 """
 function shutdown!()
-    lock(POOL_LOCK) do
+    while !(@atomicreplace POOL.busy false=>true).success
+        # The region can not end while we wait in one of its chunks
+        if @atomic(POOL.owner) === current_task() || in_worker()
+            error("ParkedWorkers.shutdown! called from inside a parallel loop")
+        end
+        yield()
+    end
+    @atomic :monotonic POOL.owner=current_task()
+    try
         pool = @atomic POOL.pool
         pool === nothing && return nothing
-        # Take the pool for good; callers still holding a reference run serially
-        while !(@atomicreplace pool.busy false=>true).success
-            # The region can not end while we wait in one of its chunks
-            if @atomic(pool.owner) === current_task() ||
-               any(t -> t === current_task(), pool.tasks)
-                error("ParkedWorkers.shutdown! called from inside a parallel loop")
-            end
-            yield()
-        end
         @atomic POOL.pool = nothing
         for (k, ws) in enumerate(pool.workers)
             wait_idle(pool, k)
@@ -415,6 +424,13 @@ function shutdown!()
         empty!(pool.slots)
         empty!(pool.buffers)
         @atomic pool.job = nothing
-        return nothing
+    finally
+        release_pool()
     end
+    return nothing
+end
+
+function in_worker()
+    pool = @atomic POOL.pool
+    return pool !== nothing && any(t -> t === current_task(), pool.tasks)
 end
