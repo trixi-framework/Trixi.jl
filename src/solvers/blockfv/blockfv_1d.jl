@@ -98,7 +98,7 @@ function integrate_via_indices(func::Func, u,
 
     integral = zero(func(u, 1, 1, equations, dg, args...))
 
-    @batch reduction=(+, integral) for element in eachelement(dg, cache)
+    @threaded reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for i in eachnode(dg)
             integral += volume_jacobian_ * weights[i] *

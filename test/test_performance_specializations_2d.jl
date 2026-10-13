@@ -77,12 +77,12 @@ end
     # `jacobian_fd` and `linear_structure`
     U = hcat(u_ode, u_ode)
     u_view = Trixi.wrap_array(view(U, :, 2), semi)
-    # a `PtrArray`, as created by Polyester.jl when threading
+    # a `PtrArray`, as created by `with_static_sizes` on Julia v1.10
     GC.@preserve u_ode begin
         u_ptr = PtrArray(u)
         @test is_turbo(u_ptr)
 
-        if Trixi._PREFERENCE_THREADING === :polyester
+        if Trixi._THREADING_BACKEND === :pool
             @test is_turbo(u)
             @test is_turbo(u_fixed)
             @test is_turbo(u_view)
@@ -117,7 +117,7 @@ end
                                                                             dg)
         static_view_allocs(u_large, semi.equations, semi.solver)
         @test static_view_allocs(u_large, semi.equations, semi.solver) == 0
-        # Polyester.jl converts it to a `PtrArray` with static sizes
+        # It provides static sizes, e.g., for a `PtrArray`
         u_p = PtrArray(u_s)
         @test u_p == u
         @test Trixi.StaticArrayInterface.static_size(u_p)[1] isa Trixi.StaticInt

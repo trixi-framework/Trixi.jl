@@ -229,12 +229,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         storage_type = nothing,
                         real_type = nothing,
                         flux_differencing_kernel = nothing)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
-    if reset_threads
-        Polyester.reset_threads!()
-    end
+    # `reset_threads` is kept for backwards compatibility; it has no effect since
+    # Trixi.jl no longer uses Polyester.jl.
 
     semi = trixi_adapt_deprecated(semi; storage_type, real_type,
                                   flux_differencing_kernel)
@@ -289,12 +285,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
-    if reset_threads
-        Polyester.reset_threads!()
-    end
+    # `reset_threads` is kept for backwards compatibility; it has no effect since
+    # Trixi.jl no longer uses Polyester.jl.
 
     tspan = convert_tspan(semi, tspan)
     u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file

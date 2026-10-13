@@ -12,18 +12,26 @@ const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
 
 Toggle and/or switch backend behavior used in multithreaded loops inside Trixi.jl.
 The selected backend affects the behavior of Trixi.jl's [`@threaded`](@ref) macro, which is used
-throughout the codebase for parallel loops. By default, Polyester.jl is enabled for
-optimal performance, but switching backends can be useful for comparisons or debugging.
+throughout the codebase for parallel loops. By default, a small pool of persistent worker tasks (`:pool`) is used for
+low overhead, but switching backends can be useful for comparisons or debugging.
 
 # Available backends
-- `:polyester`: Uses the default [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl)
+- `:pool`: Uses a pool of persistent, sticky worker tasks (one per thread of the default
+  thread pool) that are woken up for each threaded loop (default)
 - `:static`: Uses Julia's built-in static thread scheduling via `Threads.@threads :static`
+- `:dynamic`: Uses Julia's built-in dynamic thread scheduling via `Threads.@threads :dynamic`
 - `:serial`: Disables threading, executing loops serially
 - `:kernelabstractions`: Preferentially use the [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)
   kernels written in Trixi.jl, falling back to `:static` execution.
+
+The former `:polyester` backend has been removed; it is treated as `:pool`.
 """
-function set_threading_backend!(backend::Symbol = :polyester; force = true)
-    valid_backends = (:polyester, :static, :serial, :kernelabstractions)
+function set_threading_backend!(backend::Symbol = :pool; force = true)
+    if backend === :polyester
+        @warn "The `:polyester` threading backend has been removed. Using `:pool` instead."
+        backend = :pool
+    end
+    valid_backends = (:pool, :static, :dynamic, :serial, :kernelabstractions)
     if !(backend in valid_backends)
         throw(ArgumentError("Invalid threading backend: $(backend). Current options are: $(join(valid_backends, ", "))"))
     end
@@ -66,9 +74,9 @@ end
         Trixi.sqrt(x::Real)
 
     Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
-    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766)
-    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl),
-    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+    This was originally required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766)
+    with the former Polyester.jl threading backend of [`@threaded`](@ref). It is kept since
+    returning `NaN` avoids exceptions (and their overhead) in performance-critical code.
 
     We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsics
     `llvm.sqrt.f64`, `llvm.sqrt.f32`, `llvm.sqrt.f16` as for these the LLVM functions can be used out-of the box,
@@ -117,9 +125,9 @@ end
         Trixi.log(x::Real)
 
     Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
-    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766)
-    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl),
-    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+    This was originally required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766)
+    with the former Polyester.jl threading backend of [`@threaded`](@ref). It is kept since
+    returning `NaN` avoids exceptions (and their overhead) in performance-critical code.
 
     We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics
     `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16` as for this the LLVM functions can be used out-of the box, i.e.,

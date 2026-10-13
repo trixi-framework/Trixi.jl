@@ -10,7 +10,11 @@ support provided by Julia. You can recognize those loops by the
   ...
 end
 ```
-This will statically assign an equal iteration count to each available thread.
+This will statically assign an equal iteration count to each available thread
+(of the default thread pool). By default, the loops are executed by a small pool of
+persistent worker tasks, which keeps the overhead of starting a threaded loop low.
+Other implementations (`Threads.@threads :static` or `:dynamic`, or serial execution)
+can be selected with [`Trixi.set_threading_backend!`](@ref).
 
 To use multi-threading, you need to tell Julia at startup how many threads you
 want to use by either setting the environment variable `JULIA_NUM_THREADS` or by
@@ -22,12 +26,12 @@ julia --threads=4
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
 
-If you use time integration methods from
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-and want to use multiple threads therein, you need to set the keyword argument
-`thread = Trixi.Threaded()`
-of the algorithms, as described in the
-[section on time integration methods](@ref time-integration).
+Time integration methods from
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) accept the keyword
+argument `thread = Trixi.Threaded()`, as described in the
+[section on time integration methods](@ref time-integration). Since Trixi.jl no longer
+uses Polyester.jl, which OrdinaryDiffEq.jl uses for its threaded stage updates,
+`Trixi.Threaded()` currently disables threading in OrdinaryDiffEq.jl.
 
 !!! warning
     Not everything is parallelized yet and there are likely opportunities to

@@ -176,12 +176,8 @@ The time span is converted to the real type `real(semi)` of the semidiscretizati
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
                         reset_threads = true)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
-    if reset_threads
-        Trixi.Polyester.reset_threads!()
-    end
+    # `reset_threads` is kept for backwards compatibility; it has no effect since
+    # Trixi.jl no longer uses Polyester.jl.
     tspan = convert_tspan(semi, tspan)
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using

@@ -13,11 +13,7 @@
 
     # Note: In order to get the maximum deviation from the target bounds, this bounds check
     # requires a reduction in every RK stage and for every enabled limiting option. To make
-    # this Thread-parallel we are using Polyester.jl's (at least v0.7.10) `@batch reduction`
-    # functionality.
-    # Although `@threaded` and `@batch` are currently used equivalently in Trixi.jl, we use
-    # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
+    # this Thread-parallel we are using the `reduction` functionality of `@threaded`.
 
     if local_twosided
         for v in limiter.local_twosided_variables_cons
@@ -28,7 +24,7 @@
             deviation_max = idp_bounds_delta_local[key_max]
             bounds_min = variable_bounds[key_min]
             bounds_max = variable_bounds[key_max]
-            @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
+            @threaded reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
                                                                                                      cache)
 
                 # detect if subcell limiting is necessary
@@ -54,7 +50,7 @@
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
             sign_ = min_or_max(1.0, -1.0)
-            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
@@ -81,7 +77,7 @@
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
-            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
@@ -97,7 +93,7 @@
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
-            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+            @threaded reduction=(max, deviation) for element in eachelement(solver, cache)
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
