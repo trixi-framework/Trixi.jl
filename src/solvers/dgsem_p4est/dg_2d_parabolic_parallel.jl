@@ -536,6 +536,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
 
     @threaded for mortar in eachmpimortar(dg, cache)
         @inbounds begin
+            # Choose thread-specific pre-allocated container
             fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
                              fstar_primary_upper_threaded[Threads.threadid()])
 
@@ -558,13 +559,15 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                 end
             end
 
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
+
             mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                     mesh, equations_parabolic,
-                                                    mortar_l2,
-                                                    dg, cache,
-                                                    mortar, fstar_primary,
-                                                    fstar_secondary,
+                                                    mortar_l2, dg, cache,
+                                                    mortar,
+                                                    fstar_primary, fstar_secondary,
                                                     u_buffer)
         end
     end
@@ -572,6 +575,10 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
     return nothing
 end
 
+# This version is called during `calc_gradients!` and must be specialized because the
+# MAGNITUDE of the flux does NOT depend on the outward normal.
+# Thus, you don't need to scale by 2 and flip the sign when storing the mortar fluxes
+# back into `surface_flux_values` (as in `mortar_fluxes_to_elements_gradient!`).
 Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
                                                                           mesh::P4estMeshParallel{2},
                                                                           equations_parabolic,
@@ -587,24 +594,21 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
 
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
-
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
 
     for (element, position) in zip(local_neighbor_ids[mortar],
                                    local_neighbor_positions[mortar])
-
-        # In 2D the large side is the third mortar neighbor slot.
-        if position == 3
-            # Project the two small-side traces to the large side.
+        if position == 3 # -> large element
+            # Project small fluxes to large element.
             multiply_dimensionwise!(u_buffer,
-                                    mortar_l2.reverse_upper,
-                                    fstar_secondary[2],
-                                    mortar_l2.reverse_lower,
-                                    fstar_secondary[1])
+                                    mortar_l2.reverse_upper, fstar_secondary[2],
+                                    mortar_l2.reverse_lower, fstar_secondary[1])
 
-            # Gradient stage: no extra sign flip / scale factor
-            # (same as local 2D parabolic mortar_fluxes_to_elements!)
+            # Copy interpolated flux values from buffer to large element face in the
+            # correct orientation.
+            # Note that the index of the small sides will always run forward but
+            # the index of the large side might need to run backwards for flipped sides.
             if :i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
@@ -620,8 +624,8 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
                     end
                 end
             end
-        else
-            # Small sides copy directly
+        else # position in (1, 2) -> small element
+            # Copy solution small to small
             for i in eachnode(dg)
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i,
@@ -639,7 +643,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DGSEM)
-    @unpack node_indices = cache.mpi_mortars
+    @unpack node_indices, u = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
@@ -658,7 +662,8 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
             local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
             local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
-            # Small side indexing
+            # Get start value and step size for indices on both sides to get the correct
+            # face and orientation
             small_indices = node_indices[1, mortar]
             small_direction = indices2direction(small_indices)
 
@@ -667,7 +672,6 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
             j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                                  index_range)
 
-            # Large side indexing
             large_indices = node_indices[2, mortar]
             large_direction = indices2direction(large_indices)
 
@@ -677,10 +681,9 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                  index_range)
 
             for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
-                if position == 3
-                    # =========================
-                    # LARGE ELEMENT
-                    # =========================
+                if position == 3 # -> large element
+                    # Buffer to copy solution values of the large element in the correct
+                    # orientation before interpolating
                     u_buffer = cache.u_threaded[Threads.threadid()]
 
                     i_large = i_large_start
@@ -702,10 +705,11 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                            j_large,
                                                                            element])
 
-                            # Same convention as local 2D code:
-                            # prolong flux dotted with outward normal on the small element.
-                            # The large-element normal is -2x the small-element normal,
-                            # hence the factor -1/2 here.
+                            # We prolong the parabolic flux dotted with respect the
+                            # outward normal on the small element. We scale by -1/2
+                            # here because the normal direction on the large element
+                            # is negative 2x that of the small element (these normal
+                            # directions are "scaled" by the surface Jacobian)
                             u_buffer[v, i] = -0.5f0 *
                                              dot(flux_parabolic_node, normal_direction)
                         end
@@ -714,17 +718,14 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                         j_large += j_large_step
                     end
 
-                    multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :,
-                                                 mortar),
+                    # Interpolate large element face data from buffer to small face
+                    # locations
+                    multiply_dimensionwise!(view(u, 2, :, 1, :, mortar),
                                             mortar_l2.forward_lower, u_buffer)
-                    multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :,
-                                                 mortar),
+                    multiply_dimensionwise!(view(u, 2, :, 2, :, mortar),
                                             mortar_l2.forward_upper, u_buffer)
-
-                else
-                    # =========================
-                    # SMALL ELEMENT (1–2)
-                    # =========================
+                else # position in (1, 2) -> small element
+                    # Copy solution data from the small elements
                     i_small = i_small_start
                     j_small = j_small_start
 
@@ -744,8 +745,8 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                                                                            j_small,
                                                                            element])
 
-                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_parabolic_node,
-                                                                                 normal_direction)
+                            u[1, v, position, i, mortar] = dot(flux_parabolic_node,
+                                                               normal_direction)
                         end
 
                         i_small += i_small_step
@@ -776,7 +777,8 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
 
     @threaded for mortar in eachmpimortar(dg, cache)
         @inbounds begin
-            # Match local 2D structure as one tuple
+            # Choose thread-specific pre-allocated container.
+            # Using only `fstar_primary` is sufficient
             fstar = (fstar_primary_lower_threaded[Threads.threadid()],
                      fstar_primary_upper_threaded[Threads.threadid()])
 
@@ -786,23 +788,26 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
                                                             position, mortar)
 
                     for v in eachvariable(equations_parabolic)
-                        viscous_flux_normal_ll = u[1, v, position, i, mortar]
-                        viscous_flux_normal_rr = u[2, v, position, i, mortar]
+                        parabolic_flux_normal_ll = u[1, v, position, i, mortar]
+                        parabolic_flux_normal_rr = u[2, v, position, i, mortar]
 
-                        flux = flux_parabolic(viscous_flux_normal_ll,
-                                              viscous_flux_normal_rr,
-                                              normal_direction, Divergence(),
-                                              equations_parabolic, parabolic_scheme)
+                        flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                               parabolic_flux_normal_rr,
+                                               normal_direction, Divergence(),
+                                               equations_parabolic, parabolic_scheme)
 
-                        # Same convention as local 2D: sign flip / scaling already handled in prolongation
-                        fstar[position][v, i] = flux
+                        # Sign flip (and scaling by 0.5) already handled above in
+                        # `prolong2mpimortars_divergence!`
+                        fstar[position][v, i] = flux_
                     end
                 end
             end
 
+            # Buffer to interpolate flux values of the large element to before
+            # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
 
-            # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D
+            # This reuses the hyperbolic version of `mpi_mortar_fluxes_to_elements!`
             mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                            equations_parabolic, mortar_l2, dg, cache,
                                            mortar, fstar, fstar, u_buffer)

@@ -58,25 +58,25 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                                             local_element)
 
                     for v in eachvariable(equations_parabolic)
-                        f_parabolic = SVector(flux_parabolic_x[v,
-                                                               i_elem,
-                                                               j_elem,
-                                                               k_elem,
-                                                               local_element],
-                                              flux_parabolic_y[v,
-                                                               i_elem,
-                                                               j_elem,
-                                                               k_elem,
-                                                               local_element],
-                                              flux_parabolic_z[v,
-                                                               i_elem,
-                                                               j_elem,
-                                                               k_elem,
-                                                               local_element])
+                        flux_parabolic_node = SVector(flux_parabolic_x[v,
+                                                                       i_elem,
+                                                                       j_elem,
+                                                                       k_elem,
+                                                                       local_element],
+                                                      flux_parabolic_y[v,
+                                                                       i_elem,
+                                                                       j_elem,
+                                                                       k_elem,
+                                                                       local_element],
+                                                      flux_parabolic_z[v,
+                                                                       i_elem,
+                                                                       j_elem,
+                                                                       k_elem,
+                                                                       local_element])
                         # Side 1 and 2 must be consistent, i.e., with their
                         # outward-pointing normals. Thus, the `orientation_factor` changes
                         # the logic such that the flux which enters side 1 leaves side 2.
-                        flux_normal = dot(f_parabolic, normal_direction)
+                        flux_normal = dot(flux_parabolic_node, normal_direction)
                         u[local_side, v, i, j, interface] = orientation_factor *
                                                             flux_normal
                     end

@@ -277,7 +277,7 @@ Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_fl
 end
 
 function calc_interface_flux_gradient!(surface_flux_values,
-                                       mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                                       mesh::P4estMesh{2},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -446,7 +446,7 @@ end
 # avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             mesh::P4estMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
     (; interfaces) = cache
