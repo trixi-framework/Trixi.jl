@@ -5,25 +5,42 @@ Support for heterogeneous computing is currently being worked on.
 
 ## User-facing interface
 
-GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is controlled via two keyword arguments to [`semidiscretize`](@ref):
+GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is controlled via
+the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretization:
 
 - `storage_type`: the array type used for all internal data structures.
   Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs
   or `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs.
-  Defaults to `nothing`, which keeps the standard CPU `Array`.
+  Defaults to `nothing`, which keeps the current array type (usually the standard
+  CPU `Array`).
 - `real_type`: the floating-point element type. GPU workflows typically benefit from
-  setting this to `Float32`. Defaults to `nothing`, which retains the type used when
-  building the semidiscretization (usually `Float64`).
+  setting this to `Float32`. Defaults to `nothing`, which keeps the current real type
+  (usually `Float64`).
+- `flux_differencing_kernel`: the GPU kernel used for
+  [`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default),
+  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). Defaults to `nothing`, which
+  keeps the current kernel.
 
-Both arguments can be used independently. A typical GPU setup looks like:
+All arguments can be used independently. A typical GPU setup looks like:
 
 ```julia
 using CUDA   # or using AMDGPU
-ode = semidiscretize(semi, tspan; real_type = Float32, storage_type = CuArray)
+semi = trixi_adapt(semi; real_type = Float32, storage_type = CuArray)
+ode = semidiscretize(semi, tspan)
 ```
 
-The rest of the elixir (callbacks, ODE solver call) remains unchanged. See, e.g.,
+The adapted semidiscretization replaces the original one, which may share data with
+the adapted one and must not be used anymore. Thus, create the callbacks after calling
+`trixi_adapt` so that they use the adapted semidiscretization. Otherwise, the rest of
+the elixir (callbacks, ODE solver call) remains unchanged. [`semidiscretize`](@ref)
+converts the time span `tspan` to the real type of the semidiscretization, so you can
+keep, e.g., `tspan = (0.0, 1.0)`. See, e.g.,
 `examples/p4est_2d_dgsem/elixir_euler_source_terms.jl` for a concrete example.
+
+Mixed hyperbolic-parabolic problems, i.e., a [`SemidiscretizationHyperbolicParabolic`](@ref),
+are supported on conforming (non-adaptive) `P4estMesh{2}`s and `P4estMesh{3}`s as well,
+see, e.g., `examples/p4est_2d_dgsem/elixir_navierstokes_lid_driven_cavity.jl` and
+`examples/p4est_3d_dgsem/elixir_navierstokes_convergence.jl`.
 
 !!! note "Single-precision computations using `Float32`"
     To use `Float32` consistently, make sure to write all equations, initial conditions,
@@ -31,7 +48,9 @@ The rest of the elixir (callbacks, ODE solver call) remains unchanged. See, e.g.
     `Float64` literals and instead use, e.g., the `f0` suffix (`0.5f0`) for exact values
     or `convert(RealT, ...)` for non-exact ones, where `RealT = eltype(u)`.
     When using a [`StepsizeCallback`](@ref) for CFL-based step size control, also pass
-    `dt = 1` (an integer) rather than `dt = 1.0` to `solve`.
+    `dt = 1` (an integer) rather than `dt = 1.0` to `solve`. Otherwise, the time
+    integrator promotes the time to `Float64`, and the [`SummaryCallback`](@ref)
+    warns about it.
     See [Numeric types and type stability](@ref numeric-types) for detailed guidelines.
 
 
@@ -113,9 +132,9 @@ julia> Trixi.storage_type(C)
 CuArray
 ```
 
-## Element-type conversion with `Trixi.trixi_adapt`.
+## Element-type conversion with `trixi_adapt`
 
-We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption:
+We can use [`trixi_adapt`](@ref) to perform both an element-type and a storage-type adaptation:
 
 ```jldoctest adapt
 julia> C = Container(zeros(3))
