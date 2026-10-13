@@ -16,12 +16,13 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
+                               dg)
     end
 
     # Prolong solution to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars" begin
-        prolong2mpimortars!(cache, u, mesh, equations,
+        prolong2mpimortars!(backend, cache, u, mesh, equations,
                             dg.mortar, dg)
     end
 
@@ -116,7 +117,7 @@ function rhs_hyperbolic!(backend::Nothing,
     return nothing
 end
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::Union{P4estMeshParallel{3},
                                             T8codeMeshParallel{3}},
                                 equations, surface_integral, dg::DG)
@@ -414,7 +415,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
