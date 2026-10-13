@@ -8,10 +8,10 @@
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real} <:
                AbstractTreeElementContainer
-    inverse_jacobian::Vector{RealT}        # [elements]
-    node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
+    inverse_jacobian::Vector{RealT}                    # [elements]
+    node_coordinates::VectorBackedArray{RealT, 5}      # [orientation, i, j, k, elements]
     surface_flux_values::VectorBackedArray{uEltype, 5} # [variables, i, j, direction, elements]
-    cell_ids::Vector{Int}                  # [elements]
+    cell_ids::Vector{Int}                              # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _surface_flux_values::Vector{uEltype}
@@ -20,8 +20,8 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(elements::TreeElementContainer3D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
@@ -31,7 +31,7 @@ function Base.resize!(elements::TreeElementContainer3D, capacity)
     resize!(inverse_jacobian, capacity)
 
     resize!(_node_coordinates, 3 * n_nodes * n_nodes * n_nodes * capacity)
-    elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+    elements.node_coordinates = wrap_vector(_node_coordinates,
                                             (3, n_nodes, n_nodes, n_nodes, capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
@@ -54,7 +54,7 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
     inverse_jacobian = fill(nan_RealT, capacity)
 
     _node_coordinates = fill(nan_RealT, 3 * n_nodes * n_nodes * n_nodes * capacity)
-    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+    node_coordinates = wrap_vector(_node_coordinates,
                                    (3, n_nodes, n_nodes, n_nodes, capacity))
 
     _surface_flux_values = fill(nan_uEltype,
@@ -149,9 +149,9 @@ end
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
                AbstractTreeInterfaceContainer
-    u::VectorBackedArray{uEltype, 5} # [leftright, variables, i, j, interfaces]
-    neighbor_ids::Matrix{Int} # [leftright, interfaces]
-    orientations::Vector{Int} # [interfaces]
+    u::VectorBackedArray{uEltype, 5}        # [leftright, variables, i, j, interfaces]
+    neighbor_ids::VectorBackedArray{Int, 2} # [leftright, interfaces]
+    orientations::Vector{Int}               # [interfaces]
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
@@ -167,8 +167,7 @@ function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     interfaces.u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                          (2, capacity))
+    interfaces.neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
 
     resize!(orientations, capacity)
 
@@ -184,8 +183,7 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
     u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                               (2, capacity))
+    neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
 
     orientations = fill(typemin(Int), capacity)
 
@@ -307,12 +305,12 @@ end
 # Container data structure (structure-of-arrays style) for DG boundaries
 mutable struct TreeBoundaryContainer3D{RealT <: Real, uEltype <: Real} <:
                AbstractTreeBoundaryContainer
-    u::Array{uEltype, 5}              # [leftright, variables, i, j, boundaries]
-    neighbor_ids::Vector{Int}         # [boundaries]
-    orientations::Vector{Int}         # [boundaries]
-    neighbor_sides::Vector{Int}       # [boundaries]
-    node_coordinates::Array{RealT, 4} # [orientation, i, j, elements]
-    n_boundaries_per_direction::SVector{6, Int} # [direction]
+    u::VectorBackedArray{uEltype, 5}              # [leftright, variables, i, j, boundaries]
+    neighbor_ids::Vector{Int}                     # [boundaries]
+    orientations::Vector{Int}                     # [boundaries]
+    neighbor_sides::Vector{Int}                   # [boundaries]
+    node_coordinates::VectorBackedArray{RealT, 4} # [orientation, i, j, elements]
+    n_boundaries_per_direction::SVector{6, Int}   # [direction]
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _node_coordinates::Vector{RealT}
@@ -326,11 +324,10 @@ function Base.resize!(boundaries::TreeBoundaryContainer3D, capacity)
     neighbor_ids, orientations, neighbor_sides = boundaries
 
     resize!(_u, 2 * n_variables * n_nodes * n_nodes * capacity)
-    boundaries.u = unsafe_wrap(Array, pointer(_u),
-                               (2, n_variables, n_nodes, n_nodes, capacity))
+    boundaries.u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_node_coordinates, 3 * n_nodes * n_nodes * capacity)
-    boundaries.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+    boundaries.node_coordinates = wrap_vector(_node_coordinates,
                                               (3, n_nodes, n_nodes, capacity))
 
     resize!(neighbor_ids, capacity)
@@ -350,8 +347,7 @@ function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan_uEltype, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, n_nodes, capacity))
+    u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     neighbor_ids = fill(typemin(Int), capacity)
 
@@ -360,8 +356,7 @@ function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
     neighbor_sides = fill(typemin(Int), capacity)
 
     _node_coordinates = fill(nan_RealT, 3 * n_nodes * n_nodes * capacity)
-    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (3, n_nodes, n_nodes, capacity))
+    node_coordinates = wrap_vector(_node_coordinates, (3, n_nodes, n_nodes, capacity))
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0, 0, 0)
 
@@ -534,11 +529,11 @@ end
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
 mutable struct TreeL2MortarContainer3D{uEltype <: Real} <: AbstractTreeL2MortarContainer
-    u_upper_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
-    u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-    u_lower_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
-    u_lower_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
-    neighbor_ids::Array{Int, 2}      # [position, mortars]
+    u_upper_left::VectorBackedArray{uEltype, 5}  # [leftright, variables, i, j, mortars]
+    u_upper_right::VectorBackedArray{uEltype, 5} # [leftright, variables, i, j, mortars]
+    u_lower_left::VectorBackedArray{uEltype, 5}  # [leftright, variables, i, j, mortars]
+    u_lower_right::VectorBackedArray{uEltype, 5} # [leftright, variables, i, j, mortars]
+    neighbor_ids::VectorBackedArray{Int, 2}      # [position, mortars]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
@@ -563,24 +558,23 @@ function Base.resize!(mortars::TreeL2MortarContainer3D, capacity)
     _neighbor_ids, large_sides, orientations = mortars
 
     resize!(_u_upper_left, 2 * n_variables * n_nodes * n_nodes * capacity)
-    mortars.u_upper_left = unsafe_wrap(Array, pointer(_u_upper_left),
+    mortars.u_upper_left = wrap_vector(_u_upper_left,
                                        (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_u_upper_right, 2 * n_variables * n_nodes * n_nodes * capacity)
-    mortars.u_upper_right = unsafe_wrap(Array, pointer(_u_upper_right),
+    mortars.u_upper_right = wrap_vector(_u_upper_right,
                                         (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_u_lower_left, 2 * n_variables * n_nodes * n_nodes * capacity)
-    mortars.u_lower_left = unsafe_wrap(Array, pointer(_u_lower_left),
+    mortars.u_lower_left = wrap_vector(_u_lower_left,
                                        (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_u_lower_right, 2 * n_variables * n_nodes * n_nodes * capacity)
-    mortars.u_lower_right = unsafe_wrap(Array, pointer(_u_lower_right),
+    mortars.u_lower_right = wrap_vector(_u_lower_right,
                                         (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_neighbor_ids, 5 * capacity)
-    mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                       (5, capacity))
+    mortars.neighbor_ids = wrap_vector(_neighbor_ids, (5, capacity))
 
     resize!(large_sides, capacity)
 
@@ -595,24 +589,23 @@ function TreeL2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u_upper_left = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u_upper_left = unsafe_wrap(Array, pointer(_u_upper_left),
+    u_upper_left = wrap_vector(_u_upper_left,
                                (2, n_variables, n_nodes, n_nodes, capacity))
 
     _u_upper_right = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u_upper_right = unsafe_wrap(Array, pointer(_u_upper_right),
+    u_upper_right = wrap_vector(_u_upper_right,
                                 (2, n_variables, n_nodes, n_nodes, capacity))
 
     _u_lower_left = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u_lower_left = unsafe_wrap(Array, pointer(_u_lower_left),
+    u_lower_left = wrap_vector(_u_lower_left,
                                (2, n_variables, n_nodes, n_nodes, capacity))
 
     _u_lower_right = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u_lower_right = unsafe_wrap(Array, pointer(_u_lower_right),
+    u_lower_right = wrap_vector(_u_lower_right,
                                 (2, n_variables, n_nodes, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 5 * capacity)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                               (5, capacity))
+    neighbor_ids = wrap_vector(_neighbor_ids, (5, capacity))
 
     large_sides = fill(typemin(Int), capacity)
 
@@ -857,12 +850,12 @@ end
 
 mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <:
                AbstractContainerAntidiffusiveFlux
-    antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
-    antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
-    antidiffusive_flux2_L::Array{uEltype, 5} # [variables, i, j, k, elements]
-    antidiffusive_flux2_R::Array{uEltype, 5} # [variables, i, j, k, elements]
-    antidiffusive_flux3_L::Array{uEltype, 5} # [variables, i, j, k, elements]
-    antidiffusive_flux3_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux1_L::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux1_R::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_L::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_R::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_L::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_R::VectorBackedArray{uEltype, 5} # [variables, i, j, k, elements]
     # internal `resize!`able storage
     _antidiffusive_flux1_L::Vector{uEltype}
     _antidiffusive_flux1_R::Vector{uEltype}
@@ -880,39 +873,39 @@ function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
     _antidiffusive_flux1_L = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * n_nodes *
                                   capacity)
-    antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+    antidiffusive_flux1_L = wrap_vector(_antidiffusive_flux1_L,
                                         (n_variables, n_nodes + 1, n_nodes, n_nodes,
                                          capacity))
     _antidiffusive_flux1_R = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * n_nodes *
                                   capacity)
-    antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+    antidiffusive_flux1_R = wrap_vector(_antidiffusive_flux1_R,
                                         (n_variables, n_nodes + 1, n_nodes, n_nodes,
                                          capacity))
 
     _antidiffusive_flux2_L = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * n_nodes *
                                   capacity)
-    antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+    antidiffusive_flux2_L = wrap_vector(_antidiffusive_flux2_L,
                                         (n_variables, n_nodes, n_nodes + 1, n_nodes,
                                          capacity))
     _antidiffusive_flux2_R = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * n_nodes *
                                   capacity)
-    antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+    antidiffusive_flux2_R = wrap_vector(_antidiffusive_flux2_R,
                                         (n_variables, n_nodes, n_nodes + 1, n_nodes,
                                          capacity))
 
     _antidiffusive_flux3_L = fill(nan_uEltype,
                                   n_variables * n_nodes * n_nodes * (n_nodes + 1) *
                                   capacity)
-    antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+    antidiffusive_flux3_L = wrap_vector(_antidiffusive_flux3_L,
                                         (n_variables, n_nodes, n_nodes, n_nodes + 1,
                                          capacity))
     _antidiffusive_flux3_R = fill(nan_uEltype,
                                   n_variables * n_nodes * n_nodes * (n_nodes + 1) *
                                   capacity)
-    antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+    antidiffusive_flux3_R = wrap_vector(_antidiffusive_flux3_R,
                                         (n_variables, n_nodes, n_nodes, n_nodes + 1,
                                          capacity))
 
@@ -937,8 +930,8 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
     n_nodes = nnodes(fluxes)
     n_variables = nvariables(fluxes)
@@ -947,38 +940,38 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
 
     resize!(_antidiffusive_flux1_L,
             n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+    fluxes.antidiffusive_flux1_L = wrap_vector(_antidiffusive_flux1_L,
                                                (n_variables,
                                                 n_nodes + 1, n_nodes, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux1_R,
             n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+    fluxes.antidiffusive_flux1_R = wrap_vector(_antidiffusive_flux1_R,
                                                (n_variables,
                                                 n_nodes + 1, n_nodes, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux2_L,
             n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+    fluxes.antidiffusive_flux2_L = wrap_vector(_antidiffusive_flux2_L,
                                                (n_variables,
                                                 n_nodes, n_nodes + 1, n_nodes,
                                                 capacity))
     resize!(_antidiffusive_flux2_R,
             n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+    fluxes.antidiffusive_flux2_R = wrap_vector(_antidiffusive_flux2_R,
                                                (n_variables,
                                                 n_nodes, n_nodes + 1, n_nodes,
                                                 capacity))
 
     resize!(_antidiffusive_flux3_L,
             n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+    fluxes.antidiffusive_flux3_L = wrap_vector(_antidiffusive_flux3_L,
                                                (n_variables,
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
     resize!(_antidiffusive_flux3_R,
             n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+    fluxes.antidiffusive_flux3_R = wrap_vector(_antidiffusive_flux3_R,
                                                (n_variables,
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
