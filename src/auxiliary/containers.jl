@@ -372,9 +372,21 @@ const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
 end
 
 # Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
-# `flux_differencing_kernel!`). `wrap_array` returns a `VectorBackedArray` for CPU
-# `Vector`s, and threading via Polyester.jl may convert them to `PtrArray`s.
-# We restrict the element types to those supported natively by LoopVectorization.jl
-# (e.g., no `ForwardDiff.Dual`s), mirroring `LoopVectorization.check_args`.
-const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
-                         VectorBackedArray{<:LoopVectorization.NativeTypes}}
+# `flux_differencing_kernel!`). We restrict the element types to those supported natively
+# by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
+# `LoopVectorization.check_args`.
+# With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
+# a `VectorBackedArray` for CPU `Vector`s, and a reshaped contiguous view of an `Array`,
+# e.g., a column of a matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode`
+# in coupled semidiscretizations. Threading via Polyester.jl may convert them to
+# `PtrArray`s. With other threading backends, the `@turbo` kernels are not selected for
+# the arrays returned by `wrap_array` (see the "Heisenbug" note in `@threaded`).
+@static if _PREFERENCE_THREADING === :polyester
+    const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
+                             VectorBackedArray{<:LoopVectorization.NativeTypes},
+                             Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
+                                                <:Base.FastContiguousSubArray{<:Any, 1,
+                                                                              <:Array}} where {N}}
+else
+    const TurboArray = PtrArray{<:LoopVectorization.NativeTypes}
+end

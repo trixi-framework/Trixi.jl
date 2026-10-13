@@ -505,9 +505,9 @@ starts the Julia sessions itself.
   `nonconservative_flux(u_own, u_neighbor, ...)`, including at mortars.
 - Arrays visible to the time integrator have the suffix `_ode` (`u_ode`,
   `du_ode`); when passed with `semi`, normally wrap them with
-  `wrap_array(u_ode, semi)` before internal use. Wrapped arrays have no suffix.
-  Use `wrap_array_native` only where needed for external interfaces, and
-  document exceptions such as AMR.
+  `wrap_array(u_ode, semi)` before internal use. Wrapped arrays have no suffix
+  and keep a reference to `u_ode` (no `GC.@preserve` needed). Document
+  exceptions such as AMR.
 - Compare 1D/2D/3D and x/y/z implementations of the same function when
   changing one of them; copy-paste errors between dimensions and directions are
   the most common source of bugs.

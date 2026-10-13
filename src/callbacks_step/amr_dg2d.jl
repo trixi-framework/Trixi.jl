@@ -241,7 +241,7 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 
     # Interpolate to lower left element
     for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
         for l in eachnode(dg), k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
                    forward_lower[i, k] * forward_lower[j, l]
@@ -251,7 +251,7 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 
     # Interpolate to lower right element
     for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
         for l in eachnode(dg), k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
                    forward_upper[i, k] * forward_lower[j, l]
@@ -261,7 +261,7 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 
     # Interpolate to upper left element
     for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
         for l in eachnode(dg), k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
                    forward_lower[i, k] * forward_upper[j, l]
@@ -271,7 +271,7 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 
     # Interpolate to upper right element
     for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
         for l in eachnode(dg), k in eachnode(dg)
             acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
                    forward_upper[i, k] * forward_upper[j, l]
@@ -442,7 +442,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
     end
 
     for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
 
         # Project from lower left element
         for l in eachnode(dg), k in eachnode(dg)

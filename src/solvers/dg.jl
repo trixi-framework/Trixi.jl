@@ -1254,10 +1254,7 @@ end
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             dg::DG, cache)
-    @boundscheck begin
-        @assert length(u_ode) ==
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-    end
+    # Both `wrap_vector` and `reshape` check that the length of `u_ode` matches.
     # We cannot use `reshape(u_ode, ...)` for `Vector`s since, on Julia v1.10, that
     # results in
     #     ERROR: LoadError: cannot resize array with shared data
