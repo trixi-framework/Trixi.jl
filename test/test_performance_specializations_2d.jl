@@ -86,6 +86,22 @@ end
             @test !is_turbo(u_view)
         end
 
+        # On Julia v1.10 with Polyester.jl, the volume integral uses `PtrArray`s with
+        # static sizes (see `with_static_sizes`)
+        du = similar(u)
+        GC.@preserve du begin
+            du_, u_ = Trixi.with_static_sizes(du, u, semi.equations, semi.solver)
+            if VERSION < v"1.11" && Trixi._PREFERENCE_THREADING === :polyester
+                @test u_ isa PtrArray
+                @test du_ isa PtrArray
+                @test u_ == u
+                @test is_turbo(u_)
+            else
+                @test u_ === u
+                @test du_ === du
+            end
+        end
+
         # All of them give the same result as the plain version
         du_baseline = similar(u)
         du_baseline .= 0
