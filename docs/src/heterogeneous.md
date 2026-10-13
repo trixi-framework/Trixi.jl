@@ -174,12 +174,16 @@ end
 
 1. Move the inner code into a new inlined function `rhs_fct_per_element`.
    ```julia
-   @inline function rhs_fct_per_element(..., element, ...)
+   Base.@propagate_inbounds function rhs_fct_per_element(..., element, ...)
        ...
    end
    ```
    Besides the index `element`, pass all required fields as arguments, but make sure to
    `@unpack` them from their structs in advance.
+   `Base.@propagate_inbounds` inlines the function and propagates `@inbounds`
+   from the caller, so that bounds checks inside the function are removed when it is
+   called from an `@inbounds` context such as the kernel below (see
+   [Enabling bounds checking](@ref enabling-bounds-checking)).
 2. Where `trixi_rhs_fct` is called, get the backend, i.e., the hardware we are currently
    running on via `trixi_backend(x)`.
    This will, e.g., work with `u_ode`. Internally, KernelAbstractions.jl's `get_backend`
@@ -192,8 +196,12 @@ end
    ```julia
    function trixi_rhs_fct(backend::Nothing, mesh, equations, solver, cache, args)
        @unpack unpacked_args = cache
+       # Explicit bounds check, which allows us to assume inbounds access below
+       @boundscheck begin
+           check_axes(unpacked_args, mesh, equations, solver, cache)
+       end
        @threaded for element in eachelement(solver, cache)
-           rhs_fct_per_element(element, unpacked_args, args)
+           @inbounds rhs_fct_per_element(element, unpacked_args, args)
        end
    end
    ```
@@ -203,6 +211,10 @@ end
    function trixi_rhs_fct(backend::Backend, mesh, equations, solver, cache, args)
        nelements(solver, cache) == 0 && return nothing  # return early when there are no elements
        @unpack unpacked_args = cache
+       # Explicit bounds check, which allows us to assume inbounds access in the kernel
+       @boundscheck begin
+           check_axes(unpacked_args, mesh, equations, solver, cache)
+       end
        kernel! = rhs_fct_kernel!(backend)
        kernel!(unpacked_args, args,
                ndrange = nelements(solver, cache))
@@ -214,3 +226,10 @@ end
        rhs_fct_per_element(element, unpacked_args, args)
    end
    ```
+   The kernel uses `inbounds=true`, i.e., it assumes that all accesses are in bounds.
+   Thus, verify the axes of all arrays accessed in the kernel (directly or in functions
+   called there) once in an explicit `@boundscheck` block in the function launching the
+   kernel, as described in [Enabling bounds checking](@ref enabling-bounds-checking).
+   Perform these checks on the host before launching the kernel, not inside the kernel.
+   When Julia is started with `--check-bounds=yes`, the `@boundscheck` block is always
+   executed and `inbounds=true` is ignored, so that out-of-bounds accesses are caught.
