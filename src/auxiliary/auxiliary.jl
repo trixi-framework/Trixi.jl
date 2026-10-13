@@ -232,6 +232,9 @@ macro threaded(expr)
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
         # Enzyme.jl cannot differentiate Polyester.jl's `@batch`, so we fall back to
         # `Threads.@threads :static` inside of automatic differentiation.
+        # `EnzymeCore.within_autodiff()` is `false` and constant-folded in the primal
+        # code. Enzyme.jl compiles code with its own abstract interpreter, in which it
+        # is constant-folded to `true`. Thus, only one of the branches is compiled.
         quote
             if $EnzymeCore.within_autodiff()
                 if $Threads.nthreads() == 1

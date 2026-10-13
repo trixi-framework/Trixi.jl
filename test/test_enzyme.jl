@@ -9,7 +9,8 @@
     using LinearAlgebra: dot
     using Random: Random
 
-    # The timers of `@trixi_timeit` are not differentiable (yet)
+    # The timers of `@trixi_timeit` are not differentiable (yet), see
+    # https://github.com/trixi-framework/TrixiBase.jl/pull/83
     Trixi.TrixiBase.disable_debug_timings()
 
     random_like(u) = map(x -> randn(typeof(x)), u)
@@ -204,4 +205,30 @@ end
     ε = 1.0e-6
     fd = (J_dts(u0 .+ ε .* w, semi, dts) - J_dts(u0 .- ε .* w, semi, dts)) / (2 * ε)
     @test isapprox(dot(ū, w), fd, rtol = 1.0e-6)
+end
+
+@testitem "Enzyme: rule for Octavian.jl's `matmul!`" setup=[Setup, EnzymeSetup] tags=[:enzyme] begin
+    Random.seed!(1)
+    A = randn(5, 4)
+    x = randn(4, 3)
+    c = randn(5, 3)
+    function f(A, x, α, c, out)
+        Trixi.octavian_matmul!(out, A, x)
+        Trixi.octavian_matmul!(out, A, x, α, Trixi.One())
+        return sum(c .* out .^ 2)
+    end
+    out = zeros(5, 3)
+    Ā = zero(A)
+    x̄ = zero(x)
+    α = 0.7
+    _, _, ᾱ, _, _ = autodiff(Reverse, f, Active, Duplicated(copy(A), Ā),
+                             Duplicated(copy(x), x̄),
+                             Active(α), Const(c), Duplicated(out, zero(out)))[1]
+    ε = 1.0e-6
+    fd(g) = (g(ε) - g(-ε)) / (2 * ε)
+    dA = randn(size(A))
+    dx = randn(size(x))
+    @test isapprox(dot(Ā, dA), fd(h -> f(A .+ h .* dA, x, α, c, out)), rtol = 1.0e-6)
+    @test isapprox(dot(x̄, dx), fd(h -> f(A, x .+ h .* dx, α, c, out)), rtol = 1.0e-6)
+    @test isapprox(ᾱ, fd(h -> f(A, x, α + h, c, out)), rtol = 1.0e-6)
 end

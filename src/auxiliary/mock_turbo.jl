@@ -1,12 +1,14 @@
 # Copies some of the LoopVectorization functionality,
 # but solely using Julia base functionality. It is equivalent to `@simd`
-# at every loop level
-macro mock_turbo(exprs...)
+# at every loop level.
+# This function transforms the arguments `exprs` of a `@turbo` macro call
+# into the (unescaped) loop expression. It does not modify `exprs`.
+function mock_turbo(exprs...)
     # Find the outermost for loop
     body = nothing
     for expr in exprs
         if Meta.isexpr(expr, :for)
-            body = expr
+            body = deepcopy(expr)
         end
     end
     @assert body !== nothing
@@ -29,15 +31,8 @@ macro mock_turbo(exprs...)
     end
     insert_loopinfo!(body)
 
-    body = Expr(:block,
+    return Expr(:block,
                 Expr(:inbounds, true),
                 body,
                 Expr(:inbounds, :pop))
-    return esc(body)
-end
-
-if !_PREFERENCE_LOOPVECTORIZATION
-    macro turbo(exprs...)
-        return esc(:(@mock_turbo($(exprs...))))
-    end
 end

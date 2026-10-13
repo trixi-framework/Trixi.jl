@@ -5,10 +5,14 @@
 @muladd begin
 #! format: noindent
 
-# out <- A*x
 # Octavian.jl's `matmul!` uses LoopVectorization.jl, which Enzyme.jl cannot differentiate.
-mul_by!(A) = @inline (out, x) -> EnzymeCore.within_autodiff() ? mul!(out, A, x) :
-                                 matmul!(out, A, x)
+# Hence, we call it through `octavian_matmul!`, which has a custom Enzyme.jl rule in
+# `src/auxiliary/enzyme.jl`.
+@inline octavian_matmul!(out, A, x) = matmul!(out, A, x)
+@inline octavian_matmul!(out, A, x, α, β) = matmul!(out, A, x, α, β)
+
+# out <- A*x
+mul_by!(A) = @inline (out, x) -> octavian_matmul!(out, A, x)
 mul_by!(A::T) where {T <: SimpleKronecker} = @inline (out, x) -> mul!(out, A, x)
 mul_by!(A::AbstractSparseMatrix) = @inline (out, x) -> mul!(out, A, x)
 function mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S <: AbstractSparseMatrix}
@@ -16,10 +20,7 @@ function mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S <: AbstractSpars
 end
 
 #  out <- out + α * A * x
-function mul_by_accum!(A, α)
-    @inline (out, x) -> EnzymeCore.within_autodiff() ? mul!(out, A, x, α, One()) :
-                        matmul!(out, A, x, α, One())
-end
+mul_by_accum!(A, α) = @inline (out, x) -> octavian_matmul!(out, A, x, α, One())
 function mul_by_accum!(A::AbstractSparseMatrix, α)
     @inline (out, x) -> mul!(out, A, x, α, One())
 end
