@@ -91,6 +91,13 @@ for human readability.
 - Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
   `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
   boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
+- Fixes a bug in the `GlmSpeedCallback` on curvilinear meshes (`StructuredMesh`,
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`) and for `DGMulti` solvers in multiple
+  space dimensions: the divergence cleaning speed `c_h` was computed from the Jacobian
+  determinant and thus decreased with mesh refinement (like `Δx^(ndims - 1)`). Now, it
+  takes the metric terms into account and agrees with the value on a `TreeMesh` for
+  Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
+  meshes change ([#3360]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
