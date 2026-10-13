@@ -17,7 +17,8 @@ end
                         linf=6.627000273229378e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -54,7 +55,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -95,7 +97,8 @@ end
                             4.886961559069647e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -137,7 +140,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -182,7 +186,8 @@ end
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -237,7 +242,8 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -290,7 +296,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -397,7 +404,8 @@ end
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -434,7 +442,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -477,7 +486,8 @@ end
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -567,7 +577,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -622,7 +633,8 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -675,7 +687,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
