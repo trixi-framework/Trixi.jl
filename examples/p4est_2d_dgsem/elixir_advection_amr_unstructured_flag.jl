@@ -45,7 +45,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 tspan = (0.0, 10.0)
 # Setting `real_type` allows to change the real number type, e.g., to `Float32`.
 # Setting `storage_type` allows to change the array type, e.g., to a GPU array type.
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
