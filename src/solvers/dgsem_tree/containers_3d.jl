@@ -10,7 +10,7 @@ mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real} <:
                AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
-    surface_flux_values::Array{uEltype, 5} # [variables, i, j, direction, elements]
+    surface_flux_values::VectorBackedArray{uEltype, 5} # [variables, i, j, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
@@ -35,7 +35,7 @@ function Base.resize!(elements::TreeElementContainer3D, capacity)
                                             (3, n_nodes, n_nodes, n_nodes, capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    elements.surface_flux_values = wrap_vector(_surface_flux_values,
                                                (n_variables, n_nodes, n_nodes, 2 * 3,
                                                 capacity))
 
@@ -59,7 +59,7 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     _surface_flux_values = fill(nan_uEltype,
                                 n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+    surface_flux_values = wrap_vector(_surface_flux_values,
                                       (n_variables, n_nodes, n_nodes, 2 * 3, capacity))
 
     cell_ids = fill(typemin(Int), capacity)
@@ -149,7 +149,7 @@ end
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
                AbstractTreeInterfaceContainer
-    u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
+    u::VectorBackedArray{uEltype, 5} # [leftright, variables, i, j, interfaces]
     neighbor_ids::Matrix{Int} # [leftright, interfaces]
     orientations::Vector{Int} # [interfaces]
     # internal `resize!`able storage
@@ -164,8 +164,7 @@ function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * n_nodes * capacity)
-    interfaces.u = unsafe_wrap(Array, pointer(_u),
-                               (2, n_variables, n_nodes, n_nodes, capacity))
+    interfaces.u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
@@ -182,8 +181,7 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, n_nodes, capacity))
+    u = wrap_vector(_u, (2, n_variables, n_nodes, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
