@@ -1152,6 +1152,9 @@ end
         d = RealT(0.1)
         @test typeof(@inferred Trixi.sa_fv1(chi, model)) == RealT
         @test typeof(@inferred Trixi.sa_fn(-chi, model)) == RealT
+        for g in (RealT(0.5), RealT(10))
+            @test typeof(@inferred Trixi.sa_fw(g, model)) == RealT
+        end
         @test typeof(@inferred Trixi.sa_eddy_viscosity(one(RealT), nu_tilde, nu,
                                                        model)) == RealT
         @test typeof(@inferred Trixi.sa_diffusivity(one(RealT), nu_tilde, nu, model)) ==

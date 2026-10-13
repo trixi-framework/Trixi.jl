@@ -78,6 +78,18 @@ end
     return chi3 / (chi3 + model.cv1^3)
 end
 
+# Wall function f_w = g ((1 + c_w3^6) / (g^6 + c_w3^6))^(1/6). For large `g` (up to
+# ~3e5 for `r = rlim`), `g^6` and the derivatives of `g^6 + c_w3^6` exceed the range of
+# `Float32`, so we use the equivalent form with `1 / g` for `g >= 1`.
+@inline function sa_fw(g, model::SpalartAllmarasNeg)
+    cw3_6 = model.cw3^6
+    if g < 1
+        return g * ((1 + cw3_6) / (g^6 + cw3_6))^(one(g) / 6)
+    else
+        return ((1 + cw3_6) / (1 + cw3_6 * (1 / g)^6))^(one(g) / 6)
+    end
+end
+
 # Modification of the diffusion coefficient for negative nu_tilde, eq. (21) of ICCFD7-1902
 @inline function sa_fn(chi, model::SpalartAllmarasNeg)
     if chi >= 0
@@ -108,7 +120,7 @@ end
 # `vorticity` is the magnitude of the vorticity and `d` the distance to the nearest wall.
 @inline function sa_production_destruction(nu_tilde, nu, vorticity, d,
                                            model::SpalartAllmarasNeg)
-    @unpack cb1, kappa, cw1, cw2, cw3, cv2, cv3, ct3, ct4, rlim = model
+    @unpack cb1, kappa, cw1, cw2, cv2, cv3, ct3, ct4, rlim = model
 
     # The production and destruction terms are singular at the wall itself.
     # There, the Dirichlet condition ν̃ = 0 holds and both terms vanish.
@@ -140,8 +152,7 @@ end
             r = rlim
         end
         g = r + cw2 * (r^6 - r)
-        cw3_6 = cw3^6
-        fw = g * ((1 + cw3_6) / (g^6 + cw3_6))^(one(g) / 6)
+        fw = sa_fw(g, model)
 
         production = cb1 * (1 - ft2) * S_tilde * nu_tilde
         destruction = (cw1 * fw - cb1 / kappa^2 * ft2) * nu_tilde^2 * inv_d2
