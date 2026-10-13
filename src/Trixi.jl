@@ -65,6 +65,7 @@ using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
+using FixedSizeArrays: FixedSizeArrays, FixedSizeArray
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
