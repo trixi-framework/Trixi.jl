@@ -1,4 +1,5 @@
-using NonlinearSolve
+using NonlinearSolveFirstOrder
+using ADTypes
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
@@ -32,7 +33,7 @@ ode = semidiscretize(semi, tspan)
 steady_state_prob = SteadyStateProblem(ode)
 
 alg = NewtonRaphson(autodiff = AutoFiniteDiff())
-sol_steady_state = NonlinearSolve.solve(steady_state_prob, alg)
+sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg)
 
 # Supply steady state solution as initial condition for time-dependent run
 ode.u0 .= sol_steady_state.u
