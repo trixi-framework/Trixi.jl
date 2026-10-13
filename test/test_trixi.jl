@@ -8,12 +8,16 @@ macro test_trixi_include(expr, args...)
         r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
         # NOTE: These warnings arose from Julia 1.10 onwards
         r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+        # Some elixirs use mesh files provided by TrixiData.jl. These are lazy
+        # artifacts that Pkg.jl downloads on demand, reporting the download.
+        r"(\e\[\d+m)* *(Downloading|Downloaded)(\e\[\d+m)* artifact: .+\n",
         # Warnings from third party packages
         r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
         r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
-        # Warnings for higher-precision floating data types
-        r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:118 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
-        r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:136 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
+        # Warnings for higher-precision floating data types from the `@turbo` loops in
+        # `src/solvers/dgsem/interpolation.jl`. The paths depend on the location of the
+        # Trixi.jl checkout and the Julia depot (and the path separator of the OS).
+        r"┌ Warning: #= .*src[/\\]solvers[/\\]dgsem[/\\]interpolation\.jl:(118|136) =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi .*[/\\]LoopVectorization[/\\].*\n",
         # Warnings for upstream problems in OrdinaryDiffEqSDIRK.jl/OrdinaryDiffEqBDF.jl/OrdinaryDiffEqDifferentiation.jl
         r"┌ Warning: The call to compilecache failed to create a usable precompiled cache file for OrdinaryDiffEq.+ \[.+\]\n│   exception = Required dependency OrdinaryDiffEqDifferentiation \[4302a76b-040a-498a-8c04-15b101fed76b\] failed to load from a cache file.\n└ @ Base loading.jl:.+\n",
         r"\e\[33m\e\[1m┌ \e\[22m\e\[39m\e\[33m\e\[1mWarning: \e\[22m\e\[39mModule OrdinaryDiffEq.+ with build ID .+ is missing from the cache.\n\e\[33m\e\[1m│ \e\[22m\e\[39mThis may mean OrdinaryDiffEq.+ \[.+\] does not support precompilation but is imported by a module that does.\n\e\[33m\e\[1m└ \e\[22m\e\[39m\e\[90m@ Base loading.jl:.+\e\[39m\n",

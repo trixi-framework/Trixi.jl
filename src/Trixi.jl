@@ -68,7 +68,8 @@ using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
+                          @synchronize, @uniform, get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
@@ -256,7 +257,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxUpwind,
-       FluxTracerEquationsCentral, FluxTurbo
+       FluxTracerEquationsCentral, FluxTracerEquationsUpwind, FluxTurbo
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -313,6 +314,7 @@ export DG,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
+       HalfSweep, FullSweep, FullSweepGlobal,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,
@@ -338,6 +340,7 @@ export nelements, nnodes, nvariables,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+export trixi_adapt
 
 export SemidiscretizationParabolic
 

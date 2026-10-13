@@ -9,7 +9,8 @@ end
                         linf=6.627000273229378e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -24,6 +25,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === Array
     @test Trixi.storage_type(ode.p.cache.boundaries) === Array
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_advection_basic.jl Float32 / CUDA" setup=[Setup, CUDA2DExamples] tags=[:CUDA] begin
@@ -38,7 +46,8 @@ end
                         storage_type=CuArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -53,6 +62,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
     @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
     @test Trixi.storage_type(ode.p.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl native" setup=[Setup, CUDA2DExamples] tags=[:CUDA] begin
@@ -68,7 +84,8 @@ end
                             4.886961559069647e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -83,6 +100,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Float32 / CUDA" setup=[
@@ -105,7 +129,8 @@ end
                         storage_type=CuArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -120,6 +145,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Flux Differencing Float32 / CUDA" setup=[
@@ -145,7 +177,8 @@ end
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -160,6 +193,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" setup=[
@@ -171,30 +211,31 @@ end
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        l2=Float32[8.281976064899433e-5,
-                                   6.674408302881695e-5,
-                                   6.693536534139316e-5,
-                                   0.00011717744999013579,
-                                   6.889569500245608e-5,
-                                   7.78292854879118e-5,
-                                   7.820255919638926e-5,
-                                   0.00011506970727212514,
-                                   5.3791801822110654e-5],
-                        linf=Float32[0.00043082237243652344,
-                                     0.0005365351910699076,
-                                     0.0005327751111221801,
-                                     0.0009163264949127586,
-                                     0.00042850648667691615,
-                                     0.0005048022425613308,
-                                     0.0005058775894211109,
-                                     0.0008949209768577965,
-                                     0.00018917795326144592],
+                        l2=Float32[7.522484207987927e-5,
+                                   6.320027873022108e-5,
+                                   6.326290061132241e-5,
+                                   0.00011731785274617709,
+                                   7.481423726295819e-5,
+                                   7.911056635500293e-5,
+                                   7.935093823090327e-5,
+                                   0.0001147135801732915,
+                                   5.03544803621344e-5],
+                        linf=Float32[0.0004317760467529297,
+                                     0.0005172195608723826,
+                                     0.0005215731631947051,
+                                     0.0009205658752724083,
+                                     0.0004047385522517599,
+                                     0.0005733146458962723,
+                                     0.0005431522323861016,
+                                     0.0008944143373772057,
+                                     0.0002989873755723238],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -209,4 +250,138 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: elixir_navierstokes_convergence.jl Float64 / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.2),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.0003811978986531135,
+                            0.0005874314969137914,
+                            0.0009142898787681551,
+                            0.0011613918893790497
+                        ],
+                        linf=[
+                            0.0021633623985426453,
+                            0.009484348273965089,
+                            0.0042315720663082534,
+                            0.011661660264076446
+                        ],
+                        storage_type=CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float64
+    @test typeof(semi.equations_parabolic.mu) == Float64
+
+    @test ode.u0 isa CuArray
+    @test semi.solver.basis.derivative_matrix isa CuArray
+
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
+    @test Trixi.storage_type(semi.cache.interfaces) === CuArray
+    @test Trixi.storage_type(semi.cache.boundaries) === CuArray
+    @test Trixi.storage_type(semi.cache.mortars) === CuArray
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa CuArray
+    @test all(x -> x isa CuArray, semi.cache_parabolic.parabolic_container.gradients)
+    @test all(x -> x isa CuArray,
+              semi.cache_parabolic.parabolic_container.flux_parabolic)
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: elixir_navierstokes_lid_driven_cavity.jl Float64 / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_lid_driven_cavity.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00028716166408816073,
+                            0.08101204560401647,
+                            0.02099595625377768,
+                            0.05008149754143295
+                        ],
+                        linf=[
+                            0.014804500261322406,
+                            0.9513271652357098,
+                            0.7223919625994717,
+                            1.4846907331004786
+                        ],
+                        storage_type=CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test ode.u0 isa CuArray
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: elixir_navierstokes_lid_driven_cavity.jl Float32 / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_lid_driven_cavity.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # The default `time_int_tol = 1e-8` of the adaptive time
+                        # integrator is below the machine epsilon of `Float32`.
+                        # Then, the step size controller reacts to round-off
+                        # errors and the results depend on the hardware.
+                        time_int_tol=1e-6,
+                        l2=Float32[0.0002872776782961305,
+                                   0.08101156332910643,
+                                   0.020995577492751334,
+                                   0.04966299146648708],
+                        linf=Float32[0.014816880226135254,
+                                     0.9513215454717804,
+                                     0.7223801011859905,
+                                     1.483162563674],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float32
+    @test typeof(semi.equations_parabolic.mu) == Float32
+    @test ode.u0 isa CuArray{Float32}
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa CuArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
