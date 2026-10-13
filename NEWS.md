@@ -80,6 +80,18 @@ for human readability.
   `ParabolicFormulationLocalDG` change and now agree with serial simulations.
   Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
   is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
+- Fixes a bug in the MPI-parallel parabolic terms of `P4estMesh`es with
+  `ParabolicFormulationLocalDG`: The upwind direction of the LDG fluxes at MPI interfaces
+  was computed on both MPI ranks from the normal directions of their local elements, which
+  differ by round-off. If two components of the normal direction have (nearly) the same
+  magnitude, e.g., on rotated meshes or the cubed sphere, the MPI ranks could choose
+  opposite upwind directions. Now, the normal directions of the primary elements are sent
+  to the MPI ranks of the secondary elements once (and after AMR). Thus, results of
+  MPI-parallel simulations with `ParabolicFormulationLocalDG` on such meshes change and
+  now agree with serial simulations. The hyperbolic fluxes at MPI interfaces of
+  `P4estMesh`es and `T8codeMesh`es use these normal directions as well. Thus, they are
+  conservative up to machine precision and results of MPI-parallel simulations on curved
+  meshes change at the level of round-off.
 - Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
   `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
   in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
