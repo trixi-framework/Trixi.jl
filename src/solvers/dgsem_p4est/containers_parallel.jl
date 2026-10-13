@@ -213,9 +213,9 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     n_variables = size(mpi_mortars.u, 2)
 
     resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
-    mpi_mortars.u = wrap_vector(_u,
-                                (2, n_variables, 2^(n_dims - 1),
-                                 ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
+    mpi_mortars.u = wrap_storage(_u,
+                                 (2, n_variables, 2^(n_dims - 1),
+                                  ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
 
     resize!(mpi_mortars.local_neighbor_ids, capacity)
     resize!(mpi_mortars.local_neighbor_positions, capacity)
