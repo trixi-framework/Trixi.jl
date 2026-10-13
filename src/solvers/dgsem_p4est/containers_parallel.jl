@@ -24,11 +24,11 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           NormalArray <: DenseArray{RealT, NDIMSP1},
                                           NormalVector <: DenseVector{RealT}} <:
                AbstractMPIInterfaceContainer
-    u::uArray                   # [primary/secondary, variable, i, j, interface]
+    u::uArray                      # [primary/secondary, variable, i, j, interface]
     normal_directions::NormalArray # [dimension, i, j, interface]
-    local_neighbor_ids::VecInt  # [interface]
-    node_indices::IndicesVector # [interface]
-    local_sides::VecInt         # [interface]
+    local_neighbor_ids::VecInt     # [interface]
+    node_indices::IndicesVector    # [interface]
+    local_sides::VecInt            # [interface]
     # internal `resize!`able storage
     _u::uVector
     _normal_directions::NormalVector

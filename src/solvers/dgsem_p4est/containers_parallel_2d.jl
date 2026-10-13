@@ -46,10 +46,11 @@ function init_normal_directions!(mpi_interfaces::P4estMPIInterfaceContainer{2},
     @unpack local_neighbor_ids, node_indices, local_sides, normal_directions = mpi_interfaces
     @unpack contravariant_vectors = elements
     index_range = eachnode(basis)
+    nan = convert(eltype(normal_directions), NaN)
 
     @threaded for interface in 1:nmpiinterfaces(mpi_interfaces)
         if local_sides[interface] == 2
-            @views normal_directions[.., interface] .= NaN |> eltype(normal_directions)
+            @views normal_directions[.., interface] .= nan
         else
             local_element = local_neighbor_ids[interface]
             local_indices = node_indices[interface]
