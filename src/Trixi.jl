@@ -80,7 +80,7 @@ else
     include("auxiliary/mock_turbo.jl")
 end
 
-using StaticArrayInterface: static_length # used by LoopVectorization
+using StaticArrayInterface: StaticArrayInterface, static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
 using Polyester: Polyester, @batch # You know, the cheapest threads you can find...

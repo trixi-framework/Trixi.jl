@@ -86,21 +86,20 @@ end
             @test !is_turbo(u_view)
         end
 
-        # On Julia v1.10 with Polyester.jl, the volume integral uses `PtrArray`s with
-        # static sizes (see `with_static_sizes`)
-        du = similar(u)
-        GC.@preserve du begin
-            du_, u_ = Trixi.with_static_sizes(du, u, semi.equations, semi.solver)
-            if VERSION < v"1.11" && Trixi._PREFERENCE_THREADING === :polyester
-                @test u_ isa PtrArray
-                @test du_ isa PtrArray
-                @test u_ == u
-                @test is_turbo(u_)
-            else
-                @test u_ === u
-                @test du_ === du
-            end
-        end
+        # The volume integral uses views with static sizes of the variables and nodes
+        u_s = @inferred Trixi.static_view(u, semi.equations, semi.solver)
+        @test u_s isa Trixi.StaticSizeArray
+        @test size(u_s) == size(u)
+        @test u_s == u
+        @test parent(u_s) === parent(u)
+        @test strides(u_s) == strides(u)
+        @test pointer(u_s) == pointer(u)
+        @test is_turbo(u_s) == (Trixi._PREFERENCE_THREADING === :polyester)
+        # Polyester.jl converts it to a `PtrArray` with static sizes
+        u_p = PtrArray(u_s)
+        @test u_p == u
+        @test Trixi.StaticArrayInterface.static_size(u_p)[1] isa Trixi.StaticInt
+        @test Trixi.static_view(u_view, semi.equations, semi.solver) === u_view
 
         # All of them give the same result as the plain version
         du_baseline = similar(u)
@@ -111,10 +110,12 @@ end
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du_baseline, u, 1, typeof(semi.mesh), have_nonconservative_terms,
                semi.equations, volume_flux, semi.solver, semi.cache, true)
-        for u_ in (u, u_view, u_ptr)
+        for u_ in (u, u_view, u_ptr, u_s)
             du_ = similar(u)
             du_ .= 0
-            du_wrapped = u_ isa PtrArray ? PtrArray(du_) : du_
+            du_wrapped = u_ isa PtrArray ? PtrArray(du_) :
+                         u_ isa Trixi.StaticSizeArray ?
+                         Trixi.static_view(du_, semi.equations, semi.solver) : du_
             GC.@preserve du_ begin
                 Trixi.flux_differencing_kernel!(du_wrapped, u_, 1, typeof(semi.mesh),
                                                 have_nonconservative_terms,

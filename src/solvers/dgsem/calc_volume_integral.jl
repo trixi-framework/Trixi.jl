@@ -195,39 +195,18 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     end
 
     MeshT = typeof(mesh)
-    # `with_static_sizes` may return `PtrArray`s, which do not keep the memory alive
-    GC.@preserve du u begin
-        du_, u_ = with_static_sizes(du, u, equations, dg)
-        @threaded for element in eachelement(dg, cache)
-            @inbounds volume_integral_kernel!(du_, u_, element, MeshT,
-                                              have_nonconservative_terms, equations,
-                                              volume_integral, dg, cache)
-        end
+    # Use views whose sizes of the variables and nodes are known at compile time to
+    # simplify the index computations in the kernels (see `static_view`)
+    du_ = static_view(du, equations, dg)
+    u_ = static_view(u, equations, dg)
+    @threaded for element in eachelement(dg, cache)
+        @inbounds volume_integral_kernel!(du_, u_, element, MeshT,
+                                          have_nonconservative_terms, equations,
+                                          volume_integral, dg, cache)
     end
 
     return nothing
 end
-
-# Return versions `du_, u_` of `du, u` that may have static sizes for the variables and
-# nodes. The caller must `GC.@preserve du u` while using `du_, u_`.
-# On Julia v1.10, the volume integrals are faster with `PtrArray`s with static sizes
-# (as returned by `wrap_array` before Trixi.jl used FixedSizeArrays.jl) than with
-# `FixedSizeArray`s, see https://github.com/trixi-framework/Trixi.jl/pull/3357.
-# On newer Julia versions, the `FixedSizeArray`s are at least as fast.
-# Thus, we only use the static sizes on Julia v1.10 with Polyester.jl as threading
-# backend, mirroring the previous behavior of `wrap_array` (including the selection of
-# the hand-written `@turbo` kernels, see `TurboArray`).
-@static if VERSION < v"1.11" && _PREFERENCE_THREADING === :polyester
-    @inline function with_static_sizes(du::VectorBackedArray{T},
-                                       u::VectorBackedArray{T}, equations,
-                                       dg) where {T <: LoopVectorization.NativeTypes}
-        dims = (StaticInt(nvariables(equations)),
-                ntuple(_ -> StaticInt(nnodes(dg)), ndims(u) - 2)...,
-                size(u, ndims(u)))
-        return PtrArray(pointer(du), dims), PtrArray(pointer(u), dims)
-    end
-end
-@inline with_static_sizes(du, u, equations, dg) = (du, u)
 
 @inline function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                        have_nonconservative_terms, equations,
