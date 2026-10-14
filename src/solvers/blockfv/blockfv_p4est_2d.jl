@@ -155,11 +155,10 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack neighbor_ids, node_indices = cache.interfaces
     interfaces_u = interfaces.u
     index_range = eachnode(dg)
-    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces_u, u, interface,
-                                          MeshT, equations,
+                                          typeof(mesh), equations,
                                           neighbor_ids, node_indices, index_range)
     end
     return nothing
@@ -209,8 +208,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     index_range = eachnode(dg)
     index_end = last(index_range)
     n_nodes = nnodes(dg)
-    MeshT = typeof(mesh)
-    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
         primary_element = neighbor_ids[1, interface]
@@ -244,8 +241,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                       i_primary, j_primary,
                                                       primary_element, n_nodes)
 
-            calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                                 equations, surface_integral, SolverT,
+            calc_interface_flux!(surface_flux_values, typeof(mesh),
+                                 have_nonconservative_terms,
+                                 equations, surface_integral, typeof(dg),
                                  cache.interfaces.u, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
