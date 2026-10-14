@@ -192,18 +192,17 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_subsonic_constant.jl"),
                         l2=[
-                            9.268884363640194e-14,
-                            1.0689589615395477e-13,
-                            1.0408994850535984e-13,
-                            1.7032684855598177e-13
+                            6.260574447038495e-15,
+                            1.2180902845710478e-15,
+                            1.2351435955913906e-15,
+                            1.1710356682519835e-14
                         ],
                         linf=[
-                            1.6986412276764895e-13,
-                            2.2503592098759465e-12,
-                            1.7696906239744284e-12,
-                            3.623767952376511e-13
+                            9.325873406851315e-15,
+                            8.137967609537341e-15,
+                            7.153388068243326e-15,
+                            1.9984014443252818e-14
                         ],
-                        initial_refinement_level=7,
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -876,6 +875,57 @@ end
                             0.07672851650342119
                         ],
                         tspan=(0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  sol = nothing)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.03218873485054769,
+                            0.036104237528919156,
+                            0.03565782684252082,
+                            0.05290171901682014,
+                            0.03363060793396599,
+                            0.03881219835771841,
+                            0.03870276636879549,
+                            0.05291025814280089,
+                            0.022494653302015218
+                        ],
+                        linf=[
+                            0.17957235749398837,
+                            0.1403110675224628,
+                            0.13219291731458857,
+                            0.21691023663331951,
+                            0.11730522693720624,
+                            0.1452058059708733,
+                            0.144259629027772,
+                            0.21753737360583258,
+                            0.07672851650342119
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

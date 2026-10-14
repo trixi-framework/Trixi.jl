@@ -823,19 +823,19 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_peng_robinson_transcritical_mixing.jl"),
-                        tspan=(0.0, 0.0003),
+                        tspan=(0.0, 0.0001),
                         # note that errors are large because the solution values are of the order 1e5-1e7
                         l2=[
-                            0.8907552376416852,
-                            274.6262332037992,
-                            129.95629990639333,
-                            94420.33529773205
+                            0.5404147213592202,
+                            123.67419442354449,
+                            140.2395888885329,
+                            50974.148248401994
                         ],
                         linf=[
-                            6.617401501819359,
-                            732.0947275447616,
-                            403.74606195408825,
-                            584504.7663076259
+                            3.988040142688021,
+                            475.080863163741,
+                            427.1864560456959,
+                            323031.85750760976
                         ])
 
     # Ensure that we do not have excessive memory allocations

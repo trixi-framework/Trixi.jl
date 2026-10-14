@@ -271,3 +271,56 @@ end
                               Trixi.mpi_comm()) > 0
     @test max_abs_rhs_parabolic(semi) < 1.0e-9
 end
+
+@testitem "P4estMesh MPI 2D Parabolic: LDG on rotated mesh" setup=[
+    Setup,
+    MPIP4estMesh2DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # On the `P4estMesh`, the LDG fluxes upwind in the direction of the dominant component
+    # of the normal direction. On this mesh rotated by 45 degrees, the components of the
+    # normal directions have (nearly) the same magnitude. Thus, both sides of an MPI
+    # interface must use bitwise identical normal directions to choose the same upwind
+    # direction, i.e., to obtain the same results as in serial. The solution is smooth,
+    # but the parabolic fluxes are discontinuous across element interfaces, so the
+    # result depends on the upwind direction.
+    function norms_rhs_parabolic(semi)
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        l2 = Trixi.MPI.Allreduce(sum(abs2, du_ode; init = zero(eltype(du_ode))), +,
+                                 Trixi.mpi_comm())
+        linf = Trixi.MPI.Allreduce(maximum(abs, du_ode; init = zero(eltype(du_ode))),
+                                   max, Trixi.mpi_comm())
+        return sqrt(l2), linf
+    end
+
+    equations = LinearScalarAdvectionEquation2D(-1.0, 1.0)
+    equations_parabolic = LaplaceDiffusion2D(1.0e-2, equations)
+    function initial_condition(x, t, equations)
+        return SVector(sin(0.7 * x[1] + 0.3) * cos(0.4 * x[2] - 0.2))
+    end
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    mapping(xi, eta) = SVector(5 * (xi - eta) / sqrt(2), 5 * (xi + eta) / sqrt(2))
+
+    # Reference values computed in serial
+    for (solver_parabolic, l2, linf) in ((ParabolicFormulationBassiRebay1(),
+                                          2.4098856353037488, 0.5423728593065194),
+                                         (ParabolicFormulationLocalDG(),
+                                          7.1754908379220215, 1.4302747800681326))
+        mesh = P4estMesh((8, 8), polydeg = 3, mapping = mapping, periodicity = true)
+        semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     solver_parabolic,
+                                                     boundary_conditions = (boundary_condition_periodic,
+                                                                            boundary_condition_periodic))
+        (; mpi_interfaces) = semi.cache
+        @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(mpi_interfaces), +,
+                                  Trixi.mpi_comm()) > 0
+        @test all(isfinite, mpi_interfaces.normal_directions)
+
+        l2_mpi, linf_mpi = norms_rhs_parabolic(semi)
+        @test isapprox(l2_mpi, l2, rtol = 1.0e-12)
+        @test isapprox(linf_mpi, linf, rtol = 1.0e-12)
+    end
+end
