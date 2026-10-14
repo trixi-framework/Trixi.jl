@@ -73,7 +73,8 @@ end
 function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSweep}, semi)
     dg = semi.solver
     shared_memory, workgroup_size = flux_differencing_local_memory(kernel, semi.mesh,
-                                                                   semi.equations, dg)
+                                                                   semi.equations, dg,
+                                                                   semi.cache)
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
@@ -90,7 +91,7 @@ end
 
 # Local memory in bytes and number of threads of a workgroup of the flux differencing
 # kernels, where one workgroup handles all nodes of an element
-function flux_differencing_local_memory(kernel, mesh, equations, dg)
+function flux_differencing_local_memory(kernel, mesh, equations, dg, cache)
     nshared = nvariables(equations)
 
     volume_integral = dg.volume_integral
@@ -110,9 +111,10 @@ end
 check_flux_differencing_shared_memory(::FullSweepGlobal, semi) = nothing
 
 # The 2D kernels for the `P4estMesh{2}` and `T8codeMesh{2}` in
-# `src/solvers/dgsem_p4est/dg_2d_gpu.jl` use workgroups containing several elements.
+# `src/solvers/dgsem_p4est/dg_2d_gpu.jl` use workgroups containing several elements,
+# whose number depends on the `Tuning` in the `cache`.
 function flux_differencing_local_memory(kernel, mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                        equations, dg)
+                                        equations, dg, cache)
     # Equations with nonconservative terms use the kernels parallelized over the nodes
     # only for combined fluxes, otherwise the generic kernel without local memory
     volume_integral = dg.volume_integral
@@ -131,6 +133,7 @@ function flux_differencing_local_memory(kernel, mesh::Union{P4estMesh{2}, T8code
         # Solution at all nodes
         nshared = nvariables(equations)
     end
-    workgroup_size = n_nodes^2 * nelements_workgroup_2d(n_nodes)
+    backend = get_backend(cache.elements.node_coordinates)
+    workgroup_size = n_nodes^2 * nelements_workgroup_2d(backend, dg, cache)
     return nshared * workgroup_size * sizeof(real(dg)), workgroup_size
 end

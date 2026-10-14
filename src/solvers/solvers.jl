@@ -104,6 +104,13 @@ struct FullSweepGlobal end
 @inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
 @inline flux_differencing_kernel(::Backend, kernel) = kernel
 
+# Return the workgroup size of the volume integral kernels on a 2D `P4estMesh` or
+# `T8codeMesh` used on the `backend` for the setting `workgroup_size` of a `Tuning`.
+# `nothing` selects the default of the `backend`.
+# 128 was not beaten consistently by 64 or 256 on an NVIDIA GPU (polydeg 3 and 4, see #3329).
+@inline volume_integral_workgroup_size(::Backend, ::Nothing) = Val(128)
+@inline volume_integral_workgroup_size(::Backend, workgroup_size::Val) = workgroup_size
+
 """
     Tuning(; flux_differencing_kernel = nothing)
 
@@ -127,13 +134,33 @@ Optional keyword arguments:
   one of [`HalfSweep()`](@ref) (default on GPUs), [`FullSweep()`](@ref) (default on the
   KernelAbstractions.jl CPU backend, which does not support [`HalfSweep()`](@ref)), or
   [`FullSweepGlobal()`](@ref).
+- `volume_integral_workgroup_size`: Number of threads per workgroup of the volume
+  integral kernels on a 2D `P4estMesh` or `T8codeMesh` using local memory, e.g., `256`.
+  Since these kernels need all nodes of an element in a single workgroup, a workgroup
+  contains several elements, and the number of threads is rounded down to full elements
+  (but at least one element). Default: `128`. The value is stored as `Val(n)` so that
+  the kernels can be specialized on it.
 """
-struct Tuning{FluxDifferencingKernel}
+struct Tuning{FluxDifferencingKernel, VolumeIntegralWorkgroupSize}
     flux_differencing_kernel::FluxDifferencingKernel
+    volume_integral_workgroup_size::VolumeIntegralWorkgroupSize
 end
 
-function Tuning(; flux_differencing_kernel = nothing)
-    return Tuning(flux_differencing_kernel)
+function Tuning(; flux_differencing_kernel = nothing,
+                volume_integral_workgroup_size = nothing)
+    return Tuning(flux_differencing_kernel,
+                  workgroup_size_setting(volume_integral_workgroup_size))
+end
+
+# Workgroup sizes are stored as `Val`s since the kernels need them at compile time,
+# e.g., for the size of the local memory.
+workgroup_size_setting(::Nothing) = nothing
+workgroup_size_setting(workgroup_size::Val) = workgroup_size
+function workgroup_size_setting(workgroup_size::Integer)
+    if workgroup_size < 1
+        throw(ArgumentError("The workgroup size must be positive, got $workgroup_size."))
+    end
+    return Val(Int(workgroup_size))
 end
 
 # The tuning stored in the `cache` of a new semidiscretization. All settings are
@@ -144,7 +171,10 @@ default_tuning() = Tuning()
 # `nothing` are replaced by the defaults of the `backend`.
 function resolve_tuning(backend, tuning::Tuning)
     kernel = flux_differencing_kernel(backend, tuning.flux_differencing_kernel)
-    return Tuning(; flux_differencing_kernel = kernel)
+    workgroup_size = volume_integral_workgroup_size(backend,
+                                                    tuning.volume_integral_workgroup_size)
+    return Tuning(; flux_differencing_kernel = kernel,
+                  volume_integral_workgroup_size = workgroup_size)
 end
 
 # Return the settings of `new_tuning` that are not `nothing` and the settings of

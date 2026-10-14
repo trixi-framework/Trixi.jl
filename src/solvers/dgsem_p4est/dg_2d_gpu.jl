@@ -67,15 +67,22 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
-# Number of threads per workgroup of the 2D volume integral kernels using local memory.
+# Number of elements per workgroup of the 2D volume integral kernels using local memory.
 # Since these kernels need all nodes of an element in a single workgroup, a workgroup
-# contains several elements so that it is not too small, and the number of threads is
-# rounded down to full elements.
-# 128 was not beaten consistently by 64 or 256 on an NVIDIA GPU (polydeg 3 and 4, see #3329).
-const VOLUME_INTEGRAL_WORKGROUP_SIZE_2D = 128
+# contains several elements so that it is not too small, and the number of threads
+# `workgroup_size` (see `Tuning`) is rounded down to full elements. Both arguments are
+# `Val`s so that the result is known at compile time.
+@inline function nelements_workgroup_2d(::Val{WORKGROUP_SIZE},
+                                        ::Val{NNODES}) where {WORKGROUP_SIZE, NNODES}
+    return max(1, div(WORKGROUP_SIZE, NNODES^2))
+end
 
-@inline function nelements_workgroup_2d(nnodes)
-    return max(1, div(VOLUME_INTEGRAL_WORKGROUP_SIZE_2D, nnodes^2))
+# Number of elements per workgroup of the 2D volume integral kernels for the `backend`
+# and the `Tuning` stored in the `cache`
+@inline function nelements_workgroup_2d(backend, dg, cache)
+    workgroup_size = volume_integral_workgroup_size(backend,
+                                                    cache.tuning.volume_integral_workgroup_size)
+    return nelements_workgroup_2d(workgroup_size, Val(nnodes(dg)))
 end
 
 # Weak form volume integral parallelized over the individual solution nodes. Each
@@ -98,7 +105,7 @@ end
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    NELEMENTS_WG = nelements_workgroup_2d(NNODES)
+    NELEMENTS_WG = nelements_workgroup_2d(backend, dg, cache)
     kernel! = weak_form_KAkernel!(backend, (NNODES, NNODES, NELEMENTS_WG))
     kernel!(du, u, equations, typeof(mesh), dg, Val(NNODES), Val(nvariables(equations)),
             Val(NELEMENTS_WG), derivative_hat, contravariant_vectors;
@@ -202,8 +209,9 @@ end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    NELEMENTS_WG = nelements_workgroup_2d(NNODES)
-    kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
+    NELEMENTS_WG = nelements_workgroup_2d(backend, dg, cache)
+    kernel_type = flux_differencing_kernel(backend,
+                                           cache.tuning.flux_differencing_kernel)
     kernel! = flux_differencing_KAkernel!(backend,
                                           flux_differencing_workgroupsize_2d(kernel_type,
                                                                              Val(NNODES),

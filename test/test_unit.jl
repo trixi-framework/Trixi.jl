@@ -4983,6 +4983,11 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
     @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+    # The 2D kernels use the workgroup size of the `Tuning`, rounded down to full
+    # elements, i.e., 16 elements with 121 nodes each for 2048 threads
+    semi_large = trixi_adapt(semi; tuning = Tuning(volume_integral_workgroup_size = 2048))
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                      semi_large)
 
     mesh = P4estMesh((1, 1, 1), polydeg = 1,
                      coordinates_min = (-1.0, -1.0, -1.0),
@@ -5048,12 +5053,22 @@ end
     # select the defaults of the backend.
     @test semi.cache.tuning === Tuning()
     @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(), semi.cache.tuning) ===
-          Tuning(flux_differencing_kernel = FullSweep())
+          Tuning(flux_differencing_kernel = FullSweep(),
+                 volume_integral_workgroup_size = 128)
     @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(),
-                               Tuning(flux_differencing_kernel = FullSweepGlobal())) ===
-          Tuning(flux_differencing_kernel = FullSweepGlobal())
+                               Tuning(flux_differencing_kernel = FullSweepGlobal(),
+                                      volume_integral_workgroup_size = 64)) ===
+          Tuning(flux_differencing_kernel = FullSweepGlobal(),
+                 volume_integral_workgroup_size = 64)
     @test Trixi.resolve_tuning(DummyGPUBackend(), semi.cache.tuning) ===
-          Tuning(flux_differencing_kernel = HalfSweep())
+          Tuning(flux_differencing_kernel = HalfSweep(),
+                 volume_integral_workgroup_size = 128)
+    # Workgroup sizes are stored as `Val`s so that the kernels can specialize on them
+    @test Tuning(volume_integral_workgroup_size = 256).volume_integral_workgroup_size ===
+          Val(256)
+    @test Tuning(volume_integral_workgroup_size = Val(256)) ===
+          Tuning(volume_integral_workgroup_size = 256)
+    @test_throws ArgumentError Tuning(volume_integral_workgroup_size = 0)
 
     # Only the real type is changed, the current array type is kept
     @test Trixi.storage_type(semi) === Array
@@ -5089,6 +5104,10 @@ end
     @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
                              Tuning(flux_differencing_kernel = FullSweep())) ===
           Tuning(flux_differencing_kernel = FullSweep())
+    @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
+                             Tuning(volume_integral_workgroup_size = 64)) ===
+          Tuning(flux_differencing_kernel = HalfSweep(),
+                 volume_integral_workgroup_size = 64)
 
     # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
     semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())
