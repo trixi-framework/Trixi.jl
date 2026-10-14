@@ -211,11 +211,13 @@ end
     MPIP4estMesh2D
 ] tags=[:mpi] begin
     # Load the fluxes combining conservative and nonconservative terms,
-    # which are equivalent to the fluxes used in the elixir below
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                  maxiters = 1)
+                  sol = nothing)
 
     # Use the same reference values as for the separate fluxes
     @test_trixi_include(joinpath(EXAMPLES_DIR,
