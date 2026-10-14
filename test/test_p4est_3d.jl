@@ -743,6 +743,57 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  sol = nothing)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.00017971806092102337,
+                            0.0006136967511485613,
+                            0.00022822690442389585,
+                            0.0007226600407757523,
+                            0.0007161606001252864,
+                            0.0006066793297079816,
+                            0.00027683929523419356,
+                            0.0007102147790412794,
+                            0.00018359046756855172
+                        ],
+                        linf=[
+                            0.001149714620982456,
+                            0.004384918175901309,
+                            0.0012563090800819937,
+                            0.0046327018891871435,
+                            0.003125895329334938,
+                            0.004268429815377117,
+                            0.001771589463308465,
+                            0.005043147336750528,
+                            0.0014542473645139543
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh3D: elixir_mhd_alfven_wave_nonperiodic.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonperiodic.jl"),
