@@ -8,6 +8,11 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Experimental support for Apple GPUs via Metal.jl, e.g., using
+  `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
+  Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
+  some setups, in particular in 3D, currently crash, hang, or silently produce wrong
+  results on Apple M1/M2 GPUs.
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
   adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
   `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
@@ -72,6 +77,10 @@ for human readability.
   tetrahedral elements ([#3296]).
 
 #### Changed
+- Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
+  and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
+  `UndefRefError`. The interpolation and projection are now applied dimension by dimension
+  as in 3D, which is faster and changes results only up to round-off ([#3361]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
   the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
