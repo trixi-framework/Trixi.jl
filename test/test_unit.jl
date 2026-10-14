@@ -1408,6 +1408,86 @@ end
                                      callback = StepsizeCallback(cfl = 1.0))
 end
 
+@testitem "Unit: GlmSpeedCallback time step for c_h = 1" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The time step of the GLM waves with `c_h = 1` used by the `GlmSpeedCallback` must
+    # agree for Cartesian elements on all mesh types and be invariant under rotations
+    # of the mesh, see https://github.com/trixi-framework/Trixi.jl/issues/3336
+    function dt_cleaning(mesh, equations, solver)
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        return Trixi.calc_dt_for_cleaning_speed(0.5, mesh, equations, solver, cache)
+    end
+
+    polydeg = 3
+    volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+    dg = DGSEM(polydeg = polydeg, surface_flux = volume_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+
+    # 2D
+    equations = IdealGlmMhdEquations2D(5 / 3)
+    dg_multi = DGMulti(polydeg = polydeg, element_type = Quad(),
+                       approximation_type = Polynomial(),
+                       surface_integral = SurfaceIntegralWeakForm(volume_flux),
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+    for level in (2, 3)
+        n = 2^level
+        dx = 2 / n
+        # `cfl * 2 / (nnodes * ndims * inverse_jacobian)` with `inverse_jacobian = 2 / dx`
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = level,
+                        periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n), (-1.0, -1.0), (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        s, c = sincospi(1 / 6)
+        mesh = StructuredMesh((n, n),
+                              (xi, eta) -> SVector(c * xi - s * eta,
+                                                   s * xi + c * eta),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = T8codeMesh((n, n), polydeg = polydeg,
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                          periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = DGMultiMesh(dg_multi, (n, n), coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg_multi) ≈ dt_expected
+    end
+
+    # 3D
+    equations = IdealGlmMhdEquations3D(5 / 3)
+    for level in (1, 2)
+        n = 2^level
+        dx = 2 / n
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                        initial_refinement_level = level, periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n, n), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0, -1.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+    end
+end
+
 @testitem "Unit: TimeSeriesCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
@@ -2682,6 +2762,10 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+            @test max_abs_speed(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(Trixi.flow_variables(u_ll, equations),
+                                Trixi.flow_variables(u_rr, equations), 1,
+                                flow_equations)
         end
     end
 
@@ -3165,6 +3249,10 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
 
+    # Deterministic parts of the Butcher tableau (default `bS = 1` and `cS = 0.5`)
+    @test isapprox(ode_algorithm.c, range(0, 0.5, length = 6); atol = 1e-14)
+    @test ode_algorithm.b1 == 0
+    @test ode_algorithm.bS == 1
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.12405417889682908 0.07594582110317093
                     0.16178873711001726 0.13821126288998273
@@ -3178,6 +3266,17 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
+    # The coefficients are computed by a bisection combined with an optimization of the
+    # stability polynomial. Thus, the results depend on round-off, e.g., on the CPU
+    # architecture. Thus, we use tolerances of 1e-7 for these quantities. We also check
+    # properties of the Butcher tableau that hold up to machine precision by construction.
+    @test isapprox(ode_algorithm.c, range(0, 0.5, length = 12); atol = 1e-14)
+    @test ode_algorithm.b1 == 0
+    @test ode_algorithm.bS == 1
+    @test isapprox(ode_algorithm.dt_opt, 0.6250278064981103; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:end]; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.06453812656711647 0.02637096434197444
                     0.09470601372274887 0.041657622640887494
@@ -3188,7 +3287,7 @@ end
                     0.20523340226247055 0.1584029613738931
                     0.20734890429023528 0.20174200480067384
                     0.1913514234997008 0.26319403104575373
-                    0.13942836392866081 0.3605716360713392], atol = 1e-13)
+                    0.13942836392866081 0.3605716360713392], atol = 1e-7)
 end
 
 @testitem "Unit: PERK Single p3 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3198,54 +3297,72 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
+    # Deterministic parts of the Butcher tableau (default `cS2 = 1`)
+    c_expected = [0, 0.2, 0.4, 0.6, 0.8, 1, 1, 0.5]
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.33551678438002486 0.06448322158043965
-                    0.49653494442225443 0.10346507941960345
-                    0.6496890912144586 0.15031092070647037
+                   [0.3355167784195604 0.06448322158043965
+                    0.4965349205803965 0.10346507941960345
+                    0.6496890792935297 0.15031092070647037
                     0.789172498521197 0.21082750147880308
                     0.7522972036571336 0.2477027963428664
                     0.31192569908571666 0.18807430091428337], atol = 1e-13)
 
-    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
-                   joinpath(path_coeff_file, "spectrum.txt"))
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, vec(eig_vals))
 
+    # The coefficients depend on round-off, see the comment in the test of the
+    # second-order method above. We also check the third-order condition.
+    @test isapprox(ode_algorithm.c, c_expected; atol = 1e-14)
+    @test isapprox(ode_algorithm.dt_opt, 0.3911191849038005; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:end]; atol = 1e-14)
+    @test isapprox(4 * ode_algorithm.a_matrix[2, end] + ode_algorithm.a_matrix[2, end - 1],
+                   1; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.19121164778938382 0.008788355190848427
-                    0.28723462747227385 0.012765384448655121
-                    0.38017717196008227 0.019822834000382223
-                    0.4706748928843403 0.029325107115659724
-                    0.557574833668358 0.04242519017349991
-                    0.6390917512034328 0.06090823687563831
-                    0.7124876770174374 0.08751233490349149
-                    0.7736369992226316 0.12636297693551043
-                    0.8161315324169078 0.1838684675830921
-                    0.7532704453316061 0.2467295546683939
-                    0.31168238866709846 0.18831761133290154], atol = 1e-8)
+                   [0.3359188409372204 0.0640811590627796
+                    0.49546129071748163 0.10453870928251836
+                    0.6479106760193197 0.15208932398068034
+                    0.7874547514258144 0.21254524857418558
+                    0.7518593997208064 0.24814060027919357
+                    0.31203515006979843 0.1879648499302016], atol = 1e-7)
 end
 
 @testitem "Unit: PERK Single p4 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
-    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
-                   joinpath(path_coeff_file, "spectrum.txt"))
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK4(8, tspan, vec(eig_vals))
 
+    # Deterministic parts of the Butcher tableau (default `cS3 = 1`). The columns of
+    # `a_matrix_constant` must sum to the last three entries of `c`.
+    @test isapprox(ode_algorithm.c,
+                   [0, 1, 1, 1, 1, 0.479274057836310, 0.5 + sqrt(3) / 6, 0.5 - sqrt(3) / 6];
+                   atol = 1e-14)
+    @test isapprox(ode_algorithm.a_matrix_constant,
+                   [0.364422246578869 0.1397682537005989 0.1830127018922191
+                    0.114851811257441 0.648906880894214 0.028312163512968]; atol = 1e-14)
+    @test isapprox(vec(sum(ode_algorithm.a_matrix_constant, dims = 1)),
+                   ode_algorithm.c[(end - 2):end]; atol = 1e-14)
+
+    # The coefficients depend on round-off, see the comment in the test of the
+    # second-order method above.
+    @test isapprox(ode_algorithm.dt_opt, 0.2943810084834695; atol = 1e-7)
+    @test all(>=(0), ode_algorithm.a_matrix)
+    @test isapprox(ode_algorithm.a_matrix[1, :] + ode_algorithm.a_matrix[2, :],
+                   ode_algorithm.c[3:(end - 3)]; atol = 1e-14)
     @test isapprox(transpose(ode_algorithm.a_matrix),
-                   [0.9935765040401348 0.0064234959598652
-                    0.9849926812139576 0.0150073187860425
-                    0.9731978940975923 0.0268021059024077
-                    0.9564664284695985 0.0435335715304015
-                    0.9319632992510594 0.0680367007489407
-                    0.8955171743167522 0.1044828256832478
-                    0.8443975130657495 0.1556024869342504
-                    0.7922561745278265 0.2077438254721735
-                    0.7722324105428290 0.2277675894571710], atol = 1e-13)
+                   [0.947627488354466 0.05237251164553399
+                    0.8906758884452134 0.10932411155478663
+                    0.8282838115377149 0.17171618846228512], atol = 1e-7)
 end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -4401,8 +4518,13 @@ end
 end
 
 @testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    # We only need the semidiscretizations of the elixirs below. Thus, we do not run the
+    # simulations by replacing `sol = solve(...)` with `sol = nothing`. This avoids
+    # compiling the time integration methods and the callbacks, which dominated the run
+    # time of this test.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_1d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4422,8 +4544,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4444,8 +4567,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                 "elixir_euler_mortar.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_3d_dgsem",
+                           "elixir_euler_mortar.jl"); sol = nothing)
 
     @testset "TreeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4466,9 +4590,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_1d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_1d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4489,9 +4613,9 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_2d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4509,9 +4633,9 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
-                                 "elixir_euler_basic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "unstructured_2d_dgsem",
+                           "elixir_euler_basic.jl"); sol = nothing)
 
     @testset "UnstructuredMesh2D" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4534,9 +4658,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic_curved.jl");
+                  sol = nothing)
 
     @testset "StructuredMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4554,9 +4679,10 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4601,9 +4727,10 @@ end
                                                                             dg, cache)
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4628,9 +4755,12 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_advection_diffusion_nonperiodic_amr.jl"); sol = nothing)
+    # Refine the mesh as the AMR callback does for the initial condition when running
+    # the simulation. This creates mortars and resizes the parabolic cache.
+    @test amr_callback.affect!(ode.u0, semi, first(tspan), 0; only_refine = true)
 
     @testset "P4estMesh{2}, parabolic" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4666,9 +4796,10 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4693,9 +4824,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4718,5 +4850,311 @@ end
                           cache.mortars)
             @test Trixi.check_axes(container, equations, dg, cache) === nothing
         end
+    end
+end
+
+@testitem "Unit: PassiveTracerEquations slip wall and Lax-Friedrichs flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+    flow_equations = equations.flow_equations
+    u_inner = prim2cons(SVector(1.2, 0.4, -0.3, 0.9, 0.7, -0.2), equations)
+    u_flow_inner = Trixi.flow_variables(u_inner, equations)
+    normal_direction = SVector(0.3, 0.8)
+    x = SVector(0.0, 0.0)
+    t = 0.0
+
+    # The mass flux and thus the tracer fluxes vanish at the wall
+    flux_wall = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                             flux_lax_friedrichs, equations)
+    @test flux_wall[1] == 0
+    @test flux_wall[5] == 0
+    @test flux_wall[6] == 0
+    # The flow fluxes are those of the slip wall of the flow equations
+    @test flux_wall[2:4] ≈
+          boundary_condition_slip_wall(u_flow_inner, normal_direction, x, t,
+                                       flux_lax_friedrichs, flow_equations)[2:4]
+
+    # `StructuredMesh` version with `normal_direction` and `direction`
+    for direction in 1:4
+        flux_wall_structured = boundary_condition_slip_wall(u_inner, normal_direction,
+                                                            direction,
+                                                            x, t, flux_lax_friedrichs,
+                                                            equations)
+        @test flux_wall_structured[1] == 0
+        @test flux_wall_structured[5] == 0
+        @test flux_wall_structured[6] == 0
+        @test flux_wall_structured[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, normal_direction, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+    end
+
+    # `TreeMesh` version with `orientation` and `direction`. For the unit normals,
+    # it agrees with the `StructuredMesh` version.
+    for orientation in 1:2, direction in (2 * orientation - 1, 2 * orientation)
+        flux_wall_tree = boundary_condition_slip_wall(u_inner, orientation, direction,
+                                                      x, t, flux_lax_friedrichs, equations)
+        @test flux_wall_tree[1] == 0
+        @test flux_wall_tree[5] == 0
+        @test flux_wall_tree[6] == 0
+        @test flux_wall_tree[2:4] ≈
+              boundary_condition_slip_wall(u_flow_inner, orientation, direction,
+                                           x, t, flux_lax_friedrichs,
+                                           flow_equations)[2:4]
+        normal_direction_unit = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_wall_tree ≈
+              boundary_condition_slip_wall(u_inner, normal_direction_unit, direction,
+                                           x, t, flux_lax_friedrichs, equations)
+    end
+
+    # The Lax-Friedrichs flux uses the wave speed estimate `max_abs_speed`
+    # of the flow equations. For these states (fast flow with a small speed of sound
+    # on the left, slow flow with a large speed of sound on the right),
+    # `max_abs_speed` is smaller than `max_abs_speed_naive`.
+    u_ll = prim2cons(SVector(1.0, 2.0, 0.0, 0.1, 0.3, -0.2), equations)
+    u_rr = prim2cons(SVector(1.0, 0.0, 0.1, 2.0, 0.7, 0.4), equations)
+    normal_direction = SVector(0.6, 0.8)
+    u_flow_ll = Trixi.flow_variables(u_ll, equations)
+    u_flow_rr = Trixi.flow_variables(u_rr, equations)
+    @test max_abs_speed(u_ll, u_rr, normal_direction, equations) ≈
+          max_abs_speed(u_flow_ll, u_flow_rr, normal_direction, equations.flow_equations) <
+          max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)
+    @test flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations)[1:4] ≈
+          flux_lax_friedrichs(u_flow_ll, u_flow_rr, normal_direction,
+                              equations.flow_equations)
+end
+
+@testitem "Unit: check_flux_differencing_shared_memory" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # One workgroup of the flux differencing GPU kernels handles all nodes of an
+    # element, i.e., `nnodes^ndims` nodes. With `polydeg = 10`, this exceeds the
+    # workgroup size limit in 3D but not in 2D.
+    solver = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
+    @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+
+    mesh = P4estMesh((1, 1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                      semi)
+end
+
+@testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mesh = P4estMesh((2, 2), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+
+    # Without keyword arguments, nothing is adapted
+    @test trixi_adapt(semi) === semi
+    # The flux differencing kernel is part of the `cache` from the beginning
+    @test semi.cache.flux_differencing_kernel === HalfSweep()
+
+    # Only the real type is changed, the current array type is kept
+    @test Trixi.storage_type(semi) === Array
+    semi32 = trixi_adapt(semi; real_type = Float32)
+    @test real(semi32) == Float32
+    @test Trixi.storage_type(semi32) === Array
+    @test Trixi.storage_type(semi32.cache.elements) === Array
+    # The containers of other meshes do not support other array types
+    semi_tree = SemidiscretizationHyperbolic(TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                                      initial_refinement_level = 1,
+                                                      periodicity = true),
+                                             equations, initial_condition_convergence_test,
+                                             solver;
+                                             boundary_conditions = boundary_condition_periodic)
+    @test Trixi.storage_type(semi_tree) === Array
+    @test semi32.cache.flux_differencing_kernel === HalfSweep()
+
+    # An explicitly selected kernel is kept when adapting the semidiscretization again
+    semi_global = trixi_adapt(semi; flux_differencing_kernel = FullSweepGlobal())
+    @test real(semi_global) == Float64
+    @test semi_global.cache.flux_differencing_kernel === FullSweepGlobal()
+    semi_global32 = trixi_adapt(semi_global; storage_type = Array, real_type = Float32)
+    @test real(semi_global32) == Float32
+    @test semi_global32.cache.flux_differencing_kernel === FullSweepGlobal()
+
+    # The kernel can only be selected if it is used
+    solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    semi_weak_form = SemidiscretizationHyperbolic(mesh, equations,
+                                                  initial_condition_convergence_test,
+                                                  solver_weak_form;
+                                                  boundary_conditions = boundary_condition_periodic)
+    @test !haskey(semi_weak_form.cache, :flux_differencing_kernel)
+    @test real(trixi_adapt(semi_weak_form; real_type = Float32)) == Float32
+    @test_throws ArgumentError trixi_adapt(semi_weak_form;
+                                           flux_differencing_kernel = FullSweep())
+
+    # The volume integral cache of a `P4estMeshView` is created differently
+    mesh_view = P4estMeshView(mesh, [1, 2])
+    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
+                                    Float64)
+    @test cache_view.flux_differencing_kernel === HalfSweep()
+
+    # The GPU resource limits are not checked for CPU arrays, see also
+    # "Unit: check_flux_differencing_shared_memory"
+    mesh_3d = P4estMesh((1, 1, 1), polydeg = 1,
+                        coordinates_min = (-1.0, -1.0, -1.0),
+                        coordinates_max = (1.0, 1.0, 1.0),
+                        periodicity = true)
+    solver_3d = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                      volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi_3d = SemidiscretizationHyperbolic(mesh_3d,
+                                           LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0),
+                                           initial_condition_constant, solver_3d;
+                                           boundary_conditions = boundary_condition_periodic)
+    @test semi_3d.cache.flux_differencing_kernel === HalfSweep()
+    semi_3d_full_sweep = @test_logs min_level=Base.CoreLogging.Warn trixi_adapt(semi_3d;
+                                                                                storage_type = Array,
+                                                                                flux_differencing_kernel = FullSweep())
+    @test semi_3d_full_sweep.cache.flux_differencing_kernel === FullSweep()
+
+    # `semidiscretize` uses the real type of `semi` for the time span
+    ode = semidiscretize(semi32, (0.0, 1.0))
+    @test ode.p === semi32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = semidiscretize(semi, (0.0f0, 1.0f0))
+    @test ode.p === semi
+    @test ode.tspan === (0.0, 1.0)
+
+    # Deprecated keyword arguments of `semidiscretize`
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
+    @test real(ode.p) == Float32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
+                                          flux_differencing_kernel = FullSweep())
+    @test real(ode.p) == Float64
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+
+    # The `SummaryCallback` warns if the time type differs from the real type of
+    # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
+    ode = semidiscretize(semi32, (0.0, 2.0e-3))
+    callbacks = CallbackSet(SummaryCallback())
+    alg = Trixi.CarpenterKennedy2N54()
+    @test_logs (:warn, r"The time `t` has the type Float64") match_mode=:any redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0e-3, callback = callbacks)
+    end
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0f-3, callback = callbacks)
+    end
+
+    # Custom semidiscretizations do not need to implement `real`, see the tutorial
+    # `docs/literate/src/files/custom_semidiscretization.jl`
+    struct CustomSemidiscretization{Semi} <: Trixi.AbstractSemidiscretization
+        semi::Semi
+    end
+    Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
+    function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
+        return Trixi.mesh_equations_solver_cache(semi.semi)
+    end
+    function rhs_custom!(du_ode, u_ode, semi_custom, t)
+        return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_custom.semi, t)
+    end
+    semi_custom = CustomSemidiscretization(semi32)
+    @test !applicable(real, semi_custom)
+    @test Trixi.convert_tspan(semi_custom, (0.0, 1.0)) === (0.0, 1.0)
+    ode = semidiscretize(semi32, (0.0f0, 2.0f-3))
+    ode_custom = Trixi.ODEProblem(rhs_custom!, ode.u0, (0.0, 2.0e-3), semi_custom)
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode_custom, alg; dt = 1.0e-3, callback = callbacks)
+    end
+end
+
+@testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4), n_tracers = 2)
+
+    # Pairs of states in primitive variables (ρ, v₁, v₂, p, χ₁, χ₂), with
+    # subsonic and supersonic velocities and tracers with jumps of both signs
+    prim_pairs = [
+        (SVector(1.0, 0.1, 0.2, 1.0, 0.5, -0.3),
+         SVector(1.2, -0.3, 0.4, 0.8, 0.9, 0.1)),
+        (SVector(0.6, 1.5, -0.4, 0.5, -1.0, 2.0),
+         SVector(1.4, 0.7, 0.9, 1.3, 0.4, -0.6)),
+        (SVector(2.0, -2.5, 0.3, 0.4, 0.0, 1.0),
+         SVector(0.3, -1.8, -0.2, 0.2, 1.5, 1.0)),
+        (SVector(0.9, 0.0, 0.0, 1.1, 0.2, 0.2),
+         SVector(0.9, 0.0, 0.0, 1.1, 0.7, -0.4))]
+    orientations_or_normals = (1, 2, SVector(0.6, -0.8), SVector(-1.3, 0.4))
+
+    # Jump of the entropy potential ρ v⋅n (as for the Euler equations)
+    function psi_jump(u_ll, u_rr, orientation::Integer)
+        return u_rr[orientation + 1] - u_ll[orientation + 1]
+    end
+    function psi_jump(u_ll, u_rr, normal_direction::AbstractVector)
+        return (u_rr[2] - u_ll[2]) * normal_direction[1] +
+               (u_rr[3] - u_ll[3]) * normal_direction[2]
+    end
+
+    # Entropy conservation of `FluxTracerEquationsCentral(flux_ranocha)` and entropy
+    # stability of `FluxTracerEquationsUpwind` for the entropy of the tracer equations
+    flux_ec = FluxTracerEquationsCentral(flux_ranocha)
+    fluxes_es = (FluxTracerEquationsUpwind(flux_lax_friedrichs),
+                 FluxTracerEquationsUpwind(FluxPlusDissipation(flux_ranocha,
+                                                               DissipationLocalLaxFriedrichs())))
+    for (prim_ll, prim_rr) in prim_pairs, orientation_or_normal in orientations_or_normals
+        u_ll = prim2cons(prim_ll, equations)
+        u_rr = prim2cons(prim_rr, equations)
+        w_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+        psi = psi_jump(u_ll, u_rr, orientation_or_normal)
+        @test isapprox(dot(w_jump, flux_ec(u_ll, u_rr, orientation_or_normal, equations)),
+                       psi; atol = 1.0e-12 * (1 + abs(psi)))
+        for flux_es in fluxes_es
+            @test dot(w_jump, flux_es(u_ll, u_rr, orientation_or_normal, equations)) <=
+                  psi + 1.0e-12 * (1 + abs(psi))
+        end
+    end
+
+    # The flow fluxes are those of the flow flux, and the tracers are upwinded with
+    # its mass flux
+    u_ll = prim2cons(prim_pairs[1][1], equations)
+    u_rr = prim2cons(prim_pairs[1][2], equations)
+    flow_equations = equations.flow_equations
+    for orientation_or_normal in orientations_or_normals
+        flux_upwind = FluxTracerEquationsUpwind(flux_lax_friedrichs)(u_ll, u_rr,
+                                                                     orientation_or_normal,
+                                                                     equations)
+        flux_flow = flux_lax_friedrichs(Trixi.flow_variables(u_ll, equations),
+                                        Trixi.flow_variables(u_rr, equations),
+                                        orientation_or_normal, flow_equations)
+        @test flux_upwind[1:4] ≈ flux_flow
+        f_rho = flux_flow[1]
+        chi_ll = Trixi.tracers(u_ll, equations)
+        chi_rr = Trixi.tracers(u_rr, equations)
+        @test flux_upwind[5:6] ≈
+              f_rho * (chi_ll + chi_rr) / 2 - abs(f_rho) * (chi_rr - chi_ll) / 2
+    end
+
+    # Consistency: for equal states, the upwind flux is the physical flux
+    u = prim2cons(prim_pairs[2][1], equations)
+    for orientation_or_normal in orientations_or_normals
+        @test FluxTracerEquationsUpwind(flux_lax_friedrichs)(u, u, orientation_or_normal,
+                                                             equations) ≈
+              flux(u, orientation_or_normal, equations)
     end
 end

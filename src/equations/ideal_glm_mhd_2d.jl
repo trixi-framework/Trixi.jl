@@ -997,8 +997,8 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
-                          equations::IdealGlmMhdEquations2D)
+@inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
+                                  equations::IdealGlmMhdEquations2D)
     # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr

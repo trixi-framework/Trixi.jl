@@ -164,8 +164,8 @@ end
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
 # where one sets the magnetic field components equal to 0.
-function flux(u, gradients, orientation::Integer,
-              equations::CompressibleNavierStokesDiffusion2D)
+@inline function flux(u, gradients, orientation::Integer,
+                      equations::CompressibleNavierStokesDiffusion2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
     v1, v2, _ = convert_transformed_to_velocity_temperature(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)

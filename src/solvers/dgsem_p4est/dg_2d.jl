@@ -116,7 +116,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     for i in index_range
         for v in eachvariable(equations)
             interfaces_u[1, v, i, interface] = u[v,
-                                                 i_primary, j_primary,
+                                                 i_primary,
+                                                 j_primary,
                                                  primary_element]
         end
         i_primary += i_primary_step
@@ -138,7 +139,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     for i in index_range
         for v in eachvariable(equations)
             interfaces_u[2, v, i, interface] = u[v,
-                                                 i_secondary, j_secondary,
+                                                 i_secondary,
+                                                 j_secondary,
                                                  secondary_element]
         end
         i_secondary += i_secondary_step
@@ -1295,31 +1297,29 @@ function calc_surface_integral!(backend::Nothing, du, u,
                     surface_flux_minus_x = surface_flux_values[v, l, 1, element]
                     surface_flux_plus_x = surface_flux_values[v, l, 2, element]
                     for ii in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                         # surface at -x
                         du[v, ii, l, element] = (du[v, ii, l, element] +
-                                                 surface_flux_minus_x *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        1])
+                                                 surface_flux_minus_x * factor_minus)
                         # surface at +x
                         du[v, ii, l, element] = (du[v, ii, l, element] +
-                                                 surface_flux_plus_x *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        2])
+                                                 surface_flux_plus_x * factor_plus)
                     end
 
                     surface_flux_minus_y = surface_flux_values[v, l, 3, element]
                     surface_flux_plus_y = surface_flux_values[v, l, 4, element]
                     for jj in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[jj, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[jj, 2]
+
                         # surface at -y
                         du[v, l, jj, element] = (du[v, l, jj, element] +
-                                                 surface_flux_minus_y *
-                                                 boundary_interpolation_inverse_weights[jj,
-                                                                                        1])
+                                                 surface_flux_minus_y * factor_minus)
                         # surface at +y
                         du[v, l, jj, element] = (du[v, l, jj, element] +
-                                                 surface_flux_plus_y *
-                                                 boundary_interpolation_inverse_weights[jj,
-                                                                                        2])
+                                                 surface_flux_plus_y * factor_plus)
                     end
                 end
             end
