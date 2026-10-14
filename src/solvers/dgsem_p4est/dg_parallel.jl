@@ -84,8 +84,8 @@ precompile(Base.reindex,
            (Tuple{Base.Slice{Base.OneTo{Int64}}, Int64, Base.Slice{Base.OneTo{Int64}},
                   Base.Slice{Base.OneTo{Int64}}, Int64}, Tuple{Int64, Int64, Int64}))
 
-function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache, mesh, equations,
-                         dg, cache)
+function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache,
+                         mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
 
@@ -153,8 +153,8 @@ function finish_mpi_send!(mpi_cache::P4estMPICache)
     return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
-function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache, mesh,
-                             equations, dg, cache)
+function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
+                             mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
     n_positions = n_small_elements + 1

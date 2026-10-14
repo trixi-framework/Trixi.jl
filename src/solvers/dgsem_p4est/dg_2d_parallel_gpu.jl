@@ -16,8 +16,8 @@ function rhs_hyperbolic!(backend::Backend,
 
     # Prolong solution to MPI interfaces
     @trixi_timeit_ext backend timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
-                               dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations,
+                               dg.surface_integral, dg)
     end
 
     # Prolong solution to MPI mortars
@@ -116,6 +116,12 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     index_range = eachnode(dg)
     variables_range = eachvariable(equations)
 
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
+    end
+
     kernel! = prolong2mpiinterfaces_KAkernel!(backend)
     kernel!(cache.mpi_interfaces.u, local_sides, local_neighbor_ids, node_indices,
             index_range, variables_range, u,
@@ -145,6 +151,13 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
     @unpack contravariant_vectors = cache.elements
     @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
+
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
 
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, typeof(mesh),
@@ -205,6 +218,10 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
     @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces = mpi_cache
     @unpack mpi_send_buffers, mpi_send_requests = mpi_cache
     @unpack local_sides, u = cache.mpi_interfaces
+    data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
+
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck check_axes(cache.mpi_interfaces, equations, dg, cache)
 
     kernel! = start_mpi_send_KAkernel!(backend)
 
@@ -212,6 +229,9 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
         send_buffer = mpi_send_buffers[rank_index]
         neighbor_interfaces = mpi_neighbor_interfaces[rank_index]
         if !isempty(neighbor_interfaces)
+            # Explicit bounds check, which allows us to assume inbounds access in the kernel
+            @boundscheck checkbounds(send_buffer,
+                                     1:(data_size * length(neighbor_interfaces)))
             kernel!(send_buffer, neighbor_interfaces, local_sides, u,
                     Val(nvariables(equations)), Val(ndims(mesh)),
                     ndrange = (nnodes(dg), length(neighbor_interfaces)))
@@ -241,8 +261,8 @@ end
     local_side = local_sides[interface]
 
     for v in 1:NVARS
-        send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v, index_node,
-                                                          interface]
+        send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v,
+                                                          index_node, interface]
     end
 end
 
@@ -255,6 +275,10 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
     @unpack mpi_neighbor_interfaces = mpi_cache
     @unpack mpi_recv_buffers, mpi_recv_requests = mpi_cache
     @unpack local_sides, u = cache.mpi_interfaces
+    data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
+
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck check_axes(cache.mpi_interfaces, equations, dg, cache)
 
     kernel! = finish_mpi_receive_KAkernel!(backend)
 
@@ -264,6 +288,9 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
         recv_buffer = mpi_recv_buffers[data]
         neighbor_interfaces = mpi_neighbor_interfaces[data]
         if !isempty(neighbor_interfaces)
+            # Explicit bounds check, which allows us to assume inbounds access in the kernel
+            @boundscheck checkbounds(recv_buffer,
+                                     1:(data_size * length(neighbor_interfaces)))
             kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
                     Val(nvariables(equations)), Val(ndims(mesh)),
                     ndrange = (nnodes(dg), length(neighbor_interfaces)))

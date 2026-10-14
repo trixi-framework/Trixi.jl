@@ -52,8 +52,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Finish gradient MPI receive
     @trixi_timeit timer() "finish MPI receive gradient" begin
-        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic, dg,
-                            cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic,
+                            dg, cache)
     end
 
     # MPI interface fluxes for gradients
@@ -138,8 +138,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Finish divergence MPI receive
     @trixi_timeit timer() "finish MPI receive divergence" begin
-        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic, dg,
-                            cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic,
+                            dg, cache)
     end
 
     # MPI interface fluxes for divergence

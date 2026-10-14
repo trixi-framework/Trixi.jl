@@ -247,7 +247,7 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
                                                     backend; init,
                                                     neutral) do element
-        # Initialize integral with zeros of the right shapeu
+        # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
 
         for j in eachnode(dg), i in eachnode(dg)
