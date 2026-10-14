@@ -9,8 +9,10 @@ GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is contro
 the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretization:
 
 - `storage_type`: the array type used for all internal data structures.
-  Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs
-  or `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs.
+  Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs,
+  `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs,
+  or `MtlArray` (from [Metal.jl](https://github.com/JuliaGPU/Metal.jl), experimental)
+  for Apple GPUs.
   Defaults to `nothing`, which keeps the current array type (usually the standard
   CPU `Array`).
 - `real_type`: the floating-point element type. GPU workflows typically benefit from
@@ -24,10 +26,18 @@ the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretizatio
 All arguments can be used independently. A typical GPU setup looks like:
 
 ```julia
-using CUDA   # or using AMDGPU
+using CUDA   # or using AMDGPU, using Metal
 semi = trixi_adapt(semi; real_type = Float32, storage_type = CuArray)
 ode = semidiscretize(semi, tspan)
 ```
+
+!!! warning "Experimental support for Apple GPUs via Metal.jl"
+    Support for Apple GPUs via `storage_type = MtlArray` is experimental. Metal
+    does not support `Float64`, so `real_type = Float32` is required. Because of
+    upstream bugs in Metal.jl (see [Metal.jl#1017](https://github.com/JuliaGPU/Metal.jl/issues/1017)
+    and [Metal.jl#1018](https://github.com/JuliaGPU/Metal.jl/issues/1018)), some setups
+    currently crash, hang, or silently produce wrong results on Apple M1/M2 GPUs,
+    in particular for 3D meshes.
 
 The adapted semidiscretization replaces the original one, which may share data with
 the adapted one and must not be used anymore. Thus, create the callbacks after calling
