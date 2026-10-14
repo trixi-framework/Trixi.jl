@@ -41,14 +41,19 @@ function Trixi.trixi_backend_info!(setup, ::MetalBackend)
     if isempty(devs)
         push!(setup, "Metal devices" => "none")
     else
-        push!(setup, "Metal devices:" => "")
+        push!(setup, "Metal devices" => "")
     end
+    # The number of GPU cores is queried for the system, not for a specific device
+    cores = Metal.num_gpu_cores()
     for (i, dev) in enumerate(devs)
-        cores = Metal.num_gpu_cores()
-        allocated = Base.format_bytes(dev.currentAllocatedSize)
-        recommended = Base.format_bytes(dev.recommendedMaxWorkingSetSize)
+        # Apple GPUs use unified memory, so we report the memory that is still available
+        # within the working set size recommended by Metal
+        total = dev.recommendedMaxWorkingSetSize
+        free = total - min(dev.currentAllocatedSize, total)
         push!(setup,
-              "  $i" => "$(dev.name) ($cores GPU cores, $allocated / $recommended available)")
+              "  $i (model)" => "$(dev.name) ($cores GPU cores)")
+        push!(setup,
+              "  $i (memory)" => "$(Base.format_bytes(free)) / $(Base.format_bytes(total)) available")
     end
     return nothing
 end

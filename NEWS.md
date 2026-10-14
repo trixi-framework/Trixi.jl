@@ -10,9 +10,9 @@ for human readability.
 #### Added
 - Experimental support for Apple GPUs via Metal.jl, e.g., using
   `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
-  Metal supports only `Float32` (not `Float64`). Some setups, in particular in 3D,
-  currently produce wrong results on Apple M1/M2 GPUs because of upstream bugs in
-  Metal.jl.
+  Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
+  some setups, in particular in 3D, currently crash, hang, or silently produce wrong
+  results on Apple M1/M2 GPUs.
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
   adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
   `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
