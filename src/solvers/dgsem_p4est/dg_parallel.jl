@@ -70,6 +70,18 @@ end
     return view(mpi_cache.mpi_recv_buffer, mpi_cache.mpi_buffer_ranges[index])
 end
 
+# `MPI.Isend` and `MPI.Irecv!` store the `MPI.Buffer` in the returned `MPI.Request`,
+# which allocates. This allocation is larger for a `SubArray` than for a `Vector`
+# or a pointer. Thus, we pass a pointer to the contiguous memory of views of CPU
+# buffers to MPI. The memory is kept alive by the `mpi_cache`, which outlives
+# the requests since they are completed in `finish_mpi_send!`/`finish_mpi_receive!`.
+@inline function mpi_buffer(buffer::SubArray{T, 1, Vector{T}, Tuple{UnitRange{Int}},
+                                             true}) where {T}
+    return MPI.Buffer(pointer(buffer), Cint(length(buffer)), MPI.Datatype(T))
+end
+# Other buffers (e.g., views of GPU arrays) are passed to MPI.jl unchanged
+@inline mpi_buffer(buffer) = buffer
+
 function Adapt.adapt_structure(to, mpi_cache::P4estMPICache)
     mpi_neighbor_ranks = mpi_cache.mpi_neighbor_ranks
     mpi_neighbor_interfaces = Adapt.adapt_structure(to,
@@ -159,9 +171,9 @@ function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache,
 
     # Start sending
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_send_requests[index] = MPI.Isend(get_mpi_send_buffer(mpi_cache,
-                                                                           index),
-                                                       rank, mpi_rank(), mpi_comm())
+        send_buffer = mpi_buffer(get_mpi_send_buffer(mpi_cache, index))
+        mpi_cache.mpi_send_requests[index] = MPI.Isend(send_buffer, rank, mpi_rank(),
+                                                       mpi_comm())
     end
 
     return nothing
@@ -169,9 +181,9 @@ end
 
 function start_mpi_receive!(mpi_cache::P4estMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(get_mpi_recv_buffer(mpi_cache,
-                                                                            index),
-                                                        rank, rank, mpi_comm())
+        recv_buffer = mpi_buffer(get_mpi_recv_buffer(mpi_cache, index))
+        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(recv_buffer, rank, rank,
+                                                        mpi_comm())
     end
 
     return nothing

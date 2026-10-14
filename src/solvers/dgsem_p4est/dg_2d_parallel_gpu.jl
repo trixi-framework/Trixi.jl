@@ -219,9 +219,9 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
     @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
 
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_send_requests[index] = MPI.Isend(get_mpi_send_buffer(mpi_cache,
-                                                                           index),
-                                                       rank, mpi_rank(), mpi_comm())
+        send_buffer = mpi_buffer(get_mpi_send_buffer(mpi_cache, index))
+        mpi_cache.mpi_send_requests[index] = MPI.Isend(send_buffer, rank, mpi_rank(),
+                                                       mpi_comm())
     end
 
     return nothing
