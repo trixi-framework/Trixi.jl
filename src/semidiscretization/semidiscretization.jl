@@ -82,8 +82,7 @@ end
 
 """
     trixi_adapt(semi::AbstractSemidiscretization;
-                storage_type = nothing, real_type = nothing,
-                flux_differencing_kernel = nothing)
+                storage_type = nothing, real_type = nothing, tuning = nothing)
 
 Return a semidiscretization based on `semi` that uses the array type `storage_type`
 and the real type `real_type` for its internal data structures. Use the returned
@@ -99,18 +98,27 @@ Optional keyword arguments:
   `nothing` keeps the current array type (usually `Array`).
 - `real_type`: Real type used for the computations, e.g., `Float32`.
   `nothing` keeps the current real type `real(semi)` (usually `Float64`).
-- `flux_differencing_kernel`: GPU kernel used for [`VolumeIntegralFluxDifferencing`](@ref)
-  on a `P4estMesh` or `T8codeMesh`, one of [`HalfSweep()`](@ref) (default),
-  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). `nothing` keeps the current
-  kernel.
+- `tuning`: Performance settings of the GPU and KernelAbstractions.jl kernels on a
+  `P4estMesh` or `T8codeMesh` as a [`Tuning`](@ref), e.g.,
+  `Tuning(flux_differencing_kernel = FullSweep())`. Settings that are `nothing` keep
+  their current value. `nothing` keeps all current settings.
 
 If all keyword arguments are `nothing`, `semi` is returned unchanged.
+
+The keyword argument `flux_differencing_kernel` is deprecated. Use
+`tuning = Tuning(; flux_differencing_kernel)` instead.
 """
 function trixi_adapt(semi::AbstractSemidiscretization;
-                     storage_type = nothing, real_type = nothing,
+                     storage_type = nothing, real_type = nothing, tuning = nothing,
                      flux_differencing_kernel = nothing)
-    if storage_type === nothing && real_type === nothing &&
-       flux_differencing_kernel === nothing
+    if flux_differencing_kernel !== nothing
+        Base.depwarn("The keyword argument `flux_differencing_kernel` of `trixi_adapt` " *
+                     "is deprecated. Use `tuning = Tuning(; flux_differencing_kernel)` " *
+                     "instead.", :trixi_adapt)
+        tuning = tuning_with_flux_differencing_kernel(tuning, flux_differencing_kernel)
+    end
+
+    if storage_type === nothing && real_type === nothing && tuning === nothing
         return semi
     end
 
@@ -125,7 +133,20 @@ function trixi_adapt(semi::AbstractSemidiscretization;
         semi = trixi_adapt(storage_type, real_type, semi)
     end
 
-    return adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
+    return adapt_tuning(semi, tuning)
+end
+
+# Support the deprecated keyword argument `flux_differencing_kernel`
+function tuning_with_flux_differencing_kernel(tuning, flux_differencing_kernel)
+    if tuning === nothing
+        return Tuning(; flux_differencing_kernel)
+    elseif tuning.flux_differencing_kernel === nothing
+        return merge_tuning(tuning, Tuning(; flux_differencing_kernel))
+    else
+        throw(ArgumentError("The deprecated keyword argument `flux_differencing_kernel` " *
+                            "cannot be combined with a `tuning` setting the " *
+                            "`flux_differencing_kernel`."))
+    end
 end
 
 # Array type of the internal data structures of the semidiscretization `semi`, which
@@ -137,40 +158,50 @@ function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
     return storage_type(cache.elements)
 end
 
-# The `cache` contains the GPU kernel used for `VolumeIntegralFluxDifferencing` if
-# such kernels are available, see `create_cache` in `src/solvers/dgsem_p4est/dg_2d_gpu.jl`
-# and `src/solvers/dgsem_p4est/dg_3d_gpu.jl`. We set the kernel (if requested) and check
-# it every time the semidiscretization is adapted, since the checks depend on the
-# kernel, the real type, and the storage type.
-function adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
-    if !(hasproperty(semi, :cache) && haskey(semi.cache, :flux_differencing_kernel))
-        if flux_differencing_kernel !== nothing
-            throw(ArgumentError("The keyword argument `flux_differencing_kernel` is " *
-                                "only supported for `VolumeIntegralFluxDifferencing` " *
-                                "on a `P4estMesh` or `T8codeMesh`."))
+# The `cache` of a `P4estMesh` or `T8codeMesh` contains the performance settings of
+# the GPU and KernelAbstractions.jl kernels as a `Tuning`, see `create_cache` in
+# `src/solvers/dgsem_p4est/dg.jl`. We set them (if requested) and check them every time
+# the semidiscretization is adapted, since the checks depend on the settings, the real
+# type, and the storage type. We store settings that are `nothing` (the defaults of the
+# backend) without resolving them, so that they follow the backend if the
+# semidiscretization is adapted again.
+function adapt_tuning(semi, tuning)
+    if !(hasproperty(semi, :cache) && haskey(semi.cache, :tuning))
+        if tuning !== nothing
+            throw(ArgumentError("The keyword argument `tuning` is only supported for " *
+                                "a `P4estMesh` or `T8codeMesh`."))
         end
         return semi
     end
 
-    if flux_differencing_kernel === nothing
-        flux_differencing_kernel = semi.cache.flux_differencing_kernel
+    if tuning !== nothing
+        tuning = merge_tuning(semi.cache.tuning, tuning)
+    else
+        tuning = semi.cache.tuning
     end
+
+    # The checks use the settings of the backend of the adapted semidiscretization,
+    # including the defaults of the backend for settings that are `nothing`.
+    backend = get_backend(semi.cache.elements.node_coordinates)
+    resolved_tuning = resolve_tuning(backend, tuning)
 
     volume_integral = semi.solver.volume_integral
-    if flux_differencing_kernel isa FullSweepGlobal &&
-       volume_integral isa VolumeIntegralFluxDifferencing &&
-       volume_integral.volume_flux isa FluxTurbo &&
-       have_nonconservative_terms(semi.equations) === True()
-        error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
+    if volume_integral isa VolumeIntegralFluxDifferencing
+        if resolved_tuning.flux_differencing_kernel isa FullSweepGlobal &&
+           volume_integral.volume_flux isa FluxTurbo &&
+           have_nonconservative_terms(semi.equations) === True()
+            error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
+        end
+
+        # The resources such as the shared memory are only limited on GPUs. We check
+        # the backend instead of the array type to support all GPU array types.
+        if !(backend isa KernelAbstractions.CPU)
+            check_flux_differencing_shared_memory(resolved_tuning.flux_differencing_kernel,
+                                                  semi)
+        end
     end
 
-    # The resources such as the shared memory are only limited on GPUs. We check the
-    # backend instead of the array type to support all GPU array types.
-    if !(get_backend(semi.cache.elements.node_coordinates) isa KernelAbstractions.CPU)
-        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
-    end
-
-    @reset semi.cache.flux_differencing_kernel = flux_differencing_kernel
+    @reset semi.cache.tuning = tuning
     return semi
 end
 
@@ -187,10 +218,13 @@ function trixi_adapt_deprecated(semi; storage_type, real_type, flux_differencing
     Base.depwarn("The keyword arguments `storage_type`, `real_type`, and " *
                  "`flux_differencing_kernel` of `semidiscretize` are deprecated. " *
                  "Use `semi = trixi_adapt(semi; storage_type, real_type, " *
-                 "flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` " *
-                 "and use the adapted `semi` afterwards, e.g., to create callbacks.",
+                 "tuning = Tuning(; flux_differencing_kernel))` before calling " *
+                 "`semidiscretize(semi, tspan)` and use the adapted `semi` afterwards, " *
+                 "e.g., to create callbacks.",
                  :semidiscretize)
-    return trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)
+    tuning = flux_differencing_kernel === nothing ? nothing :
+             Tuning(; flux_differencing_kernel)
+    return trixi_adapt(semi; storage_type, real_type, tuning)
 end
 
 # Convert the time span to the real type of the semidiscretization. Otherwise,

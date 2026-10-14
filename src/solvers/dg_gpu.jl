@@ -81,14 +81,14 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
-        In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+        In case, consider using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
     end
 
     workgroup_size = nnodes_element
 
     if workgroup_size > 1024
         @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.
-        Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
+        Please, consider reducing the polynomial degree or using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
     end
 
     return nothing
