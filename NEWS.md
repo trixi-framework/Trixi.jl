@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Reverse-mode automatic differentiation with Enzyme.jl works with the default threading and
+  LoopVectorization.jl preferences; the step size of `StepsizeCallback` is not differentiated ([#3358]).
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
   adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
   `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.

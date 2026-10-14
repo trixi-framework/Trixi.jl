@@ -85,6 +85,7 @@ jobs:
           - mpi
           - threaded
           - kernelabstractions
+          - enzyme
         include:
           - version: '1.11'
             os: ubuntu-latest
