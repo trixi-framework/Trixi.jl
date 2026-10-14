@@ -8,9 +8,11 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
-- Added multi-GPU support for 2D P4estMesh. A local CUDA-aware MPI installation is required.
-  For configuration see [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
-  in the docs.
+- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+  [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
+  on conforming meshes (no mortars, thus also no AMR) are supported.
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
   adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
   `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
