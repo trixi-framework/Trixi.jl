@@ -30,6 +30,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 tspan = (0.0, 5.0) # Does not matter for steady-state solve
 ode = semidiscretize(semi, tspan)
 
+# Construct steady steate problem
 steady_state_prob = SteadyStateProblem(ode)
 
 alg = NewtonRaphson(autodiff = AutoFiniteDiff())
