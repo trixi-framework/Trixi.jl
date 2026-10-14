@@ -140,12 +140,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or refine them
+        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg))
         element_id = 1
         for old_element_id in 1:old_n_elements
             if needs_refinement[old_element_id]
                 # Refine element and store solution directly in new data structure
                 refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg)
+                                adaptor, equations, dg, u_tmp1)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobians on each
@@ -223,7 +225,7 @@ end
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
                          old_u, old_element_id,
-                         adaptor::LobattoLegendreAdaptorL2, equations, dg)
+                         adaptor::LobattoLegendreAdaptorL2, equations, dg, u_tmp1)
     @unpack forward_upper, forward_lower = adaptor
 
     # Store new element ids
@@ -246,44 +248,24 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
     end
 
     # Interpolate to lower left element
-    for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
-                   forward_lower[i, k] * forward_lower[j, l]
-        end
-        set_node_vars!(u, acc, equations, dg, i, j, lower_left_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, :, lower_left_id), forward_lower,
+                            forward_lower, view(old_u, :, :, :, old_element_id),
+                            u_tmp1)
 
     # Interpolate to lower right element
-    for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
-                   forward_upper[i, k] * forward_lower[j, l]
-        end
-        set_node_vars!(u, acc, equations, dg, i, j, lower_right_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, :, lower_right_id), forward_upper,
+                            forward_lower, view(old_u, :, :, :, old_element_id),
+                            u_tmp1)
 
     # Interpolate to upper left element
-    for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
-                   forward_lower[i, k] * forward_upper[j, l]
-        end
-        set_node_vars!(u, acc, equations, dg, i, j, upper_left_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, :, upper_left_id), forward_lower,
+                            forward_upper, view(old_u, :, :, :, old_element_id),
+                            u_tmp1)
 
     # Interpolate to upper right element
-    for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) *
-                   forward_upper[i, k] * forward_upper[j, l]
-        end
-        set_node_vars!(u, acc, equations, dg, i, j, upper_right_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, :, upper_right_id), forward_upper,
+                            forward_upper, view(old_u, :, :, :, old_element_id),
+                            u_tmp1)
 
     return nothing
 end
@@ -339,6 +321,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or coarsen them
+        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg))
         skip = 0
         element_id = 1
         for old_element_id in 1:old_n_elements
@@ -356,7 +340,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
-                                  adaptor, equations, dg)
+                                  adaptor, equations, dg, u_tmp1)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobian and save
@@ -428,7 +412,8 @@ end
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
-                           adaptor::LobattoLegendreAdaptorL2, equations, dg)
+                           adaptor::LobattoLegendreAdaptorL2, equations, dg,
+                           u_tmp1)
     @unpack reverse_upper, reverse_lower = adaptor
 
     # Store old element ids
@@ -450,36 +435,26 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
         @assert size(u, 4) >= element_id
     end
 
-    for j in eachnode(dg), i in eachnode(dg)
-        acc = zero(get_node_vars(old_u, equations, dg, i, j, old_element_id))
+    # Project from lower left element
+    multiply_dimensionwise!(view(u, :, :, :, element_id), reverse_lower,
+                            reverse_lower, view(old_u, :, :, :, lower_left_id), u_tmp1)
 
-        # Project from lower left element
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, lower_left_id) *
-                   reverse_lower[i, k] * reverse_lower[j, l]
-        end
+    # Project from lower right element
+    add_multiply_dimensionwise!(view(u, :, :, :, element_id), reverse_upper,
+                                reverse_lower, view(old_u, :, :, :, lower_right_id),
+                                u_tmp1)
 
-        # Project from lower right element
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, lower_right_id) *
-                   reverse_upper[i, k] * reverse_lower[j, l]
-        end
+    # Project from upper left element
+    add_multiply_dimensionwise!(view(u, :, :, :, element_id), reverse_lower,
+                                reverse_upper, view(old_u, :, :, :, upper_left_id),
+                                u_tmp1)
 
-        # Project from upper left element
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, upper_left_id) *
-                   reverse_lower[i, k] * reverse_upper[j, l]
-        end
+    # Project from upper right element
+    add_multiply_dimensionwise!(view(u, :, :, :, element_id), reverse_upper,
+                                reverse_upper, view(old_u, :, :, :, upper_right_id),
+                                u_tmp1)
 
-        # Project from upper right element
-        for l in eachnode(dg), k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, l, upper_right_id) *
-                   reverse_upper[i, k] * reverse_upper[j, l]
-        end
-
-        # Update value
-        set_node_vars!(u, acc, equations, dg, i, j, element_id)
-    end
+    return nothing
 end
 
 # Coarsen and refine elements in the DG solver based on a difference list.
@@ -545,11 +520,15 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
         resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
+        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg))
+
         while old_index <= old_nelems && new_index <= new_nelems
             if difference[old_index] > 0 # Refine.
 
                 # Refine element and store solution directly in new data structure.
-                refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg)
+                refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg,
+                                u_tmp1)
 
                 # Before indices are incremented divide by the new Jacobians on each
                 # child element and save the result
@@ -575,7 +554,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
                 # Coarsen elements and store solution directly in new data structure.
                 coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
-                                  dg)
+                                  dg, u_tmp1)
 
                 # Before the indices are incremented divide by the new Jacobian and save
                 # the result again in the parent element
