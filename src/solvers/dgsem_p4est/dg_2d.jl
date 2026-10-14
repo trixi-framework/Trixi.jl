@@ -76,7 +76,6 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack neighbor_ids, node_indices = cache.interfaces
     interfaces_u = interfaces.u
     index_range = eachnode(dg)
-    MeshT = typeof(mesh)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -86,7 +85,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
 
     @threaded for interface in eachinterface(dg, cache)
         @inbounds prolong2interfaces_per_interface!(interfaces_u, u, interface,
-                                                    MeshT, equations,
+                                                    typeof(mesh), equations,
                                                     neighbor_ids, node_indices,
                                                     index_range)
     end
@@ -158,7 +157,6 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     interfaces_u = interfaces.u
     @unpack boundary_interpolation = dg.basis
     index_range = eachnode(dg)
-    MeshT = typeof(mesh)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -169,7 +167,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
 
     @threaded for interface in eachinterface(dg, cache)
         @inbounds prolong2interfaces_per_interface!(interfaces_u, u, interface,
-                                                    MeshT, equations,
+                                                    typeof(mesh), equations,
                                                     neighbor_ids, node_indices,
                                                     index_range,
                                                     boundary_interpolation)
@@ -298,8 +296,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
-    MeshT = typeof(mesh)
-    SolverT = typeof(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -309,10 +305,10 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     end
 
     @threaded for interface in eachinterface(dg, cache)
-        @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
+        @inbounds calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
-                                                     SolverT,
+                                                     typeof(dg),
                                                      cache.interfaces.u, interface,
                                                      neighbor_ids, node_indices,
                                                      contravariant_vectors,
@@ -404,8 +400,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # interface data.
     @unpack normal_directions = cache.interfaces
     index_range = eachnode(dg)
-    MeshT = typeof(mesh)
-    SolverT = typeof(dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -414,10 +408,10 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     end
 
     @threaded for interface in eachinterface(dg, cache)
-        @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
+        @inbounds calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
-                                                     SolverT,
+                                                     typeof(dg),
                                                      cache.interfaces.u, interface,
                                                      neighbor_ids, node_indices,
                                                      normal_directions, index_range)
