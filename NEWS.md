@@ -27,7 +27,7 @@ for human readability.
   `tuning = Tuning(flux_differencing_kernel = FullSweep())`. The settings are stored as
   `semi.cache.tuning` for all volume integrals. Settings that are not set explicitly
   use the defaults of the backend, e.g., `HalfSweep()` on GPUs and `FullSweep()` on the
-  KernelAbstractions.jl CPU backend.
+  KernelAbstractions.jl CPU backend ([#3370]).
 - The `SummaryCallback` warns if the time type of the time integrator differs from the
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
@@ -138,7 +138,7 @@ for human readability.
   tuning = Tuning(; flux_differencing_kernel))` before calling `semidiscretize(semi, tspan)`
   instead.
 - The keyword argument `flux_differencing_kernel` of `trixi_adapt` is deprecated. Use
-  `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead.
+  `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead ([#3370]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
