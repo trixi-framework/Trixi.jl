@@ -49,9 +49,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 100.0)
-# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
-# This is particularly useful when changing the `storage_type` to a GPU array
-# type such as `MtlArray` (Apple Metal), `ROCArray` (AMD), or `CuArray` (NVIDIA CUDA).
 semi = trixi_adapt(semi; storage_type = nothing, real_type = nothing)
 ode = semidiscretize(semi, tspan)
 
@@ -79,7 +76,8 @@ integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
                   save_everystep = false, callback = callbacks,
                   maxiters = maxiters, verbose = false)
 if run_profiler
-    Metal.@profile solve!(integrator)
+    prof_result = Metal.@profile solve!(integrator)
 else
     solve!(integrator)
+    prof_result = nothing
 end

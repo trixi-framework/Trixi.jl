@@ -9,14 +9,14 @@ function main(elixir_path)
     maxiters = 50
     initial_refinement_level = 3
     storage_type = MtlArray
-    real_type = Float32  # Metal (Apple Silicon) has limited Float64 support
+    real_type = Float32 # Metal does not support `Float64`
 
     println("Warming up...")
 
     # start simulation with tiny final time to trigger compilation
     duration_compile = @elapsed begin
         trixi_include(elixir_path,
-                      tspan = (0.0f0, 1.0f-14),
+                      tspan = (0.0, 1e-14),
                       storage_type = storage_type,
                       real_type = real_type)
     end
@@ -53,20 +53,20 @@ function main(elixir_path)
         JSON.print(f, metrics, indent)
     end
 
-    # run profiler (requires xctrace from a full Xcode install)
+    # run profiler
     maxiters = 5
     initial_refinement_level = 1
 
-    if !success(`xctrace version`)
-        println("Skipping profiler: xctrace not available (install Xcode to enable profiling).")
-    else
-        println("Running profiler (Float32)...")
-        trixi_include(elixir_path,
-                      maxiters = maxiters,
-                      initial_refinement_level = initial_refinement_level,
-                      storage_type = storage_type,
-                      real_type = Float32,
-                      run_profiler = true)
+    println("Running profiler (Float32)...")
+    trixi_include(elixir_path,
+                  maxiters = maxiters,
+                  initial_refinement_level = initial_refinement_level,
+                  storage_type = storage_type,
+                  real_type = Float32,
+                  run_profiler = true)
+
+    open("profile_float32.txt", "w") do io
+        show(io, @invokelatest (@__MODULE__).prof_result)
     end
 end
 
