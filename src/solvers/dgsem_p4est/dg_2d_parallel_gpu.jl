@@ -274,31 +274,7 @@ end
                                                                  normal_directions,
                                                                  index_range)
     i, interface = @index(Global, NTuple)
-    calc_mpi_interface_flux_per_node!(surface_flux_values, u, mpi_recv_buffer, MeshT,
-                                      have_nonconservative_terms, equations,
-                                      surface_integral, dg,
-                                      local_neighbor_ids, node_indices, local_sides,
-                                      mpi_interfaces_buffer_offsets,
-                                      normal_directions, index_range,
-                                      i, interface)
-end
 
-Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
-                                                                    u,
-                                                                    mpi_recv_buffer,
-                                                                    MeshT::Type{<:Union{P4estMeshParallel{2},
-                                                                                        T8codeMeshParallel{2}}},
-                                                                    have_nonconservative_terms,
-                                                                    equations,
-                                                                    surface_integral,
-                                                                    dg,
-                                                                    local_neighbor_ids,
-                                                                    node_indices,
-                                                                    local_sides,
-                                                                    mpi_interfaces_buffer_offsets,
-                                                                    normal_directions,
-                                                                    index_range,
-                                                                    i, interface)
     # Get element and side index information on the local element
     local_element = local_neighbor_ids[interface]
     local_indices = node_indices[interface]
@@ -344,7 +320,6 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                       surface_integral, u_ll, u_rr, normal_direction,
                                       local_side, surface_node, local_direction,
                                       local_element)
-    return nothing
 end
 
 # Inlined version of the interface flux computation for conservation laws
