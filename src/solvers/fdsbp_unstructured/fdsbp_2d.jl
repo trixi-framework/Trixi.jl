@@ -101,18 +101,18 @@ function calc_volume_integral!(backend::Nothing, du, u,
     # SBP operators from SummationByPartsOperators.jl implement the basic interface
     # of matrix-vector multiplication. Thus, we pass an "array of structures",
     # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
+    # Single assignment so that the variables are not boxed when captured
+    # by the closure of `@threaded`
+    u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nnodes(dg), nelements(dg, cache))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nnodes(dg), nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nnodes(dg), nelements(dg, cache)))
     else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
+        (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
+         reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
     end
 
     # Use the tensor product structure to compute the discrete derivatives of
@@ -168,18 +168,18 @@ function calc_volume_integral!(backend::Nothing, du, u,
     # SBP operators from SummationByPartsOperators.jl implement the basic interface
     # of matrix-vector multiplication. Thus, we pass an "array of structures",
     # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
+    # Single assignment so that the variables are not boxed when captured
+    # by the closure of `@threaded`
+    u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nnodes(dg), nelements(dg, cache))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nnodes(dg), nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nnodes(dg), nelements(dg, cache)))
     else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
+        (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
+         reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
     end
 
     # Use the tensor product structure to compute the discrete derivatives of
@@ -343,8 +343,8 @@ function integrate_via_indices(func::Func, u,
     total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
-    @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
-                                                                                   cache)
+    @threaded reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
+                                                                                      cache)
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *

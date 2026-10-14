@@ -11,7 +11,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -38,7 +38,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
     # Avoid division by zero if the diffusivity vanishes everywhere
     max_scaled_diffusivity = nextfloat(zero(t))
 
-    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity_ = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -64,7 +65,7 @@ function max_dt(u, t, mesh::TreeMesh{3},
 
     max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
 
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         inv_jacobian = cache.elements.inverse_jacobian[element]
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
@@ -132,7 +133,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -222,7 +224,8 @@ function max_dt(u, t,
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_diffusivity) for element in eachelement(dg,
+                                                                                 cache)
         max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             # Local diffusivity transformed to the reference element

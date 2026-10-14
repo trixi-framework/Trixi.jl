@@ -83,7 +83,8 @@ function integrate_via_indices(func::Func, u,
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
-    @batch reduction=((+, integral), (+, volume)) for element in eachelement(dg, cache)
+    @threaded reduction=((+, integral), (+, volume)) for element in eachelement(dg,
+                                                                                cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(inverse_jacobian[i, j, k, element]))
             integral += volume_jacobian * weights[i] * weights[j] * weights[k] *

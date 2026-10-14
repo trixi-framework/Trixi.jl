@@ -152,12 +152,8 @@ end
 # Note: This is called *after* all initialization is done, but *before* the first time step
 function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
                                      reset_threads = true)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
-    if reset_threads
-        Polyester.reset_threads!()
-    end
+    # `reset_threads` is kept for backwards compatibility; it has no effect since
+    # Trixi.jl no longer uses Polyester.jl.
 
     # The summary callback should only print information on the root process.
     # However, all other MPI processes should also reset the timer so that
@@ -215,7 +211,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
-    push!(setup, "threading backend" => string(_PREFERENCE_THREADING))
+    push!(setup, "threading backend" => string(_THREADING_BACKEND))
     if !_PREFERENCE_LOOPVECTORIZATION
         push!(setup, "LoopVectorization" => "disabled")
     end

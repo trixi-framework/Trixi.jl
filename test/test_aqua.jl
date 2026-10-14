@@ -18,6 +18,5 @@
                                                     ignore = (:derivative_operator,
                                                               :periodic_derivative_operator,
                                                               :upwind_operators,
-                                                              :derivative_discontinuity!,
-                                                              Symbol("@batch"))))
+                                                              :derivative_discontinuity!)))
 end

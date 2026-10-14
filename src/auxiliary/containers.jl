@@ -231,9 +231,8 @@ Return the computational backend for `x`, which is either a KernelAbstractions b
 If the backend is `nothing`, the default multi-threaded CPU backend is used.
 """
 function trixi_backend(x)
-    if (_PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(x)) ||
-       (_PREFERENCE_THREADING !== :kernelabstractions &&
-        get_backend(x) isa KernelAbstractions.CPU)
+    if _PREFERENCE_THREADING !== :kernelabstractions &&
+       get_backend(x) isa KernelAbstractions.CPU
         return nothing
     end
     return get_backend(x)
@@ -475,14 +474,15 @@ end
 # `flux_differencing_kernel!`). We restrict the element types to those supported natively
 # by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
 # `LoopVectorization.check_args`.
-# With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
-# a `VectorBackedArray` for CPU `Vector`s, and a reshaped contiguous view of an `Array`,
-# e.g., a column of a matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode`
-# in coupled semidiscretizations, as well as their `static_view`s. Threading via
-# Polyester.jl may convert them to `PtrArray`s. With other threading backends, the
-# `@turbo` kernels are not selected for the arrays returned by `wrap_array` (see the
-# "Heisenbug" note in `@threaded`).
-@static if _PREFERENCE_THREADING === :polyester
+# With the `:pool` threading backend (which replaced Polyester.jl), these are the arrays
+# returned by `wrap_array`: a `VectorBackedArray` for CPU `Vector`s, and a reshaped
+# contiguous view of an `Array`, e.g., a column of a matrix in `linear_structure` or
+# `jacobian_fd`, or a part of `u_ode` in coupled semidiscretizations, as well as their
+# `static_view`s (`StaticSizeArray`s, which provide the static sizes and strides that
+# LoopVectorization.jl needs). The threaded loops pass them on unchanged (no conversion to
+# `PtrArray`s). With other threading backends, the `@turbo` kernels are not selected for
+# the arrays returned by `wrap_array` (see the "Heisenbug" note in `@threaded`).
+@static if _THREADING_BACKEND === :pool
     const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
                              VectorBackedArray{<:LoopVectorization.NativeTypes},
                              StaticSizeArray{<:LoopVectorization.NativeTypes, N, S,

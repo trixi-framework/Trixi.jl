@@ -10,7 +10,37 @@ support provided by Julia. You can recognize those loops by the
   ...
 end
 ```
-This will statically assign an equal iteration count to each available thread.
+This splits the iterations into one contiguous chunk per thread of the default thread
+pool and runs the chunks in parallel. Nested `@threaded` loops run the inner loop
+serially. How the chunks are run is selected by the threading backend, which is stored
+as a preference of Trixi.jl (in the `LocalPreferences.toml` of the active project) and
+can be changed with [`Trixi.set_threading_backend!`](@ref), e.g.,
+```julia
+julia> Trixi.set_threading_backend!(:static)
+```
+followed by a restart of Julia. The available backends are
+- `:pool` (default): a small pool of persistent worker tasks, one per thread of the
+  default thread pool. After a threaded loop, the workers spin for a short while (100 µs)
+  before going to sleep, so that the next loop can start quickly (about 0.5 µs instead of
+  2–4 µs with `Threads.@threads`). This matters for the many small loops in
+  the right-hand side evaluation. While spinning, the workers keep their CPU cores busy.
+  Do not combine this backend with other spinning thread pools such as Polyester.jl.
+- `:static`: Julia's `Threads.@threads :static`.
+- `:dynamic`: Julia's `Threads.@threads :dynamic`.
+- `:serial`: no multithreading.
+- `:kernelabstractions`: use the KernelAbstractions.jl kernels of Trixi.jl where
+  available, and `:static` otherwise.
+
+The `:static` and `:dynamic` backends use Julia's task scheduler, which is supported by
+tools that work on the code of the loops such as Enzyme.jl. For automatic
+differentiation, use `:static` or `:serial`. With Julia v1.12 and newer, `--threads=N`
+starts `N` threads plus one interactive thread. If Julia has exactly `N` CPU cores (e.g.,
+when pinned with `taskset` or in an HPC job), every `Threads.@threads :static` loop can
+take about 100 µs longer. Use `--threads=N,0` with the `:static` backend in that case.
+The `:pool` backend does not have this problem.
+
+The former `:polyester` backend, which used Polyester.jl, has been removed; it is treated
+as `:pool`.
 
 To use multi-threading, you need to tell Julia at startup how many threads you
 want to use by either setting the environment variable `JULIA_NUM_THREADS` or by
@@ -22,12 +52,13 @@ julia --threads=4
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
 
-If you use time integration methods from
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-and want to use multiple threads therein, you need to set the keyword argument
-`thread = Trixi.Threaded()`
-of the algorithms, as described in the
-[section on time integration methods](@ref time-integration).
+Time integration methods from
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) accept the keyword
+argument `thread = Trixi.Threaded()`, as described in the
+[section on time integration methods](@ref time-integration). OrdinaryDiffEq.jl implements
+threaded stage updates only via Polyester.jl, which Trixi.jl no longer uses, so
+`Trixi.Threaded()` currently disables threading in OrdinaryDiffEq.jl. Only the evaluation
+of the right-hand side is multithreaded.
 
 !!! warning
     Not everything is parallelized yet and there are likely opportunities to

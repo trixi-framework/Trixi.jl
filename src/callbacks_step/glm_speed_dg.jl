@@ -67,7 +67,7 @@ function calc_max_scaled_speed_for_c_h(backend::Nothing, mesh::MeshT, dg,
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     max_scaled_speed = zero(eltype(inverse_jacobian))
-    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+    @threaded reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda = max_scaled_speed_for_c_h_per_element(MeshT, dg,
                                                           contravariant_vectors,
                                                           inverse_jacobian,

@@ -115,18 +115,18 @@ function calc_volume_integral!(backend::Nothing, du, u,
     # SBP operators from SummationByPartsOperators.jl implement the basic interface
     # of matrix-vector multiplication. Thus, we pass an "array of structures",
     # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
+    # Single assignment so that the variables are not boxed when captured
+    # by the closure of `@threaded`
+    u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nelements(dg, cache))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nelements(dg, cache)))
     else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
+        (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
+         reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
     end
 
     # Use the tensor product structure to compute the discrete derivatives of
@@ -166,18 +166,18 @@ function calc_volume_integral!(backend::Nothing, du, u,
     # SBP operators from SummationByPartsOperators.jl implement the basic interface
     # of matrix-vector multiplication. Thus, we pass an "array of structures",
     # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
+    # Single assignment so that the variables are not boxed when captured
+    # by the closure of `@threaded`
+    u_vectors, du_vectors = if nvariables(equations) == 1
         # `reinterpret(reshape, ...)` removes the leading dimension only if more
         # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nelements(dg, cache))
+        (reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u), nnodes(dg),
+                 nelements(dg, cache)),
+         reshape(reinterpret(SVector{nvariables(equations), eltype(du)}, du),
+                 nnodes(dg), nelements(dg, cache)))
     else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
+        (reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u),
+         reinterpret(reshape, SVector{nvariables(equations), eltype(du)}, du))
     end
 
     # Use the tensor product structure to compute the discrete derivatives of
@@ -367,7 +367,7 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, equations, dg, args...))
 
     # Use quadrature to numerically integrate over entire domain
-    @batch reduction=(+, integral) for element in eachelement(dg, cache)
+    @threaded reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for i in eachnode(dg)
             integral += volume_jacobian_ * weights[i] *
