@@ -427,7 +427,8 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        l2=[0.006421164728264022], linf=[0.41638021060047015])
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -469,9 +470,9 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_navierstokes_convergence.jl"),
-                  initial_refinement_level = 1, tspan = (0.0, 0.01), sol = nothing,
-                  real_type = Float32, storage_type = Array)
-    semi32 = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+                  initial_refinement_level = 1, tspan = (0.0, 0.01), sol = nothing)
+    semi32 = trixi_adapt(semi; real_type = Float32, storage_type = Array)
+    ode = semidiscretize(semi32, tspan)
     @test real(semi32.solver) == Float32
     @test typeof(semi32.equations_parabolic.mu) == Float32
     @test ode.u0 isa Vector{Float32}
@@ -613,8 +614,9 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        l2=[0.0009808996243280868],
-                        linf=[0.01732621559135459])
+                        l2=[0.0012693198031094855],
+                        linf=[0.02141674958866828],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -628,7 +630,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
-                        l2=[0.0009432415534931421], linf=[0.016955330290404563])
+                        l2=[0.0011310586750760295], linf=[0.0198739968844466],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -640,7 +643,8 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonconforming.jl"),
-                        l2=[0.00098089913839922], linf=[0.017326216776220663])
+                        l2=[0.0012693197275735304], linf=[0.021416749588802506],
+                        tspan=(0.0, 0.1))
     # Make sure that the mesh is actually nonconforming
     @test Trixi.nmortars(solver, semi.cache) > 0
     # Ensure that we do not have excessive memory allocations
@@ -656,7 +660,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonconforming.jl"),
                         # same errors as for TreeMesh3D
-                        l2=[0.00098089913839922], linf=[0.017326216776220663])
+                        l2=[0.0012693197275735304], linf=[0.021416749588802506],
+                        tspan=(0.0, 0.1))
     # Make sure that the mesh is actually nonconforming
     @test Trixi.nmortars(solver, semi.cache) > 0
     # Ensure that we do not have excessive memory allocations
@@ -719,7 +724,8 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
                         cfl_parabolic=0.07,
-                        l2=[0.004185076476662267], linf=[0.05166349548111486])
+                        l2=[0.003716716813495243], linf=[0.054293109163683385],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

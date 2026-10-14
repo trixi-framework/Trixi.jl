@@ -33,7 +33,8 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion2D)
+@inline function flux(u, gradients, orientation::Integer,
+                      equations_parabolic::LaplaceDiffusion2D)
     dudx, dudy = gradients
     if orientation == 1
         return SVector(equations_parabolic.diffusivity * dudx)
