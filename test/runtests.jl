@@ -92,6 +92,13 @@ if !IN_WORKER && TRIXI_TEST in ("all", "Metal")
     RUN_METAL = Metal.functional()
     RUN_METAL || @warn "Unable to run Metal tests on this machine"
 end
+# Some Metal test items produce wrong results, crash, or hang on Apple M1/M2 GPUs
+# because of upstream bugs, see https://github.com/JuliaGPU/Metal.jl/issues/1017 and
+# https://github.com/JuliaGPU/Metal.jl/issues/1018. They are tagged `:metal_skip_m1_m2`
+# and skipped on these GPUs.
+SKIP_METAL_M1_M2 = RUN_METAL && occursin(r"^Apple M[12]\b", String(Metal.device().name))
+SKIP_METAL_M1_M2 &&
+    @warn "Skipping Metal test items with known failures on $(Metal.device().name)"
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST_RUN_ITEMS=true` and `TRIXI_TEST=<suite>`.
@@ -159,6 +166,7 @@ else
         :CUDA in ti.tags && !RUN_CUDA && return false
         :AMDGPU in ti.tags && !RUN_AMDGPU && return false
         :Metal in ti.tags && !RUN_METAL && return false
+        :metal_skip_m1_m2 in ti.tags && SKIP_METAL_M1_M2 && return false
         return true
     end
     @run_package_tests filter=testitem_filter verbose=TRIXI_TEST_VERBOSE

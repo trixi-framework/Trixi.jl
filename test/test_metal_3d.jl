@@ -1,3 +1,6 @@
+# Test items tagged `:metal_skip_m1_m2` fail on Apple M1/M2 GPUs because of upstream
+# bugs in Metal.jl and are skipped there, see `runtests.jl`.
+
 @testsnippet Metal3DExamples begin
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 end
@@ -9,7 +12,8 @@ end
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -36,7 +40,7 @@ end
 @testitem "Metal 3D: elixir_advection_basic.jl Float32 / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -48,7 +52,8 @@ end
                         storage_type=MtlArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -91,7 +96,8 @@ end
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -118,7 +124,7 @@ end
 @testitem "Metal 3D: elixir_euler_source_terms_nonperiodic.jl Float32 / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -139,7 +145,8 @@ end
                         storage_type=MtlArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -170,30 +177,31 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=[
-                            0.00021050235921250785,
-                            0.0006558863249658414,
-                            0.0002821364462491609,
-                            0.000794748439799794,
-                            0.0006839039331448021,
-                            0.0006743445567763623,
-                            0.00031815692647892813,
-                            0.0007885451813871558,
-                            4.811726181476006e-5
+                            0.00020523607157908708,
+                            0.000636037375360857,
+                            0.0002768722721598528,
+                            0.000780404043245244,
+                            0.000709669882361381,
+                            0.0006335012491207207,
+                            0.0003174622818755188,
+                            0.0007723389125485991,
+                            0.00023680042414966782
                         ],
                         linf=[
-                            0.0012031070458876636,
-                            0.00410699976203599,
-                            0.0017830978311310533,
-                            0.004780625099412877,
-                            0.0050959023689367555,
-                            0.003922455896960386,
-                            0.002515549812865392,
-                            0.004448527707559019,
-                            0.0001983994478820785
+                            0.0011634542712232188,
+                            0.004143013256670491,
+                            0.0016758874736150725,
+                            0.004705809053315052,
+                            0.0043527912850840345,
+                            0.00389837136357718,
+                            0.0014571305070021356,
+                            0.00445327133732587,
+                            0.0011999511085407923
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -220,36 +228,37 @@ end
 @testitem "Metal 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using Metal
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        l2=Float32[0.00021050235826592327,
-                                   0.0006558863204839041,
-                                   0.0002821364444400733,
-                                   0.000794748435433683,
-                                   0.0006839039307848098,
-                                   0.0006743445524692008,
-                                   0.000318156924452865,
-                                   0.0007885451771559438,
-                                   4.811726173404515e-5],
-                        linf=Float32[0.0012031070350810857,
-                                     0.004106999758487398,
-                                     0.001783097816025008,
-                                     0.004780625055122056,
-                                     0.005095902318184908,
-                                     0.003922455893839549,
-                                     0.002515549802432071,
-                                     0.004448527671538249,
-                                     0.00019839944646198146],
+                        l2=Float32[0.00020525117656966933,
+                                   0.0006360228815289537,
+                                   0.0002768843174099056,
+                                   0.0007803905033283389,
+                                   0.0007096877693750141,
+                                   0.0006334907401971527,
+                                   0.00031746218801771323,
+                                   0.0007723227422473114,
+                                   0.00023680544707528988],
+                        linf=Float32[0.0011634305119514465,
+                                     0.004142922370076324,
+                                     0.0016762695564673177,
+                                     0.004706167449922888,
+                                     0.004352995157241857,
+                                     0.0038981913494133824,
+                                     0.0014574094164283569,
+                                     0.004453214425426177,
+                                     0.0011997520958011896],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=MtlArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -276,7 +285,7 @@ end
 @testitem "Metal 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
@@ -339,7 +348,7 @@ end
 @testitem "Metal 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
@@ -402,7 +411,7 @@ end
 @testitem "Metal 3D: elixir_euler_source_terms_nonperiodic.jl FluxTurbo / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
@@ -478,7 +487,7 @@ end
 @testitem "Metal 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl FluxTurbo / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
