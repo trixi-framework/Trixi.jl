@@ -51,3 +51,35 @@ end
                         l2=[0.0005379687442422346],
                         linf=[0.007438525029884735])
 end
+
+@testitem "KernelAbstractions MPI GPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        # Expected errors agree with the non-MPI version up to round-off
+                        l2=[
+                            7.475384025292345e-5,
+                            6.508061190791895e-5,
+                            6.494699189562195e-5,
+                            0.000100398590022096,
+                            9.533883559805393e-5,
+                            7.594652450345156e-5,
+                            7.599093148092314e-5,
+                            9.723421960617558e-5,
+                            5.289168299208382e-5
+                        ],
+                        linf=[
+                            0.0003427579185457663,
+                            0.0004998303440423985,
+                            0.0004839939536228563,
+                            0.0005180908760881453,
+                            0.0004278890186213413,
+                            0.0004136795102114288,
+                            0.0004278210815760186,
+                            0.0005252948274238056,
+                            0.00015843034878747502
+                        ],
+                        tspan=(0.0, 0.1))
+end

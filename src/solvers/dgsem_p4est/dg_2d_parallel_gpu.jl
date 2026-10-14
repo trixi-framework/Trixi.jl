@@ -391,7 +391,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
     return nothing
 end
 
-# Inlined version of the interface flux computation for non-conservative equations
+# Inlined version of the interface flux computation for non-conservative equations.
+# As for the other surface fluxes on GPUs, see `prolong2interfaces_and_calc_interface_flux_per_node!`,
+# only surface fluxes combining the conservative and nonconservative terms are supported.
 Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
                                                                     MeshT::Type{<:Union{P4estMeshParallel{2},
                                                                                         T8codeMeshParallel{2}}},
@@ -404,21 +406,42 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                                                     surface_node_index,
                                                                     local_direction_index,
                                                                     local_element_index)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    calc_mpi_interface_flux_per_node!(surface_flux_values, MeshT,
+                                      have_nonconservative_terms,
+                                      combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                                      equations),
+                                      equations, surface_integral, u_ll, u_rr,
+                                      normal_direction, local_side, surface_node_index,
+                                      local_direction_index, local_element_index)
+    return nothing
+end
 
-    # Compute flux and non-conservative term for this side of the interface
+Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
+                                                                    MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                                        T8codeMeshParallel{2}}},
+                                                                    have_nonconservative_terms::True,
+                                                                    combine_conservative_and_nonconservative_fluxes::True,
+                                                                    equations,
+                                                                    surface_integral,
+                                                                    u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    local_side,
+                                                                    surface_node_index,
+                                                                    local_direction_index,
+                                                                    local_element_index)
+    @unpack surface_flux = surface_integral
+
+    # Compute the flux including the non-conservative term for this side of the interface
     if local_side == 1
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        flux_left, _ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = flux_left
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
-        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
+        _, flux_right = surface_flux(u_ll, u_rr, -normal_direction, equations)
+        flux_ = -flux_right
     end
 
     for v in eachvariable(equations)
-        surface_flux_values[v, surface_node_index,
-        local_direction_index, local_element_index] = flux_[v] +
-                                                      0.5f0 * noncons_flux_[v]
+        surface_flux_values[v, surface_node_index, local_direction_index, local_element_index] = flux_[v]
     end
 
     return nothing
