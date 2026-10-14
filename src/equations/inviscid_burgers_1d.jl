@@ -114,7 +114,8 @@ Entropy-conserving, symmetric flux for the inviscid Burgers' equation.
 F(u_L, u_R) = \frac{u_L^2 + u_L u_R + u_R^2}{6}
 ```
 """
-function flux_ec(u_ll, u_rr, orientation::Integer, equation::InviscidBurgersEquation1D)
+@inline function flux_ec(u_ll, u_rr, orientation::Integer,
+                         equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -135,8 +136,8 @@ Godunov (upwind) numerical flux for the inviscid Burgers' equation.
 See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 section 4.1.5 and especially equation (4.16).
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer,
-                      equation::InviscidBurgersEquation1D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -145,8 +146,8 @@ end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.2.5 and especially equation (4.34).
-function flux_engquist_osher(u_ll, u_rr, orientation::Integer,
-                             equation::InviscidBurgersEquation1D)
+@inline function flux_engquist_osher(u_ll, u_rr, orientation::Integer,
+                                     equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 

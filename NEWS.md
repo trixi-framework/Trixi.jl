@@ -8,6 +8,17 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
+  adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
+  `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
+  Previously, `semidiscretize` adapted the semidiscretization internally, so the
+  original `semi` was still used for callbacks and could share outdated data with the
+  adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
+  now part of the `cache` from the construction of the semidiscretization, and the
+  warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The `SummaryCallback` warns if the time type of the time integrator differs from the
+  real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
+  to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
@@ -57,6 +68,8 @@ for human readability.
   start Julia with `julia --check-bounds=yes` during development in case of issues.
 - The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
   ([#3291]) and nonconforming meshes ([#2894]).
+- `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
+  tetrahedral elements ([#3296]).
 - For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
   unity is now supported, which then results in a different temperature `T` ([#3165])
 
@@ -93,6 +106,22 @@ for human readability.
 - Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
   `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
   boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
+- Fixes a bug in the `GlmSpeedCallback` on curvilinear meshes (`StructuredMesh`,
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`) and for `DGMulti` solvers in multiple
+  space dimensions: the divergence cleaning speed `c_h` was computed from the Jacobian
+  determinant and thus decreased with mesh refinement (like `Δx^(ndims - 1)`). Now, it
+  takes the metric terms into account and agrees with the value on a `TreeMesh` for
+  Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
+  meshes change ([#3360]).
+- `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
+  semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
+  `Float32` semidiscretization. Previously, the time was only converted when passing
+  `real_type` to `semidiscretize`.
+
+#### Deprecated
+- The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
+  `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
+  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
 
 
 ## Changes when updating to v0.17 from v0.16.x
