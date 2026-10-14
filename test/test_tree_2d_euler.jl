@@ -1042,7 +1042,11 @@ end
                             0.10672357779516586,
                             0.06256826531635475,
                             0.1199900961506577
-                        ])
+                        ],
+                        # The results depend slightly on the CPU of the CI system
+                        # (roundoff differences of the inlined `flux_hllc`), which
+                        # are amplified by the entropy-change indicator switching.
+                        rtol=1.0e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
