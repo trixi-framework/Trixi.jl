@@ -5,13 +5,21 @@
 @muladd begin
 #! format: noindent
 
+# The send and receive buffers of all neighbor ranks are stored contiguously in
+# `mpi_send_buffer` and `mpi_recv_buffer`, respectively, where the data exchanged with
+# the neighbor rank with index `index` is stored in `mpi_buffer_ranges[index]`
+# (see `get_mpi_send_buffer` and `get_mpi_recv_buffer`). This allows GPU kernels to
+# pack and use the data of all neighbor ranks in a single kernel launch, using the
+# offsets `mpi_interfaces_buffer_offsets` of the data of each MPI interface.
 mutable struct P4estMPICache{BufferType <: DenseVector,
                              VecInt <: DenseVector{<:Integer}}
     mpi_neighbor_ranks::Vector{Int}
     mpi_neighbor_interfaces::VecOfArrays{VecInt}
     mpi_neighbor_mortars::VecOfArrays{VecInt}
-    mpi_send_buffers::VecOfArrays{BufferType}
-    mpi_recv_buffers::VecOfArrays{BufferType}
+    mpi_send_buffer::BufferType
+    mpi_recv_buffer::BufferType
+    mpi_buffer_ranges::Vector{UnitRange{Int}}
+    mpi_interfaces_buffer_offsets::VecInt
     mpi_send_requests::Vector{MPI.Request}
     mpi_recv_requests::Vector{MPI.Request}
     n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
@@ -28,8 +36,10 @@ function P4estMPICache(uEltype)
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
     mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
     mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
+    mpi_send_buffer = Vector{uEltype}(undef, 0)
+    mpi_recv_buffer = Vector{uEltype}(undef, 0)
+    mpi_buffer_ranges = Vector{UnitRange{Int}}(undef, 0)
+    mpi_interfaces_buffer_offsets = Vector{Int}(undef, 0)
     mpi_send_requests = Vector{MPI.Request}(undef, 0)
     mpi_recv_requests = Vector{MPI.Request}(undef, 0)
     n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
@@ -39,8 +49,10 @@ function P4estMPICache(uEltype)
     return P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
                                                        mpi_neighbor_interfaces,
                                                        mpi_neighbor_mortars,
-                                                       mpi_send_buffers,
-                                                       mpi_recv_buffers,
+                                                       mpi_send_buffer,
+                                                       mpi_recv_buffer,
+                                                       mpi_buffer_ranges,
+                                                       mpi_interfaces_buffer_offsets,
                                                        mpi_send_requests,
                                                        mpi_recv_requests,
                                                        n_elements_by_rank,
@@ -50,28 +62,42 @@ end
 
 @inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
 
+# Contiguous views of the data exchanged with the neighbor rank with index `index`
+@inline function get_mpi_send_buffer(mpi_cache::P4estMPICache, index)
+    return view(mpi_cache.mpi_send_buffer, mpi_cache.mpi_buffer_ranges[index])
+end
+@inline function get_mpi_recv_buffer(mpi_cache::P4estMPICache, index)
+    return view(mpi_cache.mpi_recv_buffer, mpi_cache.mpi_buffer_ranges[index])
+end
+
 function Adapt.adapt_structure(to, mpi_cache::P4estMPICache)
     mpi_neighbor_ranks = mpi_cache.mpi_neighbor_ranks
     mpi_neighbor_interfaces = Adapt.adapt_structure(to,
                                                     mpi_cache.mpi_neighbor_interfaces)
     mpi_neighbor_mortars = Adapt.adapt_structure(to, mpi_cache.mpi_neighbor_mortars)
-    mpi_send_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_send_buffers)
-    mpi_recv_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_recv_buffers)
+    mpi_send_buffer = Adapt.adapt(to, mpi_cache.mpi_send_buffer)
+    mpi_recv_buffer = Adapt.adapt(to, mpi_cache.mpi_recv_buffer)
+    mpi_buffer_ranges = mpi_cache.mpi_buffer_ranges
+    mpi_interfaces_buffer_offsets = Adapt.adapt(to,
+                                                mpi_cache.mpi_interfaces_buffer_offsets)
     mpi_send_requests = mpi_cache.mpi_send_requests
     mpi_recv_requests = mpi_cache.mpi_recv_requests
     n_elements_by_rank = mpi_cache.n_elements_by_rank
     n_elements_global = mpi_cache.n_elements_global
     first_element_global_id = mpi_cache.first_element_global_id
 
-    @assert eltype(mpi_send_buffers) == eltype(mpi_recv_buffers)
-    BufferType = eltype(mpi_send_buffers)
+    @assert typeof(mpi_send_buffer) == typeof(mpi_recv_buffer)
+    BufferType = typeof(mpi_send_buffer)
     VecInt = eltype(mpi_neighbor_interfaces)
     return P4estMPICache{BufferType, VecInt}(mpi_neighbor_ranks,
                                              mpi_neighbor_interfaces,
-                                             mpi_neighbor_mortars, mpi_send_buffers,
-                                             mpi_recv_buffers, mpi_send_requests,
-                                             mpi_recv_requests, n_elements_by_rank,
-                                             n_elements_global, first_element_global_id)
+                                             mpi_neighbor_mortars,
+                                             mpi_send_buffer, mpi_recv_buffer,
+                                             mpi_buffer_ranges,
+                                             mpi_interfaces_buffer_offsets,
+                                             mpi_send_requests, mpi_recv_requests,
+                                             n_elements_by_rank, n_elements_global,
+                                             first_element_global_id)
 end
 
 ##
@@ -90,7 +116,7 @@ function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache,
     n_small_elements = 2^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
-        send_buffer = mpi_cache.mpi_send_buffers[rank]
+        send_buffer = get_mpi_send_buffer(mpi_cache, rank)
 
         for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[rank])
             first = (index - 1) * data_size + 1
@@ -133,7 +159,8 @@ function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache,
 
     # Start sending
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_send_requests[index] = MPI.Isend(mpi_cache.mpi_send_buffers[index],
+        mpi_cache.mpi_send_requests[index] = MPI.Isend(get_mpi_send_buffer(mpi_cache,
+                                                                           index),
                                                        rank, mpi_rank(), mpi_comm())
     end
 
@@ -142,7 +169,8 @@ end
 
 function start_mpi_receive!(mpi_cache::P4estMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
+        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(get_mpi_recv_buffer(mpi_cache,
+                                                                            index),
                                                         rank, rank, mpi_comm())
     end
 
@@ -162,7 +190,7 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
     # Start receiving and unpack received data until all communication is finished
     data = MPI.Waitany(mpi_cache.mpi_recv_requests)
     while data !== nothing
-        recv_buffer = mpi_cache.mpi_recv_buffers[data]
+        recv_buffer = get_mpi_recv_buffer(mpi_cache, data)
 
         for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[data])
             first = (index - 1) * data_size + 1
@@ -302,12 +330,12 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
                                                                                                          mpi_mortars,
                                                                                                          mesh)
 
-    _mpi_send_buffers, _mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(_mpi_neighbor_interfaces,
-                                                                                                          _mpi_neighbor_mortars,
-                                                                                                          ndims(mesh),
-                                                                                                          nvars,
-                                                                                                          n_nodes,
-                                                                                                          uEltype)
+    (mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
+    mpi_interfaces_buffer_offsets,
+    mpi_send_requests, mpi_recv_requests) = init_mpi_buffers(_mpi_neighbor_interfaces,
+                                                             _mpi_neighbor_mortars,
+                                                             ndims(mesh), nvars,
+                                                             n_nodes, uEltype)
 
     # Determine local and total number of elements
     n_elements_global = Int(mesh.p4est.global_num_quadrants[])
@@ -321,16 +349,50 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
 
     mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
     mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
-    mpi_send_buffers = VecOfArrays(_mpi_send_buffers)
-    mpi_recv_buffers = VecOfArrays(_mpi_recv_buffers)
 
     # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
-                       mpi_send_buffers, mpi_recv_buffers,
+                       mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
+                       mpi_interfaces_buffer_offsets,
                        mpi_send_requests, mpi_recv_requests,
                        n_elements_by_rank, n_elements_global,
                        first_element_global_id
+end
+
+# Initialize the MPI buffers of all neighbor ranks as contiguous ranges of a single
+# send and a single receive buffer, see `P4estMPICache`. The data exchanged with
+# each neighbor rank consists of the data of all MPI interfaces shared with this rank
+# (in the order of `mpi_neighbor_interfaces`), followed by the data of all MPI mortars.
+function init_mpi_buffers(mpi_neighbor_interfaces, mpi_neighbor_mortars, n_dims,
+                          nvars, n_nodes, uEltype)
+    data_size = nvars * n_nodes^(n_dims - 1)
+    n_small_elements = 2^(n_dims - 1)
+    n_mpi_interfaces = mapreduce(length, +, mpi_neighbor_interfaces; init = 0)
+
+    mpi_buffer_ranges = Vector{UnitRange{Int}}(undef, length(mpi_neighbor_interfaces))
+    mpi_interfaces_buffer_offsets = Vector{Int}(undef, n_mpi_interfaces)
+    buffer_size = 0
+    for index in eachindex(mpi_neighbor_interfaces, mpi_neighbor_mortars)
+        for (interface_index, interface) in enumerate(mpi_neighbor_interfaces[index])
+            mpi_interfaces_buffer_offsets[interface] = buffer_size +
+                                                       (interface_index - 1) *
+                                                       data_size
+        end
+        neighbor_buffer_size = length(mpi_neighbor_interfaces[index]) * data_size +
+                               length(mpi_neighbor_mortars[index]) *
+                               n_small_elements * 2 * data_size
+        mpi_buffer_ranges[index] = (buffer_size + 1):(buffer_size + neighbor_buffer_size)
+        buffer_size += neighbor_buffer_size
+    end
+
+    mpi_send_buffer = Vector{uEltype}(undef, buffer_size)
+    mpi_recv_buffer = Vector{uEltype}(undef, buffer_size)
+    mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+    mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+
+    return (mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
+            mpi_interfaces_buffer_offsets, mpi_send_requests, mpi_recv_requests)
 end
 
 function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars,

@@ -39,3 +39,15 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+# The unstructured mesh contains MPI interfaces with flipped orientations
+@testitem "KernelAbstractions MPI GPU 2D: elixir_advection_unstructured_flag.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_unstructured_flag.jl"),
+                        # Expected errors are exactly the same as in the CPU version
+                        l2=[0.0005379687442422346],
+                        linf=[0.007438525029884735])
+end
