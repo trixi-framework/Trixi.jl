@@ -13,6 +13,8 @@ for human readability.
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
   on conforming meshes (no mortars, thus also no AMR) are supported.
+  Trixi.jl now re-exports the module `KernelAbstractions`, e.g., to select the GPU of
+  each MPI rank via `KernelAbstractions.device!`.
 - Experimental support for Apple GPUs via Metal.jl, e.g., using
   `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
   Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,

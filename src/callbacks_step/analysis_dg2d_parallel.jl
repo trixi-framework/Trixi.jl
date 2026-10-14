@@ -135,24 +135,7 @@ function calc_error_norms(func, u, t, analyzer,
         end
     end
 
-    # Accumulate local results on root process
-    global_l2_error = Vector(l2_error)
-    global_linf_error = Vector(linf_error)
-    MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
-    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        l2_error = convert(typeof(l2_error), global_l2_error)
-        linf_error = convert(typeof(linf_error), global_linf_error)
-        # For L2 error, divide by total volume
-        l2_error = @. sqrt(l2_error / total_volume)
-    else
-        l2_error = convert(typeof(l2_error), NaN * global_l2_error)
-        linf_error = convert(typeof(linf_error), NaN * global_linf_error)
-    end
-
-    return l2_error, linf_error
+    return reduce_error_norms_mpi(l2_error, linf_error, volume)
 end
 
 function integrate_via_indices(func::Func, u,
@@ -175,6 +158,62 @@ function integrate_via_indices(func::Func, u,
         integral = convert(typeof(local_integral), global_integral[])
     else
         integral = convert(typeof(local_integral), NaN * local_integral)
+    end
+
+    return integral
+end
+
+# Accumulate the local error norms and volumes of all MPI ranks on the MPI root and
+# normalize the L2 error with the total volume. The L2 error and the volume are summed
+# up with a single MPI call. Only the MPI root returns the global error norms; all
+# other ranks return `NaN`s.
+function reduce_error_norms_mpi(l2_error, linf_error, volume)
+    # Pack the L2 error and the volume into an `SVector` to sum them up at once
+    local_l2_error_volume = vcat(l2_error, SVector(volume))
+    global_l2_error_volume = MPI.Reduce!(Ref(local_l2_error_volume), +, mpi_root(),
+                                         mpi_comm())
+    # In contrast to `+`, `max` of two `SVector`s compares them lexicographically
+    # instead of elementwise. Thus, we use a `Vector` here, which MPI.jl reduces
+    # elementwise via `MPI.MAX`.
+    global_linf_error = Vector(linf_error)
+    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
+    if mpi_isroot()
+        data = global_l2_error_volume[]
+        l2_error = convert(typeof(l2_error), StaticArrays.pop(data))
+        total_volume = convert(typeof(volume), last(data))
+        linf_error = convert(typeof(linf_error), global_linf_error)
+        # For L2 error, divide by total volume
+        l2_error = @. sqrt(l2_error / total_volume)
+    else
+        l2_error = convert(typeof(l2_error), NaN * l2_error)
+        linf_error = convert(typeof(linf_error), NaN * linf_error)
+    end
+
+    return l2_error, linf_error
+end
+
+# Sum the local `integral` and `volume` of all MPI ranks on the MPI root and normalize
+# the integral with the total volume if `normalize` is true. Only the MPI root returns
+# the global integral; all other ranks return `NaN`s.
+function reduce_integral_and_volume_mpi(integral, volume, normalize)
+    # Reduce both values with a single MPI call by packing them into an `SVector`,
+    # which works for both scalar and `SVector`-valued integrals
+    local_data = vcat(SVector(integral), SVector(volume))
+    global_data = MPI.Reduce!(Ref(local_data), +, mpi_root(), mpi_comm())
+    if mpi_isroot()
+        data = global_data[]
+        global_integral = integral isa Number ? first(data) : StaticArrays.pop(data)
+        integral = convert(typeof(integral), global_integral)
+        total_volume = convert(typeof(volume), last(data))
+    else
+        integral = convert(typeof(integral), NaN * integral)
+        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
+    end
+
+    # Normalize with total volume
+    if normalize
+        integral = integral / total_volume
     end
 
     return integral
@@ -206,21 +245,7 @@ function integrate_via_indices(func::Func, backend::Nothing, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
-    else
-        integral = convert(typeof(integral), NaN * integral)
-        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
-    end
-
-    # Normalize with total volume
-    if normalize
-        integral = integral / total_volume
-    end
-
-    return integral
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
 end
 
 function integrate_via_indices(func::Func, backend::Backend, u,
@@ -260,20 +285,6 @@ function integrate_via_indices(func::Func, backend::Backend, u,
         return (local_integral, local_total_volume)
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
-    else
-        integral = convert(typeof(integral), NaN * integral)
-        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
-    end
-
-    # Normalize with total volume
-    if normalize
-        integral = integral / total_volume
-    end
-
-    return integral
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
 end
 end # @muladd

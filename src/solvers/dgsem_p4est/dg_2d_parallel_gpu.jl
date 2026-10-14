@@ -33,6 +33,14 @@ function rhs_hyperbolic!(backend::Backend,
     # This also guarantees that the MPI interface flux kernel of the previous call,
     # which reads from the MPI receive buffer, has finished. Thus, we can only start
     # to receive MPI data afterwards, in contrast to the CPU version.
+    # MPI is not ordered with respect to the kernels queued on the GPU, which run
+    # asynchronously. Thus, all kernels writing to the MPI send buffer must be launched
+    # before this synchronization (and after `finish_mpi_send!` of the previous call),
+    # and all kernels reading from the MPI receive buffer must be launched after
+    # `finish_mpi_receive!`. Keep this in mind when adding kernels using the MPI
+    # buffers (e.g., for MPI mortars). Missing synchronization cannot be detected by
+    # tests with the CPU backend of KernelAbstractions.jl, which runs kernels
+    # synchronously.
     @trixi_timeit timer() "synchronize" KernelAbstractions.synchronize(backend)
 
     # Start to receive MPI data

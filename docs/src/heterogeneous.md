@@ -77,16 +77,18 @@ there are two ways to achieve this:
    device.
 2. Select the GPU in the elixir based on the rank within the node, which is obtained
    from a node-local MPI communicator. Do this before creating any GPU arrays, i.e.,
-   before calling `trixi_adapt`. Using CUDA.jl, this reads
+   before calling `trixi_adapt`. The function `KernelAbstractions.device!` of
+   [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) selects
+   the device in a backend-agnostic way. Using CUDA.jl, this reads
    ```julia
-   using MPI, CUDA
+   using Trixi, MPI, CUDA
+   backend = CUDABackend() # or `ROCBackend()` with `using AMDGPU`
    comm_node = MPI.Comm_split_type(MPI.COMM_WORLD, MPI.COMM_TYPE_SHARED,
                                    MPI.Comm_rank(MPI.COMM_WORLD))
-   CUDA.device!(MPI.Comm_rank(comm_node)) # 0-based device ID
+   KernelAbstractions.device!(backend, MPI.Comm_rank(comm_node) + 1)
    ```
-   With AMDGPU.jl, use `AMDGPU.device_id!(MPI.Comm_rank(comm_node) + 1)` (1-based
-   device index) instead. If there are more MPI ranks than GPUs on a node, these calls
-   throw an error.
+   If there are more MPI ranks than GPUs on a node, `KernelAbstractions.device!`
+   throws an `ArgumentError`.
 
 !!! note "Single-precision computations using `Float32`"
     To use `Float32` consistently, make sure to write all equations, initial conditions,
