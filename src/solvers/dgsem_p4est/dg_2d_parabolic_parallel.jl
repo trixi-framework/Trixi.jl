@@ -58,14 +58,14 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # MPI interface fluxes for gradients
     @trixi_timeit timer() "MPI interface flux gradient" begin
-        calc_mpi_interface_flux_gradient!(cache.elements.surface_flux_values,
+        calc_mpi_interface_flux_gradient!(backend, cache.elements.surface_flux_values,
                                           mesh, equations_parabolic,
                                           dg, parabolic_scheme, cache)
     end
 
     # MPI mortar fluxes for gradients
     @trixi_timeit timer() "MPI mortar flux gradient" begin
-        calc_mpi_mortar_flux_gradient!(cache.elements.surface_flux_values,
+        calc_mpi_mortar_flux_gradient!(backend, cache.elements.surface_flux_values,
                                        mesh, equations_parabolic, dg.mortar,
                                        dg, parabolic_scheme, cache)
     end
@@ -112,13 +112,14 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Prolong parabolic fluxes to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars divergence" begin
-        prolong2mpimortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
-                                       dg.mortar, dg)
+        prolong2mpimortars_divergence!(backend, cache, flux_parabolic, mesh,
+                                       equations_parabolic, dg.mortar, dg)
     end
 
     # Prolong parabolic fluxes to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
-        prolong2mpiinterfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+        prolong2mpiinterfaces!(backend, cache, flux_parabolic, mesh,
+                               equations_parabolic, dg)
     end
 
     # Start divergence MPI send
@@ -144,14 +145,14 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # MPI interface fluxes for divergence
     @trixi_timeit timer() "MPI interface flux divergence" begin
-        calc_mpi_interface_flux_divergence!(cache.elements.surface_flux_values,
+        calc_mpi_interface_flux_divergence!(backend, cache.elements.surface_flux_values,
                                             mesh, equations_parabolic,
                                             dg, parabolic_scheme, cache)
     end
 
     # MPI mortar fluxes for divergence
     @trixi_timeit timer() "MPI mortar flux divergence" begin
-        calc_mpi_mortar_flux_divergence!(cache.elements.surface_flux_values,
+        calc_mpi_mortar_flux_divergence!(backend, cache.elements.surface_flux_values,
                                          mesh, equations_parabolic, dg.mortar,
                                          dg, parabolic_scheme, cache)
     end
@@ -289,7 +290,7 @@ function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
     return nothing
 end
 
-function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
+function prolong2mpiinterfaces!(backend::Nothing, cache, flux_parabolic::Tuple,
                                 mesh::P4estMeshParallel{2},
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -359,7 +360,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
     return nothing
 end
 
-function calc_mpi_interface_flux_gradient!(surface_flux_values,
+function calc_mpi_interface_flux_gradient!(backend::Nothing, surface_flux_values,
                                            mesh::P4estMeshParallel{2},
                                            equations_parabolic,
                                            dg::DG, parabolic_scheme, cache)
@@ -420,7 +421,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
     return nothing
 end
 
-function calc_mpi_interface_flux_divergence!(surface_flux_values,
+function calc_mpi_interface_flux_divergence!(backend::Nothing, surface_flux_values,
                                              mesh::P4estMeshParallel{2},
                                              equations_parabolic,
                                              dg::DG, parabolic_scheme, cache)
@@ -487,7 +488,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
     return nothing
 end
 
-function calc_mpi_mortar_flux_gradient!(surface_flux_values,
+function calc_mpi_mortar_flux_gradient!(backend::Nothing, surface_flux_values,
                                         mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
@@ -606,7 +607,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
     return nothing
 end
 
-function prolong2mpimortars_divergence!(cache, flux_parabolic,
+function prolong2mpimortars_divergence!(backend::Nothing, cache, flux_parabolic,
                                         mesh::P4estMeshParallel{2},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
@@ -728,7 +729,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
     return nothing
 end
 
-function calc_mpi_mortar_flux_divergence!(surface_flux_values,
+function calc_mpi_mortar_flux_divergence!(backend::Nothing, surface_flux_values,
                                           mesh::P4estMeshParallel{2},
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,

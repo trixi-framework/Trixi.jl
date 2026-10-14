@@ -336,7 +336,7 @@ function prolong2mpimortars!(backend::Nothing, cache, u,
     return nothing
 end
 
-function calc_mpi_mortar_flux!(surface_flux_values,
+function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                have_nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,

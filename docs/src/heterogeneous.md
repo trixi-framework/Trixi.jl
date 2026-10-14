@@ -56,8 +56,25 @@ Hyperbolic problems on conforming `P4estMesh`es in 2D can also be run on multipl
 with MPI, using one MPI rank per GPU. The setup is the same as above, and the elixir is
 started with MPI as described in [Parallelization](@ref parallel_system_MPI).
 This requires a local CUDA/ROCm-aware MPI installation, since the MPI buffers are stored
-on the GPU and passed directly to MPI. Mixed hyperbolic-parabolic problems, 3D meshes,
-and non-conforming meshes (mortars, AMR) are not supported with multiple GPUs yet.
+on the GPU and passed directly to MPI. You can check this with `MPI.has_cuda()` or
+`MPI.has_rocm()` from MPI.jl. However, these functions can only detect GPU support for
+some MPI implementations (e.g., Open MPI) and return `false` otherwise.
+Mixed hyperbolic-parabolic problems, 3D meshes, and non-conforming meshes
+(mortars, AMR) are not supported with multiple GPUs yet.
+
+By default, every MPI rank uses the first GPU of its node. Thus, if a node has multiple
+GPUs, assign a different GPU to each MPI rank on this node before creating any GPU
+arrays, i.e., before calling `trixi_adapt`. For example, using CUDA.jl, you can
+compute the rank within the node from a node-local MPI communicator:
+```julia
+using MPI, CUDA
+comm_node = MPI.Comm_split_type(MPI.COMM_WORLD, MPI.COMM_TYPE_SHARED,
+                                MPI.Comm_rank(MPI.COMM_WORLD))
+CUDA.device!(MPI.Comm_rank(comm_node) % length(CUDA.devices())) # 0-based device ID
+```
+With AMDGPU.jl, use `AMDGPU.device_id!(MPI.Comm_rank(comm_node) % length(AMDGPU.devices()) + 1)`
+(1-based device index) instead. Alternatively, many job schedulers can assign a single
+GPU to each MPI rank, e.g., by setting `CUDA_VISIBLE_DEVICES` per rank.
 
 !!! note "Single-precision computations using `Float32`"
     To use `Float32` consistently, make sure to write all equations, initial conditions,

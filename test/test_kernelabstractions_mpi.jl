@@ -6,7 +6,7 @@ end
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testitem "KernelAbstractions MPI GPU 2D: elixir_advection_basic.jl" setup=[
+@testitem "KernelAbstractions MPI CPU 2D: elixir_advection_basic.jl" setup=[
     Setup,
     KernelAbstractionsMPIExamples
 ] tags=[:kernelabstractions_mpi] begin
@@ -41,7 +41,7 @@ end
 end
 
 # The unstructured mesh contains MPI interfaces with flipped orientations
-@testitem "KernelAbstractions MPI GPU 2D: elixir_advection_unstructured_flag.jl" setup=[
+@testitem "KernelAbstractions MPI CPU 2D: elixir_advection_unstructured_flag.jl" setup=[
     Setup,
     KernelAbstractionsMPIExamples
 ] tags=[:kernelabstractions_mpi] begin
@@ -52,7 +52,7 @@ end
                         linf=[0.007438525029884735])
 end
 
-@testitem "KernelAbstractions MPI GPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl" setup=[
+@testitem "KernelAbstractions MPI CPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl" setup=[
     Setup,
     KernelAbstractionsMPIExamples
 ] tags=[:kernelabstractions_mpi] begin
