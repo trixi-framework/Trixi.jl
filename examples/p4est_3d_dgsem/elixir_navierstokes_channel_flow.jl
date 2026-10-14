@@ -1,4 +1,5 @@
 using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqCore: PIDController
 using Trixi
 
 ###############################################################################
