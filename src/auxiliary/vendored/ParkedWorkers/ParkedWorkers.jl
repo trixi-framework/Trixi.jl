@@ -1,5 +1,6 @@
-# Vendored from ParkedWorkers.jl by Valentin Churavy (not yet published or registered),
-# commit b91941470a5a29dcbc6cd9e55131924a92ecaa10,
+# Vendored from ParkedWorkers.jl by Valentin Churavy
+# (https://github.com/vchuravy/ParkedWorkers.jl, not yet registered),
+# commit a08912a6cc2f35a18c1bdf87cd5c2b50a846b9e6,
 # file `src/ParkedWorkers.jl`, formatted with the JuliaFormatter settings of Trixi.jl and otherwise
 # unchanged. Do not edit here; change the package and copy it again. Replace this copy by
 # a package dependency once ParkedWorkers.jl is registered. See `LICENSE` in this
