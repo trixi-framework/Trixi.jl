@@ -9,13 +9,12 @@ prandtl_number() = 0.72
 mu_ref() = 1.0 / 3.0 * 10^(-4) # [non-dimensional]
 T_ref = 80 # [non-dimensional]
 
-@inline function mu(entropy_variables,
-                    equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    cons = entropy2cons(entropy_variables, equations.equations_hyperbolic)
-    u_prim_temperature = cons2prim_temperature(cons, equations)
-    _, _, _, T = u_prim_temperature
-
-    return mu_ref() * T / T_ref
+mu = let mu_ref = mu_ref(), T_ref = T_ref
+    @inline function (entropy_variables,
+                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+        T = entropy2velocity_temperature(entropy_variables, equations)[3]
+        return mu_ref * T / T_ref
+    end
 end
 
 equations = CompressibleEulerEquations2D(1.4)
