@@ -186,5 +186,6 @@ callbacks = CallbackSet(summary_callback,
 
 time_int_tol = 1e-6
 sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            controller = PIDController(0.55, -0.27, 0.05), # optimized for SSPRK43
             dt = 1e-6, abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
