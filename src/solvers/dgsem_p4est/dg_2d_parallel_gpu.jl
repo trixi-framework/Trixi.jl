@@ -143,32 +143,22 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     end
 
     kernel! = prolong2mpiinterfaces_KAkernel!(backend)
-    kernel!(mpi_send_buffer, u, equations, dg, local_neighbor_ids, node_indices,
-            mpi_interfaces_buffer_offsets, index_range,
+    kernel!(mpi_send_buffer, u, typeof(mesh), equations, dg, local_neighbor_ids,
+            node_indices, mpi_interfaces_buffer_offsets, index_range,
             ndrange = (nnodes(dg), nmpiinterfaces(dg, cache)))
     return nothing
 end
 
 @kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_send_buffer, u,
+                                                               MeshT::Type{<:Union{P4estMeshParallel{2},
+                                                                                   T8codeMeshParallel{2}}},
                                                                equations, dg,
                                                                local_neighbor_ids,
                                                                node_indices,
                                                                mpi_interfaces_buffer_offsets,
                                                                index_range)
     i, interface = @index(Global, NTuple)
-    prolong2mpiinterfaces_per_node!(mpi_send_buffer, u, equations, dg,
-                                    local_neighbor_ids, node_indices,
-                                    mpi_interfaces_buffer_offsets, index_range,
-                                    i, interface)
-end
 
-Base.@propagate_inbounds function prolong2mpiinterfaces_per_node!(mpi_send_buffer, u,
-                                                                  equations, dg,
-                                                                  local_neighbor_ids,
-                                                                  node_indices,
-                                                                  mpi_interfaces_buffer_offsets,
-                                                                  index_range,
-                                                                  i, interface)
     # Copy solution data from the local element using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
@@ -191,8 +181,6 @@ Base.@propagate_inbounds function prolong2mpiinterfaces_per_node!(mpi_send_buffe
     for v in eachvariable(equations)
         mpi_send_buffer[offset + v] = u_local[v]
     end
-
-    return nothing
 end
 
 # Offset of the data of node `i` of an MPI interface in the MPI send/receive buffer
