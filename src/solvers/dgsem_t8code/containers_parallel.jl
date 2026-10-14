@@ -47,8 +47,10 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     empty!(mpi_mesh_info.neighbor_ranks_mortar)
     empty!(mpi_mesh_info.neighbor_ranks_interface)
 
-    # Re-initialize and distribute normal directions of MPI mortars; requires
-    # MPI communication, so the MPI cache must be re-initialized beforehand.
+    # Re-initialize and distribute normal directions of MPI interfaces and mortars;
+    # requires MPI communication, so the MPI cache must be re-initialized beforehand.
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 

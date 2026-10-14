@@ -308,6 +308,8 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
     mpi_cache = init_mpi_cache(mesh, mpi_interfaces, mpi_mortars,
                                nvariables(equations), nnodes(dg), uEltype)
 
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
     interfaces = init_interfaces(mesh, equations, dg.basis, elements)
@@ -615,9 +617,83 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
     return nothing
 end
 
+# Exchange normal directions of the primary elements of the MPI interfaces. They are sent
+# from the MPI rank owning the primary element to the rank owning the secondary element.
+# Thus, both ranks use bitwise identical normal directions to calculate the hyperbolic and
+# parabolic interface fluxes, as in the serial code. Computing the normal directions from
+# the metric terms of the secondary element instead yields values differing by round-off.
+# This makes the fluxes non-conservative at the level of round-off and can change the
+# upwind direction of `ParabolicFormulationLocalDG` if the normal direction has (nearly)
+# equal components, e.g., on rotated meshes.
+function exchange_normal_directions!(mpi_interfaces::P4estMPIInterfaceContainer,
+                                     mpi_cache,
+                                     mesh::Union{P4estMeshParallel, T8codeMeshParallel},
+                                     n_nodes)
+    RealT = real(mesh)
+    n_dims = ndims(mesh)
+    @unpack mpi_neighbor_interfaces, mpi_neighbor_ranks = mpi_cache
+    @unpack normal_directions, local_sides = mpi_interfaces
+    data_size = n_nodes^(n_dims - 1) * n_dims
+
+    # Create buffers and requests
+    send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_interfaces))
+    recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_interfaces))
+    for index in 1:length(mpi_neighbor_interfaces)
+        n_data = length(mpi_neighbor_interfaces[index]) * data_size
+        # Only data of interfaces with a local primary side is sent; the remaining
+        # entries stay NaN
+        send_buffers[index] = fill(NaN |> RealT, n_data)
+        recv_buffers[index] = fill(NaN |> RealT, n_data)
+    end
+    send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+    recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+
+    # Fill send buffers
+    for rank in 1:length(mpi_neighbor_ranks)
+        send_buffer = send_buffers[rank]
+
+        for (index, interface) in enumerate(mpi_neighbor_interfaces[rank])
+            if local_sides[interface] == 1 # local element on primary side
+                first = (index - 1) * data_size + 1
+                last = (index - 1) * data_size + data_size
+                @views send_buffer[first:last] .= vec(normal_directions[..,
+                                                                        interface])
+            end
+        end
+    end
+
+    # Start data exchange
+    for (index, rank) in enumerate(mpi_neighbor_ranks)
+        send_requests[index] = MPI.Isend(send_buffers[index], rank, mpi_rank(),
+                                         mpi_comm())
+        recv_requests[index] = MPI.Irecv!(recv_buffers[index], rank, rank, mpi_comm())
+    end
+
+    # Unpack data from receive buffers
+    data = MPI.Waitany(recv_requests)
+    while data !== nothing
+        recv_buffer = recv_buffers[data]
+
+        for (index, interface) in enumerate(mpi_neighbor_interfaces[data])
+            if local_sides[interface] == 2 # local element on secondary side
+                first = (index - 1) * data_size + 1
+                last = (index - 1) * data_size + data_size
+                @views vec(normal_directions[.., interface]) .= recv_buffer[first:last]
+            end
+        end
+
+        data = MPI.Waitany(recv_requests)
+    end
+
+    # Wait for communication to finish
+    MPI.Waitall(send_requests, MPI.Status)
+
+    return nothing
+end
+
 # Exchange normal directions of small elements of the MPI mortars. They are needed on all involved
 # MPI ranks to calculate the mortar fluxes.
-function exchange_normal_directions!(mpi_mortars, mpi_cache,
+function exchange_normal_directions!(mpi_mortars::P4estMPIMortarContainer, mpi_cache,
                                      mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                                      n_nodes)
     RealT = real(mesh)
@@ -697,15 +773,17 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
     return nothing
 end
 
-# Get normal direction of MPI mortar
-Base.@propagate_inbounds function get_normal_direction(mpi_mortars::P4estMPIMortarContainer,
+# Get normal direction of MPI interface (of the primary element) or MPI mortar (of the
+# small element)
+Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPIInterfaceContainer,
+                                                                        P4estMPIMortarContainer},
                                                        indices...)
-    @unpack normal_directions = mpi_mortars
+    @unpack normal_directions = container
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(normal_directions, 1:ndims(mpi_mortars), indices...)
+    @boundscheck checkbounds(normal_directions, 1:ndims(container), indices...)
     # Assume inbounds access now
     return SVector(ntuple(@inline(dim->@inbounds normal_directions[dim, indices...]),
-                          Val(ndims(mpi_mortars))))
+                          Val(ndims(container))))
 end
 
 include("dg_2d_parallel.jl")

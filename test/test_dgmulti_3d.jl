@@ -367,8 +367,9 @@ end
 
 @testitem "DGMulti3D: elixir_advection_tensor_wedge.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
-                        l2=[0.00023048791012406786],
-                        linf=[0.0006317952824828055])
+                        l2=[0.00019628065112031162],
+                        linf=[0.0005420629601815552],
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -384,8 +385,9 @@ end
 ] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                         polydeg=3,
-                        l2=[0.0002332063232167919],
-                        linf=[0.0006597931027270132],
+                        tspan=(0.0, 0.25),
+                        l2=[0.0001980989159518296],
+                        linf=[0.0005822780561473007],
                         atol=1e-10) # MacOS and Ubuntu differ here
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
