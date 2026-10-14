@@ -1,5 +1,4 @@
 using OrdinaryDiffEqSSPRK
-using StableRNGs
 using Trixi
 
 ###############################################################################
@@ -66,15 +65,29 @@ function initial_condition_channel_flow(x, t, equations::CompressibleEulerEquati
     v2 = 0.0
     v3 = 0.0
 
-    n_waves = 16
+    # Randomly chosen parameters (kx, kz, m, phase) of the waves with
+    # - the streamwise wave number kx in 1:12, periodic in (0, 2pi)
+    # - the spanwise wave number kz in 2 * (2:13), periodic in (0, pi)
+    # - the number of half waves between the walls m in 4:16
+    # - the phase in (0, 2pi)
+    waves = ((2, 4, 15, 2.9881439602198525),
+             (8, 10, 15, 3.5405555223847127),
+             (5, 10, 8, 3.405022085800654),
+             (8, 12, 6, 5.346064788384369),
+             (3, 16, 9, 3.238623650250496),
+             (2, 20, 16, 5.2708623318249295),
+             (11, 22, 8, 4.650444774080629),
+             (9, 26, 10, 1.572832553058131),
+             (5, 22, 7, 3.9922177526927602),
+             (3, 10, 15, 2.5315774971239198),
+             (3, 26, 6, 6.095619071195619),
+             (1, 6, 14, 4.217091595120723),
+             (6, 20, 15, 1.1991564505511239),
+             (6, 8, 10, 2.212437973608053),
+             (3, 26, 11, 3.057180229064999),
+             (10, 22, 6, 1.9759887859013716))
     amplitude = 0.65
-    rng = StableRNG(180)
-    for wave in 1:n_waves
-        kx = rand(rng, 1:12) # streamwise wave number, periodic in (0, 2pi)
-        kz = 2 * rand(rng, 2:13) # spanwise wave number, periodic in (0, pi)
-        m = rand(rng, 4:16) # number of half waves between the walls
-        phase = 2 * pi * rand(rng)
-
+    for (kx, kz, m, phase) in waves
         sin_theta, cos_theta = sincos(kx * x[1] + kz * x[3] + phase)
         g = amplitude * sin(0.5 * m * pi * (1 + x[2]))^2
         dg = amplitude * 0.5 * m * pi * sin(m * pi * (1 + x[2]))
