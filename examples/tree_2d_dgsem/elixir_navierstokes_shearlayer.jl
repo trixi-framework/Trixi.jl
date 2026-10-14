@@ -12,7 +12,7 @@ T_ref = 80 # [non-dimensional]
 mu = let mu_ref = mu_ref(), T_ref = T_ref
     @inline function (entropy_variables,
                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-        T = entropy2velocity_temperature(entropy_variables, equations)[3]
+        T = Trixi.entropy2velocity_temperature(entropy_variables, equations)[3]
         return mu_ref * T / T_ref
     end
 end
