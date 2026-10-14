@@ -58,14 +58,12 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   have_nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
-    @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     index_end = last(index_range)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations, dg, cache)
-        check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
@@ -76,15 +74,6 @@ function calc_mpi_interface_flux!(surface_flux_values,
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
             local_side = local_sides[interface]
-
-            # Create the local i,j indexing on the local element used to pull normal direction information
-            i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                     index_range)
-            j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                     index_range)
-
-            i_element = i_element_start
-            j_element = j_element_start
 
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
@@ -97,13 +86,11 @@ function calc_mpi_interface_flux!(surface_flux_values,
             end
 
             for node in eachnode(dg)
-                # Get the normal direction on the local element
-                # Contravariant vectors at interfaces in negative coordinate direction
-                # are pointing inwards. This is handled by `get_normal_direction`.
-                normal_direction = get_normal_direction(local_direction,
-                                                        contravariant_vectors,
-                                                        i_element, j_element,
-                                                        local_element)
+                # Use the normal direction of the primary element, which is
+                # available on both MPI ranks. Thus, both ranks compute the same
+                # numerical flux, as in the serial `calc_interface_flux!`.
+                normal_direction = get_normal_direction(cache.mpi_interfaces,
+                                                        node, interface)
 
                 calc_mpi_interface_flux!(surface_flux_values, mesh,
                                          have_nonconservative_terms,
@@ -112,10 +99,6 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                          interface, normal_direction,
                                          node, local_side,
                                          surface_node, local_direction, local_element)
-
-                # Increment local element indices to pull the normal direction
-                i_element += i_element_step
-                j_element += j_element_step
 
                 # Increment the surface node index along the local element
                 surface_node += surface_node_step
@@ -147,10 +130,13 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface_node_index,
                                        interface_index)
 
+    # `normal_direction` is the normal direction of the primary element.
+    # The flux entering the primary element leaves the secondary element
+    # (note the `-` for the `else` case).
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
     end
 
     for v in eachvariable(equations)
@@ -182,13 +168,16 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                        interface_node_index,
                                        interface_index)
 
-    # Compute flux and non-conservative term for this side of the interface
+    # Compute flux and non-conservative term for this side of the interface.
+    # `normal_direction` is the normal direction of the primary element.
+    # The flux entering the primary element leaves the secondary element
+    # (note the `-` for the `else` case).
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
         noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
-        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
+        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, normal_direction, equations)
     end
 
     for v in eachvariable(equations)

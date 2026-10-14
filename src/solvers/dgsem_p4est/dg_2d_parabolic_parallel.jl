@@ -361,8 +361,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                            mesh::P4estMeshParallel{2},
                                            equations_parabolic,
                                            dg::DG, parabolic_scheme, cache)
-    @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
-    @unpack contravariant_vectors = cache.elements
+    @unpack local_neighbor_ids, node_indices = cache.mpi_interfaces
     @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
     index_end = last(index_range)
@@ -370,7 +369,6 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations_parabolic, dg, cache)
-        check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations_parabolic,
                                        dg, cache)
     end
@@ -380,21 +378,6 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             local_element = local_neighbor_ids[interface]
             local_indices = node_indices[interface]
             local_direction = indices2direction(local_indices)
-            local_side = local_sides[interface]
-            # The gradient flux must be evaluated with the normal direction of the
-            # primary side (as in the serial `calc_interface_flux_gradient!`) since it
-            # may depend on the normal direction, e.g., for `ParabolicFormulationLocalDG`.
-            # The normal direction of the secondary side is the negative of the primary one.
-            orientation_factor = local_side == 1 ? 1 : -1
-
-            # Create the local i,j indexing on the local element used to pull normal direction information
-            i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                     index_range)
-            j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                     index_range)
-
-            i_element = i_element_start
-            j_element = j_element_start
 
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
@@ -407,28 +390,24 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             end
 
             for i in eachnode(dg)
-                normal_direction = get_normal_direction(local_direction,
-                                                        contravariant_vectors,
-                                                        i_element, j_element,
-                                                        local_element)
+                # Use the normal direction of the primary element, which is
+                # available on both MPI ranks. Thus, both ranks compute the same
+                # numerical flux, as in the serial `calc_interface_flux_gradient!`.
+                # This is required since the flux may depend discontinuously on the
+                # normal direction, e.g., for `ParabolicFormulationLocalDG`.
+                normal_direction = get_normal_direction(cache.mpi_interfaces,
+                                                        i, interface)
 
                 u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
                                                    i, interface)
 
-                flux_ = flux_parabolic(u_ll, u_rr,
-                                       orientation_factor * normal_direction,
-                                       Gradient(),
+                flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                                        equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, surface_node,
                     local_direction, local_element] = flux_[v]
                 end
-
-                # Increment local element indices to pull the normal direction
-                # from the element data
-                i_element += i_element_step
-                j_element += j_element_step
 
                 # Increment the surface node index along the local element
                 surface_node += surface_node_step
@@ -444,7 +423,6 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                              equations_parabolic,
                                              dg::DG, parabolic_scheme, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
-    @unpack contravariant_vectors = cache.elements
     @unpack u = cache.mpi_interfaces
     index_range = eachnode(dg)
     index_end = last(index_range)
@@ -452,7 +430,6 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations_parabolic, dg, cache)
-        check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations_parabolic,
                                        dg, cache)
     end
@@ -468,14 +445,6 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             # `local_side=2` is thus flipped (opposite of primary side)
             orientation_factor = local_side == 1 ? 1 : -1
 
-            i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                     index_range)
-            j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                     index_range)
-
-            i_element = i_element_start
-            j_element = j_element_start
-
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
             if :i_backward in local_indices
@@ -487,10 +456,11 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
             end
 
             for i in eachnode(dg)
-                normal_direction = get_normal_direction(local_direction,
-                                                        contravariant_vectors,
-                                                        i_element, j_element,
-                                                        local_element)
+                # Use the normal direction of the primary element, which is
+                # available on both MPI ranks. Thus, both ranks compute the same
+                # numerical flux, as in the serial `calc_interface_flux!`.
+                normal_direction = get_normal_direction(cache.mpi_interfaces,
+                                                        i, interface)
 
                 (parabolic_flux_normal_ll,
                 parabolic_flux_normal_rr) = get_surface_node_vars(u,
@@ -499,17 +469,13 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 
                 flux_ = flux_parabolic(parabolic_flux_normal_ll,
                                        parabolic_flux_normal_rr,
-                                       orientation_factor * normal_direction,
-                                       Divergence(),
+                                       normal_direction, Divergence(),
                                        equations_parabolic, parabolic_scheme)
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, surface_node,
                     local_direction, local_element] = orientation_factor * flux_[v]
                 end
-
-                i_element += i_element_step
-                j_element += j_element_step
 
                 surface_node += surface_node_step
             end
