@@ -242,6 +242,45 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 2D: combine_conservative_and_nonconservative_fluxes" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=[
+                            7.475384025293373e-5,
+                            6.508061190792402e-5,
+                            6.494699189562051e-5,
+                            0.00010039859002209644,
+                            9.533883559804826e-5,
+                            7.594652450345962e-5,
+                            7.59909314809263e-5,
+                            9.723421960617654e-5,
+                            5.28916829920854e-5
+                        ],
+                        linf=[
+                            0.0003427579185462104,
+                            0.0004998303440422944,
+                            0.0004839939536228077,
+                            0.0005180908760881175,
+                            0.0004278890186212303,
+                            0.0004136795102115398,
+                            0.0004278210815759076,
+                            0.0005252948274237917,
+                            0.00015843034878756284
+                        ],
+                        tspan=(0.0, 0.1))
+
+    # Make sure that the combined fluxes are used at MPI interfaces (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh MPI 2D: check_axes" setup=[Setup, MPIP4estMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
