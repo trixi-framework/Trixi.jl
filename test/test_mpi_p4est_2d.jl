@@ -206,6 +206,56 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 2D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  maxiters = 1)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.03218873485054795,
+                            0.03610423752891947,
+                            0.03565782684252114,
+                            0.052901719016820566,
+                            0.033630607933966244,
+                            0.03881219835771868,
+                            0.03870276636879577,
+                            0.052910258142801335,
+                            0.022494653302015406
+                        ],
+                        linf=[
+                            0.1795723574939876,
+                            0.14031106752246264,
+                            0.13219291731458843,
+                            0.21691023663331932,
+                            0.11730522693720591,
+                            0.14520580597087362,
+                            0.1442596290277719,
+                            0.2175373736058324,
+                            0.07672851650342115
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+
+    # Make sure that the combined fluxes are used at MPI mortars (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 # Same test as above but with only one tree in the mesh
 # We use it to test meshes with elements of different size in each partition
 @testitem "P4estMesh MPI 2D: elixir_mhd_alfven_wave_nonconforming.jl (one tree)" setup=[
