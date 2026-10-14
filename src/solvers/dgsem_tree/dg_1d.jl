@@ -828,15 +828,16 @@ function calc_surface_integral!(backend::Nothing, du, u,
                 surface_flux_minus = surface_flux_values[v, 1, element]
                 surface_flux_plus = surface_flux_values[v, 2, element]
                 for ii in eachnode(dg)
+                    factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                    factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                     # surface at -x
                     du[v, ii, element] = (du[v, ii, element] -
-                                          surface_flux_minus *
-                                          boundary_interpolation_inverse_weights[ii, 1])
+                                          surface_flux_minus * factor_minus)
 
                     # surface at +x
                     du[v, ii, element] = (du[v, ii, element] +
-                                          surface_flux_plus *
-                                          boundary_interpolation_inverse_weights[ii, 2])
+                                          surface_flux_plus * factor_plus)
                 end
             end
         end

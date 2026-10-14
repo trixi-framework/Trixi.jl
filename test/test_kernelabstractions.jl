@@ -314,6 +314,78 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.2),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.0003811978986531135,
+                            0.0005874314969137914,
+                            0.0009142898787681551,
+                            0.0011613918893790497
+                        ],
+                        linf=[
+                            0.0021633623985426453,
+                            0.009484348273965089,
+                            0.0042315720663082534,
+                            0.011661660264076446
+                        ])
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00028716166408816073,
+                            0.08101204560401647,
+                            0.02099595625377768,
+                            0.05008149754143295
+                        ],
+                        linf=[
+                            0.014804500261322406,
+                            0.9513271652357098,
+                            0.7223919625994717,
+                            1.4846907331004786
+                        ])
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test ode.u0 isa Array
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
     Setup,
     KernelAbstractionsExamples
@@ -429,6 +501,51 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: boundary flux with an empty boundary condition type" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # A boundary condition type without any boundaries (e.g., on a rank that
+    # does not own boundaries of this name in parallel runs) must not stop the
+    # processing of the remaining boundary condition types in
+    # `calc_boundary_flux_by_type!`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"),
+                  tspan = (0.0, 0.0))
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    (; mesh, equations, solver, cache, boundary_conditions) = semi
+    @test boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+    u_ode = copy(ode.u0)
+    u = Trixi.wrap_array(u_ode, semi)
+    backend = Trixi.trixi_backend(u_ode)
+    t = first(ode.tspan)
+    surface_flux_values = cache.elements.surface_flux_values
+
+    # Reference boundary fluxes with the original boundary conditions
+    Trixi.prolong2boundaries!(backend, cache, u, mesh, equations, solver)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
+                              solver.surface_integral, solver)
+    surface_flux_values_reference = copy(surface_flux_values)
+    @test any(!iszero, surface_flux_values_reference)
+
+    # Prepend a boundary condition type without any boundaries
+    boundary_condition_types = (boundary_condition_do_nothing,
+                                boundary_conditions.boundary_condition_types...)
+    boundary_indices = (Int[], boundary_conditions.boundary_indices...)
+    boundary_conditions_empty_first = Trixi.UnstructuredSortedBoundaryTypes{length(boundary_condition_types),
+                                                                            typeof(boundary_condition_types),
+                                                                            Vector{Int},
+                                                                            typeof(boundary_conditions.boundary_conditions)}(boundary_condition_types,
+                                                                                                                             boundary_indices,
+                                                                                                                             boundary_conditions.boundary_conditions,
+                                                                                                                             boundary_conditions.boundary_symbol_indices)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions_empty_first, mesh,
+                              equations, solver.surface_integral, solver)
+    @test surface_flux_values == surface_flux_values_reference
+end
 @testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32" setup=[
     Setup,
     KernelAbstractionsExamples
