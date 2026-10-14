@@ -345,7 +345,8 @@ end
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
-    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+    @test Trixi.storage_type(semi.cache_parabolic.parabolic_container.u_transformed) ===
+          Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
@@ -380,7 +381,8 @@ end
                         ])
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test ode.u0 isa Array
-    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+    @test Trixi.storage_type(semi.cache_parabolic.parabolic_container.u_transformed) ===
+          Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
@@ -738,7 +740,8 @@ end
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
-    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+    @test Trixi.storage_type(semi.cache_parabolic.parabolic_container.u_transformed) ===
+          Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
