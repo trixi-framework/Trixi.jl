@@ -24,54 +24,10 @@ end
     return volume_integral.indicator.cache.alpha[element] > 0
 end
 
-# Check the tree of volume integrals with root `volume_integral` when the cache is
-# created. This is called by `create_cache_volume_integral`.
-#
-# The stage callbacks of subcell limiting (`SubcellLimiterIDPCorrection` and
-# `BoundsCheckCallback`) find the `VolumeIntegralSubcellLimiting` starting from the
-# root `dg.volume_integral` and decide per element via
-# `perform_subcell_limiting(dg.volume_integral, element)` whether subcell limiting
-# was performed. This is only implemented for the positions in the tree accepted by
-# `supports_subcell_limiting`. Moreover, the antidiffusive fluxes are stored in the
-# shared `cache`. Thus, at most one `VolumeIntegralSubcellLimiting` is allowed.
-# Furthermore, `VolumeIntegralSubcellLimiting` does not create the buffers for the
-# subcell finite volume fluxes itself but uses the ones created for its child
-# `volume_integral_low_order`, which must thus be a subcell-based volume integral.
-function check_volume_integral_tree(volume_integral)
-    n_subcell_limiting = Ref(0)
-    foreach_volume_integral(volume_integral) do volume_integral_
-        if volume_integral_ isa VolumeIntegralSubcellLimiting
-            n_subcell_limiting[] += 1
-
-            (; volume_integral_low_order) = volume_integral_
-            if !(volume_integral_low_order isa AbstractVolumeIntegralSubcell)
-                throw(ArgumentError("The `volume_integral_low_order` of a " *
-                                    "`VolumeIntegralSubcellLimiting` must be a " *
-                                    "subcell-based volume integral such as " *
-                                    "`VolumeIntegralPureLGLFiniteVolume`, got " *
-                                    "$(nameof(typeof(volume_integral_low_order)))."))
-            end
-        end
-        return nothing
-    end
-
-    if n_subcell_limiting[] > 1
-        throw(ArgumentError("At most one `VolumeIntegralSubcellLimiting` is supported " *
-                            "in a nested volume integral."))
-    elseif n_subcell_limiting[] == 1 && !supports_subcell_limiting(volume_integral)
-        throw(ArgumentError("`VolumeIntegralSubcellLimiting` is only supported as the " *
-                            "volume integral of the solver or as the " *
-                            "`volume_integral_stabilized` of a `VolumeIntegralAdaptive` " *
-                            "with an `IndicatorHennemannGassner`."))
-    end
-
-    return nothing
-end
-
-# Whether the stage callbacks of subcell limiting can be used with the root
-# `volume_integral` of the solver, see `check_volume_integral_tree`
-supports_subcell_limiting(volume_integral) = false
-supports_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting) = true
+# Subcell limiting is supported as the `volume_integral_stabilized` of an adaptive
+# volume integral with an a-priori indicator, since `perform_subcell_limiting` above
+# tells the stage callbacks in which elements subcell limiting was performed.
+# See `check_volume_integral_tree` in `solvers/dg.jl`.
 function supports_subcell_limiting(volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner})
     return volume_integral.volume_integral_stabilized isa VolumeIntegralSubcellLimiting
 end
