@@ -271,7 +271,8 @@ end
                                                    i_node, j_node, element)
                 var_outer = variable(u_outer, equations)
 
-                var_minmax[i_node, j_node, element] = minmax(var_minmax[i_node, j_node,
+                var_minmax[i_node, j_node, element] = minmax(var_minmax[i_node,
+                                                                        j_node,
                                                                         element],
                                                              var_outer)
 

@@ -66,7 +66,9 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     if update_primary
-                        var_secondary = u[variable, i_secondary, j_secondary,
+                        var_secondary = u[variable,
+                                          i_secondary,
+                                          j_secondary,
                                           k_secondary,
                                           secondary_element]
                         var_min[i_primary, j_primary, k_primary, primary_element] = min(var_min[i_primary,
@@ -81,7 +83,10 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                                                                         var_secondary)
                     end
                     if update_secondary
-                        var_primary = u[variable, i_primary, j_primary, k_primary,
+                        var_primary = u[variable,
+                                        i_primary,
+                                        j_primary,
+                                        k_primary,
                                         primary_element]
                         var_min[i_secondary, j_secondary, k_secondary, secondary_element] = min(var_min[i_secondary,
                                                                                                         j_secondary,
@@ -253,7 +258,8 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     if update_primary
-                        var_secondary = variable_values[i_secondary, j_secondary,
+                        var_secondary = variable_values[i_secondary,
+                                                        j_secondary,
                                                         k_secondary,
                                                         secondary_element]
                         var_minmax[i_primary, j_primary, k_primary, primary_element] = minmax(var_minmax[i_primary,
@@ -263,7 +269,9 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                                                                               var_secondary)
                     end
                     if update_secondary
-                        var_primary = variable_values[i_primary, j_primary, k_primary,
+                        var_primary = variable_values[i_primary,
+                                                      j_primary,
+                                                      k_primary,
                                                       primary_element]
                         var_minmax[i_secondary, j_secondary, k_secondary, secondary_element] = minmax(var_minmax[i_secondary,
                                                                                                                  j_secondary,

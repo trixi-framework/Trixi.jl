@@ -554,6 +554,47 @@ end
     end
 end
 
+@testitem "Unit: AMR with non-isbits element type" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Refining and coarsening must not read the newly allocated (uninitialized) memory
+    # of the resized solution. For non-`isbits` element types such as `BigFloat`, this
+    # memory is `#undef`. On Julia v1.10, AMR is not supported for such element types,
+    # see https://github.com/trixi-framework/Trixi.jl/pull/3306.
+    using OrdinaryDiffEqLowStorageRK: CarpenterKennedy2N54, solve
+    function run_amr(RealT)
+        equations = LinearScalarAdvectionEquation1D(1.0)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = RealT)
+        mesh = TreeMesh((-5.0,), (5.0,), initial_refinement_level = 3,
+                        periodicity = true)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        ode = semidiscretize(semi, (0.0, 0.5))
+        amr_controller = ControllerThreeLevel(semi,
+                                              IndicatorNodalFunction((u, x, t) -> u[1],
+                                                                     semi),
+                                              base_level = 3,
+                                              med_level = 4, med_threshold = 0.1,
+                                              max_level = 5, max_threshold = 0.6)
+        amr_callback = AMRCallback(semi, amr_controller, interval = 2,
+                                   adapt_initial_condition = true,
+                                   adapt_initial_condition_only_refine = true)
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                    dt = 0.05, adaptive = false, callback = CallbackSet(amr_callback),
+                    save_everystep = false)
+        return sol, semi
+    end
+    if VERSION >= v"1.11"
+        sol_float, semi_float = run_amr(Float64)
+        sol_big, semi_big = run_amr(BigFloat)
+        @test eltype(sol_big.u[end]) == BigFloat
+        # AMR has refined the mesh
+        @test Trixi.nelements(semi_big.solver, semi_big.cache) > 2^3
+        @test Trixi.nelements(semi_big.solver, semi_big.cache) ==
+              Trixi.nelements(semi_float.solver, semi_float.cache)
+        @test Float64.(sol_big.u[end]) ≈ sol_float.u[end]
+    end
+end
+
 @testitem "Unit: containers" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
@@ -1406,6 +1447,86 @@ end
 
     @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
                                      callback = StepsizeCallback(cfl = 1.0))
+end
+
+@testitem "Unit: GlmSpeedCallback time step for c_h = 1" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The time step of the GLM waves with `c_h = 1` used by the `GlmSpeedCallback` must
+    # agree for Cartesian elements on all mesh types and be invariant under rotations
+    # of the mesh, see https://github.com/trixi-framework/Trixi.jl/issues/3336
+    function dt_cleaning(mesh, equations, solver)
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        return Trixi.calc_dt_for_cleaning_speed(0.5, mesh, equations, solver, cache)
+    end
+
+    polydeg = 3
+    volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+    dg = DGSEM(polydeg = polydeg, surface_flux = volume_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+
+    # 2D
+    equations = IdealGlmMhdEquations2D(5 / 3)
+    dg_multi = DGMulti(polydeg = polydeg, element_type = Quad(),
+                       approximation_type = Polynomial(),
+                       surface_integral = SurfaceIntegralWeakForm(volume_flux),
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+    for level in (2, 3)
+        n = 2^level
+        dx = 2 / n
+        # `cfl * 2 / (nnodes * ndims * inverse_jacobian)` with `inverse_jacobian = 2 / dx`
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = level,
+                        periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n), (-1.0, -1.0), (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        s, c = sincospi(1 / 6)
+        mesh = StructuredMesh((n, n),
+                              (xi, eta) -> SVector(c * xi - s * eta,
+                                                   s * xi + c * eta),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = T8codeMesh((n, n), polydeg = polydeg,
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                          periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = DGMultiMesh(dg_multi, (n, n), coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg_multi) ≈ dt_expected
+    end
+
+    # 3D
+    equations = IdealGlmMhdEquations3D(5 / 3)
+    for level in (1, 2)
+        n = 2^level
+        dx = 2 / n
+        dt_expected = 0.5 * dx / ((polydeg + 1) * ndims(equations))
+
+        mesh = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                        initial_refinement_level = level, periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = StructuredMesh((n, n, n), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                              periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+
+        mesh = P4estMesh((1, 1, 1), polydeg = polydeg, initial_refinement_level = level,
+                         coordinates_min = (-1.0, -1.0, -1.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        @test dt_cleaning(mesh, equations, dg) ≈ dt_expected
+    end
 end
 
 @testitem "Unit: TimeSeriesCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -4438,8 +4559,13 @@ end
 end
 
 @testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    # We only need the semidiscretizations of the elixirs below. Thus, we do not run the
+    # simulations by replacing `sol = solve(...)` with `sol = nothing`. This avoids
+    # compiling the time integration methods and the callbacks, which dominated the run
+    # time of this test.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_1d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4459,8 +4585,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
-                                 "elixir_euler_source_terms.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_source_terms.jl"); sol = nothing)
 
     @testset "TreeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4481,8 +4608,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
-                                 "elixir_euler_mortar.jl"), maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_3d_dgsem",
+                           "elixir_euler_mortar.jl"); sol = nothing)
 
     @testset "TreeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4503,9 +4631,9 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_1d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_1d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{1}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4526,9 +4654,9 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_2d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"); sol = nothing)
 
     @testset "StructuredMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4546,9 +4674,9 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_dgsem",
-                                 "elixir_euler_basic.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "unstructured_2d_dgsem",
+                           "elixir_euler_basic.jl"); sol = nothing)
 
     @testset "UnstructuredMesh2D" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4571,9 +4699,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "structured_3d_dgsem",
-                                 "elixir_euler_source_terms_nonperiodic_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "structured_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic_curved.jl");
+                  sol = nothing)
 
     @testset "StructuredMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4591,9 +4720,10 @@ end
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4638,9 +4768,10 @@ end
                                                                             dg, cache)
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_2d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_2d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_flag.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{2}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4665,9 +4796,12 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                                 "elixir_advection_diffusion_nonperiodic_amr.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_advection_diffusion_nonperiodic_amr.jl"); sol = nothing)
+    # Refine the mesh as the AMR callback does for the initial condition when running
+    # the simulation. This creates mortars and resizes the parabolic cache.
+    @test amr_callback.affect!(ode.u0, semi, first(tspan), 0; only_refine = true)
 
     @testset "P4estMesh{2}, parabolic" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4703,9 +4837,10 @@ end
                                                    dg, cache) === nothing
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "P4estMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4730,9 +4865,10 @@ end
         end
     end
 
-    @test_trixi_include(joinpath(examples_dir(), "t8code_3d_dgsem",
-                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
-                        maxiters=1)
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "t8code_3d_dgsem",
+                           "elixir_euler_source_terms_nonconforming_unstructured_curved.jl");
+                  sol = nothing)
 
     @testset "T8codeMesh{3}" begin
         mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
@@ -4858,6 +4994,134 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
+end
+
+@testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mesh = P4estMesh((2, 2), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+
+    # Without keyword arguments, nothing is adapted
+    @test trixi_adapt(semi) === semi
+    # The flux differencing kernel is part of the `cache` from the beginning
+    @test semi.cache.flux_differencing_kernel === HalfSweep()
+
+    # Only the real type is changed, the current array type is kept
+    @test Trixi.storage_type(semi) === Array
+    semi32 = trixi_adapt(semi; real_type = Float32)
+    @test real(semi32) == Float32
+    @test Trixi.storage_type(semi32) === Array
+    @test Trixi.storage_type(semi32.cache.elements) === Array
+    # The containers of other meshes do not support other array types
+    semi_tree = SemidiscretizationHyperbolic(TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                                      initial_refinement_level = 1,
+                                                      periodicity = true),
+                                             equations, initial_condition_convergence_test,
+                                             solver;
+                                             boundary_conditions = boundary_condition_periodic)
+    @test Trixi.storage_type(semi_tree) === Array
+    @test semi32.cache.flux_differencing_kernel === HalfSweep()
+
+    # An explicitly selected kernel is kept when adapting the semidiscretization again
+    semi_global = trixi_adapt(semi; flux_differencing_kernel = FullSweepGlobal())
+    @test real(semi_global) == Float64
+    @test semi_global.cache.flux_differencing_kernel === FullSweepGlobal()
+    semi_global32 = trixi_adapt(semi_global; storage_type = Array, real_type = Float32)
+    @test real(semi_global32) == Float32
+    @test semi_global32.cache.flux_differencing_kernel === FullSweepGlobal()
+
+    # The kernel can only be selected if it is used
+    solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    semi_weak_form = SemidiscretizationHyperbolic(mesh, equations,
+                                                  initial_condition_convergence_test,
+                                                  solver_weak_form;
+                                                  boundary_conditions = boundary_condition_periodic)
+    @test !haskey(semi_weak_form.cache, :flux_differencing_kernel)
+    @test real(trixi_adapt(semi_weak_form; real_type = Float32)) == Float32
+    @test_throws ArgumentError trixi_adapt(semi_weak_form;
+                                           flux_differencing_kernel = FullSweep())
+
+    # The volume integral cache of a `P4estMeshView` is created differently
+    mesh_view = P4estMeshView(mesh, [1, 2])
+    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
+                                    Float64)
+    @test cache_view.flux_differencing_kernel === HalfSweep()
+
+    # The GPU resource limits are not checked for CPU arrays, see also
+    # "Unit: check_flux_differencing_shared_memory"
+    mesh_3d = P4estMesh((1, 1, 1), polydeg = 1,
+                        coordinates_min = (-1.0, -1.0, -1.0),
+                        coordinates_max = (1.0, 1.0, 1.0),
+                        periodicity = true)
+    solver_3d = DGSEM(polydeg = 10, surface_flux = flux_lax_friedrichs,
+                      volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi_3d = SemidiscretizationHyperbolic(mesh_3d,
+                                           LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0),
+                                           initial_condition_constant, solver_3d;
+                                           boundary_conditions = boundary_condition_periodic)
+    @test semi_3d.cache.flux_differencing_kernel === HalfSweep()
+    semi_3d_full_sweep = @test_logs min_level=Base.CoreLogging.Warn trixi_adapt(semi_3d;
+                                                                                storage_type = Array,
+                                                                                flux_differencing_kernel = FullSweep())
+    @test semi_3d_full_sweep.cache.flux_differencing_kernel === FullSweep()
+
+    # `semidiscretize` uses the real type of `semi` for the time span
+    ode = semidiscretize(semi32, (0.0, 1.0))
+    @test ode.p === semi32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = semidiscretize(semi, (0.0f0, 1.0f0))
+    @test ode.p === semi
+    @test ode.tspan === (0.0, 1.0)
+
+    # Deprecated keyword arguments of `semidiscretize`
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
+    @test real(ode.p) == Float32
+    @test ode.tspan === (0.0f0, 1.0f0)
+    @test ode.u0 isa Vector{Float32}
+    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
+                                          flux_differencing_kernel = FullSweep())
+    @test real(ode.p) == Float64
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+
+    # The `SummaryCallback` warns if the time type differs from the real type of
+    # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
+    ode = semidiscretize(semi32, (0.0, 2.0e-3))
+    callbacks = CallbackSet(SummaryCallback())
+    alg = Trixi.CarpenterKennedy2N54()
+    @test_logs (:warn, r"The time `t` has the type Float64") match_mode=:any redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0e-3, callback = callbacks)
+    end
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode, alg; dt = 1.0f-3, callback = callbacks)
+    end
+
+    # Custom semidiscretizations do not need to implement `real`, see the tutorial
+    # `docs/literate/src/files/custom_semidiscretization.jl`
+    struct CustomSemidiscretization{Semi} <: Trixi.AbstractSemidiscretization
+        semi::Semi
+    end
+    Base.ndims(semi::CustomSemidiscretization) = ndims(semi.semi)
+    function Trixi.mesh_equations_solver_cache(semi::CustomSemidiscretization)
+        return Trixi.mesh_equations_solver_cache(semi.semi)
+    end
+    function rhs_custom!(du_ode, u_ode, semi_custom, t)
+        return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_custom.semi, t)
+    end
+    semi_custom = CustomSemidiscretization(semi32)
+    @test !applicable(real, semi_custom)
+    @test Trixi.convert_tspan(semi_custom, (0.0, 1.0)) === (0.0, 1.0)
+    ode = semidiscretize(semi32, (0.0f0, 2.0f-3))
+    ode_custom = Trixi.ODEProblem(rhs_custom!, ode.u0, (0.0, 2.0e-3), semi_custom)
+    @test_logs min_level=Base.CoreLogging.Warn redirect_stdout(devnull) do
+        Trixi.solve(ode_custom, alg; dt = 1.0e-3, callback = callbacks)
+    end
 end
 
 @testitem "Unit: PassiveTracerEquations entropy-conservative and entropy-stable fluxes" setup=[
