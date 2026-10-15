@@ -60,9 +60,5 @@ end
                         atol=2.5e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
