@@ -321,7 +321,7 @@ end
     @test all(isfinite, du_ode)
 end
 
-@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[
+@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32" setup=[
     Setup,
     KernelAbstractionsExamples
 ] tags=[:kernelabstractions] begin
@@ -347,6 +347,68 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  sol = nothing)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.03218873485054769,
+                            0.036104237528919156,
+                            0.03565782684252082,
+                            0.05290171901682014,
+                            0.03363060793396599,
+                            0.03881219835771841,
+                            0.03870276636879549,
+                            0.05291025814280089,
+                            0.022494653302015218
+                        ],
+                        linf=[
+                            0.17957235749398837,
+                            0.1403110675224628,
+                            0.13219291731458857,
+                            0.21691023663331951,
+                            0.11730522693720624,
+                            0.1452058059708733,
+                            0.144259629027772,
+                            0.21753737360583258,
+                            0.07672851650342119
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence.jl" setup=[

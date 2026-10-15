@@ -45,6 +45,45 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "Metal 2D: elixir_advection_nonconforming_flag.jl Float32 / Metal" setup=[
+    Setup,
+    Metal2DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_flag.jl"),
+                        l2=Float32[3.198940059144588e-5],
+                        linf=Float32[0.00030636069494005547],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa MtlArray
+    @test semi.solver.basis.derivative_matrix isa MtlArray
+
+    @test Trixi.storage_type(semi.cache.elements) === MtlArray
+    @test Trixi.storage_type(semi.cache.interfaces) === MtlArray
+    @test Trixi.storage_type(semi.cache.boundaries) === MtlArray
+    @test Trixi.storage_type(semi.cache.mortars) === MtlArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "Metal 2D: elixir_euler_source_terms.jl Float32 / Metal" setup=[
     Setup,
     Metal2DExamples

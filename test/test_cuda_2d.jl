@@ -288,6 +288,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_navierstokes_convergence.jl Float64 / CUDA" setup=[
