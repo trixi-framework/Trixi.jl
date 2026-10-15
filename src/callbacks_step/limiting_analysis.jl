@@ -13,7 +13,8 @@ RK stage of every `interval` time steps. This contains a volume-weighted average
 coefficients. The results are saved in `alphas.txt` in `output_directory`.
 
 When [`MortarIDP`](@ref) is used, the maximum and the size-weighted average mortar limiting factor
-are additionally saved in `mortar_limiting_factor.txt` in `output_directory`.
+are additionally saved in `mortar_limiting_factor.txt` in `output_directory`. With
+`pure_low_order = true`, no mortar limiting factor is computed and the file is not written.
 """
 struct LimitingAnalysisCallback
     output_directory::String
@@ -79,7 +80,8 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
     end
 
     _, _, solver, _ = mesh_equations_solver_cache(integrator.p)
-    if solver.mortar isa LobattoLegendreMortarIDP
+    # With pure low-order mortars, no mortar limiting factor is computed
+    if solver.mortar isa LobattoLegendreMortarIDP && !solver.mortar.pure_low_order
         open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             println(f,
                     "# iter, simu_time, limiting_factor_max, limiting_factor_avg")
@@ -137,7 +139,9 @@ end
     end
 
     # Provisional analysis of limiting factor
-    if nmortars(cache.mortars) > 0 && dg.mortar isa LobattoLegendreMortarIDP
+    # With pure low-order mortars, no mortar limiting factor is computed
+    if nmortars(cache.mortars) > 0 && dg.mortar isa LobattoLegendreMortarIDP &&
+       !dg.mortar.pure_low_order
         (; limiting_factor) = cache.mortars
         limiting_factor_avg = average_mortar_limiting_factor(limiting_factor, mesh,
                                                              dg, cache)
