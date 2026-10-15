@@ -139,6 +139,20 @@ end
 @inline (c::CombineReductions)(partials1, partials2) = combine_reductions(c.ops, partials1,
                                                                           partials2)
 
+# Polyester.jl's `@batch`, which the `:pool` backend replaces, runs the loop `@inbounds`.
+# Many loop bodies rely on this, e.g., kernels with `@propagate_inbounds` such as the
+# shock-capturing volume integral, which are about 10% slower with bounds checks. The
+# serial path uses it as well, so that the code does not depend on the number of threads.
+# The whole loop is wrapped (not only the body), so that `continue` works.
+function threaded_inbounds(loop)
+    @static if _THREADING_BACKEND === :pool
+        return Expr(:macrocall, Symbol("@inbounds"), LineNumberNode(@__LINE__, @__FILE__),
+                    loop)
+    else
+        return loop
+    end
+end
+
 """
     @threaded for ... end
     @threaded reduction=(op, var) for ... end
@@ -150,6 +164,10 @@ or works for more general `for` loops.
 In particular, there may be an additional check whether only one thread is used
 to reduce the overhead of serial execution. Nested `@threaded` loops run the inner
 loop serially.
+
+With the `:pool` backend (the default), the loop body runs `@inbounds`, as it did with
+Polyester.jl's `@batch` (the former default). Bounds-checking with `--check-bounds=yes`
+still applies.
 
 The optional `reduction` argument (same syntax as in Polyester.jl's `@batch`) reduces
 the local variables `var1, var2, ...` with the operators `op1, op2, ...`, which must be
@@ -215,7 +233,7 @@ macro threaded(args...)
     # threading). Running the loop body in a closure is slower for some kernels (up to
     # 1.5x), e.g., since facts established by the caller such as the array sizes checked
     # by `check_axes` do not propagate into the closure.
-    serial_loop = Expr(:for, Expr(:(=), loopvar, range), body)
+    serial_loop = threaded_inbounds(Expr(:for, Expr(:(=), loopvar, range), body))
 
     if isempty(reductions)
         ex = quote
@@ -225,9 +243,9 @@ macro threaded(args...)
                     $serial_loop
                 else
                     $Trixi.threaded_foreach($range, $nchunks) do $part
-                        for $loopvar in $part
-                            $body
-                        end
+                        $(threaded_inbounds(:(for $loopvar in $part
+                                                  $body
+                                              end)))
                         nothing
                     end
                 end
@@ -259,9 +277,9 @@ macro threaded(args...)
                     $Trixi.threaded_mapreduce($op_tuple, $init_tuple, $range,
                                               $nchunks) do $part
                         $(local_inits...)
-                        for $loopvar in $part
-                            $body
-                        end
+                        $(threaded_inbounds(:(for $loopvar in $part
+                                                  $body
+                                              end)))
                         $var_tuple
                     end
                 end
