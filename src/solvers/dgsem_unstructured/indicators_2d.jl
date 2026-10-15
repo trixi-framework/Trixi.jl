@@ -11,14 +11,16 @@ function apply_smoothing!(mesh::UnstructuredMesh2D, alpha, alpha_tmp, dg, cache)
     alpha_tmp .= alpha
 
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
         left = cache.interfaces.element_ids[1, interface]
         right = cache.interfaces.element_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
+        alpha[left] = max_smoothing(alpha_tmp[left], 0.5f0 * alpha_tmp[right],
+                                    alpha[left])
+        alpha[right] = max_smoothing(alpha_tmp[right], 0.5f0 * alpha_tmp[left],
+                                     alpha[right])
     end
 
     return nothing

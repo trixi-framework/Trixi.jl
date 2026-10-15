@@ -147,6 +147,13 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     return alpha
 end
 
+# Maximum used by `apply_smoothing!`. The blending factors are finite and non-negative, so
+# the branch-free `max_fast` gives the same result as `max`, which checks for `NaN`s and
+# signed zeros. The smoothing loops are serial and latency-bound: with `max`, their run
+# time depends strongly on the surrounding code (10-17 µs for 4096 elements in 2D,
+# depending on where the same loop is compiled), with `max_fast` it is about 9 µs.
+@inline max_smoothing(x, y, z) = Base.FastMath.max_fast(x, y, z)
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
                                 dg, cache)

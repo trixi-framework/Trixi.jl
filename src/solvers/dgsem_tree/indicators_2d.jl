@@ -108,28 +108,36 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
     alpha_tmp .= alpha
 
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    neighbor_ids = cache.interfaces.neighbor_ids
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
+        alpha[left] = max_smoothing(alpha_tmp[left], 0.5f0 * alpha_tmp[right],
+                                    alpha[left])
+        alpha[right] = max_smoothing(alpha_tmp[right], 0.5f0 * alpha_tmp[left],
+                                     alpha[right])
     end
 
     # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
+    mortar_neighbor_ids = cache.mortars.neighbor_ids
+    @inbounds for mortar in eachmortar(dg, cache)
         # Get neighboring element ids
-        lower = cache.mortars.neighbor_ids[1, mortar]
-        upper = cache.mortars.neighbor_ids[2, mortar]
-        large = cache.mortars.neighbor_ids[3, mortar]
+        lower = mortar_neighbor_ids[1, mortar]
+        upper = mortar_neighbor_ids[2, mortar]
+        large = mortar_neighbor_ids[3, mortar]
 
         # Apply smoothing
-        alpha[lower] = max(alpha_tmp[lower], 0.5f0 * alpha_tmp[large], alpha[lower])
-        alpha[upper] = max(alpha_tmp[upper], 0.5f0 * alpha_tmp[large], alpha[upper])
-        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
+        alpha[lower] = max_smoothing(alpha_tmp[lower], 0.5f0 * alpha_tmp[large],
+                                     alpha[lower])
+        alpha[upper] = max_smoothing(alpha_tmp[upper], 0.5f0 * alpha_tmp[large],
+                                     alpha[upper])
+        alpha[large] = max_smoothing(alpha_tmp[large], 0.5f0 * alpha_tmp[lower],
+                                     alpha[large])
+        alpha[large] = max_smoothing(alpha_tmp[large], 0.5f0 * alpha_tmp[upper],
+                                     alpha[large])
     end
 
     return nothing
