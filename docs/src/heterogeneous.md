@@ -71,11 +71,7 @@ As described in the MPI.jl documentation on
 [multiple GPUs per node](https://juliaparallel.org/MPI.jl/stable/usage/#Multiple-GPUs-per-node),
 there are two ways to achieve this:
 
-1. Let the job scheduler or the environment variables `CUDA_VISIBLE_DEVICES` or
-   `ROCR_VISIBLE_DEVICES` expose a single GPU to each MPI rank
-   (e.g., `srun --gpus-per-task=1` with SLURM). Then, each rank can use its default
-   device.
-2. Select the GPU in the elixir based on the rank within the node, which is obtained
+1. Select the GPU in the elixir based on the rank within the node, which is obtained
    from a node-local MPI communicator. Do this before creating any GPU arrays, i.e.,
    before calling `trixi_adapt`. The function `KernelAbstractions.device!` of
    [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) selects
@@ -89,6 +85,11 @@ there are two ways to achieve this:
    ```
    If there are more MPI ranks than GPUs on a node, `KernelAbstractions.device!`
    throws an `ArgumentError`.
+2. Let the job scheduler or the environment variables `CUDA_VISIBLE_DEVICES` or
+   `ROCR_VISIBLE_DEVICES` expose a single GPU to each MPI rank
+   (e.g., `srun --gpus-per-task=1` with SLURM). Then, each rank can use its default
+   device. We strongly advice against this approach since we have experienced
+   several issues with it.
 
 !!! note "Single-precision computations using `Float32`"
     To use `Float32` consistently, make sure to write all equations, initial conditions,
