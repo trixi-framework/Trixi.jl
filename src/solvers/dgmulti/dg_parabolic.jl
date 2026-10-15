@@ -173,26 +173,36 @@ end
 @inline function is_left_element_ldg(nxyzJ, idM, idP,
                                      mesh::DGMultiMesh{NDIMS}) where {NDIMS}
     normal_direction = SVector{NDIMS}(getindex.(nxyzJ, min(idM, idP)))
-    # Components whose magnitudes agree up to the relative tolerance `sqrt(eps())`
-    # (the default of `isapprox`) are considered to be equal. This tolerance is much
-    # larger than the round-off errors of the normals, which reach relative differences
-    # of about `1e-13` on uniform meshes of triangles, i.e., hundreds of `eps()`.
-    threshold = (1 - sqrt(eps(eltype(normal_direction)))) *
-                maximum(abs, normal_direction)
-    dominant_component = normal_direction[1]
-    for i in 1:NDIMS
-        if abs(normal_direction[i]) >= threshold
-            dominant_component = normal_direction[i]
-            break
-        end
-    end
+    # The dominant direction is the first one whose component has the maximal magnitude
+    # up to round-off errors, as determined by `isapprox` with its default relative
+    # tolerance `sqrt(eps())`. This tolerance is much larger than the round-off errors
+    # of the normals, which reach relative differences of about `1e-13` on uniform
+    # meshes of triangles, i.e., hundreds of `eps()`.
+    max_abs = maximum(abs, normal_direction)
+    abs_max_dir = findfirst(component -> isapprox(abs(component), max_abs),
+                            normal_direction)
+    dominant_component = normal_direction[abs_max_dir]
 
     # `normal_direction` is the outward normal of the element containing the face node
-    # with the smaller index. This element is the left element if the dominant component
-    # is positive and the right element otherwise. Thus, the element containing `idM` is
-    # the left element if `idM` is the smaller index and the dominant component is
-    # positive, or if `idM` is the larger index and the dominant component is negative.
-    # At boundary nodes, `idM == idP` holds, and the normal of the element itself is used.
+    # `min(idM, idP)`. As for the `P4estMesh`, an element is the left element if its
+    # outward normal has a positive dominant component. The dominant component is
+    # nonzero since it has the maximal magnitude. For the element containing `idM`,
+    # there are four cases:
+    # 1. `idM < idP` and `dominant_component > 0`: `normal_direction` is the outward
+    #    normal of the element containing `idM`, which is the left element.
+    # 2. `idM < idP` and `dominant_component < 0`: `normal_direction` is the outward
+    #    normal of the element containing `idM`, which is the right element.
+    # 3. `idM > idP` and `dominant_component > 0`: `normal_direction` is the outward
+    #    normal of the neighboring element containing `idP`. Thus, the neighboring
+    #    element is the left element and the element containing `idM` is the right one.
+    # 4. `idM > idP` and `dominant_component < 0`: `normal_direction` is the outward
+    #    normal of the neighboring element containing `idP`. Thus, the neighboring
+    #    element is the right element and the element containing `idM` is the left one.
+    # The two visits of an interior face node use the same `normal_direction` and fall
+    # into cases 1 and 3 or into cases 2 and 4, so they assign different sides to the
+    # two elements. At boundary nodes, `idM == idP` holds and the normal of the element
+    # itself is used as in cases 1 and 2. There, the ordering has no effect since both
+    # one-sided values coincide.
     return (dominant_component > 0) == (idM <= idP)
 end
 
