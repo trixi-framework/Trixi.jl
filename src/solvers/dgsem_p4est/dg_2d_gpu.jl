@@ -546,7 +546,7 @@ function prolong2mortars!(backend::Backend, cache, u,
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
-        check_axes(cache.mortars, equations, dg, cache)
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
     end
 
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -636,7 +636,7 @@ function calc_mortar_flux!(backend::Backend, surface_flux_values,
     nmortars(dg, cache) == 0 && return nothing
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
-        check_axes(cache.mortars, equations, dg, cache)
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
