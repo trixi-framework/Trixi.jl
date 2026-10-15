@@ -70,18 +70,9 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 # The blending factors `alpha` are stored in the indicator (per-instance state), not
-# in the `cache`. They are sized here for the elements of the mesh.
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralEntropyCorrection,
-                      dg, cache_containers, uEltype)
-    resize!(volume_integral.indicator.cache.alpha, nelements(dg, cache_containers))
-
-    return NamedTuple()
-end
-
-# `resize_volume_integral_cache!` is called after mesh adaptation.
-# We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
-# for visualization.
+# in the `cache`. They are written in the volume integral kernel and used for
+# visualization. Thus, they must be sized for the elements of the mesh when the cache
+# is created and after mesh adaptation.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
                                        dg, new_size)

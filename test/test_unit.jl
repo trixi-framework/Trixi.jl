@@ -5251,6 +5251,19 @@ end
     semi = create_semi(volume_integral)
     @test haskey(semi.cache, :fstar1_L_threaded)
 
+    # Per-instance state stored in the volume integral objects is sized when the cache
+    # is created, also for nested volume integrals
+    indicator_entropy_correction = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_entropy_correction = VolumeIntegralAdaptive(indicator = indicator_entropy_correction,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_fv)
+    semi = create_semi(VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                          volume_integral_default = volume_integral_entropy_correction,
+                                                          volume_integral_blend_high_order = volume_integral_fd,
+                                                          volume_integral_blend_low_order = volume_integral_fv))
+    @test length(indicator_entropy_correction.cache.alpha) ==
+          nelements(semi.solver, semi.cache)
+
     # At most one subcell limiter is supported, and only in some positions
     limiter_idp = SubcellLimiterIDP(equations, basis;
                                     positivity_variables_cons = ["rho"])
@@ -5272,6 +5285,8 @@ end
                                               volume_integral_stabilized = volume_integral_sl))
     @test haskey(semi.cache, :fstar1_L_threaded)
     @test haskey(semi.cache, :antidiffusive_fluxes)
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) ==
+          nelements(semi.solver, semi.cache)
 
     # The storage of subcell limiting is resized after mesh adaptation.
     # Fill the antidiffusive fluxes with `NaN`s first so that the check of the
@@ -5292,4 +5307,18 @@ end
     @test iszero(antidiffusive_flux1_L[:, end, :, :])
     @test iszero(antidiffusive_flux2_R[:, :, 1, :])
     @test iszero(antidiffusive_flux2_R[:, :, end, :])
+
+    # Subcell limiting is not supported for all meshes
+    equations_1d = CompressibleEulerEquations1D(1.4)
+    mesh_1d = TreeMesh(-1.0, 1.0, initial_refinement_level = 2, periodicity = true)
+    limiter_idp_1d = SubcellLimiterIDP(equations_1d, basis;
+                                       positivity_variables_cons = ["rho"])
+    solver_1d = DGSEM(basis, flux_hllc,
+                      VolumeIntegralSubcellLimiting(limiter_idp_1d;
+                                                    volume_flux_dg = flux_ranocha,
+                                                    volume_flux_fv = flux_hllc))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_1d, equations_1d,
+                                                            initial_condition_constant,
+                                                            solver_1d;
+                                                            boundary_conditions = boundary_condition_periodic)
 end

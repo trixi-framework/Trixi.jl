@@ -51,16 +51,23 @@ volume_integral_children(volume_integral) = ()
 # between the volume integrals; they must be compatible (`compatible_cache_entries`),
 # otherwise an error is thrown. Thus, use shared entries only for scratch buffers that
 # are not used across calls into children. All other state must be stored in the
-# volume integral objects (e.g., in their indicators). By default, a volume integral
-# has no own storage in the `cache`.
+# volume integral objects (e.g., in their indicators). Such state is created without
+# knowing the mesh and must be sized in `resize_volume_integral_cache!`, not here.
+# By default, a volume integral has no own storage in the `cache`.
 # This is also used by `DGMulti`, which passes `RealT` instead of `cache_containers`.
 function create_cache(mesh, equations, volume_integral::AbstractVolumeIntegral, dg,
                       cache_containers, uEltype)
     return NamedTuple()
 end
 
-# Resize the storage of `volume_integral` itself after mesh adaptation to `new_size`
-# elements. By default, there is nothing to resize.
+# Resize the storage of `volume_integral` itself to `new_size` elements, both in the
+# `cache` and in the volume integral object. This is called when the cache is created
+# (after the storage of all volume integrals in the tree has been created and merged)
+# and after mesh adaptation. Thus, the sizes at creation and after mesh adaptation are
+# set by the same code. Since `reinit_volume_integral_cache!` is not called when the
+# cache is created, resizing to the current size must keep data initialized in
+# `create_cache`, such as the subcell normal vectors. By default, there is nothing to
+# resize.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::AbstractVolumeIntegral, dg,
                                        new_size)
@@ -110,8 +117,20 @@ function create_cache_volume_integral(mesh, equations, volume_integral, dg,
     # early to throw a meaningful error message.
     check_volume_integral_tree(volume_integral)
 
-    return _create_cache_volume_integral(mesh, equations, volume_integral, dg,
-                                         cache_containers, uEltype)
+    cache_volume_integral = _create_cache_volume_integral(mesh, equations,
+                                                          volume_integral, dg,
+                                                          cache_containers, uEltype)
+
+    # Size the storage for the elements of the mesh with the same methods as after
+    # mesh adaptation. This is required in particular for per-instance state stored in
+    # the volume integral objects, which is created without knowing the mesh.
+    # The `cache` passed here contains the containers and the storage of the volume
+    # integrals, but not the storage created afterward (e.g., for the mortars).
+    resize_volume_integral_caches!((; cache_containers..., cache_volume_integral...),
+                                   mesh, volume_integral, dg,
+                                   nelements(dg, cache_containers))
+
+    return cache_volume_integral
 end
 
 function _create_cache_volume_integral(mesh, equations, volume_integral, dg,
@@ -169,14 +188,22 @@ function compatible_cache_entries(a::T,
            all(compatible_cache_entries(x, y) for (x, y) in zip(a, b))
 end
 
+# Resize the storage of all volume integrals in the tree with root `volume_integral`
+# to `new_size` elements
+function resize_volume_integral_caches!(cache, mesh, volume_integral, dg, new_size)
+    foreach_volume_integral(volume_integral) do volume_integral_
+        resize_volume_integral_cache!(cache, mesh, volume_integral_, dg, new_size)
+        return nothing
+    end
+
+    return nothing
+end
+
 # Resize and reinitialize the storage of all volume integrals starting with
 # `dg.volume_integral` after mesh adaptation. This is called by the mesh-specific
 # `reinitialize_containers!`.
 function reinitialize_volume_integral_caches!(cache, mesh, dg, new_size)
-    foreach_volume_integral(dg.volume_integral) do volume_integral
-        resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)
-        return nothing
-    end
+    resize_volume_integral_caches!(cache, mesh, dg.volume_integral, dg, new_size)
     foreach_volume_integral(dg.volume_integral) do volume_integral
         reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)
         return nothing
@@ -893,14 +920,18 @@ function create_cache(mesh, equations,
                                          cache_containers, uEltype)
 end
 
-# Default for meshes without subcell limiting
+# Default for meshes without subcell limiting. Throw an error here instead of failing
+# later, e.g., in `resize_volume_integral_cache!` (missing `antidiffusive_fluxes`) or
+# in the volume integral kernel.
 function create_cache_subcell_limiting(mesh, equations,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        dg, cache_containers, uEltype)
-    return NamedTuple()
+    throw(ArgumentError("`VolumeIntegralSubcellLimiting` is not supported for " *
+                        "$(nameof(typeof(mesh))) in $(ndims(mesh))D."))
 end
 
-# The antidiffusive fluxes and the limiter cache are sized for the elements.
+# The antidiffusive fluxes and the limiter cache are sized for the elements, both when
+# the cache is created and after mesh adaptation.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        dg, new_size)
