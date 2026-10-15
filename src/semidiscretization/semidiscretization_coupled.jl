@@ -594,8 +594,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
     linear_indices = LinearIndices(size(mesh_other))
 
-    # A single assignment: a variable assigned in several places is boxed when the
-    # threaded loop below captures it
     cells = other_orientation == 1 ? axes(mesh_other, 2) : axes(mesh_other, 1)
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
