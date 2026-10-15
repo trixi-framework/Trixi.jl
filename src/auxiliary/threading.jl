@@ -4,14 +4,14 @@
 # per thread of the default thread pool) and runs one chunk per thread. The way the
 # chunks are run is selected by the `backend` preference (see `set_threading_backend!`):
 #
-# - `:pool` (default): the persistent worker pool of the vendored ParkedWorkers.jl package
-#   (`src/auxiliary/vendored/ParkedWorkers`): one sticky worker task per thread of the
-#   default thread pool, which spins for a short while after finishing a chunk before
-#   going to sleep. Handing chunks to spinning workers is much cheaper than scheduling new
-#   tasks, which matters for the many small loops in `rhs!`. The calling task runs the
-#   first chunk, and also every chunk that a worker has not picked up yet (e.g., because
-#   another process occupies its core). This replaces the role Polyester.jl's `@batch`
-#   used to play.
+# - `:pool` (default): OhMyThreads.jl's `tforeach` and `tmapreduce` with the
+#   `TeamScheduler` of ThreadTeams.jl, which runs the chunks on a persistent team of
+#   workers: one sticky worker task per thread of the default thread pool, which spins
+#   for a short while after finishing a chunk before going to sleep. Handing chunks to
+#   spinning workers is much cheaper than scheduling new tasks, which matters for the
+#   many small loops in `rhs!`. The calling task runs the first chunk, and also every
+#   chunk that a worker has not picked up yet (e.g., because another process occupies
+#   its core). This replaces the role Polyester.jl's `@batch` used to play.
 # - `:static`: `Threads.@threads :static` over the chunks.
 # - `:dynamic`: `Threads.@threads :dynamic` over the chunks (tasks may run on any
 #   thread of the default pool, but not migrate while they do not yield).
@@ -22,6 +22,18 @@
 # Chunks that run at the same time always run on different threads, so scratch buffers
 # indexed by `Threads.threadid()` are safe as long as loop bodies do not yield, which is
 # the case for all numerical kernels in Trixi.jl.
+#
+# TODO: index scratch buffers by the chunk index instead of `Threads.threadid()`.
+# Within one `@threaded` loop, every chunk has a unique index in `1:nchunks` (with
+# `nchunks <= Threads.nthreads(:default)`), so this stays correct even if a loop body
+# yields, works the same for all backends, and costs nothing at runtime (unlike
+# TaskLocalValues.jl, whose lookups are not free and whose values would be re-created
+# for every loop with `Threads.@threads`). `@threaded` could expose the chunk index, e.g.,
+# `@threaded chunk = c for element in ...`, using `enumerate(chunks(...))` and
+# `@task_index` with the `TeamScheduler`. The buffers could then have
+# `Threads.nthreads(:default)` instead of `Threads.maxthreadid()` entries, and the
+# `:static` and `:dynamic` backends could use OhMyThreads.jl's schedulers (see
+# `threaded_foreach`).
 
 # `_THREADING_BACKEND` is defined in `src/Trixi.jl`.
 
@@ -32,13 +44,13 @@
 # acquire (or stronger) atomic loads: LLVM's MemoryDependenceAnalysis treats them as
 # clobbers ("FIXME: This is overly conservative"), so that GVN cannot merge loads before
 # and after them, e.g., array sizes checked by `check_axes`. This cost 4-8% in several
-# kernels on Julia v1.13. `ParkedWorkers.nchunks` only uses relaxed loads.
+# kernels on Julia v1.13. `ThreadTeams.nchunks` only uses relaxed loads.
 @inline function threaded_nchunks(range)
     @static if _THREADING_BACKEND === :serial
         return 1
     elseif _THREADING_BACKEND === :pool
         # Also `1` while precompiling and while another task runs a threaded loop
-        return ParkedWorkers.nchunks(range)
+        return ThreadTeams.nchunks(range)
     else
         n = Threads.threadpoolsize(:default)
         n == 1 && return 1
@@ -47,45 +59,53 @@
     end
 end
 
-# The `chunk`-th of `nchunks` contiguous parts of `range`
-@inline chunk_range(range, chunk, nchunks) = ParkedWorkers.chunk(range, chunk, nchunks)
+# The `nchunks` contiguous parts of `range` (a `chunks` object of ChunkSplitters.jl,
+# re-exported by OhMyThreads.jl)
+@inline threaded_parts(range, nchunks) = OhMyThreads.chunks(range; n = nchunks)
 
-# Run `f(chunk)` for `chunk in 1:nchunks`, in parallel
-@inline function threaded_run(f::F, nchunks) where {F}
-    if nchunks == 1
-        f(1)
-        return nothing
-    end
+# Run `f(part)` for each of the `nchunks` contiguous parts of `range`, in parallel.
+# The loop body of `@threaded` stays a plain `for` loop over a part.
+@inline function threaded_foreach(f::F, range, nchunks) where {F}
+    parts = threaded_parts(range, nchunks)
     @static if _THREADING_BACKEND === :pool
-        ParkedWorkers.run_chunks(f, nchunks)
+        # One part per worker of the team
+        OhMyThreads.tforeach(f, parts; scheduler = TeamScheduler())
+        # The other backends deliberately use `Threads.@threads` instead of OhMyThreads.jl's
+        # `StaticScheduler`/`DynamicScheduler`: those would spawn tasks for nested loops
+        # instead of running them serially (`threaded_nchunks` relies on
+        # `jl_in_threaded_region`, which only `Threads.@threads` sets). Waiting for nested
+        # tasks yields, so another chunk could run on the same thread and overwrite the
+        # scratch buffers indexed by `Threads.threadid()`.
     elseif _THREADING_BACKEND === :dynamic
         Threads.@threads :dynamic for chunk in 1:nchunks
-            f(chunk)
+            f(@inbounds parts[chunk])
         end
     else
         Threads.@threads :static for chunk in 1:nchunks
-            f(chunk)
+            f(@inbounds parts[chunk])
         end
     end
     return nothing
 end
 
-# Run `f(chunk)` for `chunk in 1:nchunks` in parallel and return the results of the
-# chunks combined with the reduction operators `ops` (one per entry of the tuple `init`).
-# `f` must return a tuple with one entry per entry of `init`.
-@inline function threaded_mapreduce_chunks(f::F, ops::Ops, init, nchunks) where {F, Ops}
-    if nchunks == 1
-        return combine_reductions(ops, init, f(1))
-    end
+# Run `f(part)` for each of the `nchunks` contiguous parts of `range` in parallel and
+# return the results of the parts combined with the reduction operators `ops` (one per
+# entry of the tuple `init`), starting from `init`. `f` must return a tuple with one entry
+# per entry of `init`. The results of the parts are combined in a fixed order.
+@inline function threaded_mapreduce(f::F, ops::Ops, init, range, nchunks) where {F, Ops}
+    parts = threaded_parts(range, nchunks)
     @static if _THREADING_BACKEND === :pool
-        # Combines the chunk results in chunk order, without allocating
-        return combine_reductions(ops, init,
-                                  ParkedWorkers.run_fold(f, ParkedWorkers.TupleOp(ops),
-                                                         nchunks))
+        # Combines the results of the parts in order, without allocating
+        result = OhMyThreads.tmapreduce(f, CombineReductions(ops), parts;
+                                        scheduler = TeamScheduler())
+        return combine_reductions(ops, init, result)
     else
         partials = Vector{typeof(init)}(undef, nchunks)
-        threaded_run(nchunks) do chunk
-            @inbounds partials[chunk] = f(chunk)
+        # `1:nchunks` split into `nchunks` parts: one chunk index per part
+        threaded_foreach(1:nchunks, nchunks) do chunks
+            for chunk in chunks
+                @inbounds partials[chunk] = f(parts[chunk])
+            end
             return nothing
         end
         result = init
@@ -111,6 +131,13 @@ end
 @inline function combine_reductions(ops::Tuple, partials1::Tuple, partials2::Tuple)
     return map((op, a, b) -> op(a, b), ops, partials1, partials2)
 end
+
+# `combine_reductions` as a reduction operator for `OhMyThreads.tmapreduce`
+struct CombineReductions{Ops} <: Function
+    ops::Ops
+end
+@inline (c::CombineReductions)(partials1, partials2) = combine_reductions(c.ops, partials1,
+                                                                          partials2)
 
 """
     @threaded for ... end
@@ -182,7 +209,7 @@ macro threaded(args...)
 
     range = gensym(:range)
     nchunks = gensym(:nchunks)
-    chunk = gensym(:chunk)
+    part = gensym(:part)
 
     # We keep a plain serial loop for the case of a single chunk (one thread or nested
     # threading). Running the loop body in a closure is slower for some kernels (up to
@@ -197,8 +224,8 @@ macro threaded(args...)
                 if $nchunks == 1
                     $serial_loop
                 else
-                    $Trixi.threaded_run($nchunks) do $chunk
-                        for $loopvar in $Trixi.chunk_range($range, $chunk, $nchunks)
+                    $Trixi.threaded_foreach($range, $nchunks) do $part
+                        for $loopvar in $part
                             $body
                         end
                         nothing
@@ -229,10 +256,10 @@ macro threaded(args...)
                         $var_tuple
                     end
                 else
-                    $Trixi.threaded_mapreduce_chunks($op_tuple, $init_tuple,
-                                                     $nchunks) do $chunk
+                    $Trixi.threaded_mapreduce($op_tuple, $init_tuple, $range,
+                                              $nchunks) do $part
                         $(local_inits...)
-                        for $loopvar in $Trixi.chunk_range($range, $chunk, $nchunks)
+                        for $loopvar in $part
                             $body
                         end
                         $var_tuple

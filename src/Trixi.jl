@@ -67,6 +67,7 @@ using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
+using FastBroadcast: FastBroadcast
 using FillArrays: Ones, Zeros
 using FixedSizeArrays: FixedSizeArrays, FixedSizeArray
 using FFTW: fft
@@ -87,6 +88,7 @@ using StaticArrayInterface: StaticArrayInterface, static_length # used by LoopVe
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul_serial!
 using OffsetArrays: OffsetArray, OffsetVector
+using OhMyThreads: OhMyThreads
 using P4est
 using T8code
 using RecipesBase: RecipesBase
@@ -98,26 +100,26 @@ using Static: Static, One, True, False
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms.
 
-OrdinaryDiffEq.jl implements threaded stage updates (`DiffEqBase.Threaded()`, i.e.,
-`FastBroadcast.Threaded()`) only through the Polyester.jl extension of FastBroadcast.jl.
-Trixi.jl no longer depends on Polyester.jl, and without Polyester.jl loaded,
-`FastBroadcast.Threaded()` throws a `MethodError`. With Polyester.jl loaded, its spinning
-worker tasks compete with the worker pool of [`@threaded`](@ref) for the same threads,
-which makes time stepping several times slower. Thus, `Trixi.Threaded()` currently
-disables threading in OrdinaryDiffEq.jl algorithms; only the right-hand side evaluation
-is multithreaded.
+With the default threading backend `:pool` (see [`Trixi.set_threading_backend!`](@ref)),
+this is `FastBroadcast.Threaded()` (the same as `DiffEqBase.Threaded()`), so that the stage
+updates of OrdinaryDiffEq.jl are multithreaded. FastBroadcast.jl runs them on the same
+team of persistent worker tasks of ThreadTeams.jl as [`@threaded`](@ref) (via its
+ThreadTeams.jl extension, loaded since Trixi.jl depends on ThreadTeams.jl), so the two do
+not compete for the threads. With all other backends, `Trixi.Threaded()` disables
+threading in OrdinaryDiffEq.jl algorithms.
 """ Threaded
 
-@static if isdefined(DiffEqBase, :Threaded)
-    Threaded() = DiffEqBase.Serial()
+@static if _THREADING_BACKEND === :pool
+    Threaded() = FastBroadcast.Threaded()
 else
-    Threaded() = False()
+    Threaded() = FastBroadcast.Serial()
 end
 
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
+using ThreadTeams: ThreadTeams, TeamScheduler
 using TimerOutputs: TimerOutputs, @notimeit, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
@@ -171,8 +173,6 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
-# Persistent worker pool used by the default `:pool` backend of `@threaded`
-include("auxiliary/vendored/ParkedWorkers/ParkedWorkers.jl")
 include("auxiliary/threading.jl")
 include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")

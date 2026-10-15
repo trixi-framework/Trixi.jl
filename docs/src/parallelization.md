@@ -19,7 +19,9 @@ can be changed with [`Trixi.set_threading_backend!`](@ref), e.g.,
 julia> Trixi.set_threading_backend!(:static)
 ```
 followed by a restart of Julia. The available backends are
-- `:pool` (default): a small pool of persistent worker tasks, one per thread of the
+- `:pool` (default): runs the loops with [OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl)
+  and the `TeamScheduler` of [ThreadTeams.jl](https://github.com/vchuravy/ThreadTeams.jl),
+  i.e., on a small team of persistent worker tasks, one per thread of the
   default thread pool. After a threaded loop, the workers spin for a short while (100 µs)
   before going to sleep, so that the next loop can start quickly (about 0.5 µs instead of
   2–4 µs with `Threads.@threads`). This matters for the many small loops in
@@ -55,10 +57,11 @@ the same time, the latter takes precedence.
 Time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) accept the keyword
 argument `thread = Trixi.Threaded()`, as described in the
-[section on time integration methods](@ref time-integration). OrdinaryDiffEq.jl implements
-threaded stage updates only via Polyester.jl, which Trixi.jl no longer uses, so
-`Trixi.Threaded()` currently disables threading in OrdinaryDiffEq.jl. Only the evaluation
-of the right-hand side is multithreaded.
+[section on time integration methods](@ref time-integration). With the `:pool` backend,
+the stage updates of OrdinaryDiffEq.jl then run on the same team of worker tasks as the
+threaded loops of Trixi.jl (via the ThreadTeams.jl extension of FastBroadcast.jl). With all
+other backends, `Trixi.Threaded()` disables threading in OrdinaryDiffEq.jl, and only the
+evaluation of the right-hand side is multithreaded.
 
 !!! warning
     Not everything is parallelized yet and there are likely opportunities to
