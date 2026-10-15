@@ -107,7 +107,8 @@ for human readability.
   memory alive, so temporaries no longer need to be `GC.@preserve`d, and AMR works again
   for non-`isbits` element types on Julia v1.10 (lifting the restriction from [#3306]).
   This improves the performance on Julia v1.11 and newer, where the sizes of `Array`s
-  could not be hoisted out of inner loops.
+  could not be hoisted out of inner loops. For `DGSEM`, `wrap_array` returns arrays whose
+  sizes of the variables and nodes are known at compile time, as the `PtrArray`s did.
   The internal function `wrap_array_native` is deprecated; use `wrap_array` instead.
   The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element

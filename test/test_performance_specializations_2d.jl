@@ -65,9 +65,14 @@ end
     end
     is_turbo(u) = endswith(string(kernel_method(u).file), "dg_2d_compressible_euler.jl")
 
-    # `wrap_array` of the solution vector
-    u = Trixi.wrap_array(u_ode, semi)
-    @test u isa Trixi.VectorBackedArray
+    # `wrap_array` of the solution vector: for `DGSEM`, a view whose sizes of the
+    # variables and nodes are known at compile time
+    u = @inferred Trixi.wrap_array(u_ode, semi)
+    @test u isa Trixi.StaticSizeArray
+    @test parent(u) === u_ode
+    # the plain wrapper of a `Vector` (as `wrap_array` returns for other solvers)
+    u_fixed = Trixi.wrap_vector(u_ode, size(u))
+    @test u_fixed isa Trixi.VectorBackedArray
     # `wrap_array` of a contiguous view, e.g., a column of a matrix as in
     # `jacobian_fd` and `linear_structure`
     U = hcat(u_ode, u_ode)
@@ -79,27 +84,43 @@ end
 
         if Trixi._PREFERENCE_THREADING === :polyester
             @test is_turbo(u)
+            @test is_turbo(u_fixed)
             @test is_turbo(u_view)
         else
             # The `@turbo` kernels are not used with other threading backends
             @test !is_turbo(u)
+            @test !is_turbo(u_fixed)
             @test !is_turbo(u_view)
         end
 
-        # The volume integral uses views with static sizes of the variables and nodes
-        u_s = @inferred Trixi.static_view(u, semi.equations, semi.solver)
+        # `static_view` creates the view with static sizes
+        u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
         @test u_s isa Trixi.StaticSizeArray
-        @test size(u_s) == size(u)
-        @test u_s == u
-        @test parent(u_s) === parent(u)
-        @test strides(u_s) == strides(u)
-        @test pointer(u_s) == pointer(u)
-        @test is_turbo(u_s) == (Trixi._PREFERENCE_THREADING === :polyester)
+        @test typeof(u_s) == typeof(u)
+        @test size(u_s) == size(u_fixed)
+        @test u_s == u_fixed
+        @test parent(u_s) === parent(u_fixed)
+        @test strides(u_s) == strides(u_fixed)
+        @test pointer(u_s) == pointer(u_fixed)
+        # linear indexing goes to the parent vector
+        @test IndexStyle(u_s) == IndexLinear()
+        @test u_s[17] == u_ode[17]
+        # and returns other arrays (including views with static sizes) unchanged
+        @test Trixi.static_view(u, semi.equations, semi.solver) === u
+        @test Trixi.static_view(u_view, semi.equations, semi.solver) === u_view
+        # It is created in every call of `wrap_array`, so it must not allocate. The
+        # allocation tests of the elixirs allow a few bytes and do not catch this. We use
+        # many elements since Julia does not allocate when boxing small integers.
+        u_large = Trixi.wrap_vector(zeros(length(u) * 1000),
+                                    (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
+        static_view_allocs(u, equations, dg) = @allocated Trixi.static_view(u, equations,
+                                                                            dg)
+        static_view_allocs(u_large, semi.equations, semi.solver)
+        @test static_view_allocs(u_large, semi.equations, semi.solver) == 0
         # Polyester.jl converts it to a `PtrArray` with static sizes
         u_p = PtrArray(u_s)
         @test u_p == u
         @test Trixi.StaticArrayInterface.static_size(u_p)[1] isa Trixi.StaticInt
-        @test Trixi.static_view(u_view, semi.equations, semi.solver) === u_view
 
         # All of them give the same result as the plain version
         du_baseline = similar(u)
@@ -110,9 +131,8 @@ end
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du_baseline, u, 1, typeof(semi.mesh), have_nonconservative_terms,
                semi.equations, volume_flux, semi.solver, semi.cache, true)
-        for u_ in (u, u_view, u_ptr, u_s)
-            du_ = similar(u)
-            du_ .= 0
+        for u_ in (u, u_fixed, u_view, u_ptr)
+            du_ = Trixi.wrap_vector(zeros(length(u_ode)), size(u))
             du_wrapped = u_ isa PtrArray ? PtrArray(du_) :
                          u_ isa Trixi.StaticSizeArray ?
                          Trixi.static_view(du_, semi.equations, semi.solver) : du_

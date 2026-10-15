@@ -371,6 +371,10 @@ const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
     return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
 end
 
+# Product of the static sizes `S`, computed at compile time. `prod(S.parameters)` iterates
+# over a `Core.SimpleVector` at runtime, which dispatches dynamically and allocates.
+@generated static_prod(::Type{S}) where {S <: Tuple} = prod(S.parameters)
+
 # An `N`-dimensional array backed by the vector `data` (column-major, without copying),
 # whose sizes `S` (a `Tuple` type) of all but the last dimension are known at compile
 # time, while the size `nlast` of the last dimension is only known at runtime.
@@ -388,7 +392,7 @@ struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}} <: DenseArray{T
 
     function StaticSizeArray{S}(data::AbstractVector{T}, nlast::Integer) where {S, T}
         N = length(S.parameters) + 1
-        if length(data) != prod(S.parameters) * nlast
+        if length(data) != static_prod(S) * nlast
             throw(DimensionMismatch("length of the data $(length(data)) does not match the size $((S.parameters..., nlast))"))
         end
         return new{T, N, S, typeof(data)}(data, nlast)
@@ -397,7 +401,13 @@ end
 
 @inline Base.size(A::StaticSizeArray{T, N, S}) where {T, N, S} = (S.parameters..., A.nlast)
 @inline Base.parent(A::StaticSizeArray) = A.data
-Base.IndexStyle(::Type{<:StaticSizeArray}) = IndexCartesian()
+# Linear indexing goes straight to `data` (e.g., for broadcasts over the whole array)
+Base.IndexStyle(::Type{<:StaticSizeArray}) = IndexLinear()
+Base.@propagate_inbounds Base.getindex(A::StaticSizeArray, i::Int) = A.data[i]
+Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray, x, i::Int)
+    A.data[i] = x
+    return A
+end
 
 # Linear index in Horner form, e.g., `i + n1 * ((j - 1) + n2 * (k - 1))` in 3D, as in
 # StrideArraysCore.jl
@@ -463,11 +473,20 @@ KernelAbstractions.get_backend(A::StaticSizeArray) = get_backend(A.data)
 Return a view of the solution-like array `A` with dimensions
 `[variable, node..., element]` whose sizes of all but the last dimension (i.e.,
 `nvariables(equations)` and `nnodes(dg)`) are known at compile time, without copying.
-Returns `A` itself for array types without such a view.
+Returns `A` itself for array types without such a view. Requires that `nnodes(dg)` is
+known at compile time (e.g., `DGSEM`). `wrap_array` returns such a view for `DGSEM`.
 """
 @inline function static_view(A::VectorBackedArray, equations, dg)
-    S = Tuple{nvariables(equations), ntuple(_ -> nnodes(dg), ndims(A) - 2)...}
+    S = static_sizes(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(A) - 2))
     return StaticSizeArray{S}(parent(A), size(A, ndims(A)))
+end
+# `Tuple{nvariables, nnodes, ...}` for `ndims_nodes` node dimensions. A generated function
+# so that the type is inferred also on Julia v1.10, which does not infer
+# `Tuple{nvariables(equations), ntuple(_ -> nnodes(dg), ndims(A) - 2)...}`; `wrap_array`
+# returns this view and must be type stable.
+@generated function static_sizes(::Val{NVARS}, ::Val{NNODES},
+                                 ::Val{NDIMS_NODES}) where {NVARS, NNODES, NDIMS_NODES}
+    return Tuple{NVARS, ntuple(_ -> NNODES, NDIMS_NODES)...}
 end
 @inline static_view(A, equations, dg) = A
 
@@ -476,9 +495,9 @@ end
 # by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
 # `LoopVectorization.check_args`.
 # With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
-# a `VectorBackedArray` for CPU `Vector`s, and a reshaped contiguous view of an `Array`,
-# e.g., a column of a matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode`
-# in coupled semidiscretizations, as well as their `static_view`s. Threading via
+# a `StaticSizeArray` (`DGSEM`) or `VectorBackedArray` for CPU `Vector`s, and a reshaped
+# contiguous view of an `Array`, e.g., a column of a matrix in `linear_structure` or
+# `jacobian_fd`, or a part of `u_ode` in coupled semidiscretizations. Threading via
 # Polyester.jl may convert them to `PtrArray`s. With other threading backends, the
 # `@turbo` kernels are not selected for the arrays returned by `wrap_array` (see the
 # "Heisenbug" note in `@threaded`).
