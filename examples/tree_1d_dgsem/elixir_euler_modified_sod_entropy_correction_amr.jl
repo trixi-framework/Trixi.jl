@@ -18,7 +18,7 @@ initial_condition = initial_condition_modified_sod
 volume_flux = flux_central
 surface_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(3)
-indicator_ec = IndicatorEntropyCorrection(equations, basis)
+indicator_ec = IndicatorEntropyCorrection(equations, basis; alpha_smooth = false)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
                                          alpha_min = 0.001,

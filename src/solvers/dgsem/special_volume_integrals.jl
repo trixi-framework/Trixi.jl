@@ -63,6 +63,7 @@ function create_cache(mesh, equations,
                                     dg, cache_containers, uEltype)
 
     resize!(volume_integral.indicator.cache.alpha, nelements(dg, cache_containers))
+    resize!(volume_integral.indicator.cache.alpha_tmp, nelements(dg, cache_containers))
 
     return (; cache_default..., cache_stabilized...)
 end
@@ -78,6 +79,7 @@ function resize_volume_integral_cache!(cache, mesh,
     resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
 
     resize!(volume_integral.indicator.cache.alpha, new_size)
+    resize!(volume_integral.indicator.cache.alpha_tmp, new_size)
 
     return nothing
 end
