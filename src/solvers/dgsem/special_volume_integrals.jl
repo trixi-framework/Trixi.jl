@@ -84,7 +84,7 @@ end
 # for visualization.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
-                                       new_size)
+                                       dg, new_size)
     resize!(volume_integral.indicator.cache.alpha, new_size)
 
     return nothing

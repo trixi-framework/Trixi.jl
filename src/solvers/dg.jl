@@ -33,8 +33,8 @@ abstract type AbstractVolumeIntegral end
 # for the storage only handle the volume integral itself, not its children.
 # - `volume_integral_children(volume_integral)`
 # - `create_cache(mesh, equations, volume_integral, dg, cache_containers, uEltype)`
-# - `resize_volume_integral_cache!(cache, mesh, volume_integral, new_size)`
-# - `reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, new_size)`
+# - `resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
+# - `reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
 # - `get_element_variables!(element_variables, u, mesh, equations,
 #                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
@@ -62,7 +62,7 @@ end
 # Resize the storage of `volume_integral` itself after mesh adaptation to `new_size`
 # elements. By default, there is nothing to resize.
 function resize_volume_integral_cache!(cache, mesh,
-                                       volume_integral::AbstractVolumeIntegral,
+                                       volume_integral::AbstractVolumeIntegral, dg,
                                        new_size)
     return nothing
 end
@@ -70,8 +70,8 @@ end
 # Reinitialize the storage of `volume_integral` itself after mesh adaptation, after
 # all volume integrals in the tree have been resized. By default, there is nothing to
 # reinitialize.
-function reinit_volume_integral_cache!(cache, mesh, dg,
-                                       volume_integral::AbstractVolumeIntegral,
+function reinit_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegral, dg,
                                        new_size)
     return nothing
 end
@@ -174,11 +174,11 @@ end
 # `reinitialize_containers!`.
 function reinitialize_volume_integral_caches!(cache, mesh, dg, new_size)
     foreach_volume_integral(dg.volume_integral) do volume_integral
-        resize_volume_integral_cache!(cache, mesh, volume_integral, new_size)
+        resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)
         return nothing
     end
     foreach_volume_integral(dg.volume_integral) do volume_integral
-        reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, new_size)
+        reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)
         return nothing
     end
 
@@ -340,15 +340,15 @@ abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 # after mesh adaptation.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::AbstractVolumeIntegralSubcell,
-                                       new_size)
+                                       dg, new_size)
     resize_normal_vectors!(cache, mesh, new_size)
 
     return nothing
 end
 
-function reinit_volume_integral_cache!(cache, mesh, dg,
+function reinit_volume_integral_cache!(cache, mesh,
                                        volume_integral::AbstractVolumeIntegralSubcell,
-                                       new_size)
+                                       dg, new_size)
     reinit_normal_vectors!(cache, mesh, dg)
 
     return nothing
@@ -903,7 +903,7 @@ end
 # The antidiffusive fluxes and the limiter cache are sized for the elements.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralSubcellLimiting,
-                                       new_size)
+                                       dg, new_size)
     resize!(cache.antidiffusive_fluxes, new_size)
     resize_subcell_limiter_cache!(volume_integral.limiter, new_size)
 
