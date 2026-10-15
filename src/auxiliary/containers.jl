@@ -386,8 +386,22 @@ end
 # `AbstractVector` storage, e.g., GPU arrays, and is converted to a device array by Adapt.jl.
 # Polyester.jl converts it to a `PtrArray` with static sizes via the StaticArrayInterface.jl
 # traits defined below. See `static_view`.
-struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}} <: DenseArray{T, N}
+#
+# The elements are accessed via `ref`, which is the `MemoryRef` of `data` if `data` is a
+# `Vector` (on Julia v1.11 and newer) and `data` itself otherwise. Since Julia v1.11,
+# `Vector` is a mutable struct whose data pointer can change (`resize!`), so it must be
+# loaded from the `Vector` object for each access. LLVM can hoist this load out of an
+# inner loop only if the loop is guaranteed to run, since it does not know that the
+# `Vector` object is dereferenceable. Thus, the load stays, e.g., in front of the inner
+# loops of the flux differencing kernels, which only run for some nodes (`ii > i`).
+# This costs about 2-3% in the volume integral of `elixir_euler_ec.jl` in 2D.
+# The `MemoryRef` is an immutable part of this array (like the pointer of the `PtrArray`s
+# that `wrap_array` returned when Trixi.jl used Polyester.jl), so the data pointer is
+# loaded only once. It also keeps the memory alive. The `MemoryRef` is not updated by
+# `resize!(data, ...)`, so (as the size `nlast`) the view must be re-created afterward.
+struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}, R} <: DenseArray{T, N}
     data::P
+    ref::R
     nlast::Int
 
     function StaticSizeArray{S}(data::AbstractVector{T}, nlast::Integer) where {S, T}
@@ -395,17 +409,43 @@ struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}} <: DenseArray{T
         if length(data) != static_prod(S) * nlast
             throw(DimensionMismatch("length of the data $(length(data)) does not match the size $((S.parameters..., nlast))"))
         end
-        return new{T, N, S, typeof(data)}(data, nlast)
+        ref = storage_ref(data)
+        return new{T, N, S, typeof(data), typeof(ref)}(data, ref, nlast)
+    end
+end
+
+# See the comment above `StaticSizeArray`
+@inline storage_ref(data::AbstractVector) = data
+Base.@propagate_inbounds storage_getindex(data::AbstractVector, i::Int) = data[i]
+Base.@propagate_inbounds function storage_setindex!(data::AbstractVector, x, i::Int)
+    data[i] = x
+    return nothing
+end
+@static if VERSION >= v"1.11"
+    @inline storage_ref(data::Vector) = data.ref
+    # Bounds are checked by the callers, i.e., `getindex` and `setindex!` of
+    # `StaticSizeArray` (as in `getindex(::Array, ::Int)` for the `MemoryRef` of an `Array`)
+    @inline function storage_getindex(ref::MemoryRef, i::Int)
+        return Core.memoryrefget(Core.memoryrefnew(ref, i, false), :not_atomic, false)
+    end
+    @inline function storage_setindex!(ref::MemoryRef{T}, x, i::Int) where {T}
+        Core.memoryrefset!(Core.memoryrefnew(ref, i, false), convert(T, x),
+                           :not_atomic, false)
+        return nothing
     end
 end
 
 @inline Base.size(A::StaticSizeArray{T, N, S}) where {T, N, S} = (S.parameters..., A.nlast)
 @inline Base.parent(A::StaticSizeArray) = A.data
-# Linear indexing goes straight to `data` (e.g., for broadcasts over the whole array)
+# Linear indexing goes straight to the storage (e.g., for broadcasts over the whole array)
 Base.IndexStyle(::Type{<:StaticSizeArray}) = IndexLinear()
-Base.@propagate_inbounds Base.getindex(A::StaticSizeArray, i::Int) = A.data[i]
+Base.@propagate_inbounds function Base.getindex(A::StaticSizeArray, i::Int)
+    @boundscheck checkbounds(A, i)
+    return @inbounds storage_getindex(A.ref, i)
+end
 Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray, x, i::Int)
-    A.data[i] = x
+    @boundscheck checkbounds(A, i)
+    @inbounds storage_setindex!(A.ref, x, i)
     return A
 end
 
@@ -424,13 +464,13 @@ end
 Base.@propagate_inbounds function Base.getindex(A::StaticSizeArray{T, N},
                                                 I::Vararg{Int, N}) where {T, N}
     @boundscheck checkbounds(A, I...)
-    return @inbounds A.data[linear_index(A, I...)]
+    return @inbounds storage_getindex(A.ref, linear_index(A, I...))
 end
 
 Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray{T, N}, x,
                                                  I::Vararg{Int, N}) where {T, N}
     @boundscheck checkbounds(A, I...)
-    @inbounds A.data[linear_index(A, I...)] = x
+    @inbounds storage_setindex!(A.ref, x, linear_index(A, I...))
     return A
 end
 
