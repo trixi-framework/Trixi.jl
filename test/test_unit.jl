@@ -5224,6 +5224,8 @@ end
         push!(visited, volume_integral_)
         return nothing
     end
+    # `map` stops at the end of the shorter collection, so check the length first
+    @test length(visited) == 6
     @test all(map(===, visited,
                   [volume_integral, volume_integral_adaptive, volume_integral_wf,
                       volume_integral_fd, volume_integral_fd, volume_integral_fv]))
@@ -5261,13 +5263,25 @@ end
     @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
                                                                   volume_integral_default = volume_integral_sl,
                                                                   volume_integral_stabilized = volume_integral_sl))
+    # The subcell finite volume buffers are created for `volume_integral_low_order`
+    @test_throws ArgumentError create_semi(VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                         volume_flux_dg = flux_ranocha,
+                                                                         volume_integral_low_order = volume_integral_wf))
     semi = create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
                                               volume_integral_default = volume_integral_wf,
                                               volume_integral_stabilized = volume_integral_sl))
     @test haskey(semi.cache, :fstar1_L_threaded)
     @test haskey(semi.cache, :antidiffusive_fluxes)
 
-    # The storage of subcell limiting is resized after mesh adaptation
+    # The storage of subcell limiting is resized after mesh adaptation.
+    # Fill the antidiffusive fluxes with `NaN`s first so that the check of the
+    # element interfaces below does not depend on the content of the new memory.
+    for antidiffusive_flux in (semi.cache.antidiffusive_fluxes.antidiffusive_flux1_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux1_R,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_R)
+        fill!(antidiffusive_flux, NaN)
+    end
     new_size = nelements(semi.solver, semi.cache) + 3
     Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
     (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes

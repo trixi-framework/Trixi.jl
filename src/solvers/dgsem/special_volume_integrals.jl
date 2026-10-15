@@ -34,11 +34,23 @@ end
 # was performed. This is only implemented for the positions in the tree accepted by
 # `supports_subcell_limiting`. Moreover, the antidiffusive fluxes are stored in the
 # shared `cache`. Thus, at most one `VolumeIntegralSubcellLimiting` is allowed.
+# Furthermore, `VolumeIntegralSubcellLimiting` does not create the buffers for the
+# subcell finite volume fluxes itself but uses the ones created for its child
+# `volume_integral_low_order`, which must thus be a subcell-based volume integral.
 function check_volume_integral_tree(volume_integral)
     n_subcell_limiting = Ref(0)
     foreach_volume_integral(volume_integral) do volume_integral_
         if volume_integral_ isa VolumeIntegralSubcellLimiting
             n_subcell_limiting[] += 1
+
+            (; volume_integral_low_order) = volume_integral_
+            if !(volume_integral_low_order isa AbstractVolumeIntegralSubcell)
+                throw(ArgumentError("The `volume_integral_low_order` of a " *
+                                    "`VolumeIntegralSubcellLimiting` must be a " *
+                                    "subcell-based volume integral such as " *
+                                    "`VolumeIntegralPureLGLFiniteVolume`, got " *
+                                    "$(nameof(typeof(volume_integral_low_order)))."))
+            end
         end
         return nothing
     end
