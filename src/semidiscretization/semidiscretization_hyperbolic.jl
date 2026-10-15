@@ -551,6 +551,8 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolic) = real(semi.solver)
 
+storage_type(semi::SemidiscretizationHyperbolic) = storage_type(semi.mesh, semi.cache)
+
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
     @unpack mesh, equations, solver, cache = semi
     return mesh, equations, solver, cache

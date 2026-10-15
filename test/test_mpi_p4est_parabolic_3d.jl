@@ -30,6 +30,35 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_taylor_green_vortex_amr.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.0011069115461970517,
+                            0.013872454764036899,
+                            0.013872454764036934,
+                            0.012060120516483785,
+                            0.14491993697252206
+                        ],
+                        linf=[
+                            0.004408900543641403,
+                            0.05154019471576565,
+                            0.051540194715650245,
+                            0.035283556918085636,
+                            0.6804810816393854
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
 @testitem "P4estMesh MPI 3D Parabolic: elixir_navierstokes_freestream_boundaries.jl" setup=[
     Setup,
     MPIP4estMesh3DParabolic
@@ -107,4 +136,123 @@ end
     dt = max_dt_parabolic(semi, ode)
     @test is_identical_on_all_ranks(dt)
     @test isapprox(dt, 1.6071428571428439, rtol = 1.0e-12)
+end
+
+@testitem "P4estMesh MPI 3D Parabolic: nonconforming meshes (linear solution)" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The parabolic terms must vanish for a linear solution, in particular
+    # at nonconforming interfaces (mortars), including MPI mortars. The mortars
+    # are created by the initial adaptation of the AMR callback on an unstructured
+    # curved mesh with trees of different orientations. The slope of the linear
+    # initial condition is chosen such that this adaptation refines only up to
+    # `med_level = 2` (`u > med_threshold = 0.1` in a part of the domain, but nowhere
+    # `u > max_threshold = 0.6`) to keep the mesh small, while still creating
+    # MPI mortars for 2 and 3 MPI ranks.
+    function initial_condition_linear(x, t, equations)
+        return SVector(0.01 * (x[1] + 2 * x[2] + 3 * x[3]))
+    end
+
+    function max_abs_rhs_parabolic(semi)
+        # Use the mesh after the initial adaptation of the AMR callback
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return Trixi.MPI.Allreduce(maximum(abs, du_ode; init = zero(eltype(du_ode))),
+                                   max, Trixi.mpi_comm())
+    end
+
+    function test_mpi_surfaces_and_axes(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic, cache_parabolic) = semi
+
+        # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+        @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                                  Trixi.mpi_comm()) > 0
+        @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +,
+                                  Trixi.mpi_comm()) > 0
+
+        # Check the axes of the parabolic arrays after the initial adaptation
+        (; u_transformed, gradients, flux_parabolic) = cache_parabolic.parabolic_container
+        for array in (u_transformed, gradients..., flux_parabolic...)
+            @test Trixi.check_axes(array, mesh, equations_parabolic, dg, cache) ===
+                  nothing
+        end
+        # The parabolic terms reuse the containers of the hyperbolic `cache`
+        for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                          cache.boundaries, cache.mortars, cache.mpi_mortars)
+            @test Trixi.check_axes(container, equations_parabolic, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_curved.jl"),
+                        initial_condition=initial_condition_linear,
+                        tspan=(0.0, 0.0))
+    test_mpi_surfaces_and_axes(semi)
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_amr_curved.jl"),
+                        initial_condition=initial_condition_linear,
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        tspan=(0.0, 0.0))
+    test_mpi_surfaces_and_axes(semi)
+    @test max_abs_rhs_parabolic(semi) < 1.0e-9
+end
+
+@testitem "P4estMesh MPI 3D Parabolic: LDG on cubed sphere" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    # On the `P4estMesh`, the LDG fluxes upwind in the direction of the dominant component
+    # of the normal direction. On the cubed sphere, the components of the normal
+    # directions at the faces between the trees of different cube faces have (nearly) the
+    # same magnitude. Thus, both sides of an MPI interface must use bitwise identical
+    # normal directions to choose the same upwind direction, i.e., to obtain the same
+    # results as in serial. The solution is smooth, but the parabolic fluxes are
+    # discontinuous across element interfaces, so the result depends on the upwind
+    # direction. Moreover, the cubed sphere contains MPI interfaces with rotated faces.
+    function norms_rhs_parabolic(semi)
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        l2 = Trixi.MPI.Allreduce(sum(abs2, du_ode; init = zero(eltype(du_ode))), +,
+                                 Trixi.mpi_comm())
+        linf = Trixi.MPI.Allreduce(maximum(abs, du_ode; init = zero(eltype(du_ode))),
+                                   max, Trixi.mpi_comm())
+        return sqrt(l2), linf
+    end
+
+    equations = LinearScalarAdvectionEquation3D(0.2, -0.7, 0.5)
+    equations_parabolic = LaplaceDiffusion3D(1.0e-2, equations)
+    function initial_condition(x, t, equations)
+        return SVector(sin(2.1 * x[1] + 0.3) * cos(1.3 * x[2] - 0.2) + x[3])
+    end
+    boundary_condition = BoundaryConditionDirichlet(initial_condition)
+    boundary_conditions = (; inside = boundary_condition, outside = boundary_condition)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    # Reference values computed in serial
+    for (solver_parabolic, l2, linf) in ((ParabolicFormulationBassiRebay1(),
+                                          2.091902504167327, 0.07073239461943763),
+                                         (ParabolicFormulationLocalDG(),
+                                          2.104735120239687, 0.08380451253452917))
+        mesh = P4estMeshCubedSphere(2, 2, 0.5, 0.5, polydeg = 3)
+        semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     solver_parabolic,
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions))
+        (; mpi_interfaces) = semi.cache
+        @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(mpi_interfaces), +,
+                                  Trixi.mpi_comm()) > 0
+        @test all(isfinite, mpi_interfaces.normal_directions)
+
+        l2_mpi, linf_mpi = norms_rhs_parabolic(semi)
+        @test isapprox(l2_mpi, l2, rtol = 1.0e-12)
+        @test isapprox(linf_mpi, linf, rtol = 1.0e-12)
+    end
 end

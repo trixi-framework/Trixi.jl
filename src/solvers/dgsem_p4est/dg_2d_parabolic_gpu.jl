@@ -12,7 +12,8 @@
 # elements, interfaces, and boundaries, following the structure of the
 # hyperbolic implementation in `dg_2d_gpu.jl`: the functions launching the
 # kernels are generic in the number of spatial dimensions, while the kernels
-# and the `per_node!` functions they call dispatch on the mesh type `MeshT`.
+# and the `per_node!` functions they call dispatch on the mesh type `MeshT`
+# (the 3D kernels are in `dg_3d_parabolic_gpu.jl`).
 # To reduce the number of kernel launches, some steps of the CPU implementation
 # are fused:
 # - Volume integrals compute their result per node and overwrite their output,
@@ -25,7 +26,7 @@
 #
 # Currently, only conforming meshes are supported (no mortars).
 function rhs_parabolic!(backend::Backend, du, u, t,
-                        mesh::P4estMesh{2},
+                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -100,7 +101,7 @@ function rhs_parabolic!(backend::Backend, du, u, t,
 end
 
 function calc_gradient!(backend::Backend, gradients, u_transformed, t,
-                        mesh::P4estMesh{2},
+                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
     # Calculate volume integral. This overwrites `gradients`, so no reset is required.
@@ -150,7 +151,7 @@ end
 # Volume terms
 
 function transform_variables!(backend::Backend, u_transformed, u,
-                              mesh::P4estMesh,
+                              mesh::Union{P4estMesh{2}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
@@ -178,7 +179,7 @@ end
 end
 
 function calc_volume_integral_gradient!(backend::Backend, gradients, u_transformed,
-                                        mesh::P4estMesh,
+                                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
@@ -246,7 +247,7 @@ end
 end
 
 function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
-                                u_transformed, mesh::P4estMesh,
+                                u_transformed, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
@@ -297,7 +298,7 @@ end
 # Identical to the weak-form volume integral for the purely hyperbolic case,
 # except that the fluxes are here already precomputed in `calc_parabolic_fluxes!`.
 function calc_volume_integral!(backend::Backend, du, flux_parabolic::Tuple,
-                               mesh::P4estMesh,
+                               mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
@@ -369,7 +370,8 @@ end
 function prolong2interfaces_and_calc_interface_flux_gradient!(backend::Backend,
                                                               surface_flux_values,
                                                               u_transformed,
-                                                              mesh::P4estMesh,
+                                                              mesh::Union{P4estMesh{2},
+                                                                          P4estMesh{3}},
                                                               equations_parabolic,
                                                               dg::DG,
                                                               parabolic_scheme, cache)
@@ -461,7 +463,8 @@ end
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
                                                      surface_flux_values,
                                                      flux_parabolic::Tuple,
-                                                     mesh::P4estMesh,
+                                                     mesh::Union{P4estMesh{2},
+                                                                 P4estMesh{3}},
                                                      equations_parabolic::AbstractEquationsParabolic,
                                                      dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -579,21 +582,24 @@ end
 
 function calc_boundary_flux_gradient!(backend::Backend, cache, t, u_transformed,
                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::P4estMesh, equations_parabolic, dg::DG)
+                                      mesh::Union{P4estMesh{2}, P4estMesh{3}},
+                                      equations_parabolic, dg::DG)
     @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
 function calc_boundary_flux_divergence!(backend::Backend, cache, t, flux_parabolic,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::P4estMesh, equations_parabolic, dg::DG)
+                                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
+                                        equations_parabolic, dg::DG)
     @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
 function calc_boundary_flux_gradient!(backend::Backend, cache, t, u_transformed,
                                       boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
-                                      mesh::P4estMesh, equations_parabolic, dg::DG)
+                                      mesh::Union{P4estMesh{2}, P4estMesh{3}},
+                                      equations_parabolic, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
@@ -607,7 +613,8 @@ end
 
 function calc_boundary_flux_divergence!(backend::Backend, cache, t, flux_parabolic,
                                         boundary_conditions_parabolic::UnstructuredSortedBoundaryTypes,
-                                        mesh::P4estMesh, equations_parabolic, dg::DG)
+                                        mesh::Union{P4estMesh{2}, P4estMesh{3}},
+                                        equations_parabolic, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions_parabolic
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
@@ -627,7 +634,8 @@ end
 # boundary condition and do not need any dynamic dispatch.
 function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
                                      BCs::Tuple{}, BC_indices::Tuple{},
-                                     operator_type, mesh::P4estMesh,
+                                     operator_type,
+                                     mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                      equations_parabolic, dg::DG)
     return nothing
 end
@@ -636,7 +644,8 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
                                      BCs::Tuple{Any, Vararg{Any}},
                                      BC_indices::Tuple{AbstractVector{Int},
                                                        Vararg{AbstractVector{Int}}},
-                                     operator_type, mesh::P4estMesh,
+                                     operator_type,
+                                     mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                      equations_parabolic, dg::DG)
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
@@ -777,7 +786,8 @@ end
 # of the CPU version
 function calc_surface_integral_and_apply_jacobian_gradient!(backend::Backend,
                                                             gradients,
-                                                            mesh::P4estMesh,
+                                                            mesh::Union{P4estMesh{2},
+                                                                        P4estMesh{3}},
                                                             equations_parabolic::AbstractEquationsParabolic,
                                                             dg::DGSEM{<:LobattoLegendreBasis},
                                                             cache)
@@ -877,7 +887,8 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
                                                                     gradients,
                                                                     t,
                                                                     source_terms_parabolic,
-                                                                    mesh::P4estMesh,
+                                                                    mesh::Union{P4estMesh{2},
+                                                                                P4estMesh{3}},
                                                                     equations_parabolic::AbstractEquationsParabolic,
                                                                     surface_integral::SurfaceIntegralWeakForm,
                                                                     dg::DGSEM{<:LobattoLegendreBasis},

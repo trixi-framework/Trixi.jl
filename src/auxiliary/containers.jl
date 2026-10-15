@@ -307,7 +307,12 @@ end
 function unsafe_wrap_or_alloc(to, vector, size)
     if length(vector) == 0
         return similar(vector, size)
-    elseif isbitstype(eltype(vector))
+    elseif isbitstype(eltype(vector)) ||
+           eltype(vector) === Symbol ||
+           eltype(vector) <: NTuple{N, Symbol} where {N}
+        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
+        # are not `isbitstype`s, they are not freed, so we can also use
+        # `unsafe_wrap` for them.
         return unsafe_wrap(to, pointer(vector), size)
     else
         return reshape(vector, size)
@@ -320,6 +325,10 @@ struct TrixiAdaptor{Storage, RealT} end
     trixi_adapt(Storage, RealT, x)
 
 Adapt `x` to the storage type `Storage` and real type `RealT`.
+
+To adapt a semidiscretization, use the method
+`trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)` with keyword
+arguments instead.
 """
 function trixi_adapt(Storage, RealT, x)
     return adapt(TrixiAdaptor{Storage, RealT}(), x)

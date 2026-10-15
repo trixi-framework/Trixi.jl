@@ -5,19 +5,33 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
+# Container data structure (structure-of-arrays style) for DG MPI interfaces
+#
+# The field `normal_directions` holds the normal vectors of the primary element at the
+# interface nodes. They are computed on the MPI rank owning the primary element and sent
+# to the rank owning the secondary element by `exchange_normal_directions!`. Thus, both
+# ranks use bitwise identical normal directions and compute the same numerical fluxes,
+# as in the serial code. This makes the fluxes conservative across MPI interfaces up to
+# machine precision and is required for numerical fluxes that depend discontinuously on
+# the normal direction, e.g., the `ldg_switch` of `ParabolicFormulationLocalDG`.
+mutable struct P4estMPIInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                          NDIMSP1, NDIMSP2,
                                           uArray <: DenseArray{uEltype, NDIMSP2},
+                                          NormalArray <: DenseArray{RealT, NDIMSP1},
                                           VecInt <: DenseVector{Int},
                                           IndicesVector <:
                                           DenseVector{NTuple{NDIMS, Symbol}},
-                                          uVector <: DenseVector{uEltype}} <:
+                                          uVector <: DenseVector{uEltype},
+                                          NormalVector <: DenseVector{RealT}} <:
                AbstractMPIInterfaceContainer
-    u::uArray                   # [primary/secondary, variable, i, j, interface]
-    local_neighbor_ids::VecInt  # [interface]
-    node_indices::IndicesVector # [interface]
-    local_sides::VecInt         # [interface]
+    u::uArray                      # [primary/secondary, variable, i, j, interface]
+    normal_directions::NormalArray # [dimension, i, j, interface]
+    local_neighbor_ids::VecInt     # [interface]
+    node_indices::IndicesVector    # [interface]
+    local_sides::VecInt            # [interface]
     # internal `resize!`able storage
     _u::uVector
+    _normal_directions::NormalVector
 end
 
 @inline function nmpiinterfaces(interfaces::P4estMPIInterfaceContainer)
@@ -26,7 +40,7 @@ end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
-    @unpack _u, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
+    @unpack _u, _normal_directions, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
     n_dims = ndims(mpi_interfaces)
     n_nodes = size(mpi_interfaces.u, 3)
@@ -34,9 +48,18 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     ArrayType = storage_type(mpi_interfaces)
 
     resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
-    mpi_interfaces.u = unsafe_wrap(ArrayType, pointer(_u),
-                                   (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
-                                    capacity))
+    mpi_interfaces.u = unsafe_wrap_or_alloc(ArrayType, _u,
+                                            (2, n_variables,
+                                             ntuple(_ -> n_nodes, n_dims - 1)...,
+                                             capacity))
+
+    resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
+    mpi_interfaces.normal_directions = unsafe_wrap_or_alloc(ArrayType,
+                                                            _normal_directions,
+                                                            (n_dims,
+                                                             ntuple(_ -> n_nodes,
+                                                                    n_dims - 1)...,
+                                                             capacity))
 
     resize!(local_neighbor_ids, capacity)
 
@@ -55,6 +78,10 @@ function check_axes(mpi_interfaces::P4estMPIInterfaceContainer{NDIMS}, equations
                (Base.OneTo(2), eachvariable(equations),
                 ntuple(_ -> eachnode(solver), NDIMS - 1)...,
                 eachmpiinterface(solver, cache)))
+    check_axes(mpi_interfaces.normal_directions,
+               (Base.OneTo(NDIMS),
+                ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                eachmpiinterface(solver, cache)))
     check_axes(mpi_interfaces.local_neighbor_ids, (eachmpiinterface(solver, cache),))
     check_axes(mpi_interfaces.node_indices, (eachmpiinterface(solver, cache),))
     check_axes(mpi_interfaces.local_sides, (eachmpiinterface(solver, cache),))
@@ -65,6 +92,7 @@ end
 function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                              equations, basis, elements)
     NDIMS = ndims(elements)
+    RealT = real(mesh)
     uEltype = eltype(elements)
 
     # Initialize container
@@ -73,9 +101,20 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_mpi_interfaces)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                     n_mpi_interfaces))
+    u = unsafe_wrap_or_alloc(Array, _u,
+                             (2, nvariables(equations),
+                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                              n_mpi_interfaces))
+
+    # The normal directions are set by `init_normal_directions!` and
+    # `exchange_normal_directions!` after the MPI cache has been initialized
+    _normal_directions = Vector{RealT}(undef,
+                                       NDIMS * nnodes(basis)^(NDIMS - 1) *
+                                       n_mpi_interfaces)
+    normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
+                                             (NDIMS,
+                                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                              n_mpi_interfaces))
 
     local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
@@ -83,13 +122,18 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
 
     local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
-    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
-                                                typeof(u), typeof(local_neighbor_ids),
-                                                typeof(node_indices), typeof(_u)}(u,
-                                                                                  local_neighbor_ids,
-                                                                                  node_indices,
-                                                                                  local_sides,
-                                                                                  _u)
+    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, RealT, uEltype,
+                                                NDIMS + 1, NDIMS + 2,
+                                                typeof(u), typeof(normal_directions),
+                                                typeof(local_neighbor_ids),
+                                                typeof(node_indices), typeof(_u),
+                                                typeof(_normal_directions)}(u,
+                                                                            normal_directions,
+                                                                            local_neighbor_ids,
+                                                                            node_indices,
+                                                                            local_sides,
+                                                                            _u,
+                                                                            _normal_directions)
 
     init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -103,6 +147,7 @@ function init_mpi_interfaces!(mpi_interfaces, mesh::P4estMeshParallel)
 end
 
 function Adapt.parent_type(::Type{<:Trixi.P4estMPIInterfaceContainer{<:Any, <:Any,
+                                                                     <:Any, <:Any,
                                                                      <:Any, A}}) where {A}
     return A
 end
@@ -111,21 +156,28 @@ end
 function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
     # Adapt Vectors and underlying storage
     _u = adapt(to, mpi_interfaces._u)
+    _normal_directions = adapt(to, mpi_interfaces._normal_directions)
     local_neighbor_ids = adapt(to, mpi_interfaces.local_neighbor_ids)
     node_indices = adapt(to, mpi_interfaces.node_indices)
     local_sides = adapt(to, mpi_interfaces.local_sides)
 
-    # Wrap array again
+    # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(mpi_interfaces.u))
+    normal_directions = unsafe_wrap_or_alloc(to, _normal_directions,
+                                             size(mpi_interfaces.normal_directions))
 
     NDIMS = ndims(mpi_interfaces)
-    return P4estMPIInterfaceContainer{NDIMS, eltype(u),
-                                      NDIMS + 2,
-                                      typeof(u), typeof(local_neighbor_ids),
-                                      typeof(node_indices), typeof(_u)}(u,
-                                                                        local_neighbor_ids,
-                                                                        node_indices,
-                                                                        local_sides, _u)
+    return P4estMPIInterfaceContainer{NDIMS, eltype(_normal_directions), eltype(u),
+                                      NDIMS + 1, NDIMS + 2,
+                                      typeof(u), typeof(normal_directions),
+                                      typeof(local_neighbor_ids),
+                                      typeof(node_indices), typeof(_u),
+                                      typeof(_normal_directions)}(u,
+                                                                  normal_directions,
+                                                                  local_neighbor_ids,
+                                                                  node_indices,
+                                                                  local_sides, _u,
+                                                                  _normal_directions)
 end
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -163,22 +215,24 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     n_variables = size(mpi_mortars.u, 2)
 
     resize!(_u, 2 * n_variables * 2^(n_dims - 1) * n_nodes^(n_dims - 1) * capacity)
-    mpi_mortars.u = unsafe_wrap(Array, pointer(_u),
-                                (2, n_variables, 2^(n_dims - 1),
-                                 ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
+    mpi_mortars.u = unsafe_wrap_or_alloc(Array, _u,
+                                         (2, n_variables, 2^(n_dims - 1),
+                                          ntuple(_ -> n_nodes, n_dims - 1)...,
+                                          capacity))
 
     resize!(mpi_mortars.local_neighbor_ids, capacity)
     resize!(mpi_mortars.local_neighbor_positions, capacity)
 
     resize!(_node_indices, 2 * capacity)
-    mpi_mortars.node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, capacity))
+    mpi_mortars.node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, capacity))
 
     resize!(_normal_directions,
             n_dims * n_nodes^(n_dims - 1) * 2^(n_dims - 1) * capacity)
-    mpi_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                                (n_dims,
-                                                 ntuple(_ -> n_nodes, n_dims - 1)...,
-                                                 2^(n_dims - 1), capacity))
+    mpi_mortars.normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
+                                                         (n_dims,
+                                                          ntuple(_ -> n_nodes,
+                                                                 n_dims - 1)...,
+                                                          2^(n_dims - 1), capacity))
 
     return nothing
 end
@@ -196,22 +250,23 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * 2^(NDIMS - 1) *
                          nnodes(basis)^(NDIMS - 1) * n_mpi_mortars)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, nvariables(equations), 2^(NDIMS - 1),
-                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
+    u = unsafe_wrap_or_alloc(Array, _u,
+                             (2, nvariables(equations), 2^(NDIMS - 1),
+                              ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
 
     local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
     local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
-    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mpi_mortars))
+    node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_mpi_mortars))
 
     _normal_directions = Vector{RealT}(undef,
                                        NDIMS * nnodes(basis)^(NDIMS - 1) *
                                        2^(NDIMS - 1) * n_mpi_mortars)
-    normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     2^(NDIMS - 1), n_mpi_mortars))
+    normal_directions = unsafe_wrap_or_alloc(Array, _normal_directions,
+                                             (NDIMS,
+                                              ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                              2^(NDIMS - 1), n_mpi_mortars))
 
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
                                           NDIMS + 3, typeof(u),
@@ -336,8 +391,10 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
                     nvariables(equations), nnodes(dg), eltype(elements))
 
-    # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
-    # the MPI cache must be re-initialized before
+    # re-initialize and distribute normal directions of MPI interfaces and mortars; requires MPI
+    # communication, so the MPI cache must be re-initialized before
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
