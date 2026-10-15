@@ -30,11 +30,10 @@ end
 # Workaround for https://github.com/JuliaArrays/FixedSizeArrays.jl/issues/200:
 # On Julia v1.13 and newer, `fill!` of (views of) `FixedSizeArray`s does not vectorize
 # since the bounds checks cannot be elided. Thus, we set the contiguous memory of the
-# `element` in the parent `Vector` directly.
-@inline function set_zero_element!(du::Union{VectorBackedArray,
-                                             StaticSizeArray{<:Any, <:Any, <:Any,
-                                                             <:Vector}},
-                                   element)
+# `element` in the parent `Vector` directly. This does not apply to `StaticSizeArray`s
+# (as returned by `wrap_array` for `DGSEM`), for which the broadcast above is faster
+# (the loop below compiles to a `memset` call per element).
+@inline function set_zero_element!(du::VectorBackedArray, element)
     n = length(du) ÷ size(du, ndims(du))
     data = parent(du)
     @boundscheck checkbounds(data, (element - 1) * n + 1)
