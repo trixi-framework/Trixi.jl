@@ -81,27 +81,146 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-   semidiscretize(semi::AbstractSemidiscretization, tspan;
-                  jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                  colorvec::Union{AbstractVector, Nothing} = nothing,
-                  storage_type = nothing,
-                  real_type = nothing,
-                  flux_differencing_kernel = nothing)
+    trixi_adapt(semi::AbstractSemidiscretization;
+                storage_type = nothing, real_type = nothing,
+                flux_differencing_kernel = nothing)
+
+Return a semidiscretization based on `semi` that uses the array type `storage_type`
+and the real type `real_type` for its internal data structures. Use the returned
+semidiscretization afterwards, e.g., to create the ODE problem with
+[`semidiscretize`](@ref) and the callbacks. The original `semi` may share data
+with the returned one and must not be used anymore, e.g., since AMR changes the
+shared data.
+
+Optional keyword arguments:
+- `storage_type`: Array type of the internal data structures, e.g., `CuArray`
+  (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) or `ROCArray`
+  (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) to run on GPUs.
+  `nothing` keeps the current array type (usually `Array`).
+- `real_type`: Real type used for the computations, e.g., `Float32`.
+  `nothing` keeps the current real type `real(semi)` (usually `Float64`).
+- `flux_differencing_kernel`: GPU kernel used for [`VolumeIntegralFluxDifferencing`](@ref)
+  on a `P4estMesh` or `T8codeMesh`, one of [`HalfSweep()`](@ref) (default),
+  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). `nothing` keeps the current
+  kernel.
+
+If all keyword arguments are `nothing`, `semi` is returned unchanged.
+"""
+function trixi_adapt(semi::AbstractSemidiscretization;
+                     storage_type = nothing, real_type = nothing,
+                     flux_differencing_kernel = nothing)
+    if storage_type === nothing && real_type === nothing &&
+       flux_differencing_kernel === nothing
+        return semi
+    end
+
+    if !(storage_type === nothing && real_type === nothing)
+        if storage_type === nothing
+            # The keyword argument shadows the function `Trixi.storage_type`
+            storage_type = Trixi.storage_type(semi)
+        end
+        if real_type === nothing
+            real_type = real(semi)
+        end
+        semi = trixi_adapt(storage_type, real_type, semi)
+    end
+
+    return adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
+end
+
+# Array type of the internal data structures of the semidiscretization `semi`, which
+# `trixi_adapt` keeps if only the real type is changed. Only the containers of a
+# `P4estMesh` or `T8codeMesh` support other array types than `Array`, e.g., GPU arrays.
+storage_type(semi::AbstractSemidiscretization) = Array
+storage_type(mesh, cache) = Array
+function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
+    return storage_type(cache.elements)
+end
+
+# The `cache` contains the GPU kernel used for `VolumeIntegralFluxDifferencing` if
+# such kernels are available, see `create_cache` in `src/solvers/dgsem_p4est/dg_2d_gpu.jl`
+# and `src/solvers/dgsem_p4est/dg_3d_gpu.jl`. We set the kernel (if requested) and check
+# it every time the semidiscretization is adapted, since the checks depend on the
+# kernel, the real type, and the storage type.
+function adapt_flux_differencing_kernel(semi, flux_differencing_kernel)
+    if !(hasproperty(semi, :cache) && haskey(semi.cache, :flux_differencing_kernel))
+        if flux_differencing_kernel !== nothing
+            throw(ArgumentError("The keyword argument `flux_differencing_kernel` is " *
+                                "only supported for `VolumeIntegralFluxDifferencing` " *
+                                "on a `P4estMesh` or `T8codeMesh`."))
+        end
+        return semi
+    end
+
+    if flux_differencing_kernel === nothing
+        flux_differencing_kernel = semi.cache.flux_differencing_kernel
+    end
+
+    volume_integral = semi.solver.volume_integral
+    if flux_differencing_kernel isa FullSweepGlobal &&
+       volume_integral isa VolumeIntegralFluxDifferencing &&
+       volume_integral.volume_flux isa FluxTurbo &&
+       have_nonconservative_terms(semi.equations) === True()
+        error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
+    end
+
+    # The resources such as the shared memory are only limited on GPUs. We check the
+    # backend instead of the array type to support all GPU array types.
+    if !(get_backend(semi.cache.elements.node_coordinates) isa KernelAbstractions.CPU)
+        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
+    end
+
+    @reset semi.cache.flux_differencing_kernel = flux_differencing_kernel
+    return semi
+end
+
+# Support the deprecated keyword arguments `storage_type`, `real_type`, and
+# `flux_differencing_kernel` of `semidiscretize`. The adapted semidiscretization
+# is only available as `ode.p`, see
+# https://github.com/trixi-framework/Trixi.jl/issues/3350
+function trixi_adapt_deprecated(semi; storage_type, real_type, flux_differencing_kernel)
+    if storage_type === nothing && real_type === nothing &&
+       flux_differencing_kernel === nothing
+        return semi
+    end
+
+    Base.depwarn("The keyword arguments `storage_type`, `real_type`, and " *
+                 "`flux_differencing_kernel` of `semidiscretize` are deprecated. " *
+                 "Use `semi = trixi_adapt(semi; storage_type, real_type, " *
+                 "flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` " *
+                 "and use the adapted `semi` afterwards, e.g., to create callbacks.",
+                 :semidiscretize)
+    return trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)
+end
+
+# Convert the time span to the real type of the semidiscretization. Otherwise,
+# e.g., the default `tspan = (0.0, 1.0)` would result in `Float64` time values for
+# a `Float32` semidiscretization, and time-dependent initial conditions, boundary
+# conditions, and source terms would be evaluated in `Float64`.
+# Custom semidiscretizations do not need to implement `real`; then, we keep `tspan`.
+function convert_tspan(semi, tspan)
+    applicable(real, semi) || return tspan
+    RealT = real(semi)
+    return (convert(RealT, first(tspan)), convert(RealT, last(tspan)))
+end
+
+"""
+    semidiscretize(semi::AbstractSemidiscretization, tspan;
+                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                   colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-- `storage_type` and `real_type`: Configure the underlying computational datastructures.
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
-  or other GPU array types. `real_type` changes the computational data type being used.
-- `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
-  volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
-  [`FullSweepGlobal()`](@ref).
+
+The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
+deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
@@ -117,35 +236,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
-    if !(storage_type === nothing && real_type === nothing)
-        if storage_type === nothing
-            storage_type = Array
-        end
-        if real_type === nothing
-            real_type = real(semi)
-        end
-        semi = trixi_adapt(storage_type, real_type, semi)
-        if eltype(tspan) !== real_type
-            tspan = convert.(real_type, tspan)
-        end
-    end
-
-    if storage_type !== nothing || flux_differencing_kernel !== nothing ||
-       _PREFERENCE_THREADING === :kernelabstractions
-        if flux_differencing_kernel === nothing
-            flux_differencing_kernel = HalfSweep()
-        end
-
-        volume_integral = semi.solver.volume_integral
-        if flux_differencing_kernel isa FullSweepGlobal &&
-           volume_integral isa VolumeIntegralFluxDifferencing &&
-           volume_integral.volume_flux isa FluxTurbo &&
-           have_nonconservative_terms(semi.equations) === True()
-            error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
-        end
-        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
-        @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
-    end
+    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
+                                  flux_differencing_kernel)
+    tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
     rhs_semi! = default_rhs(semi)
@@ -183,6 +276,7 @@ end
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The initial condition etc. is taken from the `restart_file`.
+The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
@@ -202,6 +296,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
         Polyester.reset_threads!()
     end
 
+    tspan = convert_tspan(semi, tspan)
     u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
     rhs_semi! = default_rhs(semi)
 
