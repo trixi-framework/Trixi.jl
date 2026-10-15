@@ -44,6 +44,8 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
     empty!(mpi_mesh_info.neighbor_ranks_mortar)
     empty!(mpi_mesh_info.neighbor_ranks_interface)
 
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 

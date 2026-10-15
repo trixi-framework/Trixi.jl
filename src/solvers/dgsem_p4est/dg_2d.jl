@@ -117,7 +117,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     for i in index_range
         for v in eachvariable(equations)
             interfaces_u[1, v, i, interface] = u[v,
-                                                 i_primary, j_primary,
+                                                 i_primary,
+                                                 j_primary,
                                                  primary_element]
         end
         i_primary += i_primary_step
@@ -139,7 +140,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(interfaces_u
     for i in index_range
         for v in eachvariable(equations)
             interfaces_u[2, v, i, interface] = u[v,
-                                                 i_secondary, j_secondary,
+                                                 i_secondary,
+                                                 j_secondary,
                                                  secondary_element]
         end
         i_secondary += i_secondary_step
@@ -1112,6 +1114,26 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     mortar_index, position_index,
                                                     normal_direction,
                                                     node_index)
+    calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
+                      have_nonconservative_terms,
+                      combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                      equations),
+                      equations, surface_integral, dg, cache,
+                      mortar_index, position_index, normal_direction,
+                      node_index)
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                                    mesh::Union{P4estMesh{2},
+                                                                T8codeMesh{2}},
+                                                    have_nonconservative_terms::True,
+                                                    combine_conservative_and_nonconservative_fluxes::False,
+                                                    equations,
+                                                    surface_integral, dg::DG, cache,
+                                                    mortar_index, position_index,
+                                                    normal_direction,
+                                                    node_index)
     @unpack u = cache.mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
@@ -1130,6 +1152,37 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
 
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
+
+    # Copy to buffer
+    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary,
+                   equations, dg, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
+                   equations, dg, node_index)
+
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                                    mesh::Union{P4estMesh{2},
+                                                                T8codeMesh{2}},
+                                                    have_nonconservative_terms::True,
+                                                    combine_conservative_and_nonconservative_fluxes::True,
+                                                    equations,
+                                                    surface_integral, dg::DG, cache,
+                                                    mortar_index, position_index,
+                                                    normal_direction,
+                                                    node_index)
+    @unpack u = cache.mortars
+    @unpack surface_flux = surface_integral
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+                                       position_index, node_index, mortar_index)
+
+    # The combined flux returns the conservative flux plus 0.5 times the
+    # nonconservative flux for the small (primary) and large (secondary) side
+    flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
+                                                                          normal_direction,
+                                                                          equations)
 
     # Copy to buffer
     set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary,
@@ -1296,31 +1349,29 @@ function calc_surface_integral!(backend::Nothing, du, u,
                     surface_flux_minus_x = surface_flux_values[v, l, 1, element]
                     surface_flux_plus_x = surface_flux_values[v, l, 2, element]
                     for ii in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                         # surface at -x
                         du[v, ii, l, element] = (du[v, ii, l, element] +
-                                                 surface_flux_minus_x *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        1])
+                                                 surface_flux_minus_x * factor_minus)
                         # surface at +x
                         du[v, ii, l, element] = (du[v, ii, l, element] +
-                                                 surface_flux_plus_x *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        2])
+                                                 surface_flux_plus_x * factor_plus)
                     end
 
                     surface_flux_minus_y = surface_flux_values[v, l, 3, element]
                     surface_flux_plus_y = surface_flux_values[v, l, 4, element]
                     for jj in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[jj, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[jj, 2]
+
                         # surface at -y
                         du[v, l, jj, element] = (du[v, l, jj, element] +
-                                                 surface_flux_minus_y *
-                                                 boundary_interpolation_inverse_weights[jj,
-                                                                                        1])
+                                                 surface_flux_minus_y * factor_minus)
                         # surface at +y
                         du[v, l, jj, element] = (du[v, l, jj, element] +
-                                                 surface_flux_plus_y *
-                                                 boundary_interpolation_inverse_weights[jj,
-                                                                                        2])
+                                                 surface_flux_plus_y * factor_plus)
                     end
                 end
             end

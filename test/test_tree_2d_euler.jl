@@ -1432,7 +1432,11 @@ end
                             0.10672357779516586,
                             0.06256826531635475,
                             0.1199900961506577
-                        ])
+                        ],
+                        # The results depend slightly on the CPU of the CI system
+                        # (roundoff differences of the inlined `flux_hllc`), which
+                        # are amplified by the entropy-change indicator switching.
+                        rtol=1.0e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -1885,14 +1889,17 @@ end
 ] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_constant.jl"),
                         l2=[
-                            9.135564506684991e-14, 1.9441147665983966e-14,
-                            1.94425866451226e-14, 1.7503189225604875e-13
+                            4.599443475134324e-14,
+                            9.716117587494371e-15,
+                            9.719037051203499e-15,
+                            8.822595924069572e-14
                         ],
                         linf=[
-                            1.0769163338864018e-13, 8.487407677783974e-14,
-                            8.515583343047957e-14, 2.0472512574087887e-13
+                            5.440092820663267e-14,
+                            4.241654856777891e-14,
+                            4.258491351438204e-14,
+                            1.0302869668521453e-13
                         ],
-                        initial_refinement_level=7,
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
