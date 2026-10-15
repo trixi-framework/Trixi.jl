@@ -174,6 +174,9 @@ end
         # Blend the high order method back in
         @views du[.., element] .= alpha_element .* du[.., element] .+
                                   (1 - alpha_element) .* du_FD_element
+    else
+        # No entropy correction needed, i.e., pure default volume integral
+        alpha[element] = zero(eltype(alpha))
     end
 
     return nothing
@@ -187,6 +190,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
     end
 
     MeshT = typeof(mesh)

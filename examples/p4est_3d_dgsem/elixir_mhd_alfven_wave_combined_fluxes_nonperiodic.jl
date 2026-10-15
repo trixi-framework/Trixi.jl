@@ -239,8 +239,9 @@ tspan = (0.0, 1.0)
 # On such backends, `flux_differencing_kernel` selects the kernel used for the
 # flux differencing volume integral, one of `HalfSweep()` (default), `FullSweep()`,
 # or `FullSweepGlobal()`.
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing,
-                     flux_differencing_kernel = nothing)
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing,
+                   flux_differencing_kernel = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -270,6 +271,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

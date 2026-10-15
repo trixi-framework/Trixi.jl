@@ -72,13 +72,13 @@ end
 # of Trixi.jl.
 function check_axes(elements::TreeElementContainer1D, equations, solver::DG, cache)
     check_axes(elements.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(1),
                 eachnode(solver),
                 eachelement(solver, cache)))
     check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
     check_axes(elements.cell_ids, (eachelement(solver, cache),))
-    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
-                                   cache)
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(1), equations,
+                                   solver, cache)
     return nothing
 end
 
@@ -367,7 +367,7 @@ function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG, 
                (Base.OneTo(2), eachvariable(equations),
                 eachboundary(solver, cache)))
     check_axes(boundaries.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(1),
                 eachboundary(solver, cache)))
     check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
     check_axes(boundaries.orientations, (eachboundary(solver, cache),))

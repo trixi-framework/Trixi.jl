@@ -8,6 +8,31 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Experimental support for Apple GPUs via Metal.jl, e.g., using
+  `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
+  Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
+  some setups, in particular in 3D, currently crash, hang, or silently produce wrong
+  results on Apple M1/M2 GPUs.
+- The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
+  adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
+  `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
+  Previously, `semidiscretize` adapted the semidiscretization internally, so the
+  original `semi` was still used for callbacks and could share outdated data with the
+  adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
+  now part of the `cache` from the construction of the semidiscretization, and the
+  warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The `SummaryCallback` warns if the time type of the time integrator differs from the
+  real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
+  to `solve` for a `Float32` semidiscretization.
+- The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
+  can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
+  arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
+  `P4estMesh` ([#3313]).
+- `boundary_condition_slip_wall` and the less diffusive wave speed estimate
+  `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
+- New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
+  which upwinds the tracers with the mass flux of an entropy-stable flow flux ([#3320]).
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
@@ -26,21 +51,84 @@ for human readability.
   can now be chosen via the new keyword argument `flux_differencing_kernel` of
   `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
   `FullSweepGlobal` ([#3206]).
-- Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
+- Add `@inbounds` statements and their correct propagation through `Base.@propagate_inbounds`,
   which substitutes `@inline` to correctly propagate inbounds access for
-  - `TreeMesh1D` ([#3267])
-  - `TreeMesh2D` ([#3262])
+  - `TreeMesh1D` ([#3267], [#3268])
+  - `TreeMesh2D` ([#3262], [#3266])
   - `TreeMesh3D` ([#3208], [#3263])
+  - `StructuredMesh1D` ([#3283])
+  - `StructuredMesh2D` ([#3274])
+  - `StructuredMesh3D` ([#3272])
+  - `UnstructuredMesh2D` ([#3282])
+  - `P4estMesh2D` and `T8codeMesh2D` ([#3276], [#3281])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273], [#3279])
+  - MPI interfaces and mortars of `TreeMesh2D`, `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D`, including the parabolic terms of
+    `P4estMesh2D` ([#3289])
+  - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
+    `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
 
-  Moreover, explicit bounds check are added before assuming inbounds access.
+  Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- The parabolic terms on `P4estMesh3D`s now support MPI parallelization, on conforming
+  ([#3291]) and nonconforming meshes ([#2894]).
+- `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
+  tetrahedral elements ([#3296]).
 
 #### Changed
+- Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
+  and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
+  `UndefRefError`. The interpolation and projection are now applied dimension by dimension
+  as in 3D, which is faster and changes results only up to round-off ([#3361]).
+- Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
+  type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
+  the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
+  `unsafe_wrap` for such element types, so that the garbage collector keeps the stored
+  objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
+  supported for non-`isbits` element types anymore.
+  `isbits` element types such as `Float64` are not affected ([#3306]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
   a reduction factor of `2.5`.
+- Fixes a bug in the parabolic terms on nonconforming `P4estMesh3D`s: The parabolic
+  fluxes of the large elements at mortars were computed with the wrong normal direction
+  and scaling. Thus, results of parabolic simulations with mortars on `P4estMesh3D`s
+  (e.g., with AMR) change.
+- Fixes two bugs in the MPI-parallel parabolic terms of `P4estMesh2D`s ([#3344]):
+  The gradient fluxes at MPI interfaces were computed with the normal direction of the
+  local instead of the primary element. Thus, results of MPI-parallel simulations with
+  `ParabolicFormulationLocalDG` change and now agree with serial simulations.
+  Moreover, the parabolic time step restriction (`cfl_parabolic` of the `StepsizeCallback`)
+  is now reduced across all MPI ranks. Previously, MPI ranks could use different time steps.
+- Fixes bugs in the wave speed estimates of the `IdealGlmMhdEquations2D`:
+  `min_max_speed_davis` used the x-velocity of the right state instead of the y-velocity
+  in the y-direction (`orientation = 2`), and `min_max_speed_naive` with a
+  `normal_direction` used both states instead of only the left state for the minimum
+  wave speed estimate (inconsistent with `min_max_speed_naive` with an `orientation`).
+  Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
+  e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
+  meshes, change.
+- Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
+  `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
+  boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
+- Fixes a bug in the `GlmSpeedCallback` on curvilinear meshes (`StructuredMesh`,
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`) and for `DGMulti` solvers in multiple
+  space dimensions: the divergence cleaning speed `c_h` was computed from the Jacobian
+  determinant and thus decreased with mesh refinement (like `Δx^(ndims - 1)`). Now, it
+  takes the metric terms into account and agrees with the value on a `TreeMesh` for
+  Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
+  meshes change ([#3360]).
+- `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
+  semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
+  `Float32` semidiscretization. Previously, the time was only converted when passing
+  `real_type` to `semidiscretize`.
+
+#### Deprecated
+- The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
+  `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
+  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
 
 
 ## Changes when updating to v0.17 from v0.16.x
