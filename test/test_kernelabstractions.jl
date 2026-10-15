@@ -36,7 +36,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -72,7 +72,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -112,7 +112,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -153,7 +153,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -197,7 +197,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -251,7 +251,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -303,7 +303,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -341,7 +341,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -390,7 +390,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -436,6 +436,8 @@ end
                                      surface_flux = flux_hlle_nonconservative_powell,
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
                         tspan=(0.0, 0.25))
+    # The elixir does not adapt `semi`, so `semidiscretize` uses it as it is
+    @test semi === ode.p
 
     # Make sure that the combined fluxes are used at mortars
     @test Trixi.nmortars(semi.solver, semi.cache) > 0
@@ -445,7 +447,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -469,7 +471,8 @@ end
                             0.0042315720663082534,
                             0.011661660264076446
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
@@ -506,7 +509,8 @@ end
                             0.7223919625994717,
                             1.4846907331004786
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test ode.u0 isa Array
     @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
 
@@ -551,7 +555,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -587,7 +591,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -629,7 +633,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -645,7 +649,8 @@ end
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_euler_source_terms_nonperiodic.jl"),
                   tspan = (0.0, 0.0))
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     (; mesh, equations, solver, cache, boundary_conditions) = semi
     @test boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
     u_ode = copy(ode.u0)
@@ -718,7 +723,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -772,7 +777,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -824,7 +829,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -850,7 +855,8 @@ end
                             0.006308461684396753,
                             0.03176343483364796
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU

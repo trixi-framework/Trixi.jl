@@ -9,26 +9,26 @@ end
                         linf=6.627000273229378e-5)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float64
-    @test real(ode.p.solver.basis) == Float64
-    @test real(ode.p.solver.mortar) == Float64
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float64
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float64
 
     @test ode.u0 isa Array
-    @test ode.p.solver.basis.derivative_matrix isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
 
-    @test Trixi.storage_type(ode.p.cache.elements) === Array
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
-    @test Trixi.storage_type(ode.p.cache.boundaries) === Array
-    @test Trixi.storage_type(ode.p.cache.mortars) === Array
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -47,26 +47,26 @@ end
                         storage_type=ROCArray)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float32
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
 
     @test ode.u0 isa ROCArray
-    @test ode.p.solver.basis.derivative_matrix isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
 
-    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -102,7 +102,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -145,7 +145,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -191,7 +191,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -246,7 +246,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -272,7 +272,8 @@ end
                             0.011661660264076446
                         ],
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test typeof(semi.equations_parabolic.mu) == Float64
 
@@ -321,7 +322,8 @@ end
                             1.4846907331004786
                         ],
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test ode.u0 isa ROCArray
     @test semi.cache_parabolic.parabolic_container.u_transformed isa ROCArray
 
@@ -360,7 +362,8 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test typeof(semi.equations_parabolic.mu) == Float32
     @test ode.u0 isa ROCArray{Float32}
