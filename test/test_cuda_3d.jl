@@ -7,8 +7,6 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(ode.p.solver) == Float64
@@ -44,8 +42,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(ode.p.solver) == Float32
@@ -88,8 +84,6 @@ end
                             0.011300883615918522,
                             0.02090696711453477],
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -137,8 +131,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -192,8 +184,6 @@ end
                             0.00445327133732587,
                             0.0011999511085407923
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -249,8 +239,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32

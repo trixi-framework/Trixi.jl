@@ -26,6 +26,9 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s
+  and `T8codeMesh`s, i.e., with mortars, can now be executed on GPUs and with the
+  KernelAbstractions.jl CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).

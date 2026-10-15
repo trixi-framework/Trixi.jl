@@ -18,8 +18,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=MtlArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(ode.p.solver) == Float32
@@ -67,8 +65,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=MtlArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -124,8 +120,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=MtlArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32

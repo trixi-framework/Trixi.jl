@@ -95,6 +95,7 @@ function calc_mortar_flux!(backend::Backend, surface_flux_values,
                            have_nonconservative_terms, equations, mortar,
                            surface_integral, dg, cache)
     @assert isempty(eachmortar(dg, cache))
+    return nothing
 end
 
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
