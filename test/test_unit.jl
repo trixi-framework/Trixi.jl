@@ -734,9 +734,9 @@ end
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
 
-    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
-                                              LobattoLegendreBasis(3))
-    @test_nowarn show(stdout, indicator_ec)
+    indicator_entropy_correction = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                                              LobattoLegendreBasis(3))
+    @test_nowarn show(stdout, indicator_entropy_correction)
 
     # test Base.show for PositivityPreservingLimiterLiuZhang
     equations = LinearScalarAdvectionEquation1D(1.0)
@@ -5047,10 +5047,9 @@ end
     @test_throws ArgumentError trixi_adapt(semi_weak_form;
                                            flux_differencing_kernel = FullSweep())
 
-    # The volume integral cache of a `P4estMeshView` is created differently
+    # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
-                                    Float64)
+    cache_view = Trixi.create_cache(mesh_view, equations, solver, Float64, Float64)
     @test cache_view.flux_differencing_kernel === HalfSweep()
 
     # The GPU resource limits are not checked for CPU arrays, see also
@@ -5198,4 +5197,85 @@ end
                                                              equations) ≈
               flux(u, orientation_or_normal, equations)
     end
+end
+
+@testitem "Unit: Nested volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                             variable = density_pressure)
+    volume_integral_wf = VolumeIntegralWeakForm()
+    volume_integral_fd = VolumeIntegralFluxDifferencing(flux_ranocha)
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+    volume_integral_adaptive = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                      volume_integral_default = volume_integral_wf,
+                                                      volume_integral_stabilized = volume_integral_fd)
+    volume_integral = VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                         volume_integral_default = volume_integral_adaptive,
+                                                         volume_integral_blend_high_order = volume_integral_fd,
+                                                         volume_integral_blend_low_order = volume_integral_fv)
+
+    # Tree of volume integrals
+    @test Trixi.volume_integral_children(volume_integral_wf) === ()
+    @test Trixi.volume_integral_children(volume_integral) ===
+          (volume_integral_adaptive, volume_integral_fd, volume_integral_fv)
+    visited = Any[]
+    Trixi.foreach_volume_integral(volume_integral) do volume_integral_
+        push!(visited, volume_integral_)
+        return nothing
+    end
+    @test all(map(===, visited,
+                  [volume_integral, volume_integral_adaptive, volume_integral_wf,
+                      volume_integral_fd, volume_integral_fd, volume_integral_fv]))
+
+    # Entries with the same name are shared if they are compatible
+    cache1 = (; a = [zeros(2, 3)], b = 1)
+    cache2 = (; a = [zeros(2, 3)], c = 2.0)
+    cache = Trixi.merge_shared(cache1, cache2)
+    @test keys(cache) == (:a, :b, :c)
+    @test cache.a === cache2.a
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; a = [zeros(2, 4)]))
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; b = 1.0))
+
+    # The subcell finite volume buffers of the children are shared
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
+                    periodicity = true)
+    function create_semi(volume_integral)
+        solver = DGSEM(basis, flux_hllc, volume_integral)
+        return SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+    end
+    semi = create_semi(volume_integral)
+    @test haskey(semi.cache, :fstar1_L_threaded)
+
+    # At most one subcell limiter is supported, and only in some positions
+    limiter_idp = SubcellLimiterIDP(equations, basis;
+                                    positivity_variables_cons = ["rho"])
+    volume_integral_sl = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                       volume_flux_dg = flux_ranocha,
+                                                       volume_flux_fv = flux_hllc)
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_fd))
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_sl))
+    semi = create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                              volume_integral_default = volume_integral_wf,
+                                              volume_integral_stabilized = volume_integral_sl))
+    @test haskey(semi.cache, :fstar1_L_threaded)
+    @test haskey(semi.cache, :antidiffusive_fluxes)
+
+    # The storage of subcell limiting is resized after mesh adaptation
+    new_size = nelements(semi.solver, semi.cache) + 3
+    Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
+    @test size(antidiffusive_flux1_L, 4) == new_size
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size
+    # The antidiffusive fluxes at the element interfaces are zero
+    @test iszero(antidiffusive_flux1_L[:, 1, :, :])
+    @test iszero(antidiffusive_flux1_L[:, end, :, :])
+    @test iszero(antidiffusive_flux2_R[:, :, 1, :])
+    @test iszero(antidiffusive_flux2_R[:, :, end, :])
 end

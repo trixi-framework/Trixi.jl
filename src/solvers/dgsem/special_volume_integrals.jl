@@ -5,7 +5,16 @@
 @muladd begin
 #! format: noindent
 
-# This file contains some specialized volume integrals that require some indicators already to be defined.
+# This file contains the storage of DGSEM-specific volume integrals and specialized
+# volume integrals that require some indicators already to be defined.
+
+# Subcell-based volume integrals use finite volume fluxes on the subcells. The buffers
+# for them are created by `create_cache_subcell_fv`, which dispatches on the mesh type.
+function create_cache(mesh, equations,
+                      volume_integral::AbstractVolumeIntegralSubcell,
+                      dg::DGSEM, cache_containers, uEltype)
+    return create_cache_subcell_fv(mesh, equations, dg, cache_containers, uEltype)
+end
 
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
@@ -13,6 +22,46 @@
 @inline function perform_subcell_limiting(volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
                                           element)
     return volume_integral.indicator.cache.alpha[element] > 0
+end
+
+# Check the tree of volume integrals with root `volume_integral` when the cache is
+# created. This is called by `create_cache_volume_integral`.
+#
+# The stage callbacks of subcell limiting (`SubcellLimiterIDPCorrection` and
+# `BoundsCheckCallback`) find the `VolumeIntegralSubcellLimiting` starting from the
+# root `dg.volume_integral` and decide per element via
+# `perform_subcell_limiting(dg.volume_integral, element)` whether subcell limiting
+# was performed. This is only implemented for the positions in the tree accepted by
+# `supports_subcell_limiting`. Moreover, the antidiffusive fluxes are stored in the
+# shared `cache`. Thus, at most one `VolumeIntegralSubcellLimiting` is allowed.
+function check_volume_integral_tree(volume_integral)
+    n_subcell_limiting = Ref(0)
+    foreach_volume_integral(volume_integral) do volume_integral_
+        if volume_integral_ isa VolumeIntegralSubcellLimiting
+            n_subcell_limiting[] += 1
+        end
+        return nothing
+    end
+
+    if n_subcell_limiting[] > 1
+        throw(ArgumentError("At most one `VolumeIntegralSubcellLimiting` is supported " *
+                            "in a nested volume integral."))
+    elseif n_subcell_limiting[] == 1 && !supports_subcell_limiting(volume_integral)
+        throw(ArgumentError("`VolumeIntegralSubcellLimiting` is only supported as the " *
+                            "volume integral of the solver or as the " *
+                            "`volume_integral_stabilized` of a `VolumeIntegralAdaptive` " *
+                            "with an `IndicatorHennemannGassner`."))
+    end
+
+    return nothing
+end
+
+# Whether the stage callbacks of subcell limiting can be used with the root
+# `volume_integral` of the solver, see `check_volume_integral_tree`
+supports_subcell_limiting(volume_integral) = false
+supports_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting) = true
+function supports_subcell_limiting(volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner})
+    return volume_integral.volume_integral_stabilized isa VolumeIntegralSubcellLimiting
 end
 
 const VolumeIntegralAdaptiveEC_WF_DG = VolumeIntegralAdaptive{<:IndicatorEntropyChange,
@@ -52,31 +101,22 @@ function get_element_variables!(element_variables, u, mesh, equations,
     return nothing
 end
 
+# The blending factors `alpha` are stored in the indicator (per-instance state), not
+# in the `cache`. They are sized here for the elements of the mesh.
 function create_cache(mesh, equations,
                       volume_integral::VolumeIntegralEntropyCorrection,
                       dg, cache_containers, uEltype)
-    cache_default = create_cache(mesh, equations,
-                                 volume_integral.volume_integral_default,
-                                 dg, cache_containers, uEltype)
-    cache_stabilized = create_cache(mesh, equations,
-                                    volume_integral.volume_integral_stabilized,
-                                    dg, cache_containers, uEltype)
-
     resize!(volume_integral.indicator.cache.alpha, nelements(dg, cache_containers))
 
-    return (; cache_default..., cache_stabilized...)
+    return NamedTuple()
 end
 
-# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+# `resize_volume_integral_cache!` is called after mesh adaptation.
 # We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
 # for visualization.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
                                        new_size)
-    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
-    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
-
     resize!(volume_integral.indicator.cache.alpha, new_size)
 
     return nothing

@@ -18,7 +18,8 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache_volume_integral(mesh, equations, dg.volume_integral,
+                                          dg, cache, uEltype)...)
 
     return cache
 end
