@@ -965,9 +965,13 @@ end
 # subcell finite volume fluxes itself but uses the ones created for its child
 # `volume_integral_low_order`, which must thus be a subcell-based volume integral.
 function check_volume_integral_tree(volume_integral)
+    # We want to count how many `VolumeIntegralSubcellLimiting` are in the tree of
+    # volume integrals. Since `foreach_volume_integral` does not return a value, we
+    # use a `Ref` (reference) to store the count.
     n_subcell_limiting = Ref(0)
     foreach_volume_integral(volume_integral) do volume_integral_
         if volume_integral_ isa VolumeIntegralSubcellLimiting
+            # Accessing the `Ref` value with `[]` is required to read and write it.
             n_subcell_limiting[] += 1
 
             (; volume_integral_low_order) = volume_integral_
@@ -982,6 +986,8 @@ function check_volume_integral_tree(volume_integral)
         return nothing
     end
 
+    # Check that the number of `VolumeIntegralSubcellLimiting` stored in the `Ref`
+    # `n_subcell_limiting` is at most one; otherwise, it would not work correctly.
     if n_subcell_limiting[] > 1
         throw(ArgumentError("At most one `VolumeIntegralSubcellLimiting` is supported " *
                             "in a nested volume integral."))
