@@ -3673,6 +3673,8 @@ end
                          Tuple{SVector{4, Float64}, SVector{2, Float64},
                                CompressibleEulerEquations2D{Float64}})
     @test known_method in found_methods_flux
+end
+
 @testitem "Unit: IdealGlmMhdMultiIon pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The pressure must be consistent with `cons2prim` and `prim2cons`, in particular
     # for a non-zero divergence cleaning field `psi`.
