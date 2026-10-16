@@ -205,6 +205,18 @@ function adapt_tuning(semi, tuning)
     return semi
 end
 
+# The tuning is not an argument of the constructors of semidiscretizations. Thus, we copy
+# it explicitly from `semi` to `semi_new` in `remake`. We use `adapt_tuning` to check the
+# settings again, since `remake` can change, e.g., the solver. The tuning is dropped if
+# `semi_new` does not support it, e.g., on a `TreeMesh`.
+function copy_tuning(semi_new, semi)
+    if hasproperty(semi, :cache) && haskey(semi.cache, :tuning) &&
+       hasproperty(semi_new, :cache) && haskey(semi_new.cache, :tuning)
+        return adapt_tuning(semi_new, semi.cache.tuning)
+    end
+    return semi_new
+end
+
 # Support the deprecated keyword arguments `storage_type`, `real_type`, and
 # `flux_differencing_kernel` of `semidiscretize`. The adapted semidiscretization
 # is only available as `ode.p`, see

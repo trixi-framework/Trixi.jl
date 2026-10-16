@@ -5081,6 +5081,26 @@ end
                              Tuning(flux_differencing_kernel = FullSweep())) ===
           Tuning(flux_differencing_kernel = FullSweep())
 
+    # `remake` keeps the tuning, but drops it if the new semidiscretization does not
+    # support it
+    semi_global_remade = Trixi.remake(semi_global)
+    @test semi_global_remade !== semi_global
+    @test semi_global_remade.cache.tuning === semi_global.cache.tuning
+    @test Trixi.remake(semi_global32).cache.tuning === semi_global32.cache.tuning
+    @test Trixi.copy_tuning(semi_tree, semi_global) === semi_tree
+    semi_hyp_para = SemidiscretizationHyperbolicParabolic(mesh,
+                                                          (equations,
+                                                           LaplaceDiffusion2D(0.1,
+                                                                              equations)),
+                                                          initial_condition_convergence_test,
+                                                          solver;
+                                                          boundary_conditions = (boundary_condition_periodic,
+                                                                                 boundary_condition_periodic))
+    semi_hyp_para_global = trixi_adapt(semi_hyp_para;
+                                       tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test Trixi.remake(semi_hyp_para_global).cache.tuning ===
+          semi_hyp_para_global.cache.tuning
+
     # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
     semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())
     @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
