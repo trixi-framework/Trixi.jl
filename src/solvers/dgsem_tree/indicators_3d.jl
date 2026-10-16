@@ -130,11 +130,20 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
 
+    # Explicit bounds check, which allows us to assume inbounds access below.
+    # The neighbor ids are element ids taken from the mesh connectivity.
+    @boundscheck begin
+        check_axes(alpha, (eachelement(dg, cache),))
+        check_axes(alpha_tmp, (eachelement(dg, cache),))
+    end
+
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    @unpack neighbor_ids = cache.interfaces
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(2), eachinterface(dg, cache)))
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
@@ -142,13 +151,15 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     end
 
     # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
+    @unpack neighbor_ids = cache.mortars
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(5), eachmortar(dg, cache)))
+    @inbounds for mortar in eachmortar(dg, cache)
         # Get neighboring element ids
-        lower_left = cache.mortars.neighbor_ids[1, mortar]
-        lower_right = cache.mortars.neighbor_ids[2, mortar]
-        upper_left = cache.mortars.neighbor_ids[3, mortar]
-        upper_right = cache.mortars.neighbor_ids[4, mortar]
-        large = cache.mortars.neighbor_ids[5, mortar]
+        lower_left = neighbor_ids[1, mortar]
+        lower_right = neighbor_ids[2, mortar]
+        upper_left = neighbor_ids[3, mortar]
+        upper_right = neighbor_ids[4, mortar]
+        large = neighbor_ids[5, mortar]
 
         # Apply smoothing
         alpha[lower_left] = max(alpha_tmp[lower_left], 0.5f0 * alpha_tmp[large],

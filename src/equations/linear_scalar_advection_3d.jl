@@ -171,8 +171,8 @@ end
 Godunov (upwind) flux for the 3D linear scalar advection equation.
 Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -184,8 +184,8 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
