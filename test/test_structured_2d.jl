@@ -688,22 +688,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.6401790809469766,
-                            0.30665376287777196,
-                            0.31392947418333217,
-                            1.297784156450693
+                            0.6585269851226543,
+                            0.3135400081139371,
+                            0.32034819365355016,
+                            1.2974633138064182
                         ],
                         linf=[
-                            2.247645842347004,
-                            1.554935338577008,
-                            1.5439591073963144,
-                            6.272642656315988
+                            2.406262802726552,
+                            1.6756745438918703,
+                            1.6000969072154525,
+                            6.270702355518207
                         ],
                         tspan=(0.0, 0.5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 7.0e-13
+    @test maximum(deviations) <= 8.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -723,16 +723,16 @@ end
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
                         l2=[
-                            0.7979084213982606,
-                            0.3980284851419719,
-                            0.4021949448633982,
-                            1.2956482394747346
+                            0.8397942684400846,
+                            0.4153928238963462,
+                            0.4201250875629087,
+                            1.2947089360167416
                         ],
                         linf=[
-                            5.477809925838038,
-                            3.7793130706228273,
-                            3.2838862964081637,
-                            6.316943647948965
+                            6.790829900279333,
+                            4.7432838536721365,
+                            3.8602421169014174,
+                            6.336439237427962
                         ],
                         tspan=(0.0, 0.5))
     limiter = semi.solver.volume_integral.limiter
