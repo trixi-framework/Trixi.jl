@@ -32,7 +32,9 @@ end
     HalfSweep()
 
 Selects the "half sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref) and [`trixi_adapt`](@ref). This is the default.
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref). This is the default on GPUs. The
+KernelAbstractions.jl CPU backend does not support this kernel and uses
+[`FullSweep`](@ref) instead.
 
 All diagonal entries of `derivative_split` are zero. Thus, we can skip the
 computation of the diagonal terms. In addition, we use the symmetry of the
