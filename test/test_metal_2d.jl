@@ -86,7 +86,7 @@ end
 @testitem "Metal 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl Float32 / Metal" setup=[
     Setup,
     Metal2DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
     @test_trixi_include(joinpath(EXAMPLES_DIR,
