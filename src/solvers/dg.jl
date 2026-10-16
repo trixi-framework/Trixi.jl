@@ -93,7 +93,13 @@ end
 ###############################################################################
 # Handling the storage of (nested) volume integrals
 
-# Apply `f` to `volume_integral` and its `volume_integral_children`.
+# Apply `f` to `volume_integral` and all volume integrals nested in it.
+# This is used for operations that do not return anything, e.g., resizing
+# and reinitializing the storage after mesh adaptation
+# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`)
+# and checking supported combinations (`check_volume_integral_tree`).
+# Creating the storage uses `_collect_caches_volume_integral` instead,
+# since it returns the caches of all nodes.
 @inline function foreach_volume_integral(f::F, volume_integral) where {F}
     f(volume_integral)
     _foreach_volume_integral(f, volume_integral_children(volume_integral))
