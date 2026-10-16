@@ -8,6 +8,13 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+  [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
+  on conforming meshes (no mortars, thus also no AMR) are supported.
+  Trixi.jl now re-exports the module `KernelAbstractions`, e.g., to select the GPU of
+  each MPI rank via `KernelAbstractions.device!`.
 - Experimental support for Apple GPUs via Metal.jl, e.g., using
   `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
   Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
