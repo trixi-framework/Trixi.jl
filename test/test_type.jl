@@ -750,6 +750,10 @@ end
         @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
         @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
                                             equations)) == RealT
+        @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                   equations)) == RealT
+        @test typeof(@inferred max_abs_speed(u_ll, u_rr, normal_direction,
+                                             equations)) == RealT
 
         for orientation in orientations
             @test eltype(@inferred velocity(u, orientation, equations)) == RealT
@@ -796,6 +800,10 @@ end
         end
         @test eltype(@inferred flux_ranocha(u_dual, u_dual, normal_direction,
                                             equations)) == DualT
+        @test typeof(@inferred max_abs_speed_naive(u_dual, u_dual, normal_direction,
+                                                   equations)) == DualT
+        @test typeof(@inferred max_abs_speed(u_dual, u_dual, normal_direction,
+                                             equations)) == DualT
         @test eltype(@inferred cons2prim(u_dual, equations)) == DualT
         @test eltype(@inferred prim2cons(u_dual, equations)) == DualT
         @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
@@ -1990,6 +1998,8 @@ end
                                                       equations)) == RealT
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
                                                    equations)) == RealT
+        @test typeof(@inferred max_abs_speed(u_ll, u_rr, normal_direction,
+                                             equations)) == RealT
         @test typeof(Trixi.calc_fast_wavespeed(cons, normal_direction, equations)) ==
               RealT
 
@@ -2038,6 +2048,8 @@ end
                                                             equations)) == DualT
         @test typeof(@inferred Trixi.calc_fast_wavespeed(u_dual, normal_direction,
                                                          equations)) == DualT
+        @test typeof(@inferred max_abs_speed(u_dual, u_dual, normal_direction,
+                                             equations)) == DualT
         @test eltype(@inferred Trixi.max_abs_speeds(u_dual, equations)) == DualT
         @test eltype(@inferred cons2entropy(u_dual, equations)) == DualT
         @test typeof(@inferred density(u_dual, equations)) == DualT
