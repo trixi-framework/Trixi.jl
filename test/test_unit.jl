@@ -3366,6 +3366,22 @@ end
         end
         return found_methods
     end
+
+    # Check that all methods found by `specialized_normal_direction_methods` are
+    # covered by the tests. Otherwise, print an informative error message since new
+    # methods must be added manually to `normal_direction_test_cases`.
+    function test_all_methods_tested(found_methods, tested_methods)
+        untested_methods = setdiff(found_methods, tested_methods)
+        if !isempty(untested_methods)
+            message = """The following methods with a `normal_direction` are not tested.
+                      Add the corresponding equations (and numerical fluxes) to
+                      `normal_direction_test_cases` in `test/test_unit.jl`. New callable
+                      flux or dissipation types must also be added to `numerical_fluxes`
+                      in the test item "Unit: Numerical fluxes with normal_direction"."""
+            @error message untested_methods=collect(untested_methods)
+        end
+        @test isempty(untested_methods)
+    end
 end
 
 @testitem "Unit: Wave speed estimates with normal_direction" setup=[
@@ -3436,9 +3452,7 @@ end
     # after adding a new method, add the corresponding equations to
     # `normal_direction_test_cases`.
     found_methods = specialized_normal_direction_methods(estimates)
-    for method in found_methods
-        @test method in tested_methods
-    end
+    test_all_methods_tested(found_methods, tested_methods)
 
     # Positive control: make sure that the method introspection above still works
     # and does not skip all methods silently
@@ -3497,9 +3511,7 @@ end
                 DissipationLocalLaxFriedrichs(),
                 DissipationLaxFriedrichsEntropyVariables()])
     found_methods = specialized_normal_direction_methods(numerical_fluxes)
-    for method in found_methods
-        @test method in tested_methods
-    end
+    test_all_methods_tested(found_methods, tested_methods)
 
     # Positive control: make sure that the method introspection above still works
     # and does not skip all methods silently
@@ -3535,9 +3547,7 @@ end
     # Make sure that every specialized method of `flux` with a `normal_direction`
     # defined in Trixi.jl is tested above, and check the method introspection
     found_methods_flux = specialized_normal_direction_methods((flux,), n_args = 3)
-    for method in found_methods_flux
-        @test method in tested_methods_flux
-    end
+    test_all_methods_tested(found_methods_flux, tested_methods_flux)
     known_method = which(flux,
                          Tuple{SVector{4, Float64}, SVector{2, Float64},
                                CompressibleEulerEquations2D{Float64}})
