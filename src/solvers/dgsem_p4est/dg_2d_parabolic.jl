@@ -277,7 +277,7 @@ Base.@propagate_inbounds function mortar_fluxes_to_elements_gradient!(surface_fl
 end
 
 function calc_interface_flux_gradient!(surface_flux_values,
-                                       mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                                       mesh::P4estMesh{2},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -446,7 +446,7 @@ end
 # avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             mesh::P4estMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
     (; interfaces) = cache
@@ -803,7 +803,10 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
                                                normal_direction, Divergence(),
                                                equations_parabolic, parabolic_scheme)
 
-                        # Sign flip (and scaling by 0.5) already handled above in `prolong2mortars_divergence!`
+                        # `prolong2mortars_divergence!` already flipped the sign and
+                        # scaled by 0.5 the normal flux of the large element. Thus, both
+                        # inputs and `flux_` refer to the outward normal direction of
+                        # the small element.
                         fstar[position][v, i] = flux_
                     end
                     i_small += i_small_step
@@ -815,7 +818,10 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
             # copying in the correct orientation
             u_buffer = cache.u_threaded[Threads.threadid()]
 
-            # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
+            # This reuses the hyperbolic version of `mortar_fluxes_to_elements!`.
+            # Since the outward normal direction of the large element is -2 times
+            # that of the small elements, it flips the sign and scales by 2 the
+            # fluxes projected to the large element.
             mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations_parabolic, mortar_l2, dg, cache,
                                        mortar, fstar, fstar, u_buffer)
@@ -873,7 +879,7 @@ function calc_mortar_flux_gradient!(surface_flux_values,
 
                     calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                                mesh, equations_parabolic,
-                                               dg, parabolic_scheme, cache,
+                                               dg, parabolic_scheme, cache.mortars.u,
                                                mortar, position, normal_direction, i)
 
                     i_small += i_small_step
@@ -901,19 +907,20 @@ end
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a parabolic conservative "flux") and thus no
 # non-conservative terms are present.
+# The mortar data `mortars_u` is passed explicitly (instead of `cache`) such that this
+# function can be used for both the serial mortars (`cache.mortars.u`) and the MPI
+# mortars (`cache.mpi_mortars.u`).
 Base.@propagate_inbounds function calc_mortar_flux_gradient!(fstar_primary,
                                                              fstar_secondary,
                                                              mesh::P4estMesh{2},
                                                              equations_parabolic,
                                                              dg::DG, parabolic_scheme,
-                                                             cache,
+                                                             mortars_u,
                                                              mortar_index,
                                                              position_index,
                                                              normal_direction,
                                                              node_index)
-    @unpack u = cache.mortars
-
-    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations_parabolic, dg,
                                        position_index, node_index, mortar_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),

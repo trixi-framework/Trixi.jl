@@ -5,6 +5,16 @@
 @muladd begin
 #! format: noindent
 
+# The GPU kernel used for `VolumeIntegralFluxDifferencing` is stored in the `cache` so
+# that it can be selected via `trixi_adapt`. Creating it together with the `cache`
+# ensures that it is available for all backends, e.g., the KernelAbstractions.jl
+# CPU backend without calling `trixi_adapt`.
+function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
+                      ::VolumeIntegralFluxDifferencing, dg::DG, cache_containers,
+                      uEltype)
+    return (; flux_differencing_kernel = HalfSweep())
+end
+
 # The half sweep and full sweep kernels have a shared memory within an element,
 # and therefore, they need all nodes of an element in a single workgroup.
 @inline function flux_differencing_workgroupsize_3d(::Union{HalfSweep, FullSweep},
@@ -1152,10 +1162,12 @@ end
     return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
 end
 
-Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
-                                                       node_indices,
-                                                       contravariant_vectors,
-                                                       index_range, i, j, interface)
+# Compute the elements, directions, and volume node indices on both sides of an
+# interface for the surface node `(i, j)` (counted along the primary side) as
+# well as the surface node indices `(i_secondary, j_secondary)` on the secondary
+# element, which might run backwards or be transposed for flipped sides.
+Base.@propagate_inbounds function get_interface_indices(neighbor_ids, node_indices,
+                                                        index_range, i, j, interface)
     n = length(index_range)
 
     primary_element = neighbor_ids[1, interface]
@@ -1202,6 +1214,23 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
                                    i_secondary_step_start_j, i, j, n)
     j_secondary = delayed_index_3d(j_secondary_step_start, j_secondary_step_start_i,
                                    j_secondary_step_start_j, i, j, n)
+
+    return (primary_direction, primary_element, i_primary, j_primary, k_primary,
+            i_secondary, j_secondary, secondary_direction, secondary_element,
+            i_secondary_node, j_secondary_node, k_secondary_node)
+end
+
+Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
+                                                       node_indices,
+                                                       contravariant_vectors,
+                                                       index_range, i, j, interface)
+    (primary_direction, primary_element, i_primary, j_primary, k_primary,
+    i_secondary, j_secondary, secondary_direction, secondary_element,
+    i_secondary_node, j_secondary_node, k_secondary_node) = get_interface_indices(neighbor_ids,
+                                                                                  node_indices,
+                                                                                  index_range,
+                                                                                  i, j,
+                                                                                  interface)
 
     u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, k_primary,
                          primary_element)
