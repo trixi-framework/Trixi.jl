@@ -32,7 +32,7 @@ end
     HalfSweep()
 
 Selects the "half sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref). This is the default.
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref). This is the default.
 
 All diagonal entries of `derivative_split` are zero. Thus, we can skip the
 computation of the diagonal terms. In addition, we use the symmetry of the
@@ -67,7 +67,7 @@ struct HalfSweep end
     FullSweep()
 
 Selects the "full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref).
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref).
 
 All two-point fluxes are computed for each node.
 This doubles the number of flux evaluations,
@@ -83,7 +83,7 @@ struct FullSweep end
     FullSweepGlobal()
 
 Selects the "global full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref).
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref).
 
 Same sweep as [`FullSweep`](@ref), but the solution is read from global memory
 instead of being copied in shared memory. Therefore, the kernel does not need
@@ -108,9 +108,12 @@ struct FullSweepGlobal end
     Tuning(; flux_differencing_kernel = nothing)
 
 Performance settings of the GPU and KernelAbstractions.jl kernels of a semidiscretization
-on a `P4estMesh` or `T8codeMesh`. They do not change the discretization, but they can
-change the performance and the resources required on a GPU. Pass them to
-[`trixi_adapt`](@ref), e.g.,
+on a [`P4estMesh`](@ref) or [`T8codeMesh`](@ref). They select between different
+implementations of the same discretization, which are equivalent in exact arithmetic.
+Thus, they do not change the numerical method, but they can change the performance, the
+resources required on a GPU (e.g., shared memory), and the results at the level of
+floating-point round-off errors (e.g., due to a different order of operations).
+Pass them to [`trixi_adapt`](@ref), e.g.,
 ```julia
 semi = trixi_adapt(semi; storage_type = CuArray, real_type = Float32,
                    tuning = Tuning(flux_differencing_kernel = FullSweep()))
