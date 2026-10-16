@@ -28,6 +28,10 @@ function set_zero!(::Backend, du, dg, cache)
     return nothing
 end
 
+# Abstract supertype of the GPU kernels for `VolumeIntegralFluxDifferencing`, which can
+# be selected via `Tuning(; flux_differencing_kernel)`
+abstract type AbstractFluxDifferencingKernel end
+
 """
     HalfSweep()
 
@@ -63,7 +67,7 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
   with Non-Conservative Terms
   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
 """
-struct HalfSweep end
+struct HalfSweep <: AbstractFluxDifferencingKernel end
 
 """
     FullSweep()
@@ -79,7 +83,7 @@ from the solution vector `u`.
 
 See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
 """
-struct FullSweep end
+struct FullSweep <: AbstractFluxDifferencingKernel end
 
 """
     FullSweepGlobal()
@@ -95,7 +99,7 @@ in case the faster kernels [`FullSweep`](@ref) and [`HalfSweep`](@ref)
 are limited by the shared memory, due to either high number of variables, high
 polynomial degree, or both.
 """
-struct FullSweepGlobal end
+struct FullSweepGlobal <: AbstractFluxDifferencingKernel end
 
 # Return the flux differencing kernel used on the `backend` for the setting `kernel` of a
 # `Tuning`. `nothing` selects the default of the `backend`.
@@ -133,7 +137,11 @@ Optional keyword arguments:
   KernelAbstractions.jl CPU backend, which does not support [`HalfSweep()`](@ref)), or
   [`FullSweepGlobal()`](@ref).
 """
-struct Tuning{FluxDifferencingKernel}
+struct Tuning{FluxDifferencingKernel <:
+              Union{Nothing, AbstractFluxDifferencingKernel}}
+    # The type parameters restrict the settings to the accepted values (or `nothing`),
+    # so that invalid settings throw an error when creating the `Tuning` instead of
+    # when launching a kernel.
     flux_differencing_kernel::FluxDifferencingKernel
 end
 

@@ -5075,6 +5075,9 @@ end
     @test semi_global32.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     # Settings that are `nothing` keep their current value
     @test Tuning() === Tuning(flux_differencing_kernel = nothing)
+    # Invalid settings throw an error when creating the `Tuning`
+    @test_throws MethodError Tuning(flux_differencing_kernel = :invalid)
+    @test_throws MethodError Tuning(:invalid)
     @test trixi_adapt(semi_global; tuning = Tuning()).cache.tuning ===
           semi_global.cache.tuning
     @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
