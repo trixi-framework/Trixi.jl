@@ -289,8 +289,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
@@ -307,8 +307,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+                  tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -324,8 +324,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweepGlobal())
-    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+                  tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -352,8 +352,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
@@ -370,8 +370,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+                  tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -387,8 +387,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweepGlobal())
-    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+                  tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -415,7 +415,7 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_plain = Array(sol.u[end])
 
@@ -432,8 +432,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -449,8 +449,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+                  tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -466,8 +466,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweepGlobal())
-    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+                  tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -493,7 +493,7 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
     u_plain = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -510,8 +510,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+                  tuning = Tuning(flux_differencing_kernel = HalfSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
@@ -528,8 +528,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+                  tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.

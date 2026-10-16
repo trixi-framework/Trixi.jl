@@ -5,20 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# The GPU kernel used for `VolumeIntegralFluxDifferencing` is stored in the `cache` so
-# that it can be selected via `trixi_adapt`, see also `src/solvers/dgsem_p4est/dg_3d_gpu.jl`.
-function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg::DG, cache_containers,
-                      uEltype)
-    return (; flux_differencing_kernel = HalfSweep())
-end
-
-# The `cache` of a `P4estMeshView` is created without passing the container cache
-function create_cache(mesh::P4estMeshView{2}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-    return (; flux_differencing_kernel = HalfSweep())
-end
-
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},

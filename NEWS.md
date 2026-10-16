@@ -28,6 +28,13 @@ for human readability.
   adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
   now part of the `cache` from the construction of the semidiscretization, and the
   warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The new type `Tuning` bundles performance settings of the GPU and KernelAbstractions.jl
+  kernels on a `P4estMesh` or `T8codeMesh`, which can be passed to
+  `trixi_adapt(semi; tuning)`, e.g.,
+  `tuning = Tuning(flux_differencing_kernel = FullSweep())`. The settings are stored as
+  `semi.cache.tuning` for all volume integrals. Settings that are not set explicitly
+  use the defaults of the backend, e.g., `HalfSweep()` on GPUs and `FullSweep()` on the
+  KernelAbstractions.jl CPU backend ([#3370]).
 - The `SummaryCallback` warns if the time type of the time integrator differs from the
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
@@ -150,7 +157,10 @@ for human readability.
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
   `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
-  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
+  tuning = Tuning(; flux_differencing_kernel))` before calling `semidiscretize(semi, tspan)`
+  instead.
+- The keyword argument `flux_differencing_kernel` of `trixi_adapt` is deprecated. Use
+  `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead ([#3370]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
