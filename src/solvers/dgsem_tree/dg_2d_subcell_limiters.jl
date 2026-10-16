@@ -62,12 +62,17 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2
 end
 
 function calc_mortar_weights(equations::AbstractEquations{2},
-                             basis::LobattoLegendreBasis, RealT)
+                             basis::LobattoLegendreBasis, RealT;
+                             connectivity = :sparse, mortar_l2 = MortarL2(basis))
     n_nodes = nnodes(basis)
     mortar_weights = zeros(RealT, n_nodes, n_nodes, 2) # [node_i (large element), node_i (small element), small element]
     mortar_weights_sums = zeros(RealT, n_nodes, 2)     # [node, small (1) or large (2) element]
 
-    calc_mortar_weights!(equations, mortar_weights, n_nodes, RealT)
+    if connectivity === :dense
+        calc_mortar_weights_dense!(equations, mortar_weights, n_nodes, mortar_l2, RealT)
+    else
+        calc_mortar_weights!(equations, mortar_weights, n_nodes, RealT)
+    end
 
     # Sums of mortar weights for normalization
     for i in eachnode(basis)
@@ -123,6 +128,26 @@ function calc_mortar_weights!(equations::AbstractEquations{2},
         if right > left
             mortar_weights[i, j, 2] = right - left
         end
+    end
+
+    return mortar_weights
+end
+
+# All-to-all mortar weights `w_ij = int_{S,N} psi_i phi_j dxi` with the Lagrange basis functions
+# `psi_i` of the large element and `phi_j` of the small element, evaluated with the LGL quadrature
+# of the small element. Since `phi_j` is one at node `j` and zero at all other nodes of the small
+# element, this reduces to `w_ij = 0.5 * w_j * psi_i(x_j)`, where `w_j` is the LGL weight and the
+# factor `0.5` is the size of the small element in reference coordinates of the large element.
+# `psi_i(x_j)` are the entries of the interpolation matrices of the L2 mortars.
+# The weights have the same sums as the sparse weights, but some of them are negative.
+function calc_mortar_weights_dense!(::AbstractEquations{2},
+                                    mortar_weights, n_nodes, mortar_l2, RealT)
+    _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
+    (; forward_lower, forward_upper) = mortar_l2
+
+    for j in 1:n_nodes, i in 1:n_nodes
+        mortar_weights[i, j, 1] = 0.5f0 * weights[j] * forward_lower[j, i]
+        mortar_weights[i, j, 2] = 0.5f0 * weights[j] * forward_upper[j, i]
     end
 
     return mortar_weights
@@ -932,10 +957,15 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                 end
                 u_large_local = get_node_vars(u_large, equations, dg, k, mortar)
 
-                if small_side == 2 # -> small elements on right side
+                # The dense weights (`connectivity = :dense`) can be negative. Then, the states
+                # are swapped, which corresponds to the flipped normal direction. For a flux with
+                # symmetric central part and dissipation, this gives
+                # `factor * f_central - |factor| * dissipation`, i.e., the dissipation is always
+                # scaled with the absolute value of the weight.
+                if (small_side == 2) == (factor > 0) # small elements on right side and `factor > 0` or vice versa
                     flux = surface_flux(u_large_local, u_lower_local, orientation,
                                         equations)
-                else # small_side == 1 -> small elements on left side
+                else
                     flux = surface_flux(u_lower_local, u_large_local, orientation,
                                         equations)
                 end
@@ -965,10 +995,11 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                 end
                 u_large_local = get_node_vars(u_large, equations, dg, k, mortar)
 
-                if small_side == 2 # -> small elements on right side
+                # Swap the states for negative weights; see lower element
+                if (small_side == 2) == (factor > 0) # small elements on right side and `factor > 0` or vice versa
                     flux = surface_flux(u_large_local, u_upper_local, orientation,
                                         equations)
-                else # small_side == 1 -> small elements on left side
+                else
                     flux = surface_flux(u_upper_local, u_large_local, orientation,
                                         equations)
                 end
@@ -1253,11 +1284,14 @@ end
                                                      equations)
                     end
 
+                    # The dissipation of the low-order mortar flux is scaled with the absolute
+                    # value of the weight, which can be negative for `connectivity = :dense`.
+                    abs_weight = abs(weight)
                     add_mortar_lambdas!(lambda1, lambda2, orientation,
                                         lambda_indices_large, large_element,
                                         lambda_indices_small, small_element,
-                                        weight * lambda / mortar_weights_sums[j, 2],
-                                        weight * lambda / mortar_weights_sums[k, 1])
+                                        abs_weight * lambda / mortar_weights_sums[j, 2],
+                                        abs_weight * lambda / mortar_weights_sums[k, 1])
 
                     calc_bar_states || continue
 
@@ -1268,14 +1302,16 @@ end
                         flux_diff = flux_large - flux_small
                     end
                     central_part = u_small + u_large
-                    bar_state = 0.5 * (central_part - flux_diff / lambda)
+                    # A negative weight corresponds to the flipped normal direction, which
+                    # changes the sign of the flux difference.
+                    bar_state = 0.5 * (central_part - sign(weight) * flux_diff / lambda)
                     # The low-order mortar update is a convex combination with the
                     # lambda-weighted mean of the bar states of all overlapping node pairs.
-                    # Therefore, accumulate with `weight * lambda` and normalize afterwards.
+                    # Therefore, accumulate with `|weight| * lambda` and normalize afterwards.
                     add_mortar_bar_states!(bar_states1, bar_states2, orientation,
                                            equations, lambda_indices_large,
                                            large_element, lambda_indices_small,
-                                           small_element, bar_state, weight * lambda,
+                                           small_element, bar_state, abs_weight * lambda,
                                            mortar_weights_sums[j, 2],
                                            mortar_weights_sums[k, 1])
                 end

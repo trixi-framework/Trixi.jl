@@ -825,6 +825,9 @@ end
 # Create mortar container and initialize mortar data.
 function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                       basis, elements, mortar::LobattoLegendreMortarIDP)
+    if mortar.connectivity !== :sparse
+        throw(ArgumentError("`MortarIDP` with `connectivity = :$(mortar.connectivity)` is only implemented for the 2D `TreeMesh`."))
+    end
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
