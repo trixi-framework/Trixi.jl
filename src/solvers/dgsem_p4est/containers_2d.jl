@@ -225,7 +225,7 @@ end
 end
 
 # Check whether the arrays in `mortars` and the thread-local storage used on CPUs
-# have the axes we assume it must have in the inner loops of Trixi.jl.
+# have the axes we assume they must have in the inner loops of Trixi.jl.
 function check_axes(mortars::P4estMortarContainer{2}, equations, solver::DG, cache)
     check_axes_mortar_container(mortars, equations, solver, cache)
 

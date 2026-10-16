@@ -728,13 +728,14 @@ Base.@propagate_inbounds function calc_mortar_flux_small_per_node!(surface_flux_
                                                 contravariant_vectors,
                                                 i_small, j_small, element)
 
-        fstar_primary, _ = calc_mortar_flux!(MeshT,
-                                             have_nonconservative_terms,
-                                             combine_conservative_and_nonconservative_fluxes(surface_flux,
-                                                                                             equations),
-                                             equations,
-                                             surface_flux, SolverT, mortars_u,
-                                             mortar, position, normal_direction, node)
+        fstar_primary, _ = calc_mortar_flux_node(MeshT,
+                                                 have_nonconservative_terms,
+                                                 combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                 equations),
+                                                 equations,
+                                                 surface_flux, SolverT, mortars_u,
+                                                 mortar, position, normal_direction,
+                                                 node)
 
         # Write to small sides
         for v in 1:nvars
@@ -792,12 +793,13 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
                                                     i_small, j_small,
                                                     element)
 
-            _, fstar_secondary = calc_mortar_flux!(MeshT, have_nonconservative_terms,
-                                                   combine_conservative_and_nonconservative_fluxes(surface_flux,
-                                                                                                   equations),
-                                                   equations, surface_flux, SolverT,
-                                                   mortars_u, mortar, position,
-                                                   normal_direction, ii)
+            _, fstar_secondary = calc_mortar_flux_node(MeshT,
+                                                       have_nonconservative_terms,
+                                                       combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                       equations),
+                                                       equations, surface_flux, SolverT,
+                                                       mortars_u, mortar, position,
+                                                       normal_direction, ii)
 
             flux_large += reverse_matrix[node, ii] * fstar_secondary
 
@@ -819,18 +821,20 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
     end
 end
 
-# Mortar flux computation on small elements for conservation laws
-# In contrast to the CPU version fluxes are not stored in buffers
-Base.@propagate_inbounds function calc_mortar_flux!(MeshT::Type{<:Union{P4estMesh{2},
-                                                                        T8codeMesh{2}}},
-                                                    have_nonconservative_terms::False,
-                                                    combine_conservative_and_nonconservative_fluxes,
-                                                    equations,
-                                                    surface_flux, SolverT::Type{<:DG},
-                                                    mortars_u,
-                                                    mortar_index, position_index,
-                                                    normal_direction,
-                                                    node_index)
+# Mortar flux computation at a single node of a small element for conservation laws.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{2},
+                                                                            T8codeMesh{2}}},
+                                                        have_nonconservative_terms::False,
+                                                        combine_conservative_and_nonconservative_fluxes,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        node_index)
     u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
                                        node_index, mortar_index)
 
@@ -839,19 +843,21 @@ Base.@propagate_inbounds function calc_mortar_flux!(MeshT::Type{<:Union{P4estMes
     return flux, flux
 end
 
-# Mortar flux computation on small elements for equations with conservative and
-# nonconservative terms
-# In contrast to the CPU version fluxes are not stored in buffers
-Base.@propagate_inbounds function calc_mortar_flux!(MeshT::Type{<:Union{P4estMesh{2},
-                                                                        T8codeMesh{2}}},
-                                                    have_nonconservative_terms::True,
-                                                    combine_conservative_and_nonconservative_fluxes::True,
-                                                    equations,
-                                                    surface_flux, SolverT::Type{<:DG},
-                                                    mortars_u,
-                                                    mortar_index, position_index,
-                                                    normal_direction,
-                                                    node_index)
+# Mortar flux computation at a single node of a small element for equations with
+# conservative and nonconservative terms.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{2},
+                                                                            T8codeMesh{2}}},
+                                                        have_nonconservative_terms::True,
+                                                        combine_conservative_and_nonconservative_fluxes::True,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        node_index)
     u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
                                        node_index, mortar_index)
 
