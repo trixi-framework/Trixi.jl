@@ -1158,7 +1158,11 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
-                        tspan=(0.0, 2.5),
+                        # Stop before t ≈ 1.1: afterwards, the mesh is very coarse and
+                        # round-off differences (e.g., from different CPUs) are amplified
+                        # by the adaptive time stepping to differences of ~1e-4 in the
+                        # errors.
+                        tspan=(0.0, 0.3),
                         amr_indicator=IndicatorNodalFunction((u, x, t) -> ((x[1] <
                                                                             sin(π * t)) &&
                                                                            (x[2] <
@@ -1166,22 +1170,21 @@ end
                                                                           1.0 : 0.0,
                                                              semi),
                         l2=[
-                            0.000751796085921976,
-                            0.10544344448905413,
-                            0.05559123730159854,
-                            0.13538844542176662
+                            0.0003261584331979379,
+                            0.052803388370324895,
+                            0.012246174341480693,
+                            0.06238078545560245
                         ],
                         linf=[
-                            0.018687948537448595,
-                            0.9693988005334362,
-                            0.6314735963971362,
-                            1.9961130828380647
-                        ],
-                        atol=1e-4,
-                        rtol=1e-6)
-    # Ensure that the mesh size did not change to test IndicatorNodalFunction
-    #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
-    @test nelements(semi.cache.elements) == 576
+                            0.004327085006800124,
+                            0.5507651353359829,
+                            0.20814988531441148,
+                            0.5983357262773836
+                        ])
+    # Ensure that the mesh was coarsened and refined as expected to test
+    # IndicatorNodalFunction: N_ele(t) = 576 (initial), 336 (t ≈ 0.077),
+    # 354 (t ≈ 0.15), 444 (t ≈ 0.24)
+    @test nelements(semi.cache.elements) == 444
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
