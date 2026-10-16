@@ -29,6 +29,7 @@ coverage_report/
 plan*/
 *.code-workspace
 *.claude
+.mcp.json
 
 run*/
 run*/*

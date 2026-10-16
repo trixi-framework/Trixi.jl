@@ -1262,37 +1262,43 @@ function calc_surface_integral_gradient!(gradients,
                     surface_flux_minus = surface_flux_values[v, l, 1, element]
                     surface_flux_plus = surface_flux_values[v, l, 2, element]
                     for ii in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                         # surface at -x
-                        gradients_x[v, ii, l, element] = (gradients_x[v, ii, l,
+                        gradients_x[v, ii, l, element] = (gradients_x[v,
+                                                                      ii, l,
                                                                       element] -
                                                           surface_flux_minus *
-                                                          boundary_interpolation_inverse_weights[ii,
-                                                                                                 1])
+                                                          factor_minus)
 
                         # surface at +x
-                        gradients_x[v, ii, l, element] = (gradients_x[v, ii, l,
+                        gradients_x[v, ii, l, element] = (gradients_x[v,
+                                                                      ii, l,
                                                                       element] +
                                                           surface_flux_plus *
-                                                          boundary_interpolation_inverse_weights[ii,
-                                                                                                 2])
+                                                          factor_plus)
                     end
 
                     surface_flux_minus = surface_flux_values[v, l, 3, element]
                     surface_flux_plus = surface_flux_values[v, l, 4, element]
                     for jj in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[jj, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[jj, 2]
+
                         # surface at -y
-                        gradients_y[v, l, jj, element] = (gradients_y[v, l, jj,
+                        gradients_y[v, l, jj, element] = (gradients_y[v,
+                                                                      l, jj,
                                                                       element] -
                                                           surface_flux_minus *
-                                                          boundary_interpolation_inverse_weights[jj,
-                                                                                                 1])
+                                                          factor_minus)
 
                         # surface at +y
-                        gradients_y[v, l, jj, element] = (gradients_y[v, l, jj,
+                        gradients_y[v, l, jj, element] = (gradients_y[v,
+                                                                      l, jj,
                                                                       element] +
                                                           surface_flux_plus *
-                                                          boundary_interpolation_inverse_weights[jj,
-                                                                                                 2])
+                                                          factor_plus)
                     end
                 end
             end

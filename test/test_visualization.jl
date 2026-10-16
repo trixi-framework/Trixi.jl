@@ -681,6 +681,147 @@ end
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
+@testitem "Visualization: PlotData2D (DGMulti 3D Tet slice)" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    function initial_condition_linear(x, t, equations)
+        return SVector(10 + x[1] + 2 * x[2] + 3 * x[3], 0.1, -0.2, 0.7, 20.0)
+    end
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
+                                 "elixir_euler_weakform_periodic.jl"),
+                        cells_per_dimension=(2, 2, 2), tspan=(0.0, 0.0),
+                        initial_condition=initial_condition_linear, source_terms=nothing)
+
+    kwargs = (; slice = :xz, point = (0.0, 0.125, 0.0), solution_variables = cons2cons,
+              nvisnodes = 12)
+    pd = @inferred PlotData2D(sol; kwargs...)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test size(pd.t, 1) > 0
+
+    @testset "Constructors and plotting" begin
+        pd_triangulated = @inferred Trixi.PlotData2DTriangulated(sol; kwargs...)
+        pd_array = PlotData2D(collect(parent(sol.u[end])), semi; kwargs...)
+        for plot_data in (pd_triangulated, pd_array)
+            @test plot_data.x ≈ pd.x
+            @test plot_data.y ≈ pd.y
+            @test plot_data.data ≈ pd.data
+            @test size(plot_data.x_face) == size(pd.x_face)
+        end
+
+        pd_without_mesh = PlotData2D(sol; kwargs..., nvisnodes = 0)
+        @test isempty(pd_without_mesh.x_face)
+        @test pd_without_mesh.data ≈ pd.data
+
+        @trixi_test_nowarn Plots.plot(pd["rho"])
+        @trixi_test_nowarn Plots.plot!(getmesh(pd))
+        @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
+        @trixi_test_nowarn Trixi.iplot(pd)
+    end
+
+    @testset "Slice planes" begin
+        slice_point(::Val{:xy}, x, y, c) = SVector(x, y, c)
+        slice_point(::Val{:xz}, x, y, c) = SVector(x, c, y)
+        slice_point(::Val{:yz}, x, y, c) = SVector(c, x, y)
+
+        for slice in (:xy, :xz, :yz), coordinate in (-1.0, 0.0, 0.125, 1.0)
+            point = slice_point(Val(slice), 0.0, 0.0, coordinate)
+            pd_slice = PlotData2D(sol; slice, point, solution_variables = cons2cons)
+            @test !isempty(pd_slice.data)
+            @test all(pd_slice.data[i] ≈
+                      initial_condition_linear(slice_point(Val(slice), pd_slice.x[i],
+                                                           pd_slice.y[i], coordinate),
+                                               0.0, equations)
+                      for i in eachindex(pd_slice.data))
+        end
+
+        @test_throws r"illegal dimension 'yx'" PlotData2D(sol; slice = :yx)
+        @test_throws r"Slice plane is outside of domain" PlotData2D(sol;
+                                                                    point = (0.0, 0.0, 2.0))
+    end
+
+    @testset "Polynomial interpolation" begin
+        dg = DGMulti(polydeg = 3, element_type = Tet(), Nplot = 6)
+        state(x, y, z) = SVector(2 + x^2 + y^2 + z^2, 0.1 + x, -0.2 + y,
+                                 0.7 + z, 20 + x^3 + x * y * z)
+
+        # A triangular cut gives one patch; a quadrilateral cut gives two.
+        for (coordinate, z_vertices, num_patches, num_edges) in ((0.25,
+                                                                  [0.0, 0.0, 0.0, 1.0], 1,
+                                                                  3),
+                                                                 (0.0,
+                                                                  [-1.0, -1.0, 1.0, 1.0], 2,
+                                                                  4))
+            vertices = ([0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], z_vertices)
+            mesh = DGMultiMesh(dg, vertices, [1 2 3 4])
+            u = state.(mesh.md.x, mesh.md.y, mesh.md.z)
+
+            for solution_variables in (cons2cons, cons2prim)
+                pd_slice = PlotData2D(u, mesh, equations, dg, nothing;
+                                      point = (0.0, 0.0, coordinate), solution_variables)
+                @test size(pd_slice.data, 2) == num_patches
+                expected = solution_variables.(state.(pd_slice.x, pd_slice.y, coordinate),
+                                               Ref(equations))
+                @test pd_slice.data ≈ expected
+
+                # Mesh lines sample the same polynomial at the requested resolution.
+                finite = isfinite.(pd_slice.x_face)
+                @test count(finite) ==
+                      num_edges * (2 * (Trixi.polydeg(dg) + 1) - 1) + 1
+                expected_face = solution_variables.(state.(pd_slice.x_face[finite],
+                                                           pd_slice.y_face[finite],
+                                                           coordinate),
+                                                    Ref(equations))
+                @test pd_slice.face_data[finite] ≈ expected_face
+
+                pd_custom = PlotData2D(u, mesh, equations, dg, nothing;
+                                       point = (0.0, 0.0, coordinate), solution_variables,
+                                       nvisnodes = 12)
+                @test count(isfinite, pd_custom.x_face) == num_edges * 11 + 1
+                @test pd_custom.data ≈ pd_slice.data
+            end
+        end
+    end
+
+    @testset "Discontinuous solution" begin
+        dg = DGMulti(polydeg = 1, element_type = Tet(), Nplot = 2)
+        equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+        vertices = ([0.0, 0.0, 0.0, -1.0, 1.0], [0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0])
+        mesh = DGMultiMesh(dg, vertices, [1 2 4 3; 1 5 2 3])
+        u = [SVector(value) for _ in axes(mesh.md.x, 1), value in (1.0, 3.0)]
+        pd_slice = PlotData2D(u, mesh, equations, dg, nothing;
+                              point = (0.0, 0.0, 0.25), nvisnodes = 3)
+
+        # Both traces remain distinct at the shared edge of the slice.
+        shared = findall(i -> isapprox(pd_slice.x_face[i], 0.0; atol = 1.0e-12) &&
+                             isapprox(pd_slice.y_face[i], 0.375; atol = 1.0e-12),
+                         eachindex(pd_slice.x_face))
+        @test sort([pd_slice.face_data[i][1] for i in shared]) ≈ [1.0, 3.0]
+        @test all(column -> all(u -> u ≈ first(column), column), eachcol(pd_slice.data))
+
+        pd_face = PlotData2D(u, mesh, equations, dg, nothing; slice = :yz)
+        @test size(pd_face.data, 2) == 1
+        @test all(u -> u ≈ SVector(3.0), pd_face.data)
+    end
+
+    @testset "Unsupported meshes" begin
+        dg_hex = DGMulti(polydeg = 1, element_type = Hex())
+        mesh_hex = DGMultiMesh(dg_hex, (1, 1, 1))
+        u_hex = fill(SVector(1.0), size(mesh_hex.md.x))
+        scalar_equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
+        expected_error = r"got a mesh with `Affine` geometry and `Hex\(\)` elements"
+        @test_throws expected_error PlotData2D(u_hex, mesh_hex, scalar_equations, dg_hex,
+                                               nothing)
+
+        dg_curved = DGMulti(polydeg = 2, element_type = Tet())
+        mapping(x, y, z) = SVector(x, y, z + 0.1 * x * y)
+        mesh_curved = DGMultiMesh(dg_curved, (1, 1, 1), mapping)
+        u_curved = fill(SVector(1.0), size(mesh_curved.md.x))
+        expected_error = r"got a mesh with `NonAffine` geometry and `Tet\(\)` elements"
+        @test_throws expected_error PlotData2D(u_curved, mesh_curved, scalar_equations,
+                                               dg_curved, nothing)
+    end
+end
+
 @testitem "Visualization: PlotData2D (DGMulti Tri SBP)" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
     # Regression test for plotting with SBP on triangular elements (reference triangulation of rstp).
