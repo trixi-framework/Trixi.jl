@@ -8,6 +8,13 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+  [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
+  on conforming meshes (no mortars, thus also no AMR) are supported.
+  Trixi.jl now re-exports the module `KernelAbstractions`, e.g., to select the GPU of
+  each MPI rank via `KernelAbstractions.device!`.
 - Experimental support for Apple GPUs via Metal.jl, e.g., using
   `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
   Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
@@ -112,6 +119,15 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in `max_abs_speed_naive` with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D`: The sound speed was not scaled by the
+  length of the `normal_direction`. Moreover, the less diffusive wave speed estimate
+  `max_abs_speed` is now also implemented with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D` and the `IdealGlmMhdMultiIonEquations2D`,
+  consistent with the versions with an `orientation`. Previously, it fell back to
+  `max_abs_speed_naive`. Thus, results of simulations with these equations on
+  curvilinear meshes (e.g., `StructuredMesh`, `UnstructuredMesh2D`, `P4estMesh`) and
+  the default `flux_lax_friedrichs` change.
 - Fixes a bug in `pressure` of the `IdealGlmMhdMultiIonEquations2D` and
   `IdealGlmMhdMultiIonEquations3D`: the energy `psi^2 / 2` of the GLM divergence
   cleaning field was not subtracted, inconsistent with `cons2prim`. Thus, the

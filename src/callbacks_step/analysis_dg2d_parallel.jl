@@ -98,6 +98,13 @@ function calc_error_norms(func, u, t, analyzer,
     @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
 
+    # Calculate error norms on the CPU, to ensure the order of summation is the same.
+    if trixi_backend(u) !== nothing
+        node_coordinates = Array(node_coordinates)
+        inverse_jacobian = Array(inverse_jacobian)
+        u = Array(u)
+    end
+
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
     linf_error = copy(l2_error)
@@ -128,24 +135,7 @@ function calc_error_norms(func, u, t, analyzer,
         end
     end
 
-    # Accumulate local results on root process
-    global_l2_error = Vector(l2_error)
-    global_linf_error = Vector(linf_error)
-    MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
-    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        l2_error = convert(typeof(l2_error), global_l2_error)
-        linf_error = convert(typeof(linf_error), global_linf_error)
-        # For L2 error, divide by total volume
-        l2_error = @. sqrt(l2_error / total_volume)
-    else
-        l2_error = convert(typeof(l2_error), NaN * global_l2_error)
-        linf_error = convert(typeof(linf_error), NaN * global_linf_error)
-    end
-
-    return l2_error, linf_error
+    return reduce_error_norms_mpi(l2_error, linf_error, volume)
 end
 
 function integrate_via_indices(func::Func, u,
@@ -173,7 +163,63 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate_via_indices(func::Func, u,
+# Accumulate the local error norms and volumes of all MPI ranks on the MPI root and
+# normalize the L2 error with the total volume. The L2 error and the volume are summed
+# up with a single MPI call. Only the MPI root returns the global error norms; all
+# other ranks return `NaN`s.
+function reduce_error_norms_mpi(l2_error, linf_error, volume)
+    # Pack the L2 error and the volume into an `SVector` to sum them up at once
+    local_l2_error_volume = vcat(l2_error, SVector(volume))
+    global_l2_error_volume = MPI.Reduce!(Ref(local_l2_error_volume), +, mpi_root(),
+                                         mpi_comm())
+    # In contrast to `+`, `max` of two `SVector`s compares them lexicographically
+    # instead of elementwise. Thus, we use a `Vector` here, which MPI.jl reduces
+    # elementwise via `MPI.MAX`.
+    global_linf_error = Vector(linf_error)
+    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
+    if mpi_isroot()
+        data = global_l2_error_volume[]
+        l2_error = convert(typeof(l2_error), StaticArrays.pop(data))
+        total_volume = convert(typeof(volume), last(data))
+        linf_error = convert(typeof(linf_error), global_linf_error)
+        # For L2 error, divide by total volume
+        l2_error = @. sqrt(l2_error / total_volume)
+    else
+        l2_error = convert(typeof(l2_error), NaN * l2_error)
+        linf_error = convert(typeof(linf_error), NaN * linf_error)
+    end
+
+    return l2_error, linf_error
+end
+
+# Sum the local `integral` and `volume` of all MPI ranks on the MPI root and normalize
+# the integral with the total volume if `normalize` is true. Only the MPI root returns
+# the global integral; all other ranks return `NaN`s.
+function reduce_integral_and_volume_mpi(integral, volume, normalize)
+    # Reduce both values with a single MPI call by packing them into an `SVector`,
+    # which works for both scalar and `SVector`-valued integrals
+    local_data = vcat(SVector(integral), SVector(volume))
+    global_data = MPI.Reduce!(Ref(local_data), +, mpi_root(), mpi_comm())
+    if mpi_isroot()
+        data = global_data[]
+        global_integral = integral isa Number ? first(data) : StaticArrays.pop(data)
+        integral = convert(typeof(integral), global_integral)
+        total_volume = convert(typeof(volume), last(data))
+    else
+        integral = convert(typeof(integral), NaN * integral)
+        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
+    end
+
+    # Normalize with total volume
+    if normalize
+        integral = integral / total_volume
+    end
+
+    return integral
+end
+
+function integrate_via_indices(func::Func, backend::Nothing, u,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
@@ -199,20 +245,46 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
-    else
-        integral = convert(typeof(integral), NaN * integral)
-        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
+end
+
+function integrate_via_indices(func::Func, backend::Backend, u,
+                               mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                               equations,
+                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    function local_plus((integral, total_volume), (integral_element, volume_element))
+        return (integral + integral_element, total_volume + volume_element)
     end
 
-    # Normalize with total volume
-    if normalize
-        integral = integral / total_volume
+    # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
+    # so we have to rely on the compiler to correctly infer the type of the integral here.
+    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
+    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
+                                     typeof(dg), map(typeof, args)...))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (integral0, volume0)
+
+    # Use quadrature to numerically integrate over entire domain
+    num_elements = nelements(dg, cache)
+    integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
+                                                    backend; init,
+                                                    neutral) do element
+        # Initialize integral with zeros of the right shape
+        local_integral, local_total_volume = neutral
+
+        for j in eachnode(dg), i in eachnode(dg)
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
+            local_integral += volume_jacobian * weights[i] * weights[j] *
+                              func(u, i, j, element, equations, dg, args...)
+            local_total_volume += volume_jacobian * weights[i] * weights[j]
+        end
+
+        return (local_integral, local_total_volume)
     end
 
-    return integral
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
 end
 end # @muladd
