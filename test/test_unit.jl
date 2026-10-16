@@ -3227,6 +3227,477 @@ end
     end
 end
 
+@testsnippet NormalDirectionTests begin
+    # Test cases for methods with a `normal_direction`, e.g., wave speed estimates and
+    # numerical fluxes. These are used on curvilinear meshes, where the
+    # `normal_direction` is not normalized but contains the surface scaling.
+    # Each test case contains `equations`, three different states `u_values`, and the
+    # numerical fluxes to test for these `equations`. We use different states since
+    # many bugs are invisible for `u_ll == u_rr`.
+    function normal_direction_test_cases()
+        test_cases = Any[]
+
+        equations = CompressibleEulerEquations1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hllc, flux_ranocha,
+                   flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+                   FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal())]))
+
+        equations = InviscidBurgersEquation1D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_ec]))
+
+        # Primitive variables: rho, v1, p, a
+        equations = CompressibleEulerEquationsQuasi1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0, 0.8), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 1.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_chan_etal,
+                   flux_nonconservative_chan_etal]))
+
+        euler_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hllc, FluxLMARS(340.0),
+            flux_ranocha, flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+            FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal()),
+            flux_shima_etal, flux_shima_etal_turbo,
+            flux_chandrashekar, flux_kennedy_gruber]
+
+        equations = CompressibleEulerEquations2D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        equations = CompressibleEulerEquations3D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        # Primitive variables: v1, v2, p, rho1, rho2
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                               gas_constants = (0.287,
+                                                                                1.578))
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(0.3, -0.2, 2.0, 0.6, 0.4), equations),
+                   prim2cons(SVector(-0.7, 0.4, 0.4, 0.1, 0.4), equations),
+                   prim2cons(SVector(1.2, 0.9, 1.1, 1.2, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   FluxLaxFriedrichs(max_abs_speed_naive), flux_ranocha,
+                   FluxRotated(flux_ranocha)]))
+
+        equations = PolytropicEulerEquations2D(1.4, 0.72)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_winters_etal]))
+
+        # Thermodynamic variables: V, v1, v2, T
+        eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+        equations = NonIdealCompressibleEulerEquations2D(eos)
+        push!(test_cases,
+              (; equations,
+               u_values = [thermo2cons(SVector(2.0, 0.1, 0.2, 10.0), equations),
+                   thermo2cons(SVector(2.5, -0.3, 0.1, 8.0), equations),
+                   thermo2cons(SVector(1.5, 0.4, -0.6, 12.0), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   flux_terashima_etal, flux_central_terashima_etal]))
+
+        tracer_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxTracerEquationsCentral(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_lax_friedrichs)]
+
+        # Primitive variables: rho, v1, v2, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0, 0.1, 0.7), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        # Primitive variables: rho, v1, v2, v3, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations3D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0, 0.1, 0.7),
+                                     equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        mhd_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hindenlang_gassner,
+            flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric]
+        for equations in (IdealGlmMhdEquations2D(1.4, 5.0),
+                          IdealGlmMhdEquations3D(1.4, 5.0))
+            fluxes = copy(mhd_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_powell_local_jump)
+            end
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1,
+                                                 0.0),
+                                         equations),
+                       prim2cons(SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+                                 equations),
+                       prim2cons(SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1),
+                                 equations)],
+                   fluxes))
+        end
+
+        multiion_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxLaxFriedrichs(max_abs_speed_naive), flux_ruedaramirez_etal,
+            flux_nonconservative_ruedaramirez_etal,
+            DissipationLaxFriedrichsEntropyVariables(),
+            FluxPlusDissipation(flux_ruedaramirez_etal,
+                                DissipationLaxFriedrichsEntropyVariables())]
+        # The default `initial_c_h = NaN` would result in `NaN`s in the fluxes
+        for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5),
+                          IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5))
+            fluxes = copy(multiion_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_central)
+            end
+            # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each ion, psi
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.1, -0.3, 0.4, 0.5, 0.1, 0.3, 0.0, 0.4,
+                                                 0.7, -0.2, 0.4, 0.1, 0.6, 0.1), equations),
+                       prim2cons(SVector(0.2, 0.5, -0.1, 1.2, -0.4, 0.2, 0.3, 1.1,
+                                         0.3, 0.6, -0.5, 0.2, 0.9, -0.2), equations),
+                       prim2cons(SVector(-0.6, 0.1, 0.3, 0.8, 0.7, -0.6, 0.1, 0.5,
+                                         1.4, 0.2, 0.1, -0.3, 0.3, 0.05), equations)],
+                   fluxes))
+        end
+
+        equations = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.3),
+                                               c_mean_global = 1.2,
+                                               rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 1.0),
+                   SVector(0.5, -0.2, 0.1, 5.0),
+                   SVector(-0.4, 0.8, 0.3, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_godunov]))
+
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, -0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 0.1, 1.0),
+                   SVector(0.5, -0.2, 0.1, 0.2, 5.0),
+                   SVector(-0.4, 0.8, 0.3, -0.6, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive)]))
+
+        # Variables: v1_prime, v2_prime, p_prime_scaled, v1_mean, v2_mean, c_mean,
+        # rho_mean
+        equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                    c_mean_global = 2.0,
+                                                    rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3),
+                   SVector(0.2, 0.4, 0.6, 0.6, -1.2, 1.5, 1.4),
+                   SVector(-0.3, 0.1, 0.2, 0.1, 0.4, 0.8, 0.7)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   DissipationLocalLaxFriedrichs()]))
+
+        for equations in (LinearScalarAdvectionEquation2D(0.3, -0.7),
+                          LinearScalarAdvectionEquation3D(0.3, -0.7, 0.4))
+            push!(test_cases,
+                  (; equations,
+                   u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+                   fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+        end
+
+        equations = HyperbolicDiffusionEquations2D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0, 0.3, -0.2),
+                   SVector(0.5, -0.7, 0.4),
+                   SVector(1.7, 1.2, 0.9)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+
+        return test_cases
+    end
+
+    # A non-axis-aligned `normal_direction` with non-unit length
+    function oblique_normal_direction(equations)
+        if ndims(equations) == 1
+            return SVector(-1.2)
+        elseif ndims(equations) == 2
+            return SVector(-1.2, 0.3)
+        else
+            return SVector(-1.2, 0.3, 0.7)
+        end
+    end
+
+    # Return all specialized methods of the callable objects in `functions` defined in
+    # Trixi.jl that take the arguments `(u_ll, u_rr, normal_direction, equations)`
+    # (or `(u, normal_direction, equations)` for `n_args = 3`).
+    # This skips only generic fallbacks for all `equations` or all equations in a given
+    # number of dimensions, but not methods for families of equations such as
+    # `AbstractIdealGlmMhdMultiIonEquations`.
+    # Note that this uses some Julia internals (`method.sig` etc.) since there is no
+    # public API to inspect method signatures.
+    generic_equations_types = (Any, Trixi.AbstractEquations, Trixi.AbstractEquations{1},
+                               Trixi.AbstractEquations{2}, Trixi.AbstractEquations{3})
+    function specialized_normal_direction_methods(functions; n_args = 4)
+        found_methods = Set{Method}()
+        for f in functions, method in methods(f)
+            parentmodule(method) === Trixi || continue
+            # The first parameter is the type of the callable object itself
+            parameters = Base.unwrap_unionall(method.sig).parameters
+            length(parameters) == n_args + 1 || continue
+            direction_type, equations_type = parameters[end - 1], parameters[end]
+            direction_type isa Type && direction_type <: Integer && continue
+            equations_type isa TypeVar && (equations_type = equations_type.ub)
+            any(==(equations_type), generic_equations_types) && continue
+            push!(found_methods, method)
+        end
+        return found_methods
+    end
+
+    # Check that all methods found by `specialized_normal_direction_methods` are
+    # covered by the tests. Otherwise, print an informative error message since new
+    # methods must be added manually to `normal_direction_test_cases`.
+    function test_all_methods_tested(found_methods, tested_methods)
+        untested_methods = setdiff(found_methods, tested_methods)
+        if !isempty(untested_methods)
+            message = """The following methods with a `normal_direction` are not tested.
+                      Add the corresponding equations (and numerical fluxes) to
+                      `normal_direction_test_cases` in `test/test_unit.jl`. New callable
+                      flux or dissipation types must also be added to `numerical_fluxes`
+                      in the test item "Unit: Numerical fluxes with normal_direction"."""
+            @error message untested_methods=collect(untested_methods)
+        end
+        @test isempty(untested_methods)
+    end
+end
+
+@testitem "Unit: Wave speed estimates with normal_direction" setup=[
+    Setup,
+    UnitTests,
+    NormalDirectionTests
+] tags=[:misc_part1] begin
+    # Wave speed estimates with a `normal_direction` must
+    # - agree with the `orientation` methods for axis-aligned unit normals,
+    # - be homogeneous of degree one in the `normal_direction`, i.e., scale linearly
+    #   with its (positive) length, and
+    # - be consistent under reflection, i.e., flipping the `normal_direction` and
+    #   swapping the left and right states.
+    estimates = (max_abs_speed_naive, max_abs_speed,
+                 min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt)
+
+    # The estimates are either scalars (`max_abs_speed`) or tuples (`min_max_speed`).
+    # Thus, we compare them via `all(isapprox.(x, y))`, which handles both cases.
+    tested_methods = Set{Method}()
+    for test_case in normal_direction_test_cases(), estimate in estimates
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        u = first(u_values)
+        signature = Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}
+        hasmethod(estimate, signature) || continue
+        push!(tested_methods, which(estimate, signature))
+        # In 1D, `max_abs_speed` with a `normal_direction` falls back to
+        # `max_abs_speed_naive` and does not agree with specialized `orientation`
+        # methods of `max_abs_speed`.
+        check_orientation = hasmethod(estimate,
+                                      Tuple{typeof(u), typeof(u), Int,
+                                            typeof(equations)}) &&
+                            !(ndims(equations) == 1 && estimate === max_abs_speed)
+
+        @testset "$(nameof(typeof(equations))), $(nameof(estimate))" begin
+            for u_ll in u_values, u_rr in u_values
+                if check_orientation
+                    for orientation in 1:ndims(equations)
+                        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0,
+                                                     ndims(equations)))
+                        @test all(isapprox.(estimate(u_ll, u_rr, unit_normal, equations),
+                                            estimate(u_ll, u_rr, orientation, equations)))
+                    end
+                end
+
+                for factor in (2.5, 0.1)
+                    @test all(isapprox.(estimate(u_ll, u_rr, factor * normal_direction,
+                                                 equations),
+                                        factor .*
+                                        estimate(u_ll, u_rr, normal_direction, equations)))
+                end
+
+                speeds = estimate(u_ll, u_rr, normal_direction, equations)
+                speeds_reflected = estimate(u_rr, u_ll, -normal_direction, equations)
+                if speeds isa Tuple # (λ_min, λ_max)
+                    @test all(isapprox.(speeds,
+                                        (-speeds_reflected[2], -speeds_reflected[1])))
+                else # λ_max
+                    @test speeds ≈ speeds_reflected
+                end
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the wave speed estimates with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding equations to
+    # `normal_direction_test_cases`.
+    found_methods = specialized_normal_direction_methods(estimates)
+    test_all_methods_tested(found_methods, tested_methods)
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(max_abs_speed_naive,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+end
+
+@testitem "Unit: Numerical fluxes with normal_direction" setup=[
+    Setup,
+    UnitTests,
+    NormalDirectionTests
+] tags=[:misc_part1] begin
+    # Numerical fluxes with a `normal_direction` must be homogeneous of degree one in
+    # the `normal_direction`, i.e., scale linearly with its (positive) length.
+    # This also applies to nonconservative fluxes and dissipation operators.
+    # We use an absolute tolerance since some of them vanish, e.g., dissipation
+    # operators for `u_ll == u_rr`. Since `isapprox` sets the default `rtol` to zero
+    # if `atol` is given, we specify `rtol` as well.
+    tested_methods = Set{Method}()
+    for test_case in normal_direction_test_cases(), numerical_flux in test_case.fluxes
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        u = first(u_values)
+        push!(tested_methods,
+              which(numerical_flux,
+                    Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), $(numerical_flux)" begin
+            for u_ll in u_values, u_rr in u_values, factor in (2.5, 0.1)
+                @test isapprox(numerical_flux(u_ll, u_rr, factor * normal_direction,
+                                              equations),
+                               factor * numerical_flux(u_ll, u_rr, normal_direction,
+                                              equations),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the numerical fluxes with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding numerical flux or equations to
+    # `normal_direction_test_cases`. We check all exported numerical fluxes
+    # `flux_*` and instances of callable types with specialized methods.
+    # Note that methods of callable types can only be found via instances of these
+    # types. Thus, new callable flux or dissipation types with specialized methods
+    # (as well as non-exported numerical fluxes) must be added to the list below.
+    numerical_fluxes = Any[getfield(Trixi, name)
+                           for name in names(Trixi)
+                           if startswith(string(name), "flux_")]
+    append!(numerical_fluxes,
+            [FluxLMARS(340.0), FluxTracerEquationsCentral(flux_central),
+                FluxTracerEquationsUpwind(flux_central), DissipationMatrixWintersEtal(),
+                DissipationLocalLaxFriedrichs(),
+                DissipationLaxFriedrichsEntropyVariables()])
+    found_methods = specialized_normal_direction_methods(numerical_fluxes)
+    test_all_methods_tested(found_methods, tested_methods)
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(flux_ranocha,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+
+    # The physical flux with a `normal_direction` must be the corresponding linear
+    # combination of the fluxes in the coordinate directions. This implies that it
+    # scales correctly with the `normal_direction` and agrees with the `orientation`
+    # methods for axis-aligned unit normals.
+    tested_methods_flux = Set{Method}()
+    for test_case in normal_direction_test_cases()
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        push!(tested_methods_flux,
+              which(flux,
+                    Tuple{eltype(u_values), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), flux" begin
+            for u in u_values
+                @test isapprox(flux(u, normal_direction, equations),
+                               sum(normal_direction[orientation] *
+                                   flux(u, orientation, equations)
+                                   for orientation in 1:ndims(equations)),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of `flux` with a `normal_direction`
+    # defined in Trixi.jl is tested above, and check the method introspection
+    found_methods_flux = specialized_normal_direction_methods((flux,), n_args = 3)
+    test_all_methods_tested(found_methods_flux, tested_methods_flux)
+    known_method = which(flux,
+                         Tuple{SVector{4, Float64}, SVector{2, Float64},
+                               CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods_flux
+end
+
+@testitem "Unit: IdealGlmMhdMultiIon pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The pressure must be consistent with `cons2prim` and `prim2cons`, in particular
+    # for a non-zero divergence cleaning field `psi`.
+    # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each species, psi
+    prim = SVector(1.1, -0.3, 0.4,
+                   0.5, 0.1, 0.3, -0.2, 0.4,
+                   1.2, -0.2, 0.4, 0.6, 0.7,
+                   0.8, 0.3, -0.5, 0.1, 1.3,
+                   0.6)
+    p_expected = SVector(0.4, 0.7, 1.3)
+    for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)),
+                      IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)))
+        u = prim2cons(prim, equations)
+        p = pressure(u, equations)
+        @test p ≈ p_expected
+        @test p ≈ SVector(ntuple(k -> Trixi.get_component(k, cons2prim(u, equations),
+                                                      equations)[5],
+                             Val(ncomponents(equations))))
+    end
+end
+
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     N = 3
 
@@ -4997,6 +5468,9 @@ end
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Backend to check the defaults of GPU backends without a GPU
+    struct DummyGPUBackend <: Trixi.KernelAbstractions.GPU end
+
     mesh = P4estMesh((2, 2), polydeg = 1,
                      coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
                      periodicity = true)
@@ -5009,8 +5483,16 @@ end
 
     # Without keyword arguments, nothing is adapted
     @test trixi_adapt(semi) === semi
-    # The flux differencing kernel is part of the `cache` from the beginning
-    @test semi.cache.flux_differencing_kernel === HalfSweep()
+    # The tuning is part of the `cache` from the beginning. Settings that are `nothing`
+    # select the defaults of the backend.
+    @test semi.cache.tuning === Tuning()
+    @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(), semi.cache.tuning) ===
+          Tuning(flux_differencing_kernel = FullSweep())
+    @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(),
+                               Tuning(flux_differencing_kernel = FullSweepGlobal())) ===
+          Tuning(flux_differencing_kernel = FullSweepGlobal())
+    @test Trixi.resolve_tuning(DummyGPUBackend(), semi.cache.tuning) ===
+          Tuning(flux_differencing_kernel = HalfSweep())
 
     # Only the real type is changed, the current array type is kept
     @test Trixi.storage_type(semi) === Array
@@ -5026,32 +5508,77 @@ end
                                              solver;
                                              boundary_conditions = boundary_condition_periodic)
     @test Trixi.storage_type(semi_tree) === Array
-    @test semi32.cache.flux_differencing_kernel === HalfSweep()
+    @test semi32.cache.tuning === Tuning()
+    # Other meshes do not support tuning
+    @test_throws ArgumentError trixi_adapt(semi_tree;
+                                           tuning = Tuning(flux_differencing_kernel = FullSweep()))
 
     # An explicitly selected kernel is kept when adapting the semidiscretization again
-    semi_global = trixi_adapt(semi; flux_differencing_kernel = FullSweepGlobal())
+    semi_global = trixi_adapt(semi;
+                              tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
     @test real(semi_global) == Float64
-    @test semi_global.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test semi_global.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     semi_global32 = trixi_adapt(semi_global; storage_type = Array, real_type = Float32)
     @test real(semi_global32) == Float32
-    @test semi_global32.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test semi_global32.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    # Settings that are `nothing` keep their current value
+    @test Tuning() === Tuning(flux_differencing_kernel = nothing)
+    # Invalid settings throw an error when creating the `Tuning`
+    @test_throws MethodError Tuning(flux_differencing_kernel = :invalid)
+    @test_throws MethodError Tuning(:invalid)
+    @test trixi_adapt(semi_global; tuning = Tuning()).cache.tuning ===
+          semi_global.cache.tuning
+    @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
+                             Tuning(flux_differencing_kernel = FullSweep())) ===
+          Tuning(flux_differencing_kernel = FullSweep())
 
-    # The kernel can only be selected if it is used
+    # `remake` keeps the tuning, but drops it if the new semidiscretization does not
+    # support it
+    semi_global_remade = Trixi.remake(semi_global)
+    @test semi_global_remade !== semi_global
+    @test semi_global_remade.cache.tuning === semi_global.cache.tuning
+    @test Trixi.remake(semi_global32).cache.tuning === semi_global32.cache.tuning
+    @test Trixi.copy_tuning(semi_tree, semi_global) === semi_tree
+    semi_hyp_para = SemidiscretizationHyperbolicParabolic(mesh,
+                                                          (equations,
+                                                           LaplaceDiffusion2D(0.1,
+                                                                              equations)),
+                                                          initial_condition_convergence_test,
+                                                          solver;
+                                                          boundary_conditions = (boundary_condition_periodic,
+                                                                                 boundary_condition_periodic))
+    semi_hyp_para_global = trixi_adapt(semi_hyp_para;
+                                       tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test Trixi.remake(semi_hyp_para_global).cache.tuning ===
+          semi_hyp_para_global.cache.tuning
+
+    # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
+    semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())
+    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
+    semi_full = @test_deprecated trixi_adapt(semi; tuning = Tuning(),
+                                             flux_differencing_kernel = FullSweep())
+    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test_throws ArgumentError trixi_adapt(semi;
+                                           tuning = Tuning(flux_differencing_kernel = HalfSweep()),
+                                           flux_differencing_kernel = FullSweep())
+
+    # The tuning is available for all volume integrals and does not change the
+    # volume integral cache
     solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
     semi_weak_form = SemidiscretizationHyperbolic(mesh, equations,
                                                   initial_condition_convergence_test,
                                                   solver_weak_form;
                                                   boundary_conditions = boundary_condition_periodic)
-    @test !haskey(semi_weak_form.cache, :flux_differencing_kernel)
+    @test semi_weak_form.cache.tuning === Trixi.default_tuning()
     @test real(trixi_adapt(semi_weak_form; real_type = Float32)) == Float32
-    @test_throws ArgumentError trixi_adapt(semi_weak_form;
-                                           flux_differencing_kernel = FullSweep())
+    semi_weak_form_full = trixi_adapt(semi_weak_form;
+                                      tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi_weak_form_full.cache.tuning.flux_differencing_kernel === FullSweep()
 
-    # The volume integral cache of a `P4estMeshView` is created differently
+    # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
-                                    Float64)
-    @test cache_view.flux_differencing_kernel === HalfSweep()
+    cache_view = Trixi.create_cache(mesh_view, equations, solver, nothing, Float64)
+    @test cache_view.tuning === Trixi.default_tuning()
 
     # The GPU resource limits are not checked for CPU arrays, see also
     # "Unit: check_flux_differencing_shared_memory"
@@ -5065,11 +5592,11 @@ end
                                            LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0),
                                            initial_condition_constant, solver_3d;
                                            boundary_conditions = boundary_condition_periodic)
-    @test semi_3d.cache.flux_differencing_kernel === HalfSweep()
+    @test semi_3d.cache.tuning === Tuning()
     semi_3d_full_sweep = @test_logs min_level=Base.CoreLogging.Warn trixi_adapt(semi_3d;
                                                                                 storage_type = Array,
-                                                                                flux_differencing_kernel = FullSweep())
-    @test semi_3d_full_sweep.cache.flux_differencing_kernel === FullSweep()
+                                                                                tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi_3d_full_sweep.cache.tuning.flux_differencing_kernel === FullSweep()
 
     # `semidiscretize` uses the real type of `semi` for the time span
     ode = semidiscretize(semi32, (0.0, 1.0))
@@ -5088,7 +5615,7 @@ end
     ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
                                           flux_differencing_kernel = FullSweep())
     @test real(ode.p) == Float64
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
 
     # The `SummaryCallback` warns if the time type differs from the real type of
     # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
