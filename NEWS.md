@@ -119,6 +119,10 @@ for human readability.
   `max_abs_speed_naive`. Thus, results of simulations with these equations on
   curvilinear meshes (e.g., `StructuredMesh`, `UnstructuredMesh2D`, `P4estMesh`) and
   the default `flux_lax_friedrichs` change.
+- Fixes a bug in `pressure` of the `IdealGlmMhdMultiIonEquations2D` and
+  `IdealGlmMhdMultiIonEquations3D`: the energy `psi^2 / 2` of the GLM divergence
+  cleaning field was not subtracted, inconsistent with `cons2prim`. Thus, the
+  ion pressures (and quantities derived from them) change if `psi != 0`.
 - Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
   `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
   boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
