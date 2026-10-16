@@ -24,6 +24,11 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
              create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
+    # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
+    # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
+    # backend without calling `trixi_adapt`.
+    cache = (; cache..., tuning = default_tuning())
 
     return cache
 end
