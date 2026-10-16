@@ -716,10 +716,19 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
 end
 
 # Create mortar container and initialize mortar data.
+# The standard mortar container does not depend on the mortar type. Thus, forward to the
+# method without the `mortar` argument, which is extended by downstream packages (e.g.,
+# TrixiShallowWater.jl for specific equations) and called directly by others (e.g.,
+# TrixiAtmo.jl).
 function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                       basis, elements,
                       mortar::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis,
                                     Nothing})
+    return init_mortars(mesh, equations, basis, elements)
+end
+
+function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
+                      basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
