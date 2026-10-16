@@ -5006,6 +5006,11 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
     @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+    # The 2D kernels use the workgroup size of the `Tuning`, rounded down to full
+    # elements, i.e., 16 elements with 121 nodes each for 2048 threads
+    semi_large = trixi_adapt(semi; tuning = Tuning(volume_integral_workgroup_size = 2048))
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                      semi_large)
 
     mesh = P4estMesh((1, 1, 1), polydeg = 1,
                      coordinates_min = (-1.0, -1.0, -1.0),
@@ -5017,6 +5022,38 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
+
+    # In 2D, the half sweep kernel stores the two-point fluxes of all nodes with half of
+    # their partners, i.e., 9 * 5 * 2 * 100 * 8 bytes > 48 KiB for MHD at `polydeg = 9`.
+    # Nonconservative terms without combined fluxes use the generic kernel without
+    # local memory.
+    mesh = P4estMesh((1, 1), polydeg = 1,
+                     coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                     periodicity = true)
+    equations = IdealGlmMhdEquations2D(5 / 3)
+    # Only the trait matters here, see `elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl`
+    # for an actual combined flux
+    combined_flux(u_ll, u_rr, normal_direction, equations) = nothing
+    function Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(combined_flux),
+                                                                   ::IdealGlmMhdEquations2D)
+        return Trixi.True()
+    end
+    for (volume_flux, warns) in ((combined_flux, true),
+                                 ((flux_central, flux_nonconservative_powell), false))
+        solver = DGSEM(polydeg = 9,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        if warns
+            @test_logs (:warn, r"shared memory") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                             semi)
+        else
+            @test_nowarn Trixi.check_flux_differencing_shared_memory(HalfSweep(), semi)
+        end
+        @test_nowarn Trixi.check_flux_differencing_shared_memory(FullSweep(), semi)
+    end
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -5039,12 +5076,22 @@ end
     # select the defaults of the backend.
     @test semi.cache.tuning === Tuning()
     @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(), semi.cache.tuning) ===
-          Tuning(flux_differencing_kernel = FullSweep())
+          Tuning(flux_differencing_kernel = FullSweep(),
+                 volume_integral_workgroup_size = 128)
     @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(),
-                               Tuning(flux_differencing_kernel = FullSweepGlobal())) ===
-          Tuning(flux_differencing_kernel = FullSweepGlobal())
+                               Tuning(flux_differencing_kernel = FullSweepGlobal(),
+                                      volume_integral_workgroup_size = 64)) ===
+          Tuning(flux_differencing_kernel = FullSweepGlobal(),
+                 volume_integral_workgroup_size = 64)
     @test Trixi.resolve_tuning(DummyGPUBackend(), semi.cache.tuning) ===
-          Tuning(flux_differencing_kernel = HalfSweep())
+          Tuning(flux_differencing_kernel = HalfSweep(),
+                 volume_integral_workgroup_size = 128)
+    # Workgroup sizes are stored as `Val`s so that the kernels can specialize on them
+    @test Tuning(volume_integral_workgroup_size = 256).volume_integral_workgroup_size ===
+          Val(256)
+    @test Tuning(volume_integral_workgroup_size = Val(256)) ===
+          Tuning(volume_integral_workgroup_size = 256)
+    @test_throws ArgumentError Tuning(volume_integral_workgroup_size = 0)
 
     # Only the real type is changed, the current array type is kept
     @test Trixi.storage_type(semi) === Array
@@ -5080,6 +5127,10 @@ end
     @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
                              Tuning(flux_differencing_kernel = FullSweep())) ===
           Tuning(flux_differencing_kernel = FullSweep())
+    @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
+                             Tuning(volume_integral_workgroup_size = 64)) ===
+          Tuning(flux_differencing_kernel = HalfSweep(),
+                 volume_integral_workgroup_size = 64)
 
     # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
     semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())

@@ -184,6 +184,29 @@ end
                         solver=DGSEM(polydeg = 3,
                                      surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+    # The global full sweep kernel, which is not the default on any backend, gives the
+    # same right-hand side as the default kernel
+    semi_global = trixi_adapt(semi;
+                              tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    ode_global = semidiscretize(semi_global, ode.tspan)
+    @test ode_global.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    du_ode_global = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode_global, u_ode, ode_global.p, first(ode.tspan))
+    @test du_ode_global ≈ du_ode
+    # Other workgroup sizes of the volume integral kernels give the same right-hand
+    # side, including workgroups smaller than a single element
+    for workgroup_size in (1, 64, 256)
+        semi_workgroup = trixi_adapt(semi;
+                                     tuning = Tuning(volume_integral_workgroup_size = workgroup_size))
+        @test semi_workgroup.cache.tuning.volume_integral_workgroup_size ===
+              Val(workgroup_size)
+        du_ode_workgroup = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode_workgroup, u_ode, semi_workgroup, first(ode.tspan))
+        @test du_ode_workgroup ≈ du_ode
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
@@ -240,6 +263,19 @@ end
                             0.000894462605877569,
                             0.000298700326760806
                         ])
+    # The global full sweep kernel, which is not the default on any backend, gives the
+    # same right-hand side as the default kernel. The equations are taken from `ode.p`,
+    # since the `GlmSpeedCallback` has set the divergence cleaning speed there.
+    semi_global = trixi_adapt(Trixi.remake(semi, equations = ode.p.equations);
+                              tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    ode_global = semidiscretize(semi_global, ode.tspan)
+    @test ode_global.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    du_ode_global = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode_global, u_ode, ode_global.p, first(ode.tspan))
+    @test du_ode_global ≈ du_ode
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem

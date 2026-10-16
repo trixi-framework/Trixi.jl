@@ -176,6 +176,8 @@ function adapt_tuning(semi, tuning)
     else
         tuning = semi.cache.tuning
     end
+    # The checks below read the settings from the `cache`
+    @reset semi.cache.tuning = tuning
 
     # The checks use the settings of the backend of the adapted semidiscretization,
     # including the defaults of the backend for settings that are `nothing`.
@@ -198,7 +200,6 @@ function adapt_tuning(semi, tuning)
         end
     end
 
-    @reset semi.cache.tuning = tuning
     return semi
 end
 

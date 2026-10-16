@@ -202,6 +202,73 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "CUDA 2D: elixir_euler_source_terms.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # At polydeg = 4, a workgroup of the half sweep and weak form kernels contains five
+    # elements, so that the last of the 256 elements is in a partially filled workgroup.
+    solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
+
+    # Reference solution on the CPU
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = solver, tspan = (0.0, 0.1), real_type = Float32)
+    u_cpu = Array(sol.u[end])
+
+    for kernel in (HalfSweep(), FullSweep(), FullSweepGlobal())
+        trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                      solver = solver, tspan = (0.0, 0.1), real_type = Float32,
+                      storage_type = CuArray,
+                      tuning = Tuning(flux_differencing_kernel = kernel))
+        @test ode.p.cache.tuning.flux_differencing_kernel === kernel
+        @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+        @test Array(sol.u[end]) ≈ u_cpu
+        # Ensure that the RHS computation overwrites existing data in `du` correctly.
+        u_ode = copy(ode.u0)
+        du_ode = similar(u_ode)
+        fill!(du_ode, convert(eltype(du_ode), NaN))
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+        @test all(isfinite, du_ode)
+        # Other workgroup sizes of the volume integral kernels give the same
+        # right-hand side, including workgroups smaller than a single element
+        for workgroup_size in (16, 256)
+            semi_workgroup = trixi_adapt(ode.p;
+                                         tuning = Tuning(volume_integral_workgroup_size = workgroup_size))
+            du_ode_workgroup = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode_workgroup, u_ode, semi_workgroup,
+                                  first(ode.tspan))
+            @test Array(du_ode_workgroup) ≈ Array(du_ode)
+        end
+    end
+
+    # The same for the weak form volume integral
+    solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = solver, tspan = (0.0, 0.1), real_type = Float32)
+    u_cpu = Array(sol.u[end])
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  solver = solver, tspan = (0.0, 0.1), real_type = Float32,
+                  storage_type = CuArray)
+    @test Array(sol.u[end]) ≈ u_cpu
+    let u_ode = copy(ode.u0), du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+        # Other workgroup sizes of the volume integral kernels give the same
+        # right-hand side, including workgroups smaller than a single element
+        for workgroup_size in (16, 256)
+            semi_workgroup = trixi_adapt(ode.p;
+                                         tuning = Tuning(volume_integral_workgroup_size = workgroup_size))
+            du_ode_workgroup = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode_workgroup, u_ode, semi_workgroup,
+                                  first(ode.tspan))
+            @test Array(du_ode_workgroup) ≈ Array(du_ode)
+        end
+    end
+end
+
 @testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" setup=[
     Setup,
     CUDA2DExamples
@@ -384,4 +451,36 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # Reference solution on the CPU
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1), real_type = Float32)
+    u_cpu = Array(sol.u[end])
+
+    for kernel in (HalfSweep(), FullSweep(), FullSweepGlobal())
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR,
+                               "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                      tspan = (0.0, 0.1), real_type = Float32, storage_type = CuArray,
+                      tuning = Tuning(flux_differencing_kernel = kernel))
+        @test ode.p.cache.tuning.flux_differencing_kernel === kernel
+        @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+        @test Array(sol.u[end]) ≈ u_cpu
+        # Ensure that the RHS computation overwrites existing data in `du` correctly.
+        u_ode = copy(ode.u0)
+        du_ode = similar(u_ode)
+        fill!(du_ode, convert(eltype(du_ode), NaN))
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+        @test all(isfinite, du_ode)
+    end
 end
