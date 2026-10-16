@@ -428,7 +428,11 @@ starts the Julia sessions itself.
   `f(u, u, orientation, equations) ≈ flux(u, orientation, equations)` and the
   same with `normal_direction`. For all fluxes and wave speed estimates with
   `normal_direction` methods, check agreement with the `orientation` methods
-  for axis-aligned unit normals.
+  for axis-aligned unit normals. For new methods with a `normal_direction`
+  (including new equations), add the equations and fluxes to
+  `normal_direction_test_cases` in `test/test_unit.jl`; the test items
+  `"Unit: Wave speed estimates with normal_direction"` and
+  `"Unit: Numerical fluxes with normal_direction"` fail otherwise.
 - Except for consistency checks, unit tests for numerical fluxes and wave speed
   estimates should use *different* left and right states: many copy-paste bugs
   are invisible for `u_ll == u_rr`.
