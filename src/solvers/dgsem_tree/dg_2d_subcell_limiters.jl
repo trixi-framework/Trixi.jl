@@ -1311,7 +1311,8 @@ end
                     add_mortar_bar_states!(bar_states1, bar_states2, orientation,
                                            equations, lambda_indices_large,
                                            large_element, lambda_indices_small,
-                                           small_element, bar_state, abs_weight * lambda,
+                                           small_element, bar_state,
+                                           abs_weight * lambda,
                                            mortar_weights_sums[j, 2],
                                            mortar_weights_sums[k, 1])
                 end
