@@ -743,6 +743,7 @@ Base.@propagate_inbounds function calc_mortar_flux_small_per_node!(surface_flux_
             small_direction, element] = fstar_primary[v]
         end
     end
+    return nothing
 end
 
 Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_values,
@@ -819,6 +820,7 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
         surface_flux_values[v, large_node_index, large_direction, large_element] = -2 *
                                                                                    flux_large[v]
     end
+    return nothing
 end
 
 # Mortar flux computation at a single node of a small element for conservation laws.

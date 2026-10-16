@@ -369,7 +369,8 @@ end
 
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        # Expected errors similar to reference on CPU
+                        # Reference errors computed on the CPU with `Float64` for this
+                        # mesh, which is not used by any CPU test item
                         l2=Float32[5.581296218772088e-5,
                                    5.16360786373411e-5,
                                    5.12882108402347e-5,
