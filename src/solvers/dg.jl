@@ -38,6 +38,10 @@ abstract type AbstractVolumeIntegral end
 # - `get_element_variables!(element_variables, u, mesh, equations,
 #                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
+#
+# Do not add methods to the functions handling the whole tree
+# (`create_volume_integral_caches`, `resize_volume_integral_caches!`,
+# `reinitialize_volume_integral_caches!`); they call the methods above for every node.
 ###############################################################################
 
 # Return a tuple of the volume integrals contained in the composite `volume_integral`,
@@ -116,16 +120,16 @@ end
 
 # Create the storage of all volume integrals in the tree with root `volume_integral`.
 # This is called by the mesh-specific `create_cache` for `dg.volume_integral`.
-function create_cache_volume_integral(mesh, equations, volume_integral, dg,
-                                      cache_containers, uEltype)
+function create_volume_integral_caches(mesh, equations, volume_integral, dg,
+                                       cache_containers, uEltype)
     # `VolumeIntegralSubcellLimiting` cannot be nested and combined arbitrarily with
     # other volume integrals. The check below tries to catch unsupported combinations
     # early to throw a meaningful error message.
     check_volume_integral_tree(volume_integral)
 
-    cache_volume_integral = _create_cache_volume_integral(mesh, equations,
-                                                          volume_integral, dg,
-                                                          cache_containers, uEltype)
+    cache_volume_integral = _create_volume_integral_caches(mesh, equations,
+                                                           volume_integral, dg,
+                                                           cache_containers, uEltype)
 
     # Size the storage for the elements of the mesh with the same methods as after
     # mesh adaptation. This is required in particular for per-instance state stored in
@@ -139,8 +143,8 @@ function create_cache_volume_integral(mesh, equations, volume_integral, dg,
     return cache_volume_integral
 end
 
-function _create_cache_volume_integral(mesh, equations, volume_integral, dg,
-                                       cache_containers, uEltype)
+function _create_volume_integral_caches(mesh, equations, volume_integral, dg,
+                                        cache_containers, uEltype)
     # Collect the storage of all volume integrals in the tree and then merge it.
     caches = _collect_caches_volume_integral(mesh, equations, volume_integral, dg,
                                              cache_containers, uEltype)
@@ -948,7 +952,7 @@ function resize_volume_integral_cache!(cache, mesh,
 end
 
 # Check the tree of volume integrals with root `volume_integral` when the cache is
-# created. This is called by `create_cache_volume_integral`.
+# created. This is called by `create_volume_integral_caches`.
 #
 # The stage callbacks of subcell limiting (`SubcellLimiterIDPCorrection` and
 # `BoundsCheckCallback`) find the `VolumeIntegralSubcellLimiting` starting from the

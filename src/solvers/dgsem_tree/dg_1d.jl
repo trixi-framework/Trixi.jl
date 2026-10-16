@@ -27,8 +27,8 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache_volume_integral(mesh, equations, dg.volume_integral,
-                                          dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
 
     return cache
 end
