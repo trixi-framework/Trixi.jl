@@ -104,9 +104,6 @@ Optional keyword arguments:
   their current value. `nothing` keeps all current settings.
 
 If all keyword arguments are `nothing`, `semi` is returned unchanged.
-
-The keyword argument `flux_differencing_kernel` is deprecated. Use
-`tuning = Tuning(; flux_differencing_kernel)` instead.
 """
 function trixi_adapt(semi::AbstractSemidiscretization;
                      storage_type = nothing, real_type = nothing, tuning = nothing,
