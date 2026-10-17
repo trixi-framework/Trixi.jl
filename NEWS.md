@@ -154,6 +154,17 @@ for human readability.
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing
   `real_type` to `semidiscretize`.
+- The storage of nested volume integrals (e.g., a `VolumeIntegralAdaptive` or
+  `VolumeIntegralEntropyCorrection` used as `volume_integral_default` of a
+  `VolumeIntegralShockCapturingHGType`) is now created, resized, and reinitialized in the
+  same way for all nesting levels, both when the semidiscretization is constructed and
+  after mesh adaptation. This fixes the blending factors of a nested
+  `VolumeIntegralEntropyCorrection`, which were not sized when the cache was created.
+  Unsupported combinations with `VolumeIntegralSubcellLimiting` now throw an error when
+  the semidiscretization is constructed. Developers of new volume integrals only implement
+  methods for the volume integral itself (e.g., the internal methods `create_cache`,
+  `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
+  see the description of the interface in `src/solvers/dg.jl` ([#3378]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
