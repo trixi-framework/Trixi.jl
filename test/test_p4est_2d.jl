@@ -121,16 +121,15 @@ end
                         linf=[Float32(0.01752687079023763)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    @test real(ode.p.solver) == Float32
-    @test eltype(ode.p.cache.elements) == Float32
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test eltype(semi.cache.elements) == Float32
     @test eltype(sol.u[end]) == Float32
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
     # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities).
-    # We need to use `ode.p` instead of `semi` since `semidiscretize` creates a
-    # new semidiscretization with adapted `real_type`. Only this one is updated
-    # by AMR, while `semi` shares the refined mesh but keeps outdated caches.
-    @test_allocations(Trixi.rhs_hyperbolic!, ode.p, sol, 1000)
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_advection_restart.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
