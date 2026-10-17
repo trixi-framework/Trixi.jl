@@ -107,7 +107,7 @@ struct FullSweepGlobal <: AbstractFluxDifferencingKernel end
 @inline flux_differencing_kernel(::KernelAbstractions.CPU, ::Nothing) = FullSweep()
 # Fallback for CPU KernelAbstractions backend
 # This fallback is necessary to run tests on KernelAbstractions CPU backend
-@inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
+@inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweepGlobal()
 @inline flux_differencing_kernel(::Backend, kernel) = kernel
 
 """
