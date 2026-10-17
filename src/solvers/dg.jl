@@ -104,7 +104,10 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
+function create_cache(mesh::AbstractMesh, equations, ::VolumeIntegralWeakForm,
+                      dg, cache_containers, uEltype)
+    return NamedTuple()
+end
 
 """
     VolumeIntegralFluxDifferencing(volume_flux)
@@ -153,7 +156,10 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
-create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = NamedTuple()
+function create_cache(mesh::AbstractMesh, equations, ::VolumeIntegralFluxDifferencing,
+                      dg, cache_containers, uEltype)
+    return NamedTuple()
+end
 
 # Abstract supertype for DG subcell-based volume integrals with
 # finite volume schemes on the subcells.
@@ -517,7 +523,7 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function create_cache(mesh, equations,
+function create_cache(mesh::AbstractMesh, equations,
                       volume_integral::VolumeIntegralAdaptive,
                       dg, cache_containers, uEltype)
     cache_default = create_cache(mesh, equations,

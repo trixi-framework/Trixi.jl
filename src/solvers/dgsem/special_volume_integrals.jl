@@ -52,7 +52,7 @@ function get_element_variables!(element_variables, u, mesh, equations,
     return nothing
 end
 
-function create_cache(mesh, equations,
+function create_cache(mesh::AbstractMesh, equations,
                       volume_integral::VolumeIntegralEntropyCorrection,
                       dg, cache_containers, uEltype)
     cache_default = create_cache(mesh, equations,

@@ -447,7 +447,7 @@ function create_cache(mesh::DGMultiMesh, equations,
 end
 
 # by default, return an empty tuple for volume integral caches
-create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
+create_cache(mesh::DGMultiMesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
