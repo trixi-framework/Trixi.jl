@@ -1,6 +1,15 @@
+# Local (shared) memory arrays of the GPU kernels store the variables of a node as
+# `a[indices..., v]`, i.e., with the variable index last. Then, consecutive work-items
+# access consecutive memory locations, which avoids bank conflicts of the local memory on
+# GPUs, in contrast to the layout `a[v, indices...]` of `get_node_vars`.
+@inline function get_local_node_vars(a, ::Val{NVARIABLES},
+                                     indices...) where {NVARIABLES}
+    return SVector(ntuple(v -> (@inbounds a[indices..., v]), Val(NVARIABLES)))
+end
+
 @inline function get_node_turbo(turbo_local, ::Val{NAUX},
                                 indices...) where {NAUX}
-    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
+    return ntuple(v -> (@inbounds turbo_local[indices..., v]), Val(NAUX))
 end
 
 # This is a general fallback for volume integral kernels, parallelizing across
