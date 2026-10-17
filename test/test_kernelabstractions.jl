@@ -15,8 +15,6 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -38,7 +36,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -53,8 +51,6 @@ end
                         linf=[Float32(6.627000273229378e-5)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -76,7 +72,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -95,8 +91,6 @@ end
                             1.1707525985116263e-5,
                             1.1707525982673772e-5,
                             4.886961559069647e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -118,7 +112,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -138,8 +132,6 @@ end
                                      6.214141845717336e-5],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -161,7 +153,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -184,8 +176,6 @@ end
                         solver=DGSEM(polydeg = 3,
                                      surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -207,7 +197,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -240,8 +230,6 @@ end
                             0.000894462605877569,
                             0.000298700326760806
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -263,7 +251,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -294,8 +282,6 @@ end
                                      0.0002989873755723238],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -317,7 +303,151 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_nonconforming_flag.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[3.198940059144588e-5],
+                        linf=Float32[0.00030636069494005547],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{2, Float32}
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[
+                            0.0034516244508588046,
+                            0.0023420334036925493,
+                            0.0024261923964557187,
+                            0.004731710454271893
+                        ],
+                        linf=[
+                            0.04155789011775046,
+                            0.024772109862748914,
+                            0.03759938693042297,
+                            0.08039824959535657
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> :i_backward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  sol = nothing)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.03218873485054769,
+                            0.036104237528919156,
+                            0.03565782684252082,
+                            0.05290171901682014,
+                            0.03363060793396599,
+                            0.03881219835771841,
+                            0.03870276636879549,
+                            0.05291025814280089,
+                            0.022494653302015218
+                        ],
+                        linf=[
+                            0.17957235749398837,
+                            0.1403110675224628,
+                            0.13219291731458857,
+                            0.21691023663331951,
+                            0.11730522693720624,
+                            0.1452058059708733,
+                            0.144259629027772,
+                            0.21753737360583258,
+                            0.07672851650342119
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+    # The elixir does not adapt `semi`, so `semidiscretize` uses it as it is
+    @test semi === ode.p
+
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -341,7 +471,8 @@ end
                             0.0042315720663082534,
                             0.011661660264076446
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
@@ -378,7 +509,8 @@ end
                             0.7223919625994717,
                             1.4846907331004786
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test ode.u0 isa Array
     @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
 
@@ -402,8 +534,6 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -425,7 +555,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -440,8 +570,6 @@ end
                         linf=[Float32(0.0014537194925779984)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -463,7 +591,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -484,8 +612,6 @@ end
                             0.011300883615918522,
                             0.02090696711453477],
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -507,7 +633,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -523,7 +649,8 @@ end
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_euler_source_terms_nonperiodic.jl"),
                   tspan = (0.0, 0.0))
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     (; mesh, equations, solver, cache, boundary_conditions) = semi
     @test boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
     u_ode = copy(ode.u0)
@@ -575,8 +702,6 @@ end
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -598,7 +723,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -631,8 +756,6 @@ end
                             0.00445327133732587,
                             0.0011999511085407923
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -654,7 +777,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -685,8 +808,6 @@ end
                                      0.0011997520958011896],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -708,7 +829,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -734,7 +855,8 @@ end
                             0.006308461684396753,
                             0.03176343483364796
                         ])
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test ode.u0 isa Array
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU

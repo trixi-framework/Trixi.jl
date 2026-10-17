@@ -58,8 +58,8 @@ function start_mpi_receive!(mpi_cache::MPICache)
 end
 
 # TODO: MPI dimension agnostic
-function start_mpi_send!(backend::Nothing, mpi_cache::MPICache, mesh, equations, dg,
-                         cache)
+function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
+                         mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
@@ -160,8 +160,8 @@ function finish_mpi_send!(mpi_cache::MPICache)
 end
 
 # TODO: MPI dimension agnostic
-function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache, mesh, equations, dg,
-                             cache)
+function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
+                             mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     # Start receiving and unpack received data until all communication is finished
@@ -463,8 +463,8 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
-                               dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations,
+                               dg.surface_integral, dg)
     end
 
     # Prolong solution to MPI mortars
@@ -539,7 +539,7 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Calculate MPI mortar fluxes
     @trixi_timeit timer() "MPI mortar flux" begin
-        calc_mpi_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mpi_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.mortar, dg.surface_integral, dg, cache)
     end
@@ -785,7 +785,7 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function calc_mpi_mortar_flux!(surface_flux_values,
+function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                mesh::TreeMeshParallel{2},
                                have_nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,

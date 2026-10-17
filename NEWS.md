@@ -8,9 +8,18 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
-- Added multi-GPU support for 2D and 3D P4estMesh. A local CUDA-aware MPI installation is required.
-  For configuration see [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
-  in the docs.
+- Added multi-GPU support for 2D and 3D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+  [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
+  on conforming meshes (no mortars, thus also no AMR) are supported.
+  Trixi.jl now re-exports the module `KernelAbstractions`, e.g., to select the GPU of
+  each MPI rank via `KernelAbstractions.device!`.
+- Experimental support for Apple GPUs via Metal.jl, e.g., using
+  `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
+  Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
+  some setups, in particular in 3D, currently crash, hang, or silently produce wrong
+  results on Apple M1/M2 GPUs.
 - The new method `trixi_adapt(semi; storage_type, real_type, flux_differencing_kernel)`
   adapts a semidiscretization, e.g., to `Float32` or GPU arrays. Use it before calling
   `semidiscretize` and use the adapted `semi` afterwards, e.g., to create callbacks.
@@ -19,11 +28,21 @@ for human readability.
   adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
   now part of the `cache` from the construction of the semidiscretization, and the
   warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The new type `Tuning` bundles performance settings of the GPU and KernelAbstractions.jl
+  kernels on a `P4estMesh` or `T8codeMesh`, which can be passed to
+  `trixi_adapt(semi; tuning)`, e.g.,
+  `tuning = Tuning(flux_differencing_kernel = FullSweep())`. The settings are stored as
+  `semi.cache.tuning` for all volume integrals. Settings that are not set explicitly
+  use the defaults of the backend, e.g., `HalfSweep()` on GPUs and `FullSweep()` on the
+  KernelAbstractions.jl CPU backend ([#3370]).
 - The `SummaryCallback` warns if the time type of the time integrator differs from the
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+  i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
+  CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -75,6 +94,10 @@ for human readability.
   tetrahedral elements ([#3296]).
 
 #### Changed
+- Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
+  and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
+  `UndefRefError`. The interpolation and projection are now applied dimension by dimension
+  as in 3D, which is faster and changes results only up to round-off ([#3361]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
   the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
@@ -104,6 +127,19 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in `max_abs_speed_naive` with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D`: The sound speed was not scaled by the
+  length of the `normal_direction`. Moreover, the less diffusive wave speed estimate
+  `max_abs_speed` is now also implemented with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D` and the `IdealGlmMhdMultiIonEquations2D`,
+  consistent with the versions with an `orientation`. Previously, it fell back to
+  `max_abs_speed_naive`. Thus, results of simulations with these equations on
+  curvilinear meshes (e.g., `StructuredMesh`, `UnstructuredMesh2D`, `P4estMesh`) and
+  the default `flux_lax_friedrichs` change.
+- Fixes a bug in `pressure` of the `IdealGlmMhdMultiIonEquations2D` and
+  `IdealGlmMhdMultiIonEquations3D`: the energy `psi^2 / 2` of the GLM divergence
+  cleaning field was not subtracted, inconsistent with `cons2prim`. Thus, the
+  ion pressures (and quantities derived from them) change if `psi != 0`.
 - Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
   `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
   boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
@@ -122,7 +158,10 @@ for human readability.
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
   `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
-  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
+  tuning = Tuning(; flux_differencing_kernel))` before calling `semidiscretize(semi, tspan)`
+  instead.
+- The keyword argument `flux_differencing_kernel` of `trixi_adapt` is deprecated. Use
+  `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead ([#3370]).
 
 
 ## Changes when updating to v0.17 from v0.16.x

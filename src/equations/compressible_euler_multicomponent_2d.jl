@@ -705,42 +705,32 @@ end
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll::SVector{N, T}, u_rr::SVector{N, T},
-                                     normal_direction::SVector{2, T},
-                                     equations::CompressibleEulerMulticomponentEquations2D) where {
-                                                                                                   N,
-                                                                                                   T <:
-                                                                                                   AbstractFloat
-                                                                                                   }
-    # Unpack conservative variables
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
     rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
 
-    # Get densities and gammas
-    rho_ll = T(density(u_ll, equations))
-    rho_rr = T(density(u_rr, equations))
-    gamma_ll = T(totalgamma(u_ll, equations))
-    gamma_rr = T(totalgamma(u_rr, equations))
+    # Get the density and gas gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
 
-    # Velocity components
-    v_ll_vec = SVector(rho_v1_ll / rho_ll, rho_v2_ll / rho_ll)
-    v_rr_vec = SVector(rho_v1_rr / rho_rr, rho_v2_rr / rho_rr)
+    # Calculate the (scaled) normal velocities
+    v_ll = (rho_v1_ll * normal_direction[1] + rho_v2_ll * normal_direction[2]) / rho_ll
+    v_rr = (rho_v1_rr * normal_direction[1] + rho_v2_rr * normal_direction[2]) / rho_rr
 
-    # Project velocities onto the direction normal_direction.
-    v_ll = dot(v_ll_vec, normal_direction)
-    v_rr = dot(v_rr_vec, normal_direction)
-
-    # Compute pressures
-    p_ll = (gamma_ll - one(T)) *
-           (rho_e_total_ll - 0.5f0 * dot(v_ll_vec, v_ll_vec) * rho_ll)
-    p_rr = (gamma_rr - one(T)) *
-           (rho_e_total_rr - 0.5f0 * dot(v_rr_vec, v_rr_vec) * rho_rr)
-
-    # Sound speeds
+    # Compute the sound speeds on the left and right
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    # The normal velocities are scaled by the length of the `normal_direction`,
+    # so the sound speeds must be scaled accordingly
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
@@ -773,6 +763,33 @@ end
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
+
+    # Get the density and gas gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    # Calculate the (scaled) normal velocities
+    v_ll = (rho_v1_ll * normal_direction[1] + rho_v2_ll * normal_direction[2]) / rho_ll
+    v_rr = (rho_v1_rr * normal_direction[1] + rho_v2_rr * normal_direction[2]) / rho_rr
+
+    # Compute the sound speeds on the left and right
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    norm_ = norm(normal_direction)
+    return max(abs(v_ll) + c_ll * norm_, abs(v_rr) + c_rr * norm_)
 end
 
 @inline function max_abs_speeds(u,

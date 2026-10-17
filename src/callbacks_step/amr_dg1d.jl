@@ -121,24 +121,12 @@ function refine_element!(u::AbstractArray{<:Any, 3}, element_id,
     end
 
     # Interpolate to left element
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
-                   forward_lower[i, k]
-        end
-        set_node_vars!(u, acc, equations, dg, i, left_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, left_id), forward_lower,
+                            view(old_u, :, :, old_element_id))
 
     # Interpolate to right element
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
-                   forward_upper[i, k]
-        end
-        set_node_vars!(u, acc, equations, dg, i, right_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, right_id), forward_upper,
+                            view(old_u, :, :, old_element_id))
 
     return nothing
 end
@@ -254,23 +242,10 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         @assert size(u, 3) >= element_id
     end
 
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
-
-        # Project from lower left element
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, left_id) * reverse_lower[i, k]
-        end
-
-        # Project from lower right element
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, right_id) *
-                   reverse_upper[i, k]
-        end
-
-        # Update value
-        set_node_vars!(u, acc, equations, dg, i, element_id)
-    end
+    # Project from left and right elements
+    multiply_dimensionwise!(view(u, :, :, element_id),
+                            reverse_lower, view(old_u, :, :, left_id),
+                            reverse_upper, view(old_u, :, :, right_id))
 
     return nothing
 end
