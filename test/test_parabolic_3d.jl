@@ -29,6 +29,34 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: DGMulti: elixir_navierstokes_convergence.jl (LDG)" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
+                                 "elixir_navierstokes_convergence.jl"),
+                        cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[
+                            0.000581148759002787,
+                            0.0006403938184617871,
+                            0.0007753248509682902,
+                            0.0006403938184615315,
+                            0.003844674958266223
+                        ],
+                        linf=[
+                            0.001753131140737274,
+                            0.002478557609825738,
+                            0.003628561231888594,
+                            0.002478557609826515,
+                            0.015120632131051082
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic3D: DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
     Setup,
     Parabolic3D

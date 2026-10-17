@@ -54,8 +54,10 @@ end
 The local DG (LDG) flux from "The Local Discontinuous Galerkin Method for Time-Dependent
 Convection-Diffusion Systems" by Cockburn and Shu (1998).
 
-The parabolic "upwinding" vector is currently implemented for `TreeMesh`; for all other mesh types,
-the LDG solver is equivalent to [`ParabolicFormulationBassiRebay1`](@ref) with an LDG-type penalization.
+The parabolic "upwinding" is implemented for [`TreeMesh`](@ref), [`P4estMesh`](@ref),
+and [`DGMultiMesh`](@ref). For the [`DGMultiMesh`](@ref), the left and right element of
+a face are determined by the sign of the dominant component of the interface normal,
+analogously to the LDG "switch" for the [`P4estMesh`](@ref).
 
 - Cockburn and Shu (1998).
   The Local Discontinuous Galerkin Method for Time-Dependent

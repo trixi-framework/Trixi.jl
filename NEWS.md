@@ -92,6 +92,9 @@ for human readability.
   ([#3291]) and nonconforming meshes ([#2894]).
 - `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
   tetrahedral elements ([#3296]).
+- `ParabolicFormulationLocalDG` is now supported for `DGMulti` solvers, i.e., the
+  alternating one-sided LDG fluxes for the gradient and the divergence are available
+  on `DGMultiMesh` ([#3324]).
 
 #### Changed
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D

@@ -540,6 +540,21 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic1D: DGMulti: elixir_advection_diffusion_sbp.jl (LDG)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
+                                 "elixir_advection_diffusion_sbp.jl"),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
+                        l2=[1.1295174345734411e-5],
+                        linf=[1.7236115312124767e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic1D: DGMulti: elixir_navierstokes_convergence_periodic.jl" setup=[
     Setup,
     Parabolic1D
