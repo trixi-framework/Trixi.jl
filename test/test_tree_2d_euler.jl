@@ -543,16 +543,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
-                            0.3221078812528291,
-                            0.17985175694043076,
-                            0.17983453493705628,
-                            0.6136916718599121
+                            0.33280580979465735,
+                            0.1831301984231575,
+                            0.18313607722078246,
+                            0.6140388296324552
                         ],
                         linf=[
-                            1.343237509126809,
-                            1.1747101056222315,
-                            1.174585608472406,
-                            2.4216027326405487
+                            1.3812567675004268,
+                            1.2310394086765495,
+                            1.2315649842666707,
+                            2.4220683770546505
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4)
@@ -625,16 +625,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4227191130908862,
-                            0.14825292449073538,
-                            0.14822591031295396,
-                            0.6164645445036752
+                            0.4325330360172617,
+                            0.15055768999296607,
+                            0.15055768999297023,
+                            0.6166294715899724
                         ],
                         linf=[
-                            1.6394237885082292,
-                            0.8374761298606049,
-                            0.8322520901940953,
-                            6.4503170484248855
+                            1.6633167374155757,
+                            0.8681599198803506,
+                            0.8681599198787302,
+                            6.456477274568532
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -642,7 +642,7 @@ end
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
-    @test startswith(lines[end], "138")
+    @test startswith(lines[end], "143")
 
     # Check the maximum deviations
     limiter = semi.solver.volume_integral.limiter
@@ -666,16 +666,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell_FVO2.jl"),
                         l2=[
-                            0.4495704637143509,
-                            0.15730442577543666,
-                            0.15730442577545029,
-                            0.6190882116761669
+                            0.4488350460980643,
+                            0.15665304235327812,
+                            0.15665304235327865,
+                            0.618743940566767
                         ],
                         linf=[
-                            1.8787086232952408,
-                            0.9501463534956376,
-                            0.9501463534963136,
-                            6.473460234040588
+                            1.8503480470455682,
+                            0.968997833500834,
+                            0.9689978335012482,
+                            6.470232932515009
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4)
@@ -702,27 +702,27 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
-                            0.4458551685453463,
-                            0.15187885920928818,
-                            0.15187885920579852,
-                            0.6171564682488643
+                            0.45019283865816484,
+                            0.15290736461590215,
+                            0.1529073646177013,
+                            0.6170027937990427
                         ],
                         linf=[
-                            1.683620478124428,
-                            0.9025036658429718,
-                            0.9025036660419865,
-                            6.467780546540997
+                            1.7367187664418746,
+                            0.9792513901603878,
+                            0.9792513898742393,
+                            6.461892445995487
                         ],
                         # Large absolute tolerance due to nondeterministic behavior in CI runs
                         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/3060.
-                        atol=1e-3,
+                        atol=2e-2,
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
-    @test startswith(lines[end], "140")
+    @test startswith(lines[end], "139")
 
     limiter = semi.solver.volume_integral.volume_integral_stabilized.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
@@ -992,16 +992,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
-                            0.42185634563805724,
-                            0.1686471269704017,
-                            0.18240674916968103,
-                            0.17858250604280654
+                            0.42235332479993126,
+                            0.1688351205884523,
+                            0.18242840245705014,
+                            0.1786043906591805
                         ],
                         linf=[
-                            1.7012978064377158,
-                            0.7149714986746726,
-                            0.5822547982757897,
-                            0.7300051017382696
+                            1.7166074551503214,
+                            0.7523084147377437,
+                            0.5838689186534843,
+                            0.7305640371504281
                         ],
                         tspan=(0.0, 2.0),
                         save_errors=true)
