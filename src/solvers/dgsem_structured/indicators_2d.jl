@@ -13,11 +13,20 @@ function apply_smoothing!(mesh::StructuredMesh{2}, alpha, alpha_tmp, dg, cache)
     # So far, alpha smoothing doesn't work for non-periodic initial conditions for structured meshes.
     @assert isperiodic(mesh) "alpha smoothing for structured meshes works only with periodic initial conditions so far"
 
+    @unpack left_neighbors = cache.elements
+    # Explicit bounds check, which allows us to assume inbounds access below.
+    # The neighbor ids are element ids taken from the mesh connectivity.
+    @boundscheck begin
+        check_axes(alpha, (eachelement(dg, cache),))
+        check_axes(alpha_tmp, (eachelement(dg, cache),))
+        check_axes(left_neighbors, (Base.OneTo(2), eachelement(dg, cache)))
+    end
+
     # Loop over elements, because there is no interface container
-    for element in eachelement(dg, cache)
+    @inbounds for element in eachelement(dg, cache)
         # Get neighboring element ids
-        left = cache.elements.left_neighbors[1, element]
-        lower = cache.elements.left_neighbors[2, element]
+        left = left_neighbors[1, element]
+        lower = left_neighbors[2, element]
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[element], alpha[left])

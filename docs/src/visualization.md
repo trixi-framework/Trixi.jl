@@ -231,8 +231,8 @@ This creates the following plot:
 ![ScalarPlotData2D_example](https://user-images.githubusercontent.com/1156048/133856590-a9f0be02-8200-483b-af96-eab4a69bf2c7.png)
 
 ### Plotting a 3D solution as a 2D plot
-It is possible to plot 2D slices from 3D simulation data using the [`TreeMesh`](@ref)
-with the same commands as above:
+It is possible to plot 2D slices from 3D simulation data using the [`TreeMesh`](@ref) or a
+[`DGMultiMesh`](@ref) with affine tetrahedral elements, with the same commands as above:
 ```julia
 julia> plot(sol) # `sol` is from a 3D simulation
 ```
@@ -242,9 +242,7 @@ customize this behavior by explicitly creating a `PlotData2D` object and passing
 appropriate keyword arguments:
 * `slice` specifies the plane which is being sliced and can be `:xy`, `:xz`,
   or `:yz` (default: `:xy`)
-* `point` specifies a three-dimensional point. The sliced plane is then created
-  such that it lies on the point (default: `(0.0, 0.0, 0.0)`).
-All other attributes for [`PlotData2D`](@ref) objects apply here as well.
+* `point` specifies a point on the slice plane (default: `(0.0, 0.0, 0.0)`).
 
 For example, to plot the velocity field orthogonal to the yz-plane at different
 x-axis locations, you can execute
@@ -266,6 +264,29 @@ which results in a 2x3 grid of slices of the `yz`-plane:
 
 ![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/72009492/130953841-58df57b2-aa96-4130-9b70-30151856f68f.PNG)
 
+The same `slice` and `point` keyword arguments slice three-dimensional
+[`DGMultiMesh`](@ref) solutions on affine (straight-sided) tetrahedral elements.
+Curved meshes and non-tetrahedral elements are not supported by this method and raise an error.
+Set `Nplot` when constructing [`DGMulti`](@ref), for example
+`DGMulti(polydeg = 3, element_type = Tet(), Nplot = 15)`, to control surface sampling.
+As in 2D DGMulti plots, `nvisnodes` controls the number of points along each mesh edge
+and defaults to `2 * (polydeg(dg) + 1)`. For example, use `PlotData2D(sol; nvisnodes = 12)`
+to sample each edge at 12 points, or `nvisnodes = 0` to omit mesh lines.
+
+For example,
+```julia
+julia> using Trixi, Plots
+
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_3d", "elixir_euler_weakform_periodic.jl"), tspan=(0.0, 0.1))
+[...]
+
+julia> pd = PlotData2D(sol, slice = :xz, point = (0.0, 0.5, 0.0))
+
+julia> Plots.plot(pd["rho"])
+
+julia> Plots.plot!(getmesh(pd))
+```
+slices the mesh at ``y = 0.5`` and overlays the outlines of the intersected tetrahedra.
 
 ### Creating a 1D plot
 When plotting a 1D solution with
@@ -566,6 +587,45 @@ ax = Axis(fig[1, 1], title = "Density", xlabel = "x", ylabel = "y",
 plt = plot!(ax, pd["rho"], colormap = :berlin)
 Colorbar(fig[1, 2], plt)
 plot!(getmesh(pd))
+```
+
+### Contour plots
+
+For solutions on Cartesian meshes, Trixi.jl also supports unfilled contour lines
+(`contour`, `contour!`) and filled contour bands (`contourf`). Contour lines for a single variable:
+```@example makie-2d
+Makie.contour(pd["rho"])
+```
+
+Filled contour bands:
+```@example makie-2d
+Makie.contourf(pd["rho"])
+```
+
+The remaining examples use `contour`, but work the same way for `contourf`. The only exception is `contour!`, which has no `contourf!` counterpart in Trixi.jl. All variables at
+once, optionally with mesh overlay:
+```@example makie-2d
+Makie.contour(pd, plot_mesh = true)
+```
+
+Both functions also accept the solution directly:
+```@example makie-2d
+Makie.contour(sol)
+```
+
+Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
+contour lines or bands is controlled by `levels`, which takes either the number of levels or a
+vector of level values. Attributes of the contour lines such as `linewidth` apply to `contour`
+only, since `contourf` draws filled bands instead of lines:
+```@example makie-2d
+Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
+```
+
+Finally, `contour!` adds contour lines on top of the plot in the currently active axis,
+e.g., to overlay them on a heatmap:
+```@example makie-2d
+Makie.plot(pd["rho"])
+Makie.contour!(pd["rho"], color = :white)
 ```
 
 ### Interactive visualization

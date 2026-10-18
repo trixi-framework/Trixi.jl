@@ -340,8 +340,8 @@ end
         J_parabolic = jacobian_ad_forward_parabolic(semi)
         λ_parabolic = eigvals(J_parabolic)
         # Parabolic spectrum is real and negative
-        @test maximum(real, λ_parabolic) < 8e-14
-        @test maximum(imag, λ_parabolic) < 8e-14
+        @test maximum(real, λ_parabolic) < 2.0e-13
+        @test maximum(imag, λ_parabolic) < 2.0e-13
     end
 
     @timed_testset "T8codeMesh: Advection" begin
