@@ -93,7 +93,12 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_dirichlet_amr.jl"),
-                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842])
+                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842],
+                        # Relax error tolerance since some changes in
+                        # OrdinaryDiffEqCore.jl 4.18.1 changed the step
+                        # size sequence slightly and thus also the final
+                        # error.
+                        atol=7.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -202,6 +207,46 @@ end
                             0.00036185768524354955,
                             0.0016135721551933102
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0))
+    @test sol.u[end] ≈ reference_solution
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic.jl (R = 2)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0),
+                        # Exact same errors as for the R = 1 case above
+                        l2=[
+                            0.0001133835907077494,
+                            6.226282245610444e-5,
+                            0.0002820171699999139
+                        ],
+                        linf=[
+                            0.0006255102377159538,
+                            0.00036195501456059986,
+                            0.0016147729485886941
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -250,6 +295,20 @@ end
                             0.00036159110715550113,
                             0.0016136182920050146
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -300,6 +359,20 @@ end
                             0.013015551256854607
                         ],
                         atol=1e-9)
+    reference_solution = copy(sol.u[end])
+
+    # At an isothermal wall, the last entropy variable is -1 / (R * T).
+    # Therefore, changing R changes the prescribed temperature but must not
+    # change the solution in conserved variables.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -377,6 +450,34 @@ end
                             0.00012403780156411415,
                             0.00017911182286770215,
                             0.0008654587100611622
+                        ],
+                        atol=1e-8)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy, R = 42" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls_amr.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                R = 42,
+                                                                                Prandtl = prandtl_number(),
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        l2=[
+                            2.4593521887223632e-5,
+                            2.3928212900127102e-5,
+                            0.00011252332663824173
+                        ],
+                        linf=[
+                            0.00011850494672183132,
+                            0.00018987676556476442,
+                            0.0009597423024825247
                         ],
                         atol=1e-8)
     # Ensure that we do not have excessive memory allocations
@@ -700,4 +801,24 @@ end
     # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
     # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
+                        l2=[0.10954500481114468,
+                            0.1417583694046777,
+                            0.4087206508328759],
+                        linf=[
+                            0.17183237920520245,
+                            0.2203023610743297,
+                            0.6347464031934038
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end

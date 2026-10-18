@@ -51,7 +51,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, DP8();
+sol = solve(ode, DP8(thread = Trixi.Threaded());
             # Turn off adaptivity to avoid setting very small tolerances
             adaptive = false,
             dt = 1, # `dt` does not need to be in higher precision
