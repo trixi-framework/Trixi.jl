@@ -197,15 +197,6 @@ Base.@propagate_inbounds function mpi_buffer_node_offset(mpi_interfaces_buffer_o
     return mpi_interfaces_buffer_offsets[interface] + (i - 1) * nvariables(equations)
 end
 
-Base.@propagate_inbounds function get_mpi_buffer_node_vars(mpi_buffer, equations,
-                                                           offset)
-    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(mpi_buffer, offset .+ eachvariable(equations))
-    # Assume inbounds access now
-    return SVector(ntuple(@inline(v->@inbounds mpi_buffer[offset + v]),
-                          Val(nvariables(equations))))
-end
-
 # Compute the surface fluxes at all MPI interfaces. In contrast to the CPU version,
 # the local data is taken directly from `u` and the remote data directly from the
 # MPI receive buffer.

@@ -5,19 +5,22 @@
 @muladd begin
 #! format: noindent
 
+# In contrast to the CPU version, the GPU version does not use the MPI interface
+# container `cache.mpi_interfaces.u`. Instead, `prolong2mpiinterfaces!` writes the
+# local data directly into the MPI send buffer and `calc_mpi_interface_flux!` reads
+# the remote data directly from the MPI receive buffer, while the local data is read
+# from `u`. Both kernels handle the MPI interfaces of all neighbor ranks at once and
+# parallelize over all nodes of these interfaces.
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
                          mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                          equations,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
-    # Start to receive MPI data
-    @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
-
-    # Prolong solution to MPI interfaces
+    # Prolong solution to MPI interfaces, i.e., fill the MPI send buffer
     @trixi_timeit_ext backend timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
-                               dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations,
+                               dg.surface_integral, dg)
     end
 
     # Prolong solution to MPI mortars
@@ -26,8 +29,25 @@ function rhs_hyperbolic!(backend::Backend,
                             dg.mortar, dg)
     end
 
+    # Wait for the kernels above to finish before sending their results via MPI.
+    # This also guarantees that the MPI interface flux kernel of the previous call,
+    # which reads from the MPI receive buffer, has finished. Thus, we can only start
+    # to receive MPI data afterwards, in contrast to the CPU version.
+    # MPI is not ordered with respect to the kernels queued on the GPU, which run
+    # asynchronously. Thus, all kernels writing to the MPI send buffer must be launched
+    # before this synchronization (and after `finish_mpi_send!` of the previous call),
+    # and all kernels reading from the MPI receive buffer must be launched after
+    # `finish_mpi_receive!`. Keep this in mind when adding kernels using the MPI
+    # buffers (e.g., for MPI mortars). Missing synchronization cannot be detected by
+    # tests with the CPU backend of KernelAbstractions.jl, which runs kernels
+    # synchronously.
+    @trixi_timeit timer() "synchronize" KernelAbstractions.synchronize(backend)
+
+    # Start to receive MPI data
+    @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
+
     # Start to send MPI data
-    @trixi_timeit_ext backend timer() "start MPI send" begin
+    @trixi_timeit timer() "start MPI send" begin
         start_mpi_send!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
@@ -73,13 +93,13 @@ function rhs_hyperbolic!(backend::Backend,
     end
 
     # Finish to receive MPI data
-    @trixi_timeit_ext backend timer() "finish MPI receive" begin
+    @trixi_timeit timer() "finish MPI receive" begin
         finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Calculate MPI interface fluxes
     @trixi_timeit_ext backend timer() "MPI interface flux" begin
-        calc_mpi_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
+        calc_mpi_interface_flux!(backend, cache.elements.surface_flux_values, u, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
@@ -107,77 +127,289 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
+# Copy the local solution data at all MPI interfaces directly into the MPI send buffer.
+# The data of each interface node is stored at the same position as in the CPU version,
+# which copies `cache.mpi_interfaces.u[local_side, :, i, j, interface]` into the buffer.
 function prolong2mpiinterfaces!(backend::Backend, cache, u,
                                 mesh::Union{P4estMeshParallel{3},
                                             T8codeMeshParallel{3}},
                                 equations, surface_integral, dg::DG)
     nmpiinterfaces(dg, cache) == 0 && return nothing
-    @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
+    @unpack local_neighbor_ids, node_indices = cache.mpi_interfaces
+    @unpack mpi_send_buffer, mpi_interfaces_buffer_offsets = cache.mpi_cache
     index_range = eachnode(dg)
-    variables_range = eachvariable(equations)
+
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel.
+    # The offsets are constructed in `init_mpi_buffers` such that the data of all
+    # MPI interfaces fits into the MPI buffers.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
+        check_axes(mpi_interfaces_buffer_offsets, (eachmpiinterface(dg, cache),))
+        checkbounds(mpi_send_buffer,
+                    1:(nvariables(equations) * nnodes(dg)^2 *
+                       nmpiinterfaces(dg, cache)))
+    end
 
     kernel! = prolong2mpiinterfaces_KAkernel!(backend)
-    kernel!(cache.mpi_interfaces.u, typeof(mesh), local_sides, local_neighbor_ids,
-            node_indices, index_range, variables_range, u,
-            ndrange = nmpiinterfaces(dg, cache))
+    kernel!(mpi_send_buffer, u, typeof(mesh), equations, dg, local_neighbor_ids,
+            node_indices, mpi_interfaces_buffer_offsets, index_range,
+            ndrange = (nnodes(dg), nnodes(dg), nmpiinterfaces(dg, cache)))
     return nothing
 end
 
-@kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_interfaces_u,
+@kernel inbounds=true function prolong2mpiinterfaces_KAkernel!(mpi_send_buffer, u,
                                                                MeshT::Type{<:Union{P4estMeshParallel{3},
                                                                                    T8codeMeshParallel{3}}},
-                                                               local_sides,
+                                                               equations, dg,
                                                                local_neighbor_ids,
                                                                node_indices,
-                                                               index_range,
-                                                               variables_range, u)
-    interface = @index(Global)
-    prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, MeshT, interface,
-                                         local_sides, local_neighbor_ids, node_indices,
-                                         index_range, variables_range, u)
+                                                               mpi_interfaces_buffer_offsets,
+                                                               index_range)
+    i, j, interface = @index(Global, NTuple)
+    n = length(index_range)
+
+    # Copy solution data from the local element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the indices of the primary side
+    # will always run forwards.
+    local_element = local_neighbor_ids[interface]
+    local_indices = node_indices[interface]
+
+    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                 index_range)
+    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                 index_range)
+    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                 index_range)
+
+    i_element = delayed_index_3d(i_element_start, i_element_step_i, i_element_step_j,
+                                 i, j, n)
+    j_element = delayed_index_3d(j_element_start, j_element_step_i, j_element_step_j,
+                                 i, j, n)
+    k_element = delayed_index_3d(k_element_start, k_element_step_i, k_element_step_j,
+                                 i, j, n)
+
+    u_local = get_node_vars(u, equations, dg, i_element, j_element, k_element,
+                            local_element)
+    offset = mpi_buffer_node_offset(mpi_interfaces_buffer_offsets, equations, dg,
+                                    i, j, interface)
+    for v in eachvariable(equations)
+        mpi_send_buffer[offset + v] = u_local[v]
+    end
 end
 
-function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
+# Offset of the data of node `(i, j)` of an MPI interface in the MPI send/receive buffer
+Base.@propagate_inbounds function mpi_buffer_node_offset(mpi_interfaces_buffer_offsets,
+                                                         equations, dg, i, j, interface)
+    return mpi_interfaces_buffer_offsets[interface] + (i + (j - 1) * nnodes(dg) - 1) * nvariables(equations)
+end
+
+# Compute the surface fluxes at all MPI interfaces. In contrast to the CPU version,
+# the local data is taken directly from `u` and the remote data directly from the
+# MPI receive buffer.
+function calc_mpi_interface_flux!(backend::Backend, surface_flux_values, u,
                                   mesh::Union{P4estMeshParallel{3},
                                               T8codeMeshParallel{3}},
                                   have_nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
     nmpiinterfaces(dg, cache) == 0 && return nothing
-    @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
-    @unpack contravariant_vectors = cache.elements
-    @unpack u = cache.mpi_interfaces
+    @unpack local_neighbor_ids, node_indices, local_sides, normal_directions = cache.mpi_interfaces
+    @unpack mpi_recv_buffer, mpi_interfaces_buffer_offsets = cache.mpi_cache
     index_range = eachnode(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel.
+    # The offsets are constructed in `init_mpi_buffers` such that the data of all
+    # MPI interfaces fits into the MPI buffers.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes(mpi_interfaces_buffer_offsets, (eachmpiinterface(dg, cache),))
+        checkbounds(mpi_recv_buffer,
+                    1:(nvariables(equations) * nnodes(dg)^2 *
+                       nmpiinterfaces(dg, cache)))
+    end
+
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh),
-            have_nonconservative_terms, equations,
-            surface_integral, typeof(dg),
-            local_neighbor_ids, node_indices, local_sides, contravariant_vectors,
-            u, index_range,
-            ndrange = nmpiinterfaces(dg, cache))
+    kernel!(surface_flux_values, u, mpi_recv_buffer, typeof(mesh),
+            have_nonconservative_terms, equations, surface_integral, dg,
+            local_neighbor_ids, node_indices, local_sides,
+            mpi_interfaces_buffer_offsets, normal_directions, index_range,
+            ndrange = (nnodes(dg), nnodes(dg), nmpiinterfaces(dg, cache)))
     return nothing
 end
 
-@kernel inbounds=true function calc_mpi_interface_flux_KAkernel!(surface_flux_values,
+@kernel inbounds=true function calc_mpi_interface_flux_KAkernel!(surface_flux_values, u,
+                                                                 mpi_recv_buffer,
                                                                  MeshT::Type{<:Union{P4estMeshParallel{3},
                                                                                      T8codeMeshParallel{3}}},
                                                                  have_nonconservative_terms,
                                                                  equations,
                                                                  surface_integral,
-                                                                 SolverT::Type{<:DG},
+                                                                 dg,
                                                                  local_neighbor_ids,
                                                                  node_indices,
                                                                  local_sides,
-                                                                 contravariant_vectors,
-                                                                 u,
+                                                                 mpi_interfaces_buffer_offsets,
+                                                                 normal_directions,
                                                                  index_range)
-    interface = @index(Global)
-    calc_mpi_interface_flux_per_interface!(surface_flux_values, MeshT,
-                                           have_nonconservative_terms, equations,
-                                           surface_integral, SolverT,
-                                           local_neighbor_ids, node_indices,
-                                           local_sides, contravariant_vectors, u,
-                                           index_range, interface)
+    i, j, interface = @index(Global, NTuple)
+    n = length(index_range)
+
+    # Get element and side index information on the local element
+    local_element = local_neighbor_ids[interface]
+    local_indices = node_indices[interface]
+    local_direction = indices2direction(local_indices)
+    local_side = local_sides[interface]
+
+    # Create the local i,j,k indexing on the local element used to pull the local data
+    i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                 index_range)
+    j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                 index_range)
+    k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                 index_range)
+
+    i_element = delayed_index_3d(i_element_start, i_element_step_i, i_element_step_j,
+                                 i, j, n)
+    j_element = delayed_index_3d(j_element_start, j_element_step_i, j_element_step_j,
+                                 i, j, n)
+    k_element = delayed_index_3d(k_element_start, k_element_step_i, k_element_step_j,
+                                 i, j, n)
+
+    # The surface flux storage must be indexed in alignment with the local element
+    # indexing
+    local_surface_indices = surface_indices(local_indices)
+    i_surface_start, i_surface_step_i, i_surface_step_j = index_to_start_step_3d(local_surface_indices[1],
+                                                                                 index_range)
+    j_surface_start, j_surface_step_i, j_surface_step_j = index_to_start_step_3d(local_surface_indices[2],
+                                                                                 index_range)
+    i_surface = delayed_index_3d(i_surface_start, i_surface_step_i, i_surface_step_j,
+                                 i, j, n)
+    j_surface = delayed_index_3d(j_surface_start, j_surface_step_i, j_surface_step_j,
+                                 i, j, n)
+
+    # The interface is "aligned at the primary element", i.e., `u_ll` is the solution
+    # on the primary side and `u_rr` the solution on the secondary side
+    u_local = get_node_vars(u, equations, dg, i_element, j_element, k_element,
+                            local_element)
+    offset = mpi_buffer_node_offset(mpi_interfaces_buffer_offsets, equations,  dg,
+                                    i, j, interface)
+    u_remote = get_mpi_buffer_node_vars(mpi_recv_buffer, equations, offset)
+    if local_side == 1
+        u_ll, u_rr = u_local, u_remote
+    else # local_side == 2
+        u_ll, u_rr = u_remote, u_local
+    end
+
+    # Use the normal direction of the primary element, which is available on both
+    # MPI ranks. Thus, both ranks compute the same numerical flux, as in the serial
+    # `calc_interface_flux!`, see `exchange_normal_directions!`.
+    normal_direction = SVector(normal_directions[1, i, j, interface],
+                               normal_directions[2, i, j, interface],
+                               normal_directions[3, i, j, interface])
+
+    calc_mpi_interface_flux_per_node!(surface_flux_values, MeshT,
+                                      have_nonconservative_terms, equations,
+                                      surface_integral, u_ll, u_rr, normal_direction,
+                                      local_side, i_surface, j_surface, local_direction,
+                                      local_element)
+end
+
+# Inlined version of the interface flux computation for conservation laws
+Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
+                                                                    MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                                        T8codeMeshParallel{3}}},
+                                                                    have_nonconservative_terms::False,
+                                                                    equations,
+                                                                    surface_integral,
+                                                                    u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    local_side,
+                                                                    surface_i_node_index,
+                                                                    surface_j_node_index,
+                                                                    local_direction_index,
+                                                                    local_element_index)
+    @unpack surface_flux = surface_integral
+
+    # `normal_direction` is the normal direction of the primary element.
+    # The flux entering the primary element leaves the secondary element
+    # (note the `-` for the `else` case).
+    if local_side == 1
+        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    else # local_side == 2
+        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
+    end
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_i_node_index, surface_j_node_index,
+        local_direction_index, local_element_index] = flux_[v]
+    end
+
+    return nothing
+end
+
+# Inlined version of the interface flux computation for non-conservative equations.
+# As for the other surface fluxes on GPUs, see `prolong2interfaces_and_calc_interface_flux_per_node!`,
+# only surface fluxes combining the conservative and nonconservative terms are supported.
+Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
+                                                                    MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                                        T8codeMeshParallel{3}}},
+                                                                    have_nonconservative_terms::True,
+                                                                    equations,
+                                                                    surface_integral,
+                                                                    u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    local_side,
+                                                                    surface_i_node_index,
+                                                                    surface_j_node_index,
+                                                                    local_direction_index,
+                                                                    local_element_index)
+    calc_mpi_interface_flux_per_node!(surface_flux_values, MeshT,
+                                      have_nonconservative_terms,
+                                      combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                                      equations),
+                                      equations, surface_integral, u_ll, u_rr,
+                                      normal_direction, local_side,
+                                      surface_i_node_index, surface_j_node_index,
+                                      local_direction_index, local_element_index)
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux_values,
+                                                                    MeshT::Type{<:Union{P4estMeshParallel{3},
+                                                                                        T8codeMeshParallel{3}}},
+                                                                    have_nonconservative_terms::True,
+                                                                    combine_conservative_and_nonconservative_fluxes::True,
+                                                                    equations,
+                                                                    surface_integral,
+                                                                    u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    local_side,
+                                                                    surface_i_node_index,
+                                                                    surface_j_node_index,
+                                                                    local_direction_index,
+                                                                    local_element_index)
+    @unpack surface_flux = surface_integral
+
+    # Compute the flux including the non-conservative term for this side of the interface.
+    # `normal_direction` is the normal direction of the primary element
+    # (note the `-` for the `else` case).
+    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    if local_side == 1
+        flux_ = flux_left
+    else # local_side == 2
+        flux_ = -flux_right
+    end
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_i_node_index, surface_j_node_index,
+        local_direction_index, local_element_index] = flux_[v]
+    end
+
+    return nothing
 end
 
 # For GPU backends MPI mortars are not yet implemented
@@ -197,101 +429,4 @@ function calc_mpi_mortar_flux!(backend::Backend, surface_flux_values,
     @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
     return nothing
 end
-
-function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
-                         mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
-                         equations, dg, cache)
-    # TODO GPU: MPI mortars are not yet implemented
-    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
-
-    @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces = mpi_cache
-    @unpack mpi_send_buffers, mpi_send_requests = mpi_cache
-    @unpack local_sides, u = cache.mpi_interfaces
-
-    kernel! = start_mpi_send_KAkernel!(backend)
-
-    for (rank_index, _) in enumerate(mpi_neighbor_ranks)
-        send_buffer = mpi_send_buffers[rank_index]
-        neighbor_interfaces = mpi_neighbor_interfaces[rank_index]
-        if !isempty(neighbor_interfaces)
-            kernel!(send_buffer, neighbor_interfaces, local_sides, u,
-                    Val(nvariables(equations)), Val(ndims(mesh)),
-                    ndrange = (nnodes(dg), nnodes(dg), length(neighbor_interfaces)))
-        end
-    end
-
-    # wait for the kernels to return before sending the buffers
-    KernelAbstractions.synchronize(backend)
-
-    for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
-        send_buffer = mpi_send_buffers[rank_index]
-        mpi_send_requests[rank_index] = MPI.Isend(send_buffer, neighbor_rank,
-                                                  mpi_rank(), mpi_comm())
-    end
-end
-
-@kernel inbounds=true function start_mpi_send_KAkernel!(send_buffer,
-                                                        neighbor_interfaces,
-                                                        local_sides,
-                                                        u_mpi_interfaces, ::Val{NVARS},
-                                                        ::Val{3}) where {NVARS}
-    i, j, index_interface = @index(Global, NTuple)
-    index_linear = @index(Global, Linear)
-
-    # The data of each interface is stored contiguously in the buffer, with the
-    # variables running fastest, followed by the surface node indices `i` and `j`.
-    buffer_offset = (index_linear - 1) * NVARS
-    interface = neighbor_interfaces[index_interface]
-    local_side = local_sides[interface]
-
-    for v in 1:NVARS
-        send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v, i, j,
-                                                          interface]
-    end
-end
-
-function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
-                             mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
-                             equations, dg, cache)
-    # TODO GPU: MPI mortars are not yet implemented
-    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
-
-    @unpack mpi_neighbor_interfaces = mpi_cache
-    @unpack mpi_recv_buffers, mpi_recv_requests = mpi_cache
-    @unpack local_sides, u = cache.mpi_interfaces
-
-    kernel! = finish_mpi_receive_KAkernel!(backend)
-
-    # Start receiving and unpack received data until all communication is finished
-    data = MPI.Waitany(mpi_recv_requests)
-    while data !== nothing
-        recv_buffer = mpi_recv_buffers[data]
-        neighbor_interfaces = mpi_neighbor_interfaces[data]
-        if !isempty(neighbor_interfaces)
-            kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
-                    Val(nvariables(equations)), Val(ndims(mesh)),
-                    ndrange = (nnodes(dg), nnodes(dg), length(neighbor_interfaces)))
-        end
-
-        data = MPI.Waitany(mpi_recv_requests)
-    end
-    # Wait for the last kernel to return ?
-    KernelAbstractions.synchronize(backend)
-end
-
-@kernel inbounds=true function finish_mpi_receive_KAkernel!(recv_buffer,
-                                                            neighbor_interfaces,
-                                                            local_sides,
-                                                            u_mpi_interfaces,
-                                                            ::Val{NVARS},
-                                                            ::Val{3}) where {NVARS}
-    i, j, index_interface = @index(Global, NTuple)
-    index_linear = @index(Global, Linear)
-    buffer_offset = (index_linear - 1) * NVARS
-    interface = neighbor_interfaces[index_interface]
-    remote_side = local_sides[interface] == 1 ? 2 : 1
-    for v in 1:NVARS
-        u_mpi_interfaces[remote_side, v, i, j, interface] = recv_buffer[buffer_offset + v]
-    end
-end
-end
+end # @muladd

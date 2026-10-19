@@ -33,4 +33,13 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
 
     return nothing
 end
+
+Base.@propagate_inbounds function get_mpi_buffer_node_vars(mpi_buffer, equations,
+                                                           offset)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(mpi_buffer, offset .+ eachvariable(equations))
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(v->@inbounds mpi_buffer[offset + v]),
+                          Val(nvariables(equations))))
+end
 end # muladd
