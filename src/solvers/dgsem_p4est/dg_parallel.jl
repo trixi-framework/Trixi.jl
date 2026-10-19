@@ -791,6 +791,7 @@ Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPI
                           Val(ndims(container))))
 end
 
+include("dg_parallel_gpu.jl")
 include("dg_2d_parallel.jl")
 include("dg_2d_parallel_gpu.jl")
 include("dg_3d_parallel.jl")
