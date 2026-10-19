@@ -123,20 +123,6 @@ function integrate_via_indices(func::Func, backend::Backend, u,
         return (local_integral, local_total_volume)
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
-    else
-        integral = convert(typeof(integral), NaN * integral)
-        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
-    end
-
-    # Normalize with total volume
-    if normalize
-        integral = integral / total_volume
-    end
-
-    return integral
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
 end
 end # @muladd
