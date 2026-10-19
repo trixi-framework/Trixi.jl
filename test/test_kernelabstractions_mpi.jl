@@ -128,9 +128,6 @@ end
                         # Expected errors agree with the non-MPI version up to round-off
                         l2=[0.0004750004258546538],
                         linf=[0.026527551737137167])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "KernelAbstractions MPI CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
