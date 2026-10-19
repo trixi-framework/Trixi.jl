@@ -93,7 +93,7 @@ function rhs_hyperbolic!(backend::Backend,
     end
 
     # Finish to receive MPI data
-    @trixi_timeit_ext backend timer() "finish MPI receive" begin
+    @trixi_timeit timer() "finish MPI receive" begin
         finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
