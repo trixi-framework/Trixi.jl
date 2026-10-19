@@ -119,7 +119,10 @@ end
 end
 
 # The unstructured mesh contains MPI interfaces with flipped orientations
-@testitem "KernelAbstractions MPI CPU 3D: elixir_advection_unstructured_curved.jl" setup=[Setup, KernelAbstractionsMPIExamples] tags=[:kernelabstractions_mpi] begin
+@testitem "KernelAbstractions MPI CPU 3D: elixir_advection_unstructured_curved.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_unstructured_curved.jl"),
                         # Expected errors agree with the non-MPI version up to round-off
@@ -134,7 +137,7 @@ end
     Setup,
     KernelAbstractionsMPIExamples
 ] tags=[:kernelabstractions_mpi] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,"p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=[
                             0.00020523607157908708,

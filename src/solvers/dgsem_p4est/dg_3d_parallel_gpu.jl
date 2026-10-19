@@ -203,7 +203,8 @@ end
 # Offset of the data of node `(i, j)` of an MPI interface in the MPI send/receive buffer
 Base.@propagate_inbounds function mpi_buffer_node_offset(mpi_interfaces_buffer_offsets,
                                                          equations, dg, i, j, interface)
-    return mpi_interfaces_buffer_offsets[interface] + (i + (j - 1) * nnodes(dg) - 1) * nvariables(equations)
+    return mpi_interfaces_buffer_offsets[interface] +
+           (i + (j - 1) * nnodes(dg) - 1) * nvariables(equations)
 end
 
 # Compute the surface fluxes at all MPI interfaces. In contrast to the CPU version,
@@ -295,7 +296,7 @@ end
     # on the primary side and `u_rr` the solution on the secondary side
     u_local = get_node_vars(u, equations, dg, i_element, j_element, k_element,
                             local_element)
-    offset = mpi_buffer_node_offset(mpi_interfaces_buffer_offsets, equations,  dg,
+    offset = mpi_buffer_node_offset(mpi_interfaces_buffer_offsets, equations, dg,
                                     i, j, interface)
     u_remote = get_mpi_buffer_node_vars(mpi_recv_buffer, equations, offset)
     if local_side == 1
