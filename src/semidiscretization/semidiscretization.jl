@@ -696,8 +696,8 @@ end
 #
 # Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` returns a
 # `VectorBackedArray` (if `u_ode` is a `Vector`) or uses `reshape` (otherwise, see
-# `wrap_storage`). For `DGSEM`, the `VectorBackedArray` is wrapped further in a
-# `StaticSizeArray` with the number of variables and nodes as static sizes (see
+# `wrap_storage`). For `DGSEM`, the `Vector` is wrapped in a `StaticSizeArray` instead,
+# i.e., a `FixedSizeArrayDims` with the number of variables and nodes as static sizes (see
 # `static_view`). All of them keep a reference to `u_ode`, so temporaries such as copies of
 # `u_ode` that are only used indirectly via `wrap_array` do not need to be
 # `GC.@preserve`d.

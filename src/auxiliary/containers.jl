@@ -215,7 +215,7 @@ function storage_type(::Type{<:Array})
     return Array
 end
 
-function storage_type(::Type{<:FixedSizeArray{T, N, Mem}}) where {T, N, Mem}
+function storage_type(::Type{<:FixedSizeArrayDims{T, N, D, Mem}}) where {T, N, D, Mem}
     return storage_type(Mem)
 end
 
@@ -371,141 +371,18 @@ const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
     return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
 end
 
-# Product of the static sizes `S`, computed at compile time. `prod(S.parameters)` iterates
-# over a `Core.SimpleVector` at runtime, which dispatches dynamically and allocates.
-@generated static_prod(::Type{S}) where {S <: Tuple} = prod(S.parameters)
-
-# An `N`-dimensional array backed by the vector `data` (column-major, without copying),
-# whose sizes `S` (a `Tuple` type) of all but the last dimension are known at compile
-# time, while the size `nlast` of the last dimension is only known at runtime.
+# A `VectorBackedArray` whose sizes of all but the last dimension are known at compile
+# time (`Val`s), while the size of the last dimension is only known at runtime.
 # This is the typical layout of the solution and its time derivative in Trixi.jl
 # (`[variable, node..., element]`), where the number of variables and nodes is fixed
 # but the number of elements changes, e.g., with AMR. Knowing the strides at compile
 # time simplifies the index computations in performance-critical kernels.
-# The array keeps a reference to `data`, so the memory stays alive. It works with any
-# `AbstractVector` storage, e.g., GPU arrays, and is converted to a device array by Adapt.jl.
-# Polyester.jl converts it to a `PtrArray` with static sizes via the StaticArrayInterface.jl
-# traits defined below. See `static_view`.
-#
-# The elements are accessed via `ref`, which is the `MemoryRef` of `data` if `data` is a
-# `Vector` (on Julia v1.11 and newer) and `data` itself otherwise. Since Julia v1.11,
-# `Vector` is a mutable struct whose data pointer can change (`resize!`), so it must be
-# loaded from the `Vector` object for each access. LLVM can hoist this load out of an
-# inner loop only if the loop is guaranteed to run, since it does not know that the
-# `Vector` object is dereferenceable. Thus, the load stays, e.g., in front of the inner
-# loops of the flux differencing kernels, which only run for some nodes (`ii > i`).
-# This costs about 2-3% in the volume integral of `elixir_euler_ec.jl` in 2D.
-# The `MemoryRef` is an immutable part of this array (like the pointer of the `PtrArray`s
-# that `wrap_array` returned when Trixi.jl used Polyester.jl), so the data pointer is
-# loaded only once. It also keeps the memory alive. The `MemoryRef` is not updated by
-# `resize!(data, ...)`, so (as the size `nlast`) the view must be re-created afterward.
-struct StaticSizeArray{T, N, S <: Tuple, P <: AbstractVector{T}, R} <: DenseArray{T, N}
-    data::P
-    ref::R
-    nlast::Int
-
-    function StaticSizeArray{S}(data::AbstractVector{T}, nlast::Integer) where {S, T}
-        N = length(S.parameters) + 1
-        if length(data) != static_prod(S) * nlast
-            throw(DimensionMismatch("length of the data $(length(data)) does not match the size $((S.parameters..., nlast))"))
-        end
-        ref = storage_ref(data)
-        return new{T, N, S, typeof(data), typeof(ref)}(data, ref, nlast)
-    end
-end
-
-# See the comment above `StaticSizeArray`
-@inline storage_ref(data::AbstractVector) = data
-Base.@propagate_inbounds storage_getindex(data::AbstractVector, i::Int) = data[i]
-Base.@propagate_inbounds function storage_setindex!(data::AbstractVector, x, i::Int)
-    data[i] = x
-    return nothing
-end
-@static if VERSION >= v"1.11"
-    @inline storage_ref(data::Vector) = data.ref
-    # Bounds are checked by the callers, i.e., `getindex` and `setindex!` of
-    # `StaticSizeArray` (as in `getindex(::Array, ::Int)` for the `MemoryRef` of an `Array`)
-    @inline function storage_getindex(ref::MemoryRef, i::Int)
-        return Core.memoryrefget(Core.memoryrefnew(ref, i, false), :not_atomic, false)
-    end
-    @inline function storage_setindex!(ref::MemoryRef{T}, x, i::Int) where {T}
-        Core.memoryrefset!(Core.memoryrefnew(ref, i, false), convert(T, x),
-                           :not_atomic, false)
-        return nothing
-    end
-end
-
-@inline Base.size(A::StaticSizeArray{T, N, S}) where {T, N, S} = (S.parameters..., A.nlast)
-@inline Base.parent(A::StaticSizeArray) = A.data
-# Linear indexing goes straight to the storage (e.g., for broadcasts over the whole array)
-Base.IndexStyle(::Type{<:StaticSizeArray}) = IndexLinear()
-Base.@propagate_inbounds function Base.getindex(A::StaticSizeArray, i::Int)
-    @boundscheck checkbounds(A, i)
-    return @inbounds storage_getindex(A.ref, i)
-end
-Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray, x, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds storage_setindex!(A.ref, x, i)
-    return A
-end
-
-# Linear index in Horner form, e.g., `i + n1 * ((j - 1) + n2 * (k - 1))` in 3D, as in
-# StrideArraysCore.jl
-@generated function linear_index(::StaticSizeArray{T, N, S},
-                                 I::Vararg{Int, N}) where {T, N, S}
-    dims = S.parameters
-    ex = :(I[$N] - 1)
-    for d in (N - 1):-1:2
-        ex = :((I[$d] - 1) + $(dims[d]) * $ex)
-    end
-    return N == 1 ? :(I[1]) : :(I[1] + $(dims[1]) * $ex)
-end
-
-Base.@propagate_inbounds function Base.getindex(A::StaticSizeArray{T, N},
-                                                I::Vararg{Int, N}) where {T, N}
-    @boundscheck checkbounds(A, I...)
-    return @inbounds storage_getindex(A.ref, linear_index(A, I...))
-end
-
-Base.@propagate_inbounds function Base.setindex!(A::StaticSizeArray{T, N}, x,
-                                                 I::Vararg{Int, N}) where {T, N}
-    @boundscheck checkbounds(A, I...)
-    @inbounds storage_setindex!(A.ref, x, linear_index(A, I...))
-    return A
-end
-
-# Strided array interface (for `pointer`, LoopVectorization.jl, and Polyester.jl)
-@generated function Base.strides(::StaticSizeArray{T, N, S}) where {T, N, S}
-    strides = Any[1]
-    for d in 2:N
-        push!(strides, strides[end] * S.parameters[d - 1])
-    end
-    return Expr(:tuple, strides...)
-end
-Base.elsize(::Type{<:StaticSizeArray{T}}) where {T} = Base.elsize(Vector{T})
-function Base.unsafe_convert(::Type{Ptr{T}}, A::StaticSizeArray{T}) where {T}
-    return Base.unsafe_convert(Ptr{T}, A.data)
-end
-
-# Static sizes and strides for StaticArrayInterface.jl
-function StaticArrayInterface.static_size(A::StaticSizeArray{T, N, S}) where {T, N, S}
-    return (map(StaticInt, Tuple(S.parameters))..., A.nlast)
-end
-@generated function StaticArrayInterface.static_strides(::StaticSizeArray{T, N,
-                                                                          S}) where {T, N,
-                                                                                     S}
-    strides = Any[1]
-    for d in 2:N
-        push!(strides, strides[end] * S.parameters[d - 1])
-    end
-    return Expr(:tuple, (:(StaticInt($s)) for s in strides)...)
-end
-
-function Adapt.adapt_structure(to, A::StaticSizeArray{T, N, S}) where {T, N, S}
-    return StaticSizeArray{S}(adapt(to, A.data), A.nlast)
-end
-
-KernelAbstractions.get_backend(A::StaticSizeArray) = get_backend(A.data)
+# As `VectorBackedArray`s, these arrays keep a reference to the `Vector`, so the memory
+# stays alive, and must be re-created after every `resize!` of the `Vector`.
+# Polyester.jl converts them to `PtrArray`s with static sizes via the StaticArrayInterface.jl
+# traits defined in FixedSizeArrays.jl. See `static_view`.
+const StaticSizeArray{T, N} = FixedSizeArrayDims{T, N, <:Tuple{Val, Vararg{Any}},
+                                                 Vector{T}}
 
 """
     static_view(A, equations, dg)
@@ -517,16 +394,17 @@ Returns `A` itself for array types without such a view. Requires that `nnodes(dg
 known at compile time (e.g., `DGSEM`). `wrap_array` returns such a view for `DGSEM`.
 """
 @inline function static_view(A::VectorBackedArray, equations, dg)
-    S = static_sizes(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(A) - 2))
-    return StaticSizeArray{S}(parent(A), size(A, ndims(A)))
+    dims = static_dims(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(A) - 2),
+                       size(A, ndims(A)))
+    return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(A), dims)
 end
-# `Tuple{nvariables, nnodes, ...}` for `ndims_nodes` node dimensions. A generated function
-# so that the type is inferred also on Julia v1.10, which does not infer
-# `Tuple{nvariables(equations), ntuple(_ -> nnodes(dg), ndims(A) - 2)...}`; `wrap_array`
-# returns this view and must be type stable.
-@generated function static_sizes(::Val{NVARS}, ::Val{NNODES},
-                                 ::Val{NDIMS_NODES}) where {NVARS, NNODES, NDIMS_NODES}
-    return Tuple{NVARS, ntuple(_ -> NNODES, NDIMS_NODES)...}
+# `(Val(nvariables), Val(nnodes)..., nlast)` for `ndims_nodes` node dimensions. A generated
+# function so that the type is inferred also on Julia v1.10, which does not infer
+# `(Val(nvariables(equations)), ntuple(_ -> Val(nnodes(dg)), ndims(A) - 2)..., nlast)`;
+# `wrap_array` returns this view and must be type stable.
+@generated function static_dims(::Val{NVARS}, ::Val{NNODES}, ::Val{NDIMS_NODES},
+                                nlast::Int) where {NVARS, NNODES, NDIMS_NODES}
+    return :((Val($NVARS), $(ntuple(_ -> :(Val($NNODES)), NDIMS_NODES)...), nlast))
 end
 @inline static_view(A, equations, dg) = A
 
@@ -544,8 +422,7 @@ end
 @static if _PREFERENCE_THREADING === :polyester
     const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
                              VectorBackedArray{<:LoopVectorization.NativeTypes},
-                             StaticSizeArray{<:LoopVectorization.NativeTypes, N, S,
-                                             <:Vector} where {N, S},
+                             StaticSizeArray{<:LoopVectorization.NativeTypes},
                              Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
                                                 <:Base.FastContiguousSubArray{<:Any, 1,
                                                                               <:Array}} where {N}}
