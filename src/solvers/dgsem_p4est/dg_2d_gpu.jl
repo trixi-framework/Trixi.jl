@@ -67,19 +67,16 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
-function prolong2mortars!(backend::Backend, cache, u,
-                          mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
+# P4estMeshView on GPU is untested and missing some kernels
+function prolong2mortars!(backend::Backend, cache, u, mesh::P4estMeshView{2},
                           equations, mortar, dg)
     @assert isempty(eachmortar(dg, cache))
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
 function calc_mortar_flux!(backend::Backend, surface_flux_values,
-                           mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
-                           have_nonconservative_terms, equations, mortar,
-                           surface_integral, dg, cache)
+                           mesh::P4estMeshView{2}, have_nonconservative_terms,
+                           equations, mortar, surface_integral, dg, cache)
     @assert isempty(eachmortar(dg, cache))
     return nothing
 end
