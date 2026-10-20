@@ -190,9 +190,9 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
         g4 = tau_23 * mu
         g5 = (v1 * tau_12 + v2 * tau_22 + v3 * tau_23 + q2) * mu +
              (B1 * (dB1dy - dB2dx) + B3 * dB3dy) * eta
-        g6 = eta * (dB1dy - dB2dx)
+        g6 = (dB1dy - dB2dx) * eta
         g7 = zero(rho)
-        g8 = eta * dB3dy
+        g8 = dB3dy * eta
         g9 = zero(rho)
 
         return SVector(g1, g2, g3, g4, g5, g6, g7, g8, g9)
