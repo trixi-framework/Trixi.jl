@@ -84,6 +84,26 @@ function Base.resize!(parabolic_container::ParabolicContainer2D, equations, dg, 
     return nothing
 end
 
+# Adapt the parabolic container to a different storage type (e.g., for GPUs)
+# and/or real type. The (scratch) data of the multi-dimensional arrays is not
+# preserved. Instead, they are re-created by wrapping the adapted internal storage,
+# similar to the other containers.
+function Adapt.adapt_structure(to, parabolic_container::ParabolicContainer2D)
+    _u_transformed = adapt(to, parabolic_container._u_transformed)
+    _gradients = map(x -> adapt(to, x), parabolic_container._gradients)
+    _flux_parabolic = map(x -> adapt(to, x), parabolic_container._flux_parabolic)
+
+    array_size = size(parabolic_container.u_transformed)
+    u_transformed = unsafe_wrap_or_alloc(to, _u_transformed, array_size)
+    gradients = map(x -> unsafe_wrap_or_alloc(to, x, array_size), _gradients)
+    flux_parabolic = map(x -> unsafe_wrap_or_alloc(to, x, array_size), _flux_parabolic)
+
+    return ParabolicContainer2D{eltype(_u_transformed), typeof(u_transformed),
+                                typeof(_u_transformed)}(u_transformed, gradients,
+                                                        flux_parabolic,
+                                                        _u_transformed, _gradients,
+                                                        _flux_parabolic)
+
 abstract type AbstractParabolicGradientBoundaryContainer2D <:
               AbstractParabolicGradientBoundaryContainer end
 
