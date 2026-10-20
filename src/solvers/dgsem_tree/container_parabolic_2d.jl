@@ -103,6 +103,7 @@ function Adapt.adapt_structure(to, parabolic_container::ParabolicContainer2D)
                                                         flux_parabolic,
                                                         _u_transformed, _gradients,
                                                         _flux_parabolic)
+end
 
 abstract type AbstractParabolicGradientBoundaryContainer2D <:
               AbstractParabolicGradientBoundaryContainer end
