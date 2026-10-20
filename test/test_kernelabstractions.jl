@@ -931,14 +931,14 @@ end
     # Create a non-conforming mesh by refining the bottom left front octant of each tree
     # to level 4 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
     # periodicity to match the boundary conditions of the elixir used below
-    mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 2,
+    mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 1,
                                    coordinates_min = (-1.0, -1.0, -1.0),
                                    coordinates_max = (1.0, 1.0, 1.0),
                                    periodicity = false)
     function refine_fn(p8est, which_tree, quadrant)
         quadrant_obj = unsafe_load(quadrant)
         if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
-           quadrant_obj.level < 4
+           quadrant_obj.level < 3
             # return true (refine)
             return Cint(1)
         else
