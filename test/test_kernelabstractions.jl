@@ -953,36 +953,35 @@ end
 
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        # Reference errors computed on the CPU with `Float64` for this
-                        # mesh, which is not used by any CPU test item
-                        l2=[5.581296218772088e-5,
-                            5.16360786373411e-5,
-                            5.12882108402347e-5,
-                            0.0001229940026020629,
-                            6.985260277446713e-5,
-                            7.235772483477128e-5,
-                            7.278163788909123e-5,
-                            0.00012154873069419296,
-                            5.331127637791119e-5],
-                        linf=[0.00032478943961145035,
-                            0.00043031387863581155,
-                            0.00043576215760957743,
-                            0.0010599638007024459,
-                            0.00043320839902183383,
-                            0.0005048047383285903,
-                            0.0005115349840848493,
-                            0.0010574376423485438,
-                            0.00023609057563457795],
+                        # Reference errors computed with this test
+                        l2=[0.0006004919709489692,
+                            0.0002245184911624095,
+                            0.0007131352587023433,
+                            0.0006919720086442405,
+                            0.000594851999362696,
+                            0.0002736316419761074,
+                            0.0007019468172638831,
+                            0.00020419772978013038,
+                            0.0011299466060544772],
+                        linf=[0.0011299466060544772,
+                            0.0046723810666319116,
+                            0.0017236593899726121,
+                            0.004755602270231141,
+                            0.004245108885687188,
+                            0.004513938476726098,
+                            0.0014686725591646077,
+                            0.005047424723367139,
+                            0.0013170705847029133],
                         mesh=mesh_nonconforming,
                         tspan=(0.0, 0.25))
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(semi.solver) == Float32
-    @test real(semi.solver.basis) == Float32
-    @test real(semi.solver.mortar) == Float32
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi.mesh) == Float64
-    @test typeof(semi.equations.gamma) == Float32
+    @test typeof(semi.equations.gamma) == Float64
 
     # Make sure that the mortar kernels are used with the combined conservative
     # and nonconservative fluxes
@@ -990,13 +989,13 @@ end
     @test Trixi.combine_conservative_and_nonconservative_fluxes(semi.solver.surface_integral.surface_flux,
                                                                 semi.equations) ==
           Trixi.True()
-    @test ode.u0 isa CuArray
-    @test semi.solver.basis.derivative_matrix isa CuArray
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
 
-    @test Trixi.storage_type(semi.cache.elements) === CuArray
-    @test Trixi.storage_type(semi.cache.interfaces) === CuArray
-    @test Trixi.storage_type(semi.cache.boundaries) === CuArray
-    @test Trixi.storage_type(semi.cache.mortars) === CuArray
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
