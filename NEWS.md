@@ -40,6 +40,9 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+  i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
+  CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -89,6 +92,8 @@ for human readability.
   ([#3291]) and nonconforming meshes ([#2894]).
 - `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
   tetrahedral elements ([#3296]).
+- For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
+  unity is now supported, which then results in a different temperature `T` ([#3165])
 
 #### Changed
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D

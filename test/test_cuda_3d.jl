@@ -7,30 +7,28 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float64
-    @test real(ode.p.solver.basis) == Float64
-    @test real(ode.p.solver.mortar) == Float64
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
     # TODO: remake ignores the mesh itself as well
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float64
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float64
 
     @test ode.u0 isa Array
-    @test ode.p.solver.basis.derivative_matrix isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
 
-    @test Trixi.storage_type(ode.p.cache.elements) === Array
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
-    @test Trixi.storage_type(ode.p.cache.boundaries) === Array
-    @test Trixi.storage_type(ode.p.cache.mortars) === Array
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -44,30 +42,28 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
     # TODO: remake ignores the mesh itself as well
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float32
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
 
     @test ode.u0 isa CuArray
-    @test ode.p.solver.basis.derivative_matrix isa CuArray
+    @test semi.solver.basis.derivative_matrix isa CuArray
 
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
-    @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
-    @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
-    @test Trixi.storage_type(ode.p.cache.mortars) === CuArray
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
+    @test Trixi.storage_type(semi.cache.interfaces) === CuArray
+    @test Trixi.storage_type(semi.cache.boundaries) === CuArray
+    @test Trixi.storage_type(semi.cache.mortars) === CuArray
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -88,8 +84,6 @@ end
                             0.011300883615918522,
                             0.02090696711453477],
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -111,7 +105,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -137,8 +131,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -160,7 +152,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -192,8 +184,6 @@ end
                             0.00445327133732587,
                             0.0011999511085407923
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -215,7 +205,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -249,8 +239,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -272,7 +260,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -290,15 +278,16 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -308,14 +297,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -325,14 +315,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     @test u_half_sweep ≈ u_full_sweep
@@ -353,15 +344,16 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -371,14 +363,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -388,14 +381,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     @test u_half_sweep ≈ u_full_sweep
@@ -416,14 +410,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test semi === ode.p
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
     u_plain = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -433,14 +428,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -450,14 +446,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -467,14 +464,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -494,13 +492,14 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
+    @test semi === ode.p
     u_plain = Array(sol.u[end])
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -511,14 +510,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = HalfSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
@@ -529,14 +529,15 @@ end
                   real_type = Float32,
                   storage_type = CuArray,
                   tuning = Tuning(flux_differencing_kernel = FullSweep()))
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -564,7 +565,8 @@ end
                             0.03176343483364796
                         ],
                         storage_type=CuArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test typeof(semi.equations_parabolic.mu) == Float64
 
@@ -617,7 +619,8 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=CuArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test typeof(semi.equations_parabolic.mu) == Float32
     @test ode.u0 isa CuArray{Float32}
