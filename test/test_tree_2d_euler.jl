@@ -787,6 +787,50 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D Euler: elixir_euler_medium_blast_wave_amr.jl (nested entropy correction)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    # The entropy correction is the `volume_integral_default` of the shock-capturing
+    # volume integral. Its blending factors must be sized when the cache is created
+    # and after mesh adaptation.
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                             alpha_max = 0.5,
+                                             alpha_min = 0.001,
+                                             alpha_smooth = true,
+                                             variable = density_pressure)
+    indicator_entropy_correction = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_entropy_correction = VolumeIntegralAdaptive(indicator = indicator_entropy_correction,
+                                                                volume_integral_default = VolumeIntegralWeakForm(),
+                                                                volume_integral_stabilized = VolumeIntegralPureLGLFiniteVolume(flux_hllc))
+    volume_integral_nested = VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                                volume_integral_default = volume_integral_entropy_correction,
+                                                                volume_integral_blend_high_order = VolumeIntegralFluxDifferencing(flux_ranocha),
+                                                                volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(flux_hllc))
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave_amr.jl"),
+                        volume_integral=volume_integral_nested,
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            0.044712512777456546,
+                            0.05805030712450851,
+                            0.05805011951137793,
+                            0.5461690538440006
+                        ],
+                        linf=[
+                            0.1856805468147237,
+                            0.291577982874988,
+                            0.29157733919297824,
+                            2.3821478141058816
+                        ])
+    @test length(indicator_entropy_correction.cache.alpha) ==
+          nelements(semi.solver, semi.cache)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D Euler: elixir_euler_positivity.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[
