@@ -944,6 +944,53 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes conversion of entropy variables with R != 1" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # Check `entropy2velocity_temperature` and `convert_derivative_to_primitive`
+    # against `cons2prim_temperature` and its derivative along a path in state space
+    # computed by automatic differentiation. Using a specific gas constant R != 1
+    # ensures that no factors of R are missing.
+    mu, Prandtl, R = 0.01, 0.72, 2.5
+    gradient_variables = GradientVariablesEntropy()
+
+    test_cases = ((CompressibleNavierStokesDiffusion1D(CompressibleEulerEquations1D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5)),
+                  (CompressibleNavierStokesDiffusion2D(CompressibleEulerEquations2D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 4.0), SVector(0.3, -0.2, 0.7, 0.5)),
+                  (CompressibleNavierStokesDiffusion3D(CompressibleEulerEquations3D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 0.3, 4.0),
+                   SVector(0.3, -0.2, 0.7, -0.4, 0.5)))
+
+    for (equations, prim_vars, prim_direction) in test_cases
+        cons_vars(s) = prim2cons(prim_vars + s * prim_direction, equations)
+        entropy_vars = cons2entropy(cons_vars(0.0), equations)
+
+        @test Trixi.temperature(cons_vars(0.0), equations) ≈
+              prim_vars[end] / (R * prim_vars[1])
+        @test Trixi.entropy2velocity_temperature(entropy_vars, equations) ≈
+              cons2prim_temperature(cons_vars(0.0), equations)[2:end]
+
+        gradient_entropy_vars = ForwardDiff.derivative(s -> cons2entropy(cons_vars(s),
+                                                                         equations),
+                                                       0.0)
+        gradient_prim_vars = ForwardDiff.derivative(s -> cons2prim_temperature(cons_vars(s),
+                                                                               equations),
+                                                    0.0)
+        gradient_converted = Trixi.convert_derivative_to_primitive(entropy_vars,
+                                                                   gradient_entropy_vars,
+                                                                   equations)
+        @test gradient_converted[2:end] ≈ gradient_prim_vars[2:end]
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests
@@ -3878,44 +3925,75 @@ end
 end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    function mu(u, equations)
-        T_ref = 291.15
-
-        R_specific_air = 287.052874
-        T = R_specific_air * Trixi.temperature(u, equations)
-
-        C_air = 120.0
-        mu_ref_air = 1.827e-5
-
-        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
-    end
-
-    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
-        T = R_specific * Trixi.temperature(u, equations)
-
-        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
-    end
-
     # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
-    T_ref = 291.15
-    C = 120.0 # Sutherland's constant
-    R_specific = 287.052874
-    mu_ref = 1.827e-5
+    T_ref = 291.15 # [K]
+    C = 120.0 # Sutherland's constant [K]
+    R_specific = 287.052874 # [J/(kg K)]
+    mu_ref = 1.827e-5 # [kg/(m s)]
     prandtl_number() = 0.72
     gamma = 1.4
 
+    sutherland(T) = mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+
+    # The viscosity is called with the transformed variables, see
+    # `gradient_variable_transformation`.
+    function mu(u_transformed, equations)
+        T = last(Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                   equations))
+        return sutherland(T)
+    end
+
     equations = CompressibleEulerEquations2D(gamma)
-    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                              Prandtl = prandtl_number())
-    @test equations_parabolic.gamma == gamma
-    @test :gamma in @inferred(propertynames(equations_parabolic))
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy())
+        equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific,
+                                                                  gradient_variables = gradient_variables)
+        @test equations_parabolic.gamma == gamma
+        @test :gamma in @inferred(propertynames(equations_parabolic))
 
-    # Flow at rest
-    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        # Air at atmospheric pressure and 18°C, slightly moving
+        p = 101325.0 # [Pa]
+        T = T_ref
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        @test Trixi.temperature(u, equations_parabolic) ≈ T
 
-    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
-    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
-                   1.803e-5, atol = 5e-8)
+        transformation = Trixi.gradient_variable_transformation(equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ mu_ref
+        # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html
+        # at 18°C, which agrees with the reference value of Sutherland's law up to 1.5%
+        @test isapprox(mu_T, 1.803e-5, rtol = 0.015)
+
+        # Air at 100°C
+        T = 373.15 # [K]
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ sutherland(T)
+
+        # Some parts of Trixi.jl only have access to the conservative variables
+        @test Trixi.dynamic_viscosity_conservative(u, equations_parabolic) ≈ mu_T
+        @test max_diffusivity(u, equations_parabolic) ≈
+              mu_T / rho * equations_parabolic.max_visc_cond
+
+        if gradient_variables isa GradientVariablesPrimitive
+            # Gradients of (rho, v1, v2, T) in x- and y-direction
+            gradients_1 = SVector(0.1, 0.2, 0.3, 0.4)
+            gradients_2 = SVector(-0.5, 0.6, -0.7, 0.8)
+            tau = Trixi.viscous_stress_tensor(u, equations_parabolic,
+                                              gradients_1, gradients_2)
+            @test collect(tau) ≈
+                  mu_T .* [
+                4 / 3 * 0.2 - 2 / 3 * (-0.7),
+                0.6 + 0.3,
+                4 / 3 * (-0.7) - 2 / 3 * 0.2
+            ]
+        end
+    end
 end
 
 @testitem "Unit: Slope Limiters" setup=[Setup, UnitTests] tags=[:misc_part1] begin

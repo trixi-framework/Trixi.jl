@@ -266,8 +266,10 @@ end
     max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion3D)
 
 # Returns
-- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
-where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
+- `mu / u[1] * equations_parabolic.max_visc_cond` for the conservative variables `u`,
+where `mu` is the [`dynamic_viscosity`](@ref) evaluated for the transformed variables
+(see [`gradient_variable_transformation`](@ref)),
+and `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -294,7 +296,7 @@ and thus the largest absolute eigenvalue is
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
-    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+    return dynamic_viscosity_conservative(u, equations_parabolic) / u[1] *
            equations_parabolic.max_visc_cond
 end
 

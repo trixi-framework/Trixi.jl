@@ -40,8 +40,10 @@ velocity_bulk() = 5600 / (2 * reynolds_number_tau())
 # uniform initial density and pressure
 rho_reference() = 1.0
 p_reference() = (velocity_bulk() / mach_number_bulk())^2 * rho_reference() / gamma()
-# Trixi.jl assumes a specific gas constant R = 1, i.e., T = p / rho
-temperature_wall() = p_reference() / rho_reference()
+# Wall temperature T = p / (R * rho) consistent with the reference state
+function temperature_wall(equations_parabolic)
+    return p_reference() / (equations_parabolic.R * rho_reference())
+end
 
 """
     initial_condition_channel_flow(x, t, equations::CompressibleEulerEquations3D)
@@ -144,7 +146,7 @@ boundary_conditions = (; y_neg = boundary_condition_slip_wall,
                        y_pos = boundary_condition_slip_wall)
 
 velocity_bc_wall = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0, 0.0))
-heat_bc_wall = Isothermal((x, t, equations_parabolic) -> temperature_wall())
+heat_bc_wall = Isothermal((x, t, equations_parabolic) -> temperature_wall(equations_parabolic))
 boundary_condition_wall = BoundaryConditionNavierStokesWall(velocity_bc_wall, heat_bc_wall)
 boundary_conditions_parabolic = (; y_neg = boundary_condition_wall,
                                  y_pos = boundary_condition_wall)
