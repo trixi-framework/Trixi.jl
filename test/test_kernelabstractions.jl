@@ -833,6 +833,96 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: elixir_advection_nonconforming.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[0.00253595715323843],
+                        linf=Float32[0.016486952252155795],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float32}
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonconforming_unstructured_curved.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[
+                            4.070355207909268e-5,
+                            4.4993257426833716e-5,
+                            5.10588457841744e-5,
+                            5.102840924036687e-5,
+                            0.00019986264001630542
+                        ],
+                        linf=[
+                            0.0016987332417202072,
+                            0.003622956808262634,
+                            0.002029576258317789,
+                            0.0024206977281964193,
+                            0.008526972236273522
+                        ],
+                        tspan=(0.0, 0.01))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> :i_backward in indices || :j_backward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples
