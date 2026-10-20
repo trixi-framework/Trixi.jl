@@ -931,27 +931,27 @@ end
     # Create a non-conforming mesh by refining the bottom left front octant of each tree
     # to level 4 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
     # periodicity to match the boundary conditions of the elixir used below
-    mesh_nonconforming = P4estMesh((2, 2,2), polydeg = 3, initial_refinement_level = 2,
-                                         coordinates_min = (-1.0, -1.0, -1.0),
-                                         coordinates_max = (1.0, 1.0, 1.0),
-                                         periodicity = false)
+    mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 2,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0),
+                                   periodicity = false)
     function refine_fn(p8est, which_tree, quadrant)
-           quadrant_obj = unsafe_load(quadrant)
-           if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
-              quadrant_obj.level < 4
-               # return true (refine)
-               return Cint(1)
-           else
-               # return false (don't refine)
-               return Cint(0)
-           end
-       end
+        quadrant_obj = unsafe_load(quadrant)
+        if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
+           quadrant_obj.level < 4
+            # return true (refine)
+            return Cint(1)
+        else
+            # return false (don't refine)
+            return Cint(0)
+        end
+    end
     refine_fn_c = @cfunction(refine_fn, Cint,
-                                (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
-                                 Ptr{Trixi.p8est_quadrant_t}))
+                             (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                              Ptr{Trixi.p8est_quadrant_t}))
     Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
 
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         # Reference errors computed on the CPU with `Float64` for this
                         # mesh, which is not used by any CPU test item
