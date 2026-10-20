@@ -72,13 +72,13 @@ end
 # of Trixi.jl.
 function check_axes(elements::TreeElementContainer1D, equations, solver::DG, cache)
     check_axes(elements.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(1),
                 eachnode(solver),
                 eachelement(solver, cache)))
     check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
     check_axes(elements.cell_ids, (eachelement(solver, cache),))
-    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
-                                   cache)
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(1), equations,
+                                   solver, cache)
     return nothing
 end
 
@@ -367,7 +367,7 @@ function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG, 
                (Base.OneTo(2), eachvariable(equations),
                 eachboundary(solver, cache)))
     check_axes(boundaries.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(1),
                 eachboundary(solver, cache)))
     check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
     check_axes(boundaries.orientations, (eachboundary(solver, cache),))
@@ -531,9 +531,7 @@ function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     # re-initialize interfaces container
     @unpack interfaces = cache

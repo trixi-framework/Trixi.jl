@@ -98,11 +98,12 @@ function remake(semi::SemidiscretizationParabolic; uEltype = real(semi.solver),
                 solver_parabolic = semi.solver_parabolic,
                 source_terms = semi.source_terms,
                 boundary_conditions = semi.boundary_conditions)
-    return SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
-                                       solver_parabolic = solver_parabolic,
-                                       source_terms = source_terms,
-                                       boundary_conditions = boundary_conditions,
-                                       uEltype = uEltype)
+    semi_new = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
+                                           solver_parabolic = solver_parabolic,
+                                           source_terms = source_terms,
+                                           boundary_conditions = boundary_conditions,
+                                           uEltype = uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationParabolic)

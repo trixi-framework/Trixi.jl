@@ -72,13 +72,13 @@ end
 # of Trixi.jl.
 function check_axes(elements::TreeElementContainer2D, equations, solver::DG, cache)
     check_axes(elements.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(2),
                 eachnode(solver), eachnode(solver),
                 eachelement(solver, cache)))
     check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
     check_axes(elements.cell_ids, (eachelement(solver, cache),))
-    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
-                                   cache)
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(2), equations,
+                                   solver, cache)
     return nothing
 end
 
@@ -385,7 +385,7 @@ function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG, 
                 eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(2),
                 eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
@@ -923,6 +923,20 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
                                                 remote_sides, _u)
 end
 
+# Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations, solver::DG,
+                    cache)
+    check_axes(mpi_interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver),
+                eachmpiinterface(solver, cache)))
+    check_axes(mpi_interfaces.local_neighbor_ids, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.orientations, (eachmpiinterface(solver, cache),))
+    check_axes(mpi_interfaces.remote_sides, (eachmpiinterface(solver, cache),))
+    return nothing
+end
+
 # Create MPI interface container and initialize MPI interface data in `elements`.
 function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D,
                              elements::TreeElementContainer2D)
@@ -1110,6 +1124,29 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
                                                local_neighbor_positions,
                                                large_sides, orientations,
                                                _u_upper, _u_lower)
+end
+
+# Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations, solver::DG,
+                    cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver),
+                     eachmpimortar(solver, cache))
+    check_axes(mpi_mortars.u_upper, u_mortar_axes)
+    check_axes(mpi_mortars.u_lower, u_mortar_axes)
+    check_axes(mpi_mortars.local_neighbor_ids, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.local_neighbor_positions, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.large_sides, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.orientations, (eachmpimortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes
+    fstar_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, fstar_axes)
+    return nothing
 end
 
 # Create MPI mortar container and initialize MPI mortar data in `elements`.
@@ -1447,6 +1484,13 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R)
+
     return nothing
 end
 
@@ -1480,9 +1524,7 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     # re-initialize interfaces container
     @unpack interfaces = cache

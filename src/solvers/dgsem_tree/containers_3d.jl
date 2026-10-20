@@ -74,13 +74,13 @@ end
 # of Trixi.jl.
 function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cache)
     check_axes(elements.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(3),
                 eachnode(solver), eachnode(solver), eachnode(solver),
                 eachelement(solver, cache)))
     check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
     check_axes(elements.cell_ids, (eachelement(solver, cache),))
-    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
-                                   cache)
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(3), equations,
+                                   solver, cache)
     return nothing
 end
 
@@ -382,7 +382,7 @@ function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, 
                 eachnode(solver), eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.node_coordinates,
-               (Base.OneTo(ndims(equations)),
+               (Base.OneTo(3),
                 eachnode(solver), eachnode(solver),
                 eachboundary(solver, cache)))
     check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
@@ -984,6 +984,15 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                (n_variables,
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
+
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R,
+                                fluxes.antidiffusive_flux3_L,
+                                fluxes.antidiffusive_flux3_R)
 
     return nothing
 end

@@ -53,23 +53,18 @@ function create_f_threaded(mesh::AbstractMesh{3}, equations,
            f3_L_threaded, f3_R_threaded
 end
 
-function create_cache(mesh::TreeMesh{3},
-                      equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
+                                 dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded,
     fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
-    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
-                                                           volume_integral, dg,
-                                                           cache_containers, uEltype)
-
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            fstar3_L_threaded, fstar3_R_threaded,
-            cache_subcell_limiting...)
+            fstar3_L_threaded, fstar3_R_threaded)
 end
 
 # The methods below are specialized on the mortar type
@@ -592,7 +587,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -635,7 +630,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -799,7 +794,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(3), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -1064,7 +1060,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1127,7 +1123,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1481,7 +1477,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)

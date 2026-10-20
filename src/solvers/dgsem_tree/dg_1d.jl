@@ -27,17 +27,16 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
 
     return cache
 end
 
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                                 dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
@@ -481,7 +480,7 @@ function calc_interface_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -520,7 +519,7 @@ function calc_interface_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -683,7 +682,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(1), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -724,7 +724,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(1), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -775,7 +776,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -814,7 +815,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
         check_axes(boundary_interpolation_inverse_weights,
                    (eachnode(dg), Base.OneTo(2)))
     end
@@ -826,15 +827,16 @@ function calc_surface_integral!(backend::Nothing, du, u,
                 surface_flux_minus = surface_flux_values[v, 1, element]
                 surface_flux_plus = surface_flux_values[v, 2, element]
                 for ii in eachnode(dg)
+                    factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                    factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                     # surface at -x
                     du[v, ii, element] = (du[v, ii, element] -
-                                          surface_flux_minus *
-                                          boundary_interpolation_inverse_weights[ii, 1])
+                                          surface_flux_minus * factor_minus)
 
                     # surface at +x
                     du[v, ii, element] = (du[v, ii, element] +
-                                          surface_flux_plus *
-                                          boundary_interpolation_inverse_weights[ii, 2])
+                                          surface_flux_plus * factor_plus)
                 end
             end
         end

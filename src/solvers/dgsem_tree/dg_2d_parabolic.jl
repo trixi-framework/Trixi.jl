@@ -377,8 +377,8 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -687,8 +687,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(2),
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -787,8 +787,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(2),
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -966,8 +966,8 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1150,8 +1150,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -1204,8 +1204,8 @@ function calc_surface_integral_gradient!(gradients,
     @boundscheck begin
         check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -1272,8 +1272,8 @@ function calc_surface_integral_gradient!(gradients,
     @boundscheck begin
         check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
-                                       cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
         check_axes(boundary_interpolation_inverse_weights,
                    (eachnode(dg), Base.OneTo(2)))
     end
@@ -1286,37 +1286,43 @@ function calc_surface_integral_gradient!(gradients,
                     surface_flux_minus = surface_flux_values[v, l, 1, element]
                     surface_flux_plus = surface_flux_values[v, l, 2, element]
                     for ii in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                         # surface at -x
-                        gradients_x[v, ii, l, element] = (gradients_x[v, ii, l,
+                        gradients_x[v, ii, l, element] = (gradients_x[v,
+                                                                      ii, l,
                                                                       element] -
                                                           surface_flux_minus *
-                                                          boundary_interpolation_inverse_weights[ii,
-                                                                                                 1])
+                                                          factor_minus)
 
                         # surface at +x
-                        gradients_x[v, ii, l, element] = (gradients_x[v, ii, l,
+                        gradients_x[v, ii, l, element] = (gradients_x[v,
+                                                                      ii, l,
                                                                       element] +
                                                           surface_flux_plus *
-                                                          boundary_interpolation_inverse_weights[ii,
-                                                                                                 2])
+                                                          factor_plus)
                     end
 
                     surface_flux_minus = surface_flux_values[v, l, 3, element]
                     surface_flux_plus = surface_flux_values[v, l, 4, element]
                     for jj in eachnode(dg)
+                        factor_minus = boundary_interpolation_inverse_weights[jj, 1]
+                        factor_plus = boundary_interpolation_inverse_weights[jj, 2]
+
                         # surface at -y
-                        gradients_y[v, l, jj, element] = (gradients_y[v, l, jj,
+                        gradients_y[v, l, jj, element] = (gradients_y[v,
+                                                                      l, jj,
                                                                       element] -
                                                           surface_flux_minus *
-                                                          boundary_interpolation_inverse_weights[jj,
-                                                                                                 1])
+                                                          factor_minus)
 
                         # surface at +y
-                        gradients_y[v, l, jj, element] = (gradients_y[v, l, jj,
+                        gradients_y[v, l, jj, element] = (gradients_y[v,
+                                                                      l, jj,
                                                                       element] +
                                                           surface_flux_plus *
-                                                          boundary_interpolation_inverse_weights[jj,
-                                                                                                 2])
+                                                          factor_plus)
                     end
                 end
             end

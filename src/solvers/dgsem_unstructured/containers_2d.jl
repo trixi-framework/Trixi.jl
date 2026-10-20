@@ -97,9 +97,12 @@ function check_axes(elements::UnstructuredElementContainer2D, equations,
     return nothing
 end
 
-@inline function get_surface_normal(vec, indices...)
+Base.@propagate_inbounds function get_surface_normal(vec, indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(vec, 1:2, indices...)
+    # Assume inbounds access now
     # way to extract the normal vector at the surfaces without allocating
-    surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))
+    surface_vector = SVector(ntuple(@inline(j->@inbounds vec[j, indices...]), 2))
     return surface_vector
 end
 
@@ -179,6 +182,22 @@ end
     return length(interfaces.start_index)
 end
 @inline nnodes(interfaces::UnstructuredInterfaceContainer2D) = size(interfaces.u, 3)
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::UnstructuredInterfaceContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.start_index, (eachinterface(solver, cache),))
+    check_axes(interfaces.index_increment, (eachinterface(solver, cache),))
+    check_axes(interfaces.element_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.element_side_ids,
+               (Base.OneTo(2), eachinterface(solver, cache)))
+    return nothing
+end
 
 function init_interfaces(mesh::UnstructuredMesh2D,
                          elements::UnstructuredElementContainer2D)
@@ -320,6 +339,24 @@ end
 
 @inline function nboundaries(boundaries::UnstructuredBoundaryContainer2D)
     return length(boundaries.name)
+end
+
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::UnstructuredBoundaryContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(boundaries.u,
+               (eachvariable(equations),
+                eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.element_id, (eachboundary(solver, cache),))
+    check_axes(boundaries.element_side_id, (eachboundary(solver, cache),))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(2),
+                eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.name, (eachboundary(solver, cache),))
+    return nothing
 end
 
 function init_boundaries(mesh::UnstructuredMesh2D,
