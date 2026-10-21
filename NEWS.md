@@ -101,7 +101,7 @@ for human readability.
   `gradient_variable_transformation`), i.e., primitive variables with temperature or
   entropy variables. Previously, the conservative variables were passed when computing
   the parabolic time step restriction of the `StepsizeCallback` and the viscous stresses
-  in the `AnalysisSurfaceIntegral`.
+  in the `AnalysisSurfaceIntegral` ([#3383]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
