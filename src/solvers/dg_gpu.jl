@@ -11,6 +11,14 @@ end
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    return calc_volume_integral_fallback!(backend, du, u, mesh,
+                                          have_nonconservative_terms, equations,
+                                          volume_integral, dg, cache)
+end
+
+function calc_volume_integral_fallback!(backend::Backend, du, u, mesh,
+                                        have_nonconservative_terms, equations,
+                                        volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
