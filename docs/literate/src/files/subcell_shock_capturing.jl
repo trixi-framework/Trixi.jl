@@ -55,11 +55,6 @@
 # functionality indicates problems with the limiting (see [below](@ref subcell_bounds_check))
 # the Newton method with the chosen parameters might not manage to converge. If so, adapting
 # the mentioned parameters helps fix that.
-# Additionally, there is the parameter
-# `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
-# of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
-# as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
-# that this value guarantees the fulfillment of bounds for a forward-Euler increment.
 
 # Very small non-negative values can be an issue as well. That's why we use an additional
 # correction factor in the calculation of the global bounds,
