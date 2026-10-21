@@ -241,7 +241,7 @@ end
 @testitem "Metal 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl nonconforming Float32 / Metal" setup=[
     Setup,
     Metal3DExamples
-] tags=[:Metal] begin
+] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
     using Trixi

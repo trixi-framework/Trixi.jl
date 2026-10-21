@@ -45,7 +45,7 @@ for human readability.
   CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
-  `P4estMesh` ([#3313]).
+  `P4estMesh` ([#3313], [#3381]).
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
