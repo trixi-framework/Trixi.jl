@@ -36,7 +36,8 @@ steady_state_prob = SteadyStateProblem(ode)
 alg = NewtonRaphson(autodiff = AutoFiniteDiff())
 
 resid_tol = 1e-12
-sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg; abstol = resid_tol)
+sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg;
+                                                  abstol = resid_tol)
 
 # Supply steady state solution as initial condition for time-dependent run
 @assert SciMLBase.successful_retcode(sol_steady_state)
