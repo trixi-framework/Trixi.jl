@@ -30,7 +30,12 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
         set_zero!(du, dg, cache)
     end
 
-    kernel! = volume_integral_KAkernel!(backend)
+    # This kernel uses one work item per element. With the workgroup size chosen by
+    # KernelAbstractions.jl, which is as large as the register usage permits (e.g.,
+    # 1024 work items with CUDA.jl), there are only a few workgroups for typical numbers
+    # of elements, so most streaming multiprocessors of a GPU are idle. A small workgroup
+    # size lets the work spread over all of them.
+    kernel! = volume_integral_KAkernel!(backend, 64)
     kernel_cache = kernel_filter_cache(cache, mesh, dg)
     kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), typeof(mesh),
             have_nonconservative_terms, equations,
