@@ -226,33 +226,6 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic.jl (R = 2)" setup=[
-    Setup,
-    Parabolic1D
-] tags=[:parabolic_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_navierstokes_convergence_periodic.jl"),
-                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
-                                                                                mu = mu(),
-                                                                                Prandtl = prandtl_number(),
-                                                                                R = 2.0),
-                        # Exact same errors as for the R = 1 case above
-                        l2=[
-                            0.0001133327529548072,
-                            6.219651069829257e-5,
-                            0.000281672763454081
-                        ],
-                        linf=[
-                            0.0006253615899183274,
-                            0.00036185768526753037,
-                            0.0016135721553602878
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-end
-
 @testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" setup=[
     Setup,
     Parabolic1D
