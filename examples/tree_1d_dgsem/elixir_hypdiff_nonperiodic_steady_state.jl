@@ -61,5 +61,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation - IC already satisfies the `SteadyStateCallback`
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false); dt = 1.0,
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false); dt = 1,
             ode_default_options()..., callback = callbacks);
