@@ -92,8 +92,9 @@ for human readability.
   ([#3291]) and nonconforming meshes ([#2894]).
 - `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
   tetrahedral elements ([#3296]).
-- For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R` different from
-  unity is now supported, which then results in a different temperature `T = p / (R * rho)` ([#3165]).
+- For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
+  different from unity is now supported, which then results in a different temperature
+  `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
 - A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
