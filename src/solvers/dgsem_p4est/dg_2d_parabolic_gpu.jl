@@ -161,7 +161,9 @@ function transform_variables!(backend::Backend, u_transformed, u,
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
     end
     kernel! = transform_variables_KAkernel!(backend)
-    kernel!(u_transformed, u, typeof(mesh), equations_parabolic, dg,
+    kernel!(kernel_view(u_transformed, equations_parabolic, dg),
+            kernel_view(u, equations_parabolic, dg),
+            typeof(mesh), equations_parabolic, dg,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -194,8 +196,10 @@ function calc_volume_integral_gradient!(backend::Backend, gradients, u_transform
         check_axes(cache.elements, equations_parabolic, dg, cache)
     end
     kernel! = calc_volume_integral_gradient_KAkernel!(backend)
-    kernel!(gradients, u_transformed, typeof(mesh), equations_parabolic, dg,
-            derivative_hat, contravariant_vectors,
+    kernel!(kernel_view(gradients, equations_parabolic, dg),
+            kernel_view(u_transformed, equations_parabolic, dg),
+            typeof(mesh), equations_parabolic, dg, derivative_hat,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -262,7 +266,9 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
         end
     end
     kernel! = calc_parabolic_fluxes_KAkernel!(backend)
-    kernel!(flux_parabolic, gradients, u_transformed, typeof(mesh),
+    kernel!(kernel_view(flux_parabolic, equations_parabolic, dg),
+            kernel_view(gradients, equations_parabolic, dg),
+            kernel_view(u_transformed, equations_parabolic, dg), typeof(mesh),
             equations_parabolic, dg,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
@@ -313,8 +319,10 @@ function calc_volume_integral!(backend::Backend, du, flux_parabolic::Tuple,
         check_axes(cache.elements, equations_parabolic, dg, cache)
     end
     kernel! = calc_volume_integral_KAkernel!(backend)
-    kernel!(du, flux_parabolic, typeof(mesh), equations_parabolic, dg,
-            derivative_hat, contravariant_vectors,
+    kernel!(kernel_view(du, equations_parabolic, dg),
+            kernel_view(flux_parabolic, equations_parabolic, dg),
+            typeof(mesh), equations_parabolic, dg, derivative_hat,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -388,8 +396,11 @@ function prolong2interfaces_and_calc_interface_flux_gradient!(backend::Backend,
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_gradient_KAkernel!(backend)
-    kernel!(surface_flux_values, u_transformed, typeof(mesh), equations_parabolic,
-            dg, parabolic_scheme, neighbor_ids, node_indices, contravariant_vectors,
+    kernel!(kernel_view_surface(surface_flux_values, equations_parabolic, dg),
+            kernel_view(u_transformed, equations_parabolic, dg), typeof(mesh),
+            equations_parabolic,
+            dg, parabolic_scheme, neighbor_ids, node_indices,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             index_range,
             ndrange = (boundary_node_ndrange(mesh, dg)...,
                        ninterfaces(cache.interfaces)))
@@ -482,8 +493,11 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, flux_parabolic, typeof(mesh), equations_parabolic,
-            dg, parabolic_scheme, neighbor_ids, node_indices, contravariant_vectors,
+    kernel!(kernel_view_surface(surface_flux_values, equations_parabolic, dg),
+            kernel_view(flux_parabolic, equations_parabolic, dg), typeof(mesh),
+            equations_parabolic,
+            dg, parabolic_scheme, neighbor_ids, node_indices,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             index_range,
             ndrange = (boundary_node_ndrange(mesh, dg)...,
                        ninterfaces(cache.interfaces)))
@@ -663,10 +677,13 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
         end
         index_range = eachnode(dg)
         kernel! = calc_boundary_flux_KAkernel!(backend)
-        kernel!(surface_flux_values, u_or_flux, boundary_condition_indices,
+        kernel!(kernel_view_surface(surface_flux_values, equations_parabolic, dg),
+                kernel_view(u_or_flux, equations_parabolic, dg),
+                boundary_condition_indices,
                 neighbor_ids, node_indices, t, boundary_condition, operator_type,
                 index_range, typeof(mesh), equations_parabolic, dg,
-                node_coordinates, contravariant_vectors,
+                kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg),
+                kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
                 ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
     end
 
@@ -805,9 +822,12 @@ function calc_surface_integral_and_apply_jacobian_gradient!(backend::Backend,
     end
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_gradient_KAkernel!(backend)
-    kernel!(gradients, typeof(mesh), equations_parabolic, inverse_weights[1],
-            Val(NNODES), surface_flux_values, dg, contravariant_vectors,
-            inverse_jacobian,
+    kernel!(kernel_view(gradients, equations_parabolic, dg), typeof(mesh),
+            equations_parabolic,
+            inverse_weights[1], Val(NNODES),
+            kernel_view_surface(surface_flux_values, equations_parabolic, dg), dg,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
+            kernel_view_geometry(inverse_jacobian, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -909,9 +929,13 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     end
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
-    kernel!(du, u, gradients, t, source_terms_parabolic, node_coordinates,
+    kernel!(kernel_view(du, equations_parabolic, dg),
+            kernel_view(u, equations_parabolic, dg),
+            kernel_view(gradients, equations_parabolic, dg), t, source_terms_parabolic,
+            kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg),
             typeof(mesh), equations_parabolic, inverse_weights[1], Val(NNODES),
-            surface_flux_values, dg, inverse_jacobian,
+            kernel_view_surface(surface_flux_values, equations_parabolic, dg), dg,
+            kernel_view_geometry(inverse_jacobian, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end

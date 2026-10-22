@@ -31,8 +31,9 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     end
 
     kernel! = volume_integral_KAkernel!(backend)
-    kernel_cache = kernel_filter_cache(cache)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
+    kernel_cache = kernel_filter_cache(cache, mesh, dg)
+    kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), typeof(mesh),
+            have_nonconservative_terms, equations,
             volume_integral, dg, kernel_cache,
             ndrange = nelements(dg, cache))
     return nothing

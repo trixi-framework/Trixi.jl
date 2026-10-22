@@ -1096,9 +1096,10 @@ end
 end
 
 # Build a reduced cache which can be passed to GPU kernels
-@inline function kernel_filter_cache(cache)
-    return (;
-            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+@inline function kernel_filter_cache(cache, mesh, dg)
+    contravariant_vectors = kernel_view_geometry(cache.elements.contravariant_vectors,
+                                                 Val(ndims(mesh)), dg)
+    return (; elements = (; contravariant_vectors))
 end
 
 include("containers_2d.jl")
