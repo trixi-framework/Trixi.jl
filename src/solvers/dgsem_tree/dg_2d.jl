@@ -29,7 +29,8 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
@@ -69,20 +70,16 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
            f2_L_threaded, f2_R_threaded
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
+                                 dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
-    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
-                                                           volume_integral, dg,
-                                                           cache_containers, uEltype)
-
     return (; fstar1_L_threaded, fstar1_R_threaded,
-            fstar2_L_threaded, fstar2_R_threaded,
-            cache_subcell_limiting...)
+            fstar2_L_threaded, fstar2_R_threaded)
 end
 
 # The methods below are specialized on the mortar type

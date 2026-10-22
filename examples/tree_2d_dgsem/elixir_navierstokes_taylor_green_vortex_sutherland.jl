@@ -5,30 +5,41 @@ using Trixi
 # semidiscretization of the compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
+mach_number() = 0.1
 
 # Use Sutherland's law for a temperature-dependent viscosity.
 # For details, see e.g.
 # Frank M. White: Viscous Fluid Flow, 2nd Edition.
 # 1991, McGraw-Hill, ISBN, 0-07-069712-4
 # Pages 28 and 29.
+# We use the reference temperature and the Sutherland constant of air.
+# The reference viscosity is chosen such that the Reynolds number at the
+# reference temperature is Re = 1600 as in `elixir_navierstokes_taylor_green_vortex.jl`.
+temperature_ref() = 291.15 # [K]
+sutherland_constant_air() = 120.0 # [K]
+mu_ref() = 6.25e-4 # equivalent to Re = 1600 at the reference temperature
+
 @inline function mu(u_prim_temperature,
                     equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
     RealT = eltype(u_prim_temperature)
-    T_ref = convert(RealT, 291.15) # [K]
+    T_ref = convert(RealT, temperature_ref())
+    C_air = convert(RealT, sutherland_constant_air())
     _, _, _, T = u_prim_temperature
 
-    C_air = 120 # [K]
-    mu_ref_air = convert(RealT, 1.827e-5) # [Pa * s] = [kg/(m * s)]
-
-    return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5f0
+    return convert(RealT, mu_ref()) * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5f0
 end
 
 equations = CompressibleEulerEquations2D(1.4)
 
-R_specific_air = 287.052874 # [J/(kg * K)]
+# The initial condition below is non-dimensionalized with the density, the maximal
+# velocity, and the length scale of the vortex. Then, its background pressure is
+# p = 1 / (gamma * Ma^2). We choose the specific gas constant R such that the
+# corresponding background temperature T = p / (R * rho) is the reference temperature
+# of Sutherland's law in Kelvin.
+R = 1 / (equations.gamma * mach_number()^2 * temperature_ref())
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number(),
-                                                          R = R_specific_air)
+                                                          R = R)
 
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
@@ -42,17 +53,17 @@ This forms the basis behind the 3D case found for instance in
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations2D)
     RealT = eltype(x)
-    A = 1 # magnitude of speed [m/s]
-    Ms = convert(RealT, 0.1) # maximum Mach number
+    A = 1 # magnitude of speed
+    Ms = convert(RealT, mach_number()) # maximum Mach number
 
-    rho = 1 # [kg/m^3]
-    v1 = A * sin(x[1]) * cos(x[2]) # [m/s]
-    v2 = -A * cos(x[1]) * sin(x[2]) # [m/s]
+    rho = 1
+    v1 = A * sin(x[1]) * cos(x[2])
+    v2 = -A * cos(x[1]) * sin(x[2])
 
     # Scaling to get Ms
-    p = (A / Ms)^2 * rho / equations.gamma # [Pa] = [kg/(m * s^2)]
+    p = (A / Ms)^2 * rho / equations.gamma
     # Add terms for the Taylor-Green vortex
-    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2])) # [Pa] = [kg/(m * s^2)]
+    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
