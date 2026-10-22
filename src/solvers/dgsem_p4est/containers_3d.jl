@@ -154,6 +154,30 @@ end
     return boundaries
 end
 
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::P4estMortarContainer{3}, equations, solver::DG, cache)
+    check_axes(mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(4),
+                eachnode(solver), eachnode(solver),
+                eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(5), eachmortar(solver, cache)))
+    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver),
+                  Base.OneTo(4))
+    buffer_axes = (eachvariable(equations),
+                   eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars::P4estMortarContainer{3},

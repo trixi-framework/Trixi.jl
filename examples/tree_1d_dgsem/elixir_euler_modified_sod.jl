@@ -79,7 +79,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ode_alg = SSPRK43(; stage_limiter! = stage_limiter!)
 =#
 # Flux-differencing volume integral does not require positivity preservation for this test case.
-ode_alg = SSPRK43()
+ode_alg = SSPRK43(thread = Trixi.Threaded())
 
 sol = solve(ode, ode_alg;
             dt = 4e-4, adaptive = true,

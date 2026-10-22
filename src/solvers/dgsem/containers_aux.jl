@@ -16,6 +16,30 @@ struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
     aux_field::AuxField
 end
 
+# Check whether the arrays of auxiliary variables have the axes we assume in the inner
+# loops of Trixi.jl, cf. `check_axes`. Nothing is checked without auxiliary variables.
+@inline check_axes_aux_node_vars(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_node_vars(aux_node_vars, equations, solver, cache)
+    # [var, i, j, k, element]
+    node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_node_vars) - 2))
+    return check_axes(aux_node_vars,
+                      (eachauxvariable(equations), node_axes...,
+                       eachelement(solver, cache)))
+end
+
+@inline check_axes_aux_surface_node_vars(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_surface_node_vars(aux_surface_node_vars, equations,
+                                                  solver, cache)
+    # [leftright, var, i, j, interface]
+    surface_node_axes = ntuple(_ -> eachnode(solver),
+                               Val(ndims(aux_surface_node_vars) - 3))
+    return check_axes(aux_surface_node_vars,
+                      (Base.OneTo(2), eachauxvariable(equations), surface_node_axes...,
+                       eachinterface(solver, cache)))
+end
+
 # Create and initialize the container of auxiliary variables
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     NDIMS = ndims(mesh)

@@ -22,6 +22,13 @@ struct LinearizedEulerEquations3DAuxVars <: AbstractLinearizedEulerEquations{3, 
 
 @inline n_aux_node_vars(::LinearizedEulerEquations3DAuxVars) = 5
 
+# Together with our specialization of `Adapt.adapt_structure`, this allows to adapt the
+# floating point type of semidiscretizations. Since all mean flow variables are stored as
+# auxiliary variables, the equations do not store any data depending on the real type.
+function Base.similar(equations::LinearizedEulerEquations3DAuxVars, ::Type)
+    return equations
+end
+
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations3DAuxVars)
     return ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
 end
