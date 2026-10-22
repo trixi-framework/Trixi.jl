@@ -465,7 +465,7 @@ end
 
     # The specific gas constant only changes the conversion from pressure to
     # temperature. Thus, the solution in conserved variables must be independent
-    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
+    # of R (unless a temperature-dependent viscosity is used, e.g., Sutherland's law).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -535,7 +535,7 @@ end
 
     # The specific gas constant only changes the conversion from pressure to
     # temperature. Thus, the solution in conserved variables must be independent
-    # of R (unless a temperature-dependent viscosity is used (Sutherlands law).
+    # of R (unless a temperature-dependent viscosity is used, e.g., Sutherland's law).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -595,26 +595,51 @@ end
                                                                                              equations)))
     @test sol.u[end] ≈ reference_solution
 
-    # For temperature-dependent viscosity in turn, we expect slight changes in the
-    # conserved variables
+    # A temperature-dependent viscosity following Sutherland's law with reference
+    # temperature `T_ref` and Sutherland constant `C`. It is invariant under scaling
+    # `T`, `T_ref`, and `C` by the same factor.
+    function mu_sutherland(T_ref, C)
+        return function (w, equations)
+            T = last(Trixi.entropy2velocity_temperature(w, equations))
+            return 0.01 * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+        end
+    end
+
+    # With R = 1, the temperature T = p / rho = rho of the initial condition is in [1.5, 2.5].
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
-                                                                                mu = (u_prim_T, equations) -> 0.01 *
-                                                                                                              (2.0 +
-                                                                                                               10) /
-                                                                                                              (u_prim_T[4] +
-                                                                                                               10) *
-                                                                                                              (u_prim_T[4] /
-                                                                                                               2.0)^1.5f0,
+                                                                                mu = mu_sutherland(2.0,
+                                                                                                   1.0),
                                                                                 Prandtl = prandtl_number(),
-                                                                                R = 2.0),
+                                                                                gradient_variables = GradientVariablesEntropy()),
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
                                                                                                                                               t,
                                                                                                                                               equations),
                                                                                              equations)))
-    @test sol.u[end] != reference_solution
+    reference_solution_sutherland = copy(sol.u[end])
+    # The temperature dependence of the viscosity changes the solution
+    @test !isapprox(reference_solution_sutherland, reference_solution, rtol = 1.0e-6)
+
+    # Changing R scales the temperature by 1 / R. Thus, scaling the parameters of
+    # Sutherland's law accordingly must not change the solution.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu_sutherland(2.0 /
+                                                                                                   6.7,
+                                                                                                   1.0 /
+                                                                                                   6.7),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 6.7,
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                              t,
+                                                                                                                                              equations),
+                                                                                             equations)))
+    @test sol.u[end] ≈ reference_solution_sutherland
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -848,16 +873,16 @@ end
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
                         time_int_tol=1e-9,
                         l2=[
-                            0.00145486807418178,
-                            0.0007225717711159572,
-                            0.0007225717711157697,
-                            0.0110120461466977
+                            0.0014455667914214441,
+                            0.0010217565204670381,
+                            0.001021756520467803,
+                            0.011214256778300569
                         ],
                         linf=[
-                            0.0032979335880943816,
-                            0.0027219734306294097,
-                            0.002721973430631408,
-                            0.0237801274913636
+                            0.0032703168941358163,
+                            0.003948810274891024,
+                            0.0039488102748954645,
+                            0.0250517046202674
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
@@ -1276,8 +1301,6 @@ end
                             0.7223919625994717,
                             1.4846907331004786
                         ])
-    reference_solution = copy(sol.u[end])
-
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

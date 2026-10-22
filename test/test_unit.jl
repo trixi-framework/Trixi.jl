@@ -734,9 +734,9 @@ end
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
 
-    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
-                                              LobattoLegendreBasis(3))
-    @test_nowarn show(stdout, indicator_ec)
+    indicator_entropy_correction = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                                              LobattoLegendreBasis(3))
+    @test_nowarn show(stdout, indicator_entropy_correction)
 
     # test Base.show for PositivityPreservingLimiterLiuZhang
     equations = LinearScalarAdvectionEquation1D(1.0)
@@ -941,6 +941,53 @@ end
         cons_vars = prim2cons(prim_vars, equations)
         @test prim_vars ≈ cons2prim(cons_vars, equations)
         @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
+@testitem "Unit: Navier-Stokes conversion of entropy variables with R != 1" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # Check `entropy2velocity_temperature` and `convert_derivative_to_primitive`
+    # against `cons2prim_temperature` and its derivative along a path in state space
+    # computed by automatic differentiation. Using a specific gas constant R != 1
+    # ensures that no factors of R are missing.
+    mu, Prandtl, R = 0.01, 0.72, 2.5
+    gradient_variables = GradientVariablesEntropy()
+
+    test_cases = ((CompressibleNavierStokesDiffusion1D(CompressibleEulerEquations1D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5)),
+                  (CompressibleNavierStokesDiffusion2D(CompressibleEulerEquations2D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 4.0), SVector(0.3, -0.2, 0.7, 0.5)),
+                  (CompressibleNavierStokesDiffusion3D(CompressibleEulerEquations3D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 0.3, 4.0),
+                   SVector(0.3, -0.2, 0.7, -0.4, 0.5)))
+
+    for (equations, prim_vars, prim_direction) in test_cases
+        cons_vars(s) = prim2cons(prim_vars + s * prim_direction, equations)
+        entropy_vars = cons2entropy(cons_vars(0.0), equations)
+
+        @test Trixi.temperature(cons_vars(0.0), equations) ≈
+              prim_vars[end] / (R * prim_vars[1])
+        @test Trixi.entropy2velocity_temperature(entropy_vars, equations) ≈
+              cons2prim_temperature(cons_vars(0.0), equations)[2:end]
+
+        gradient_entropy_vars = ForwardDiff.derivative(s -> cons2entropy(cons_vars(s),
+                                                                         equations),
+                                                       0.0)
+        gradient_prim_vars = ForwardDiff.derivative(s -> cons2prim_temperature(cons_vars(s),
+                                                                               equations),
+                                                    0.0)
+        gradient_converted = Trixi.convert_derivative_to_primitive(entropy_vars,
+                                                                   gradient_entropy_vars,
+                                                                   equations)
+        @test gradient_converted[2:end] ≈ gradient_prim_vars[2:end]
     end
 end
 
@@ -3878,44 +3925,75 @@ end
 end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    function mu(u, equations)
-        T_ref = 291.15
-
-        R_specific_air = 287.052874
-        T = R_specific_air * Trixi.temperature(u, equations)
-
-        C_air = 120.0
-        mu_ref_air = 1.827e-5
-
-        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
-    end
-
-    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
-        T = R_specific * Trixi.temperature(u, equations)
-
-        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
-    end
-
     # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
-    T_ref = 291.15
-    C = 120.0 # Sutherland's constant
-    R_specific = 287.052874
-    mu_ref = 1.827e-5
+    T_ref = 291.15 # [K]
+    C = 120.0 # Sutherland's constant [K]
+    R_specific = 287.052874 # [J/(kg K)]
+    mu_ref = 1.827e-5 # [kg/(m s)]
     prandtl_number() = 0.72
     gamma = 1.4
 
+    sutherland(T) = mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+
+    # The viscosity is called with the transformed variables, see
+    # `gradient_variable_transformation`.
+    function mu(u_transformed, equations)
+        T = last(Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                   equations))
+        return sutherland(T)
+    end
+
     equations = CompressibleEulerEquations2D(gamma)
-    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                              Prandtl = prandtl_number())
-    @test equations_parabolic.gamma == gamma
-    @test :gamma in @inferred(propertynames(equations_parabolic))
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy())
+        equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific,
+                                                                  gradient_variables = gradient_variables)
+        @test equations_parabolic.gamma == gamma
+        @test :gamma in @inferred(propertynames(equations_parabolic))
 
-    # Flow at rest
-    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        # Air at atmospheric pressure and 18°C, slightly moving
+        p = 101325.0 # [Pa]
+        T = T_ref
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        @test Trixi.temperature(u, equations_parabolic) ≈ T
 
-    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
-    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
-                   1.803e-5, atol = 5e-8)
+        transformation = Trixi.gradient_variable_transformation(equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ mu_ref
+        # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html
+        # at 18°C, which agrees with the reference value of Sutherland's law up to 1.5%
+        @test isapprox(mu_T, 1.803e-5, rtol = 0.015)
+
+        # Air at 100°C
+        T = 373.15 # [K]
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ sutherland(T)
+
+        # Some parts of Trixi.jl only have access to the conservative variables
+        @test Trixi.dynamic_viscosity_conservative(u, equations_parabolic) ≈ mu_T
+        @test max_diffusivity(u, equations_parabolic) ≈
+              mu_T / rho * equations_parabolic.max_visc_cond
+
+        if gradient_variables isa GradientVariablesPrimitive
+            # Gradients of (rho, v1, v2, T) in x- and y-direction
+            gradients_1 = SVector(0.1, 0.2, 0.3, 0.4)
+            gradients_2 = SVector(-0.5, 0.6, -0.7, 0.8)
+            tau = Trixi.viscous_stress_tensor(u, equations_parabolic,
+                                              gradients_1, gradients_2)
+            @test collect(tau) ≈
+                  mu_T .* [
+                4 / 3 * 0.2 - 2 / 3 * (-0.7),
+                0.6 + 0.3,
+                4 / 3 * (-0.7) - 2 / 3 * 0.2
+            ]
+        end
+    end
 end
 
 @testitem "Unit: Slope Limiters" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -5725,4 +5803,128 @@ end
                                                              equations) ≈
               flux(u, orientation_or_normal, equations)
     end
+end
+
+@testitem "Unit: Nested volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                             variable = density_pressure)
+    volume_integral_wf = VolumeIntegralWeakForm()
+    volume_integral_fd = VolumeIntegralFluxDifferencing(flux_ranocha)
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+    volume_integral_adaptive = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                      volume_integral_default = volume_integral_wf,
+                                                      volume_integral_stabilized = volume_integral_fd)
+    volume_integral = VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                         volume_integral_default = volume_integral_adaptive,
+                                                         volume_integral_blend_high_order = volume_integral_fd,
+                                                         volume_integral_blend_low_order = volume_integral_fv)
+
+    # Tree of volume integrals
+    @test Trixi.volume_integral_children(volume_integral_wf) === ()
+    @test Trixi.volume_integral_children(volume_integral) ===
+          (volume_integral_adaptive, volume_integral_fd, volume_integral_fv)
+    visited = Any[]
+    Trixi.foreach_volume_integral(volume_integral) do volume_integral_
+        push!(visited, volume_integral_)
+        return nothing
+    end
+    # `map` stops at the end of the shorter collection, so check the length first
+    @test length(visited) == 6
+    @test all(map(===, visited,
+                  [volume_integral, volume_integral_adaptive, volume_integral_wf,
+                      volume_integral_fd, volume_integral_fd, volume_integral_fv]))
+
+    # Entries with the same name are shared if they are compatible
+    cache1 = (; a = [zeros(2, 3)], b = 1)
+    cache2 = (; a = [zeros(2, 3)], c = 2.0)
+    cache = Trixi.merge_shared(cache1, cache2)
+    @test keys(cache) == (:a, :b, :c)
+    @test cache.a === cache2.a
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; a = [zeros(2, 4)]))
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; b = 1.0))
+
+    # The subcell finite volume buffers of the children are shared
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
+                    periodicity = true)
+    function create_semi(volume_integral)
+        solver = DGSEM(basis, flux_hllc, volume_integral)
+        return SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+    end
+    semi = create_semi(volume_integral)
+    @test haskey(semi.cache, :fstar1_L_threaded)
+
+    # Per-instance state stored in the volume integral objects is sized when the cache
+    # is created, also for nested volume integrals
+    indicator_entropy_correction = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_entropy_correction = VolumeIntegralAdaptive(indicator = indicator_entropy_correction,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_fv)
+    semi = create_semi(VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                          volume_integral_default = volume_integral_entropy_correction,
+                                                          volume_integral_blend_high_order = volume_integral_fd,
+                                                          volume_integral_blend_low_order = volume_integral_fv))
+    @test length(indicator_entropy_correction.cache.alpha) ==
+          nelements(semi.solver, semi.cache)
+
+    # At most one subcell limiter is supported, and only in some positions
+    limiter_idp = SubcellLimiterIDP(equations, basis;
+                                    positivity_variables_cons = ["rho"])
+    volume_integral_sl = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                       volume_flux_dg = flux_ranocha,
+                                                       volume_flux_fv = flux_hllc)
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_fd))
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_sl))
+    # The subcell finite volume buffers are created for `volume_integral_low_order`
+    @test_throws ArgumentError create_semi(VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                         volume_flux_dg = flux_ranocha,
+                                                                         volume_integral_low_order = volume_integral_wf))
+    semi = create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                              volume_integral_default = volume_integral_wf,
+                                              volume_integral_stabilized = volume_integral_sl))
+    @test haskey(semi.cache, :fstar1_L_threaded)
+    @test haskey(semi.cache, :antidiffusive_fluxes)
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) ==
+          nelements(semi.solver, semi.cache)
+
+    # The storage of subcell limiting is resized after mesh adaptation.
+    # Fill the antidiffusive fluxes with `NaN`s first so that the check of the
+    # element interfaces below does not depend on the content of the new memory.
+    for antidiffusive_flux in (semi.cache.antidiffusive_fluxes.antidiffusive_flux1_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux1_R,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_R)
+        fill!(antidiffusive_flux, NaN)
+    end
+    new_size = nelements(semi.solver, semi.cache) + 3
+    Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
+    @test size(antidiffusive_flux1_L, 4) == new_size
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size
+    # The antidiffusive fluxes at the element interfaces are zero
+    @test iszero(antidiffusive_flux1_L[:, 1, :, :])
+    @test iszero(antidiffusive_flux1_L[:, end, :, :])
+    @test iszero(antidiffusive_flux2_R[:, :, 1, :])
+    @test iszero(antidiffusive_flux2_R[:, :, end, :])
+
+    # Subcell limiting is not supported for all meshes
+    equations_1d = CompressibleEulerEquations1D(1.4)
+    mesh_1d = TreeMesh(-1.0, 1.0, initial_refinement_level = 2, periodicity = true)
+    limiter_idp_1d = SubcellLimiterIDP(equations_1d, basis;
+                                       positivity_variables_cons = ["rho"])
+    solver_1d = DGSEM(basis, flux_hllc,
+                      VolumeIntegralSubcellLimiting(limiter_idp_1d;
+                                                    volume_flux_dg = flux_ranocha,
+                                                    volume_flux_fv = flux_hllc))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_1d, equations_1d,
+                                                            initial_condition_constant,
+                                                            solver_1d;
+                                                            boundary_conditions = boundary_condition_periodic)
 end

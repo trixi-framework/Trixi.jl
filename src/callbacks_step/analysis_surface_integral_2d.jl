@@ -153,7 +153,8 @@ function viscous_stress_tensor(u, equations_parabolic,
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
     tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
-    mu = dynamic_viscosity(u, equations_parabolic)
+    # `u` are the conservative variables
+    mu = dynamic_viscosity_conservative(u, equations_parabolic)
 
     return mu .* (tau_11, tau_12, tau_22)
 end
