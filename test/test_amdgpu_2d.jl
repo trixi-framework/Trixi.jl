@@ -7,30 +7,28 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float64
-    @test real(ode.p.solver.basis) == Float64
-    @test real(ode.p.solver.mortar) == Float64
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float64
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float64
 
     @test ode.u0 isa Array
-    @test ode.p.solver.basis.derivative_matrix isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
 
-    @test Trixi.storage_type(ode.p.cache.elements) === Array
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
-    @test Trixi.storage_type(ode.p.cache.boundaries) === Array
-    @test Trixi.storage_type(ode.p.cache.mortars) === Array
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -47,30 +45,28 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test eltype(ode.p.equations.advection_velocity) == Float32
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
 
     @test ode.u0 isa ROCArray
-    @test ode.p.solver.basis.derivative_matrix isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
 
-    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
-    @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -85,8 +81,6 @@ end
                             1.1707525985116263e-5,
                             1.1707525982673772e-5,
                             4.886961559069647e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float64
@@ -108,7 +102,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -130,8 +124,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -153,7 +145,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -178,8 +170,6 @@ end
                         solver=DGSEM(polydeg = 3,
                                      surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -201,7 +191,7 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -235,8 +225,6 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test real(semi.solver) == Float32
@@ -258,7 +246,182 @@ end
     u_ode = copy(ode.u0)
     du_ode = similar(u_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
-    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 2D: elixir_advection_nonconforming_flag.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU2DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming_flag.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[3.198940059144588e-5],
+                        linf=Float32[0.00030636069494005547],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU2DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[0.0034516244508588046,
+                                   0.0023420334036925493,
+                                   0.0024261923964557187,
+                                   0.004731710454271893],
+                        linf=Float32[0.04155789011775046,
+                                     0.024772109862748914,
+                                     0.03759938693042297,
+                                     0.08039824959535657],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> :i_backward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl nonconforming Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU2DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    using Trixi
+    # Create a non-conforming mesh by refining the bottom left quadrant of each tree
+    # to level 4 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
+    # periodicity to match the boundary conditions of the elixir used below
+    mesh_nonconforming = P4estMesh((2, 2), polydeg = 3, initial_refinement_level = 2,
+                                   coordinates_min = (-1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0),
+                                   periodicity = false)
+    function refine_fn(p4est, which_tree, quadrant)
+        quadrant_obj = unsafe_load(quadrant)
+        if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.level < 4
+            return Cint(1) # refine
+        else
+            return Cint(0) # do not refine
+        end
+    end
+    refine_fn_c = @cfunction(refine_fn, Cint,
+                             (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                              Ptr{Trixi.p4est_quadrant_t}))
+    Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        # Reference errors computed on the CPU with `Float64` for this
+                        # mesh, which is not used by any CPU test item
+                        l2=Float32[5.581296218772088e-5,
+                                   5.16360786373411e-5,
+                                   5.12882108402347e-5,
+                                   0.0001229940026020629,
+                                   6.985260277446713e-5,
+                                   7.235772483477128e-5,
+                                   7.278163788909123e-5,
+                                   0.00012154873069419296,
+                                   5.331127637791119e-5],
+                        linf=Float32[0.00032478943961145035,
+                                     0.00043031387863581155,
+                                     0.00043576215760957743,
+                                     0.0010599638007024459,
+                                     0.00043320839902183383,
+                                     0.0005048047383285903,
+                                     0.0005115349840848493,
+                                     0.0010574376423485438,
+                                     0.00023609057563457795],
+                        RealT_for_test_tolerances=Float32,
+                        mesh=mesh_nonconforming,
+                        tspan=(0.0, 0.25),
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    # Make sure that the mortar kernels are used with the combined conservative
+    # and nonconservative fluxes
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.combine_conservative_and_nonconservative_fluxes(semi.solver.surface_integral.surface_flux,
+                                                                semi.equations) ==
+          Trixi.True()
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
 
@@ -284,7 +447,8 @@ end
                             0.011661660264076446
                         ],
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float64
     @test typeof(semi.equations_parabolic.mu) == Float64
 
@@ -333,7 +497,8 @@ end
                             1.4846907331004786
                         ],
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test ode.u0 isa ROCArray
     @test semi.cache_parabolic.parabolic_container.u_transformed isa ROCArray
 
@@ -372,7 +537,8 @@ end
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
     @test real(semi.solver) == Float32
     @test typeof(semi.equations_parabolic.mu) == Float32
     @test ode.u0 isa ROCArray{Float32}

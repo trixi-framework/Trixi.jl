@@ -68,8 +68,11 @@ using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
-                          @synchronize, @uniform, get_backend, Backend
+# Re-export the module `KernelAbstractions` so that users can, e.g., select a GPU via
+# `KernelAbstractions.device!` without adding KernelAbstractions.jl to their environment
+@reexport using KernelAbstractions: KernelAbstractions
+using KernelAbstractions: @index, @kernel, @localmem, @synchronize, @uniform,
+                          get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
@@ -314,7 +317,7 @@ export DG,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       HalfSweep, FullSweep, FullSweepGlobal,
+       HalfSweep, FullSweep, FullSweepGlobal, Tuning,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,
