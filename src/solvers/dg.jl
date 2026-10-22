@@ -1147,8 +1147,9 @@ end
 end
 
 # Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
-# container is only created if an `aux_field` is passed to the semidiscretization, see
-# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned.
+# container is only created for equations with auxiliary variables, see
+# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
+# `NamedTuple`, the check is resolved at compile time.
 @inline function get_aux_node_vars_array(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing
 end

@@ -415,8 +415,10 @@ n_aux_node_vars(::MyEquations) = 2
 flux(u, aux, normal_direction, equations::MyEquations) = ...
 flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
 ```
-The values are given by the `aux_field` function passed to
-[`SemidiscretizationHyperbolic`](@ref).
+The number of auxiliary variables is a fixed property of the equations: equations with
+`n_aux_node_vars(equations) > 0` always use auxiliary variables, and their values have to
+be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref).
+For equations without auxiliary variables, no `aux_field` must be passed.
 """
 @inline n_aux_node_vars(::AbstractEquations) = 0
 
@@ -836,6 +838,7 @@ abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
 include("linearized_euler_1d.jl")
 include("linearized_euler_2d.jl")
 include("linearized_euler_3d.jl")
+include("linearized_euler_3d_aux_vars.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end

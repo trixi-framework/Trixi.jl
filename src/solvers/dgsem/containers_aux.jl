@@ -7,7 +7,7 @@
 
 # Container for the values of the auxiliary variables at the volume and surface
 # quadrature nodes, see [`n_aux_node_vars`](@ref). It is stored as `cache.aux_vars` and
-# only created if an `aux_field` is passed to the semidiscretization.
+# only created for equations with auxiliary variables.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
     aux_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, k, element]
     aux_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, j, interface]

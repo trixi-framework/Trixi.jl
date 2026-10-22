@@ -48,10 +48,10 @@ Construct a semidiscretization of a hyperbolic PDE.
 Boundary conditions must be provided explicitly either as a `NamedTuple` or as a
 single boundary condition that gets applied to all boundaries.
 
-`aux_field` is an optional function `aux_field(x, equations)` returning the auxiliary
-variables at the node coordinates `x`. It may be passed for equations using auxiliary
-variables, see [`n_aux_node_vars`](@ref). The auxiliary variables are evaluated once and
-stored in `cache.aux_vars`.
+`aux_field` is a function `aux_field(x, equations)` returning the auxiliary variables at
+the node coordinates `x`. It is required for equations using auxiliary variables and must
+not be passed otherwise, see [`n_aux_node_vars`](@ref). The auxiliary variables are
+evaluated once and stored in `cache.aux_vars`.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
@@ -64,17 +64,23 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
 
-    # Auxiliary variables are only stored if `aux_field` is given. Thus, the `aux_vars`
-    # field is absent from the `cache` otherwise, which keeps every simulation without
+    # Whether auxiliary variables are used is a fixed property of the `equations`.
+    # They are only stored for equations with `n_aux_node_vars(equations) > 0`. Otherwise,
+    # the `aux_vars` field is absent from the `cache`, which keeps every simulation without
     # auxiliary variables completely unaffected.
-    if aux_field !== nothing
-        if n_aux_node_vars(equations) == 0
-            throw(ArgumentError("`aux_field` was passed but " *
-                                "`$(nameof(typeof(equations)))` does not have any " *
-                                "auxiliary variables, see `n_aux_node_vars`"))
+    if n_aux_node_vars(equations) > 0
+        if aux_field === nothing
+            throw(ArgumentError("`$(nameof(typeof(equations)))` has " *
+                                "$(n_aux_node_vars(equations)) auxiliary variables, " *
+                                "so an `aux_field` must be passed, " *
+                                "see `n_aux_node_vars`"))
         end
         aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
         cache = (; cache..., aux_vars)
+    elseif aux_field !== nothing
+        throw(ArgumentError("`aux_field` was passed but " *
+                            "`$(nameof(typeof(equations)))` does not have any " *
+                            "auxiliary variables, see `n_aux_node_vars`"))
     end
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
@@ -503,11 +509,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         if n_aux_node_vars(semi.equations) > 0
-            # The equations support auxiliary variables, but they are only used if an
-            # `aux_field` was passed
-            summary_line(io, "auxiliary variables",
-                         hasproperty(semi.cache, :aux_vars) ?
-                         semi.cache.aux_vars.aux_field : nothing)
+            summary_line(io, "auxiliary variables", semi.cache.aux_vars.aux_field)
         end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))

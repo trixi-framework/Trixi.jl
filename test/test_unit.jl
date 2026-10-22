@@ -4261,3 +4261,79 @@ end
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
+
+@testitem "Unit: auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Whether auxiliary variables are used is a fixed property of the equations
+    equations = LinearizedEulerEquations3DAuxVars()
+    equations_global = LinearizedEulerEquations3D(v_mean_global = (0.5, -0.3, 0.2),
+                                                  c_mean_global = 1.1,
+                                                  rho_mean_global = 0.9)
+    @test n_aux_node_vars(equations) == 5
+    @test eachauxvariable(equations) == Base.OneTo(5)
+    @test n_aux_node_vars(equations_global) == 0
+    @test isempty(eachauxvariable(equations_global))
+    @test Trixi.have_constant_speed(equations) == Trixi.False()
+    @test Trixi.varnames(cons2aux, equations) ==
+          ("rho_mean", "v1_mean", "v2_mean", "v3_mean", "c_mean")
+    @test cons2aux(SVector(1.0, 2.0, 3.0, 4.0, 5.0), SVector(0.1, 0.2), equations) ==
+          SVector(0.1, 0.2)
+
+    # The fluxes with a constant mean flow given by the auxiliary variables coincide with
+    # the fluxes using the global mean flow
+    aux = SVector(0.9, 0.5, -0.3, 0.2, 1.1)
+    u_ll = SVector(0.1, -0.2, 0.3, 0.05, 0.4)
+    u_rr = SVector(-0.2, 0.1, 0.25, -0.1, 0.3)
+    for orientation in 1:3
+        @test flux(u_ll, aux, orientation, equations) ≈
+              flux(u_ll, orientation, equations_global)
+        @test max_abs_speed(u_ll, u_rr, aux, aux, orientation, equations) ≈
+              max_abs_speed_naive(u_ll, u_rr, orientation, equations_global)
+    end
+    normal_direction = SVector(0.3, -0.7, 1.2)
+    @test flux(u_ll, aux, normal_direction, equations) ≈
+          flux(u_ll, normal_direction, equations_global)
+    @test max_abs_speed(u_ll, u_rr, aux, aux, normal_direction, equations) ≈
+          max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_global)
+    @test flux_lax_friedrichs(u_ll, u_rr, aux, aux, normal_direction, equations) ≈
+          flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_global)
+    @test all(Trixi.max_abs_speeds(u_ll, aux, equations) .≈
+              Trixi.max_abs_speeds(equations_global))
+
+    # `aux_field` is required for equations with auxiliary variables and must not be
+    # passed otherwise
+    aux_field(x, equations) = aux
+    initial_condition(x, t, equations) = zero(SVector{5, Float64})
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+    solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                            initial_condition, solver;
+                                                            boundary_conditions = boundary_condition_periodic)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_global,
+                                                            initial_condition, solver;
+                                                            boundary_conditions = boundary_condition_periodic,
+                                                            aux_field = aux_field)
+    # `aux_field` has to return the correct number of auxiliary variables
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                            initial_condition, solver;
+                                                            boundary_conditions = boundary_condition_periodic,
+                                                            aux_field = (x, equations) -> SVector(1.0,
+                                                                                                  2.0))
+
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        boundary_conditions = boundary_condition_periodic,
+                                        aux_field = aux_field)
+    @test haskey(semi.cache, :aux_vars)
+    @test all(==(aux), eachslice(reshape(semi.cache.aux_vars.aux_node_vars, 5, :);
+                                 dims = 2))
+    @test !any(isnan, semi.cache.aux_vars.aux_surface_node_vars)
+    @test_nowarn show(stdout, MIME"text/plain"(), semi)
+    @test_nowarn show(stdout, MIME"text/plain"(), equations)
+
+    semi_global = SemidiscretizationHyperbolic(mesh, equations_global, initial_condition,
+                                               solver;
+                                               boundary_conditions = boundary_condition_periodic)
+    @test !haskey(semi_global.cache, :aux_vars)
+    @test Trixi.get_aux_node_vars_array(semi_global.cache) === nothing
+    @test Trixi.get_aux_node_vars(nothing, equations_global, solver, 1, 1, 1, 1) === ()
+end

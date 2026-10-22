@@ -2,26 +2,22 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linearized Euler equations
+# semidiscretization of the linearized Euler equations with a spatially varying mean flow
 
-# The global mean values are still used to bound the maximum wave speed in the time step
-# computation, so they have to bound the varying mean flow defined by `aux_field` below.
-equations = LinearizedEulerEquations3D(v_mean_global = (0.5, 0.0, 0.0),
-                                       c_mean_global = 1.0,
-                                       rho_mean_global = 1.0)
+equations = LinearizedEulerEquations3DAuxVars()
 
 # Sheared mean flow in x-direction, prescribed at every node of the mesh. The auxiliary
-# variables of `LinearizedEulerEquations3D` are `(rho_mean, v1_mean, v2_mean, v3_mean,
-# c_mean)`.
-function aux_field(x, equations::LinearizedEulerEquations3D)
-    v1_mean = 0.5 * sinpi(x[2])
-    return SVector(1.0, v1_mean, 0.0, 0.0, 1.0)
+# variables of `LinearizedEulerEquations3DAuxVars` are
+# `(rho_mean, v1_mean, v2_mean, v3_mean, c_mean)`.
+function aux_field(x, equations::LinearizedEulerEquations3DAuxVars)
+    v1_mean = 0.5f0 * sinpi(x[2])
+    return SVector(1.0f0, v1_mean, 0.0f0, 0.0f0, 1.0f0)
 end
 
 # A Gaussian pressure pulse at rest
-function initial_condition_gauss_pulse(x, t, equations::LinearizedEulerEquations3D)
+function initial_condition_gauss_pulse(x, t, equations::LinearizedEulerEquations3DAuxVars)
     p_prime = exp(-16 * (x[1]^2 + x[2]^2 + x[3]^2))
-    return SVector(0.0, 0.0, 0.0, 0.0, p_prime)
+    return SVector(0.0f0, 0.0f0, 0.0f0, 0.0f0, p_prime)
 end
 
 initial_condition = initial_condition_gauss_pulse
@@ -38,8 +34,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  initial_refinement_level = 0,
                  periodicity = true)
 
-# Passing `aux_field` activates the auxiliary variables; without it, the constant global
-# mean flow stored in `equations` would be used.
+# The `aux_field` is required since `equations` has auxiliary variables. They are evaluated
+# once at all nodes and stored in the cache.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic,
                                     aux_field = aux_field)
