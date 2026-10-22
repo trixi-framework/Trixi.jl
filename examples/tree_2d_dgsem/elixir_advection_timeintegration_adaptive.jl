@@ -67,7 +67,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-alg = RDPK3SpFSAL49()
+alg = RDPK3SpFSAL49(thread = Trixi.Threaded())
 sol = solve(ode, alg;
             callback = callbacks,
             ode_default_options()...);
