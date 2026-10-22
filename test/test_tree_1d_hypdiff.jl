@@ -56,8 +56,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_hypdiff_nonperiodic_steady_state.jl"),
                         l2=[1.36551149593046e-7, 1.0200345026646545e-6],
-                        linf=[7.173289864326193e-7, 4.507115272556206e-6],
-                        atol=2.5e-13)
+                        linf=[7.173289864326193e-7, 4.507115272556206e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

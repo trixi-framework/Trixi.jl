@@ -34,18 +34,19 @@ ode = semidiscretize(semi, tspan)
 steady_state_prob = SteadyStateProblem(ode)
 
 alg = NewtonRaphson(autodiff = AutoFiniteDiff())
-sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg)
+
+resid_tol = 1e-12
+sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg; abstol = resid_tol)
 
 # Supply steady state solution as initial condition for time-dependent run
 @assert SciMLBase.successful_retcode(sol_steady_state)
 ode.u0 .= sol_steady_state.u
 
 ###############################################################################
-# ODE solvers, callbacks etc.
+# Callbacks
 
 summary_callback = SummaryCallback()
 
-resid_tol = 5.0e-13
 steady_state_callback = SteadyStateCallback(abstol = resid_tol, reltol = 0.0)
 
 analysis_interval = 100
