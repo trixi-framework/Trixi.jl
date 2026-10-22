@@ -208,10 +208,22 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
     @unpack weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
 
-    # The Vandermonde matrix is stored as a CPU `Matrix`. Since its size is known at
-    # compile time, we can pass it to the kernel as a static matrix.
-    vandermonde = SMatrix{nnodes(analyzer), nnodes(dg)}(analyzer.vandermonde)
-    nnodes_analysis = nnodes(analyzer)
+    n_nodes = nnodes(dg)
+    n_nodes_analysis = nnodes(analyzer)
+    n_elements = nelements(dg, cache)
+
+    # TODO GPU: vandermonde needs to be moved to the GPU
+    vandermonde = SMatrix{n_nodes_analysis, n_nodes}(analyzer.vandermonde)
+
+    u_node_type = SVector{nvariables(equations), eltype(u)}
+    u0 = zero(u_node_type)
+    x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
+
+    # We cannot evaluate `func` on GPU data here to get the type of the errors.
+    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
+    error0 = zero(Base.promote_op(func, u_node_type, typeof(equations)))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (error0, error0, volume0)
 
     function local_reduce((l2_error, linf_error, total_volume),
                           (l2_error_element, linf_error_element, volume_element))
@@ -219,72 +231,37 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
                 total_volume + volume_element)
     end
 
-    # We cannot evaluate `func` on GPU data here to get the type of the errors.
-    # The kernel captures zero values instead of their types, which are not bitstypes.
-    u_node_type = SVector{nvariables(equations), eltype(u)}
-    u0 = zero(u_node_type)
-    x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
-    error0 = zero(Base.promote_op(func, u_node_type, typeof(equations)))
-    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
-    init = neutral = (error0, error0, volume0)
-
-    num_elements = nelements(dg, cache)
     l2_error, linf_error, total_volume = AcceleratedKernels.mapreduce(local_reduce,
-                                                                      1:num_elements,
+                                                                      1:n_elements,
                                                                       backend; init,
                                                                       neutral) do element
         l2_error_element, linf_error_element, volume_element = neutral
 
-        # Interpolate solution, node locations, and Jacobian to the analysis nodes
-        # dimension by dimension in the same order as `multiply_dimensionwise!`:
-        # first in x-direction for the analysis node `i`, then in y-direction for `j`
-        for i in 1:nnodes_analysis
-            u_x = ntuple(Val(nnodes(dg))) do l
-                res = u0
-                for k in eachnode(dg)
-                    res += vandermonde[i, k] *
-                           get_node_vars(u, equations, dg, k, l, element)
-                end
-                return res
-            end
-            x_x = ntuple(Val(nnodes(dg))) do l
-                res = x0
-                for k in eachnode(dg)
-                    res += vandermonde[i, k] *
-                           get_node_coords(node_coordinates, equations, dg, k, l,
+        # Naive versions of multiply_(scalar_)dimensionwise
+        for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+            u_local = u0
+            x_local = x0
+            jacobian_local = zero(eltype(inverse_jacobian))
+            for jj in 1:n_nodes, ii in 1:n_nodes
+                u_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                           get_node_vars(u, equations, dg, ii, jj, element)
+                x_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                           get_node_coords(node_coordinates, equations, dg, ii, jj,
                                            element)
-                end
-                return res
-            end
-            jacobian_x = ntuple(Val(nnodes(dg))) do l
-                res = zero(eltype(inverse_jacobian))
-                for k in eachnode(dg)
-                    res += vandermonde[i, k] * inv(inverse_jacobian[k, l, element])
-                end
-                return res
+                jacobian_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                                  inv(inverse_jacobian[ii, jj, element])
             end
 
-            for j in 1:nnodes_analysis
-                u_local = u0
-                x_local = x0
-                jacobian_local = zero(eltype(inverse_jacobian))
-                for l in eachnode(dg)
-                    u_local += vandermonde[j, l] * u_x[l]
-                    x_local += vandermonde[j, l] * x_x[l]
-                    jacobian_local += vandermonde[j, l] * jacobian_x[l]
-                end
+            # Calculate errors at the analysis node
+            u_exact = initial_condition(x_local, t, equations)
+            diff = func(u_exact, equations) - func(u_local, equations)
+            # We take absolute value as we need the Jacobian here for the volume calculation
+            abs_jacobian_local = abs(jacobian_local)
 
-                # Calculate errors at the analysis node
-                u_exact = initial_condition(x_local, t, equations)
-                diff = func(u_exact, equations) - func(u_local, equations)
-                # We take absolute value as we need the Jacobian here for the volume calculation
-                abs_jacobian_local = abs(jacobian_local)
-
-                l2_error_element += diff .^ 2 *
-                                    (weights[i] * weights[j] * abs_jacobian_local)
-                linf_error_element = @. max(linf_error_element, abs(diff))
-                volume_element += weights[i] * weights[j] * abs_jacobian_local
-            end
+            l2_error_element += diff .^ 2 *
+                                (weights[i] * weights[j] * abs_jacobian_local)
+            linf_error_element = @. max(linf_error_element, abs(diff))
+            volume_element += weights[i] * weights[j] * abs_jacobian_local
         end
 
         return (l2_error_element, linf_error_element, volume_element)
