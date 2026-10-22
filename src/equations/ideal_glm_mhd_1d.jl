@@ -170,8 +170,8 @@ Entropy conserving two-point flux by
   divergence diminishing ideal magnetohydrodynamics equations
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
-                          equations::IdealGlmMhdEquations1D)
+@inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
+                                  equations::IdealGlmMhdEquations1D)
     # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr = u_rr
@@ -303,8 +303,8 @@ end
 An HLLC Riemann solver for magneto-hydrodynamics
 [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020).
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer,
-                   equations::IdealGlmMhdEquations1D)
+@inline function flux_hllc(u_ll, u_rr, orientation::Integer,
+                           equations::IdealGlmMhdEquations1D)
     # Unpack left and right states
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)

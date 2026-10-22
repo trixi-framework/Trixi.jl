@@ -28,7 +28,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 # also works for every MPI rank). The `TRIXI_TEST` value of such a suite selects
 # the items via the equally-named tag; `threaded_legacy` reuses the `threaded`
 # items but is launched on a different Julia version by CI.
-const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions")
+const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions",
+                                "kernelabstractions_mpi")
 const IN_WORKER = haskey(ENV, "TRIXI_TEST_RUN_ITEMS")
 
 # Remove Trixi's output directory `out`, where examples write solution/restart/mesh
@@ -70,10 +71,14 @@ end
 if "kernelabstractions" in SUITES_TO_DISPATCH
     import Trixi
 end
+if "kernelabstractions_mpi" in SUITES_TO_DISPATCH
+    import MPI
+    import Trixi
+end
 
 # The GPU suites run their items only when the respective backend is `functional()`,
-# so requesting `CUDA`/`AMDGPU` on a machine without that GPU warns and runs nothing
-# instead of erroring.
+# so requesting `CUDA`/`AMDGPU`/`Metal` on a machine without that GPU warns and runs
+# nothing instead of erroring.
 RUN_CUDA = false
 if !IN_WORKER && TRIXI_TEST in ("all", "CUDA")
     import CUDA
@@ -86,6 +91,19 @@ if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
     RUN_AMDGPU = AMDGPU.functional()
     RUN_AMDGPU || @warn "Unable to run AMDGPU tests on this machine"
 end
+RUN_METAL = false
+if !IN_WORKER && TRIXI_TEST in ("all", "Metal")
+    import Metal
+    RUN_METAL = Metal.functional()
+    RUN_METAL || @warn "Unable to run Metal tests on this machine"
+end
+# Some Metal test items produce wrong results, crash, or hang on Apple M1/M2 GPUs
+# because of upstream bugs, see https://github.com/JuliaGPU/Metal.jl/issues/1017 and
+# https://github.com/JuliaGPU/Metal.jl/issues/1018. They are tagged `:metal_skip_m1_m2`
+# and skipped on these GPUs.
+SKIP_METAL_M1_M2 = RUN_METAL && occursin(r"^Apple M[12]\b", String(Metal.device().name))
+SKIP_METAL_M1_M2 &&
+    @warn "Skipping Metal test items with known failures on $(Metal.device().name)"
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST_RUN_ITEMS=true` and `TRIXI_TEST=<suite>`.
@@ -111,6 +129,18 @@ function dispatch_special_suite(suite)
         Trixi.set_threading_backend!(:kernelabstractions)
         try
             cmd = `$julia --threads=$TRIXI_NTHREADS --check-bounds=yes --project=$project $(@__FILE__)`
+            run_worker(cmd, suite)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
+        end
+    elseif suite == "kernelabstractions_mpi"
+        # The threading backend is selected via a preference that is read on Julia
+        # startup, so we set it here (in the parent) and restore it afterwards;
+        # the relaunched worker picks it up.
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:kernelabstractions)
+        try
+            cmd = `$(MPI.mpiexec()) -n $TRIXI_MPI_NPROCS $julia --threads=1 --check-bounds=yes --heap-size-hint=0.5G --project=$project $(@__FILE__)`
             run_worker(cmd, suite)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
@@ -152,6 +182,8 @@ else
         # GPU items run only when the respective backend is functional.
         :CUDA in ti.tags && !RUN_CUDA && return false
         :AMDGPU in ti.tags && !RUN_AMDGPU && return false
+        :Metal in ti.tags && !RUN_METAL && return false
+        :metal_skip_m1_m2 in ti.tags && SKIP_METAL_M1_M2 && return false
         return true
     end
     @run_package_tests filter=testitem_filter verbose=TRIXI_TEST_VERBOSE

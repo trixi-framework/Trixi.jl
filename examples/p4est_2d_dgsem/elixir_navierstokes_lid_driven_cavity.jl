@@ -33,18 +33,21 @@ mesh = P4estMesh(trees_per_dimension,
                  periodicity = (false, false))
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
-    Ma = 0.1
-    rho = 1.0
-    u, v = 0.0, 0.0
-    p = 1.0 / (Ma^2 * equations.gamma)
+    RealT = eltype(x)
+    Ma = convert(RealT, 0.1)
+    rho = 1
+    u, v = 0, 0
+    p = 1 / (Ma^2 * equations.gamma)
     return prim2cons(SVector(rho, u, v, p), equations)
 end
 initial_condition = initial_condition_cavity
 
 # BC types
-velocity_bc_lid = NoSlip((x, t, equations_parabolic) -> SVector(1.0, 0.0))
-velocity_bc_cavity = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
-heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
+velocity_bc_lid = NoSlip((x, t, equations_parabolic) -> SVector(one(eltype(x)),
+                                                                zero(eltype(x))))
+velocity_bc_cavity = NoSlip((x, t, equations_parabolic) -> SVector(zero(eltype(x)),
+                                                                   zero(eltype(x))))
+heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
@@ -69,6 +72,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 25.0)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -81,5 +88,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

@@ -78,6 +78,6 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 callbacks = CallbackSet(summary_callback, save_solution, amr_callback,
                         analysis_callback, alive_callback)
-sol = solve(ode, SSPRK43();
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
             abstol = 1e-6, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);
