@@ -37,6 +37,7 @@ alg = NewtonRaphson(autodiff = AutoFiniteDiff())
 sol_steady_state = NonlinearSolveFirstOrder.solve(steady_state_prob, alg)
 
 # Supply steady state solution as initial condition for time-dependent run
+@assert SciMLBase.successful_retcode(sol_steady_state)
 ode.u0 .= sol_steady_state.u
 
 ###############################################################################
