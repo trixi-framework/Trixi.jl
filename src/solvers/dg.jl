@@ -1275,7 +1275,7 @@ end
 # For `DGSEM`, the number of variables and nodes is known at compile time. Wrapping CPU
 # `Vector`s with these static sizes right here (as `wrap_array` did with `PtrArray`s when
 # Trixi.jl used Polyester.jl) lets all kernels use them for their index computations
-# (see `static_view` and `StaticSizeArray`).
+# (see `static_view`).
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             dg::DGSEM, cache)
     u = wrap_storage(u_ode,

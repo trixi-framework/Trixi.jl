@@ -64,11 +64,15 @@ end
                            Bool})
     end
     is_turbo(u) = endswith(string(kernel_method(u).file), "dg_2d_compressible_euler.jl")
+    # a `Vector`-backed `FixedSizeArrayDims` whose first dimension has a static size
+    has_static_sizes(u) = u isa Trixi.FixedSizeArrayDims{<:Any, <:Any,
+                                                   <:Tuple{Val, Vararg{Any}},
+                                                   <:Vector}
 
     # `wrap_array` of the solution vector: for `DGSEM`, a view whose sizes of the
     # variables and nodes are known at compile time
     u = @inferred Trixi.wrap_array(u_ode, semi)
-    @test u isa Trixi.StaticSizeArray
+    @test has_static_sizes(u)
     @test parent(u) === u_ode
     # the plain wrapper of a `Vector` (as `wrap_array` returns for other solvers)
     u_fixed = Trixi.wrap_vector(u_ode, size(u))
@@ -95,7 +99,7 @@ end
 
         # `static_view` creates the view with static sizes
         u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
-        @test u_s isa Trixi.StaticSizeArray
+        @test has_static_sizes(u_s)
         @test typeof(u_s) == typeof(u)
         @test size(u_s) == size(u_fixed)
         @test u_s == u_fixed
@@ -134,7 +138,7 @@ end
         for u_ in (u, u_fixed, u_view, u_ptr)
             du_ = Trixi.wrap_vector(zeros(length(u_ode)), size(u))
             du_wrapped = u_ isa PtrArray ? PtrArray(du_) :
-                         u_ isa Trixi.StaticSizeArray ?
+                         has_static_sizes(u_) ?
                          Trixi.static_view(du_, semi.equations, semi.solver) : du_
             GC.@preserve du_ begin
                 Trixi.flux_differencing_kernel!(du_wrapped, u_, 1, typeof(semi.mesh),

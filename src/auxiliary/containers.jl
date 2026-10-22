@@ -371,19 +371,15 @@ const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
     return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
 end
 
-# A `VectorBackedArray` whose sizes of all but the last dimension are known at compile
-# time (`Val`s), while the size of the last dimension is only known at runtime.
-# This is the typical layout of the solution and its time derivative in Trixi.jl
-# (`[variable, node..., element]`), where the number of variables and nodes is fixed
-# but the number of elements changes, e.g., with AMR. Knowing the strides at compile
-# time simplifies the index computations in performance-critical kernels.
-# As `VectorBackedArray`s, these arrays keep a reference to the `Vector`, so the memory
+# The view is a `FixedSizeArrayDims` backed by the same `Vector` as `A`, with the sizes
+# `(Val(nvariables), Val(nnodes)..., nelements)`. This is the typical layout of the
+# solution and its time derivative in Trixi.jl, where the number of variables and nodes
+# is fixed but the number of elements changes, e.g., with AMR. Knowing the strides at
+# compile time simplifies the index computations in performance-critical kernels.
+# Like `VectorBackedArray`s, these views keep a reference to the `Vector`, so the memory
 # stays alive, and must be re-created after every `resize!` of the `Vector`.
 # Polyester.jl converts them to `PtrArray`s with static sizes via the StaticArrayInterface.jl
-# traits defined in FixedSizeArrays.jl. See `static_view`.
-const StaticSizeArray{T, N} = FixedSizeArrayDims{T, N, <:Tuple{Val, Vararg{Any}},
-                                                 Vector{T}}
-
+# traits defined in FixedSizeArrays.jl.
 """
     static_view(A, equations, dg)
 
@@ -413,7 +409,8 @@ end
 # by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
 # `LoopVectorization.check_args`.
 # With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
-# a `StaticSizeArray` (`DGSEM`) or `VectorBackedArray` for CPU `Vector`s, and a reshaped
+# a `FixedSizeArrayDims` backed by a CPU `Vector` (with static sizes for `DGSEM`, see
+# `static_view`, otherwise a `VectorBackedArray`), and a reshaped
 # contiguous view of an `Array`, e.g., a column of a matrix in `linear_structure` or
 # `jacobian_fd`, or a part of `u_ode` in coupled semidiscretizations. Threading via
 # Polyester.jl may convert them to `PtrArray`s. With other threading backends, the
@@ -421,8 +418,8 @@ end
 # "Heisenbug" note in `@threaded`).
 @static if _PREFERENCE_THREADING === :polyester
     const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
-                             VectorBackedArray{<:LoopVectorization.NativeTypes},
-                             StaticSizeArray{<:LoopVectorization.NativeTypes},
+                             FixedSizeArrayDims{<:LoopVectorization.NativeTypes, <:Any,
+                                                <:Any, <:Vector},
                              Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
                                                 <:Base.FastContiguousSubArray{<:Any, 1,
                                                                               <:Array}} where {N}}
