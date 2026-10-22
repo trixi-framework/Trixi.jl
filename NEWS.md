@@ -92,10 +92,16 @@ for human readability.
   ([#3291]) and nonconforming meshes ([#2894]).
 - `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
   tetrahedral elements ([#3296]).
-- For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
-  unity is now supported, which then results in a different temperature `T` ([#3165])
+- For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R` different from
+  unity is now supported, which then results in a different temperature `T = p / (R * rho)` ([#3165]).
 
 #### Changed
+- A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
+  equations is now always called with the transformed variables (see
+  `gradient_variable_transformation`), i.e., primitive variables with temperature or
+  entropy variables. Previously, the conservative variables were passed when computing
+  the parabolic time step restriction of the `StepsizeCallback` and the viscous stresses
+  in the `AnalysisSurfaceIntegral` ([#3383]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
