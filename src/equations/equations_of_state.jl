@@ -74,6 +74,11 @@ include("equation_of_state_peng_robinson.jl")
 
 include("equations_of_state_helmholtz.jl")
 include("equation_of_state_helmholtz_ideal_gas.jl")
+include("equation_of_state_helmholtz_vdw.jl")
+include("equation_of_state_helmholtz_peng_robinson.jl")
+
+include("equation_of_state_vdw_shared.jl")
+include("equation_of_state_peng_robinson_shared.jl")
 
 #######################################################
 #

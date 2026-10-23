@@ -103,16 +103,6 @@ end
 
 # This is not a required interface function, but specializing it
 # if an explicit function is available can improve performance.
-# For general EOS, this is calculated via a Newton solve.
-function temperature(V, e_internal, eos::VanDerWaals)
-    (; cv, a) = eos
-    rho = inv(V)
-    T = (e_internal + a * rho) / cv
-    return T
-end
-
-# This is not a required interface function, but specializing it
-# if an explicit function is available can improve performance.
 function calc_pressure_derivatives(V, T, eos::VanDerWaals)
     (; a, b, R) = eos
     rho = inv(V)
