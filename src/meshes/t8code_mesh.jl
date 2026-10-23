@@ -1449,8 +1449,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     init_boundary_node_indices!(boundaries, iface, boundary_id)
 
-                    # One-based indexing.
-                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                    # One-based indexing. `boundary_names` is indexed by the global tree
+                    # id since the local tree ids differ between ranks.
+                    boundaries.name[boundary_id] = boundary_names[iface + 1,
+                                                                  global_itree + 1]
 
                     # Interface or mortar.
                 else
