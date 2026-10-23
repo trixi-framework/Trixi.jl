@@ -124,7 +124,8 @@ end
 # of the paper by Rueda-Ramírez, Hennemann, Hindenlang, Winters, and Gassner
 # "An Entropy Stable Nodal Discontinuous Galerkin Method for the resistive
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
-@inline function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D)
+@inline function flux(u, gradients, orientation::Integer,
+                      equations::ViscoResistiveMhd2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
     rho, v1, v2, v3, T, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
 
