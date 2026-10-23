@@ -15,7 +15,7 @@ surface_flux = (flux_hlle,
 
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
-limiter_idp = SubcellLimiterIDP(equations, basis;)
+limiter_idp = SubcellLimiterIDP(equations, basis; bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
