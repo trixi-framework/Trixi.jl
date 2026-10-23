@@ -1,3 +1,4 @@
+# Container is for both `TreeMesh` and `P4estMesh`
 mutable struct ParabolicContainer3D{uEltype <: Real,
                                     ArrayuEltype5D <: AbstractArray{uEltype, 5},
                                     VectoruEltype <: AbstractVector{uEltype}} <:

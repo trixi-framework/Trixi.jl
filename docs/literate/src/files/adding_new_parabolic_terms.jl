@@ -91,6 +91,7 @@ end
 
 @inline function (boundary_condition::BoundaryConditionConstantDirichlet)(flux_inner,
                                                                           u_inner,
+                                                                          gradients_inner,
                                                                           normal::AbstractVector,
                                                                           x, t,
                                                                           operator_type::Trixi.Gradient,
@@ -109,6 +110,7 @@ end
 
 @inline function (boundary_condition::BoundaryConditionConstantDirichlet)(flux_inner,
                                                                           u_inner,
+                                                                          gradients_inner,
                                                                           normal::AbstractVector,
                                                                           x, t,
                                                                           operator_type::Trixi.Divergence,
