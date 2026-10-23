@@ -40,12 +40,12 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
-- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D and 3D `P4estMesh`s,
   i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
   CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
-  `P4estMesh` ([#3313]).
+  `P4estMesh` ([#3313], [#3381]).
 - `boundary_condition_slip_wall` and the less diffusive wave speed estimate
   `max_abs_speed` are now available for `PassiveTracerEquations` ([#3319]).
 - New entropy-stable surface flux `FluxTracerEquationsUpwind` for `PassiveTracerEquations`,
