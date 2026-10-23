@@ -603,8 +603,24 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    # There's no simple and generic way to distinguish boundaries, yet. Name all of them :all.
-    boundary_names = fill(:all, 2 * NDIMS, t8_cmesh_get_num_trees(cmesh))
+    # Use the boundary names stored in the cmesh (e.g., read from a msh file) if available.
+    # Faces without a name keep the name `:all`.
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    boundary_names = fill(:all, 2 * NDIMS, num_trees)
+
+    if t8_cmesh_has_boundary_conditions(cmesh) != 0
+        names_ptr = Vector{Cstring}(undef, T8_ECLASS_MAX_FACES)
+        num_names = Ref{Csize_t}()
+        for itree in 0:(num_trees - 1)
+            t8_cmesh_get_boundary_conditions(cmesh, itree, names_ptr, num_names)
+            @assert num_names[] == 2 * NDIMS
+            for iface in 1:num_names[]
+                Ptr{UInt8}(names_ptr[iface]) == C_NULL && continue
+                name = unsafe_string(names_ptr[iface])
+                isempty(name) || (boundary_names[iface, itree + 1] = Symbol(name))
+            end
+        end
+    end
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
                                     mapping = mapping,
