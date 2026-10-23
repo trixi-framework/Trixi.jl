@@ -870,6 +870,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion1D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion1D(equations,
                                                                                     mu = mu,
@@ -976,6 +977,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion1D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations1D{Float32}
@@ -993,6 +995,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion2D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion2D(equations,
                                                                                     mu = mu,
@@ -1109,6 +1112,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion2D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations2D{Float32}
@@ -1126,6 +1130,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion3D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion3D(equations,
                                                                                     mu = mu,
@@ -1248,6 +1253,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion3D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations3D{Float32}
@@ -1266,6 +1272,7 @@ end
         equations_parabolic_1d = CompressibleNavierStokesDiffusion1D(equations_1d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_1d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(4.0)), equations_1d)
         w_1d = cons2entropy(u_1d, equations_parabolic_1d)
@@ -1278,6 +1285,7 @@ end
         equations_parabolic_2d = CompressibleNavierStokesDiffusion2D(equations_2d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_2d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(4.0)),
                          equations_2d)
@@ -1291,6 +1299,7 @@ end
         equations_parabolic_3d = CompressibleNavierStokesDiffusion3D(equations_3d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_3d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(0.3),
                                  RealT(4.0)), equations_3d)
