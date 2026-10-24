@@ -29,7 +29,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
             u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
                                                                       elements_to_refine,
                                                                       mesh,
-                                                                      equations, dg,
+                                                                      equations,
+                                                                      dg,
                                                                       cache)
         end
     end
