@@ -226,11 +226,10 @@ and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-re
 """
 macro threaded(expr)
     # !!! danger "Heisenbug"
-    #     `Threads.@threads` combined with `PtrArray`s once caused sporadic, huge
-    #     slowdowns (see https://github.com/trixi-framework/Trixi.jl/pull/509).
-    #     Currently, `wrap_array` does not return `PtrArray`s; only `@batch` from
-    #     Polyester.jl creates them. Keep this in mind when considering to change
-    #     this macro.
+    #     `@batch` from Polyester.jl creates `PtrArray`s. Combining these with
+    #     `Threads.@threads` caused sporadic, huge slowdowns (see
+    #     https://github.com/trixi-framework/Trixi.jl/pull/509). Keep this in mind
+    #     when considering to change this macro.
     expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization
