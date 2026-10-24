@@ -28,11 +28,14 @@ end
 end
 
 # Workaround for https://github.com/JuliaArrays/FixedSizeArrays.jl/issues/200:
-# On Julia v1.13 and newer, `fill!` of views of `FixedSizeArray`s does not vectorize
-# since the bounds checks cannot be elided. Thus, we set the contiguous memory of the
-# `element` in the parent `Vector` directly. This method is not used for the views with
-# static sizes returned by `wrap_array` for `DGSEM` (see `static_view`), for which the
-# broadcast above is faster (the loop below compiles to a `memset` call per element).
+# FixedSizeArrays.jl v1.5 fixed `fill!` of `FixedSizeArray`s themselves, but not of views
+# of them. When `fill!` of views is called in a loop over the elements as above, the bounds
+# checks are not elided and the loop does not vectorize on Julia v1.10 and v1.13 (the
+# latter is fixed in Julia v1.14 by JuliaLang/julia#63626). Thus, we set the contiguous
+# memory of the `element` in the parent `Vector` directly. This method is not used for the
+# views with static sizes returned by `wrap_array` for `DGSEM` (see `static_view`), for
+# which the broadcast above is faster (the loop below compiles to a `memset` call per
+# element).
 @inline function set_zero_element!(du::VectorBackedArray, element)
     n = length(du) ÷ size(du, ndims(du))
     data = parent(du)
