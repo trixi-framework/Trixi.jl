@@ -31,11 +31,11 @@ function Base.resize!(elements::TreeElementContainer1D, capacity)
     resize!(inverse_jacobian, capacity)
 
     resize!(_node_coordinates, 1 * n_nodes * capacity)
-    elements.node_coordinates = wrap_vector(_node_coordinates, (1, n_nodes, capacity))
+    elements.node_coordinates = wrap_storage(_node_coordinates, (1, n_nodes, capacity))
 
     resize!(_surface_flux_values, n_variables * 2 * 1 * capacity)
-    elements.surface_flux_values = wrap_vector(_surface_flux_values,
-                                               (n_variables, 2 * 1, capacity))
+    elements.surface_flux_values = wrap_storage(_surface_flux_values,
+                                                (n_variables, 2 * 1, capacity))
 
     resize!(cell_ids, capacity)
 
@@ -52,11 +52,11 @@ function TreeElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
     inverse_jacobian = fill(nan_RealT, capacity)
 
     _node_coordinates = fill(nan_RealT, 1 * n_nodes * capacity)
-    node_coordinates = wrap_vector(_node_coordinates, (1, n_nodes, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (1, n_nodes, capacity))
 
     _surface_flux_values = fill(nan_uEltype, n_variables * 2 * 1 * capacity)
-    surface_flux_values = wrap_vector(_surface_flux_values,
-                                      (n_variables, 2 * 1, capacity))
+    surface_flux_values = wrap_storage(_surface_flux_values,
+                                       (n_variables, 2 * 1, capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
@@ -154,10 +154,10 @@ function Base.resize!(interfaces::TreeInterfaceContainer1D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * capacity)
-    interfaces.u = wrap_vector(_u, (2, n_variables, capacity))
+    interfaces.u = wrap_storage(_u, (2, n_variables, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
+    interfaces.neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     resize!(orientations, capacity)
 
@@ -170,10 +170,10 @@ function TreeInterfaceContainer1D{uEltype}(capacity::Integer,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * capacity)
-    u = wrap_vector(_u, (2, n_variables, capacity))
+    u = wrap_storage(_u, (2, n_variables, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
-    neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
+    neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     orientations = fill(typemin(Int), capacity)
 
@@ -308,10 +308,10 @@ function Base.resize!(boundaries::TreeBoundaryContainer1D, capacity)
     neighbor_ids, orientations, neighbor_sides = boundaries
 
     resize!(_u, 2 * n_variables * capacity)
-    boundaries.u = wrap_vector(_u, (2, n_variables, capacity))
+    boundaries.u = wrap_storage(_u, (2, n_variables, capacity))
 
     resize!(_node_coordinates, 1 * capacity)
-    boundaries.node_coordinates = wrap_vector(_node_coordinates, (1, capacity))
+    boundaries.node_coordinates = wrap_storage(_node_coordinates, (1, capacity))
 
     resize!(neighbor_ids, capacity)
 
@@ -330,7 +330,7 @@ function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer,
 
     # Initialize fields with defaults
     _u = fill(nan_uEltype, 2 * n_variables * capacity)
-    u = wrap_vector(_u, (2, n_variables, capacity))
+    u = wrap_storage(_u, (2, n_variables, capacity))
 
     neighbor_ids = fill(typemin(Int), capacity)
 
@@ -339,7 +339,7 @@ function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer,
     neighbor_sides = fill(typemin(Int), capacity)
 
     _node_coordinates = fill(nan_RealT, 1 * capacity)
-    node_coordinates = wrap_vector(_node_coordinates, (1, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (1, capacity))
 
     n_boundaries_per_direction = SVector(0, 0)
 

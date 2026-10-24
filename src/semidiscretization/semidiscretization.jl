@@ -694,12 +694,10 @@ end
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.
 #
-# Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` returns a
-# `VectorBackedArray` (if `u_ode` is a `Vector`) or uses `reshape` (otherwise, see
-# `wrap_storage`). For `DGSEM`, the `Vector` is wrapped in a `FixedSizeArrayDims` with
-# the number of variables and nodes as static sizes instead (see `static_view`). All of
-# them keep a reference to `u_ode`, so temporaries such as copies of `u_ode` that are only
-# used indirectly via `wrap_array` do not need to be `GC.@preserve`d.
+# Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` uses
+# `wrap_storage`. The result keeps a reference to `u_ode`, so temporaries such as copies
+# of `u_ode` that are only used indirectly via `wrap_array` do not need to be
+# `GC.@preserve`d (in contrast to the `unsafe_wrap`ped arrays used previously).
 #
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
 function wrap_array(u_ode, semi::AbstractSemidiscretization)

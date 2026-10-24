@@ -99,18 +99,19 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_mpi_interfaces)
-    u = wrap_vector(_u,
-                    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                     n_mpi_interfaces))
+    u = wrap_storage(_u,
+                     (2, nvariables(equations),
+                      ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                      n_mpi_interfaces))
 
     # The normal directions are set by `init_normal_directions!` and
     # `exchange_normal_directions!` after the MPI cache has been initialized
     _normal_directions = Vector{RealT}(undef,
                                        NDIMS * nnodes(basis)^(NDIMS - 1) *
                                        n_mpi_interfaces)
-    normal_directions = wrap_vector(_normal_directions,
-                                    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     n_mpi_interfaces))
+    normal_directions = wrap_storage(_normal_directions,
+                                     (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                      n_mpi_interfaces))
 
     local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
@@ -219,14 +220,14 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     resize!(mpi_mortars.local_neighbor_positions, capacity)
 
     resize!(_node_indices, 2 * capacity)
-    mpi_mortars.node_indices = wrap_vector(_node_indices, (2, capacity))
+    mpi_mortars.node_indices = wrap_storage(_node_indices, (2, capacity))
 
     resize!(_normal_directions,
             n_dims * n_nodes^(n_dims - 1) * 2^(n_dims - 1) * capacity)
-    mpi_mortars.normal_directions = wrap_vector(_normal_directions,
-                                                (n_dims,
-                                                 ntuple(_ -> n_nodes, n_dims - 1)...,
-                                                 2^(n_dims - 1), capacity))
+    mpi_mortars.normal_directions = wrap_storage(_normal_directions,
+                                                 (n_dims,
+                                                  ntuple(_ -> n_nodes, n_dims - 1)...,
+                                                  2^(n_dims - 1), capacity))
 
     return nothing
 end
@@ -244,22 +245,22 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * 2^(NDIMS - 1) *
                          nnodes(basis)^(NDIMS - 1) * n_mpi_mortars)
-    u = wrap_vector(_u,
-                    (2, nvariables(equations), 2^(NDIMS - 1),
-                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
+    u = wrap_storage(_u,
+                     (2, nvariables(equations), 2^(NDIMS - 1),
+                      ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mpi_mortars))
 
     local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
     local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
-    node_indices = wrap_vector(_node_indices, (2, n_mpi_mortars))
+    node_indices = wrap_storage(_node_indices, (2, n_mpi_mortars))
 
     _normal_directions = Vector{RealT}(undef,
                                        NDIMS * nnodes(basis)^(NDIMS - 1) *
                                        2^(NDIMS - 1) * n_mpi_mortars)
-    normal_directions = wrap_vector(_normal_directions,
-                                    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     2^(NDIMS - 1), n_mpi_mortars))
+    normal_directions = wrap_storage(_normal_directions,
+                                     (NDIMS, ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                      2^(NDIMS - 1), n_mpi_mortars))
 
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
                                           NDIMS + 3, typeof(u),
