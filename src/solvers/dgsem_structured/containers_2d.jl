@@ -308,13 +308,11 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
 
     _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
     normal_vectors_1 = wrap_vector(_normal_vectors_1,
-                                   (2, n_nodes - 1, n_nodes,
-                                    n_elements))
+                                   (2, n_nodes - 1, n_nodes, n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
     normal_vectors_2 = wrap_vector(_normal_vectors_2,
-                                   (2, n_nodes, n_nodes - 1,
-                                    n_elements))
+                                   (2, n_nodes, n_nodes - 1, n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
@@ -348,15 +346,11 @@ function Base.resize!(normal_vectors::NormalVectorContainer2D, capacity)
 
     resize!(_normal_vectors_1, 2 * (n_nodes - 1) * n_nodes * capacity)
     normal_vectors.normal_vectors_1 = wrap_storage(_normal_vectors_1,
-                                                   (2,
-                                                    n_nodes - 1, n_nodes,
-                                                    capacity))
+                                                   (2, n_nodes - 1, n_nodes, capacity))
 
     resize!(_normal_vectors_2, 2 * n_nodes * (n_nodes - 1) * capacity)
     normal_vectors.normal_vectors_2 = wrap_storage(_normal_vectors_2,
-                                                   (2,
-                                                    n_nodes, n_nodes - 1,
-                                                    capacity))
+                                                   (2, n_nodes, n_nodes - 1, capacity))
 
     return nothing
 end

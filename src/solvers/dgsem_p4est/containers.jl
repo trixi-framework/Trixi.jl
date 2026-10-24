@@ -107,15 +107,13 @@ function Base.resize!(elements::P4estElementContainer, capacity)
 
     resize!(_node_coordinates, n_dims * n_nodes^n_dims * capacity)
     elements.node_coordinates = wrap_storage(_node_coordinates,
-                                             (n_dims,
-                                              ntuple(_ -> n_nodes, n_dims)...,
+                                             (n_dims, ntuple(_ -> n_nodes, n_dims)...,
                                               capacity))
 
     resize!(_jacobian_matrix, n_dims^2 * n_nodes^n_dims * capacity)
     elements.jacobian_matrix = wrap_storage(_jacobian_matrix,
                                             (n_dims, n_dims,
-                                             ntuple(_ -> n_nodes, n_dims)...,
-                                             capacity))
+                                             ntuple(_ -> n_nodes, n_dims)..., capacity))
 
     resize!(_contravariant_vectors, length(_jacobian_matrix))
     elements.contravariant_vectors = wrap_storage(_contravariant_vectors,
@@ -130,8 +128,7 @@ function Base.resize!(elements::P4estElementContainer, capacity)
             n_variables * n_nodes^(n_dims - 1) * (n_dims * 2) * capacity)
     elements.surface_flux_values = wrap_storage(_surface_flux_values,
                                                 (n_variables,
-                                                 ntuple(_ -> n_nodes,
-                                                        n_dims - 1)...,
+                                                 ntuple(_ -> n_nodes, n_dims - 1)...,
                                                  n_dims * 2, capacity))
 
     return nothing
@@ -212,14 +209,10 @@ function Adapt.adapt_structure(to,
     uEltype = eltype(_surface_flux_values)
 
     # Wrap arrays again
-    node_coordinates = wrap_storage(_node_coordinates,
-                                    size(elements.node_coordinates))
-    jacobian_matrix = wrap_storage(_jacobian_matrix,
-                                   size(elements.jacobian_matrix))
-    contravariant_vectors = wrap_storage(_contravariant_vectors,
-                                         size(jacobian_matrix))
-    inverse_jacobian = wrap_storage(_inverse_jacobian,
-                                    size(elements.inverse_jacobian))
+    node_coordinates = wrap_storage(_node_coordinates, size(elements.node_coordinates))
+    jacobian_matrix = wrap_storage(_jacobian_matrix, size(elements.jacobian_matrix))
+    contravariant_vectors = wrap_storage(_contravariant_vectors, size(jacobian_matrix))
+    inverse_jacobian = wrap_storage(_inverse_jacobian, size(elements.inverse_jacobian))
     surface_flux_values = wrap_storage(_surface_flux_values,
                                        size(elements.surface_flux_values))
 
@@ -321,8 +314,7 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 
     resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
     interfaces.u = wrap_storage(_u,
-                                (2, n_variables,
-                                 ntuple(_ -> n_nodes, n_dims - 1)...,
+                                (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                  capacity))
 
     if _normal_directions === nothing # trivial interface normals, e.g. for Lobatto-Legendre basis
@@ -337,12 +329,10 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
     end
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = wrap_storage(_neighbor_ids,
-                                           (2, capacity))
+    interfaces.neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     resize!(_node_indices, 2 * capacity)
-    interfaces.node_indices = wrap_storage(_node_indices,
-                                           (2, capacity))
+    interfaces.node_indices = wrap_storage(_node_indices, (2, capacity))
 
     return nothing
 end
@@ -436,10 +426,8 @@ function Adapt.adapt_structure(to,
     normal_directions = _normal_directions === nothing ? nothing : # Check if interface normals are trivial
                         wrap_storage(_normal_directions,
                                      size(interfaces.normal_directions))
-    neighbor_ids = wrap_storage(_neighbor_ids,
-                                size(interfaces.neighbor_ids))
-    node_indices = wrap_storage(_node_indices,
-                                size(interfaces.node_indices))
+    neighbor_ids = wrap_storage(_neighbor_ids, size(interfaces.neighbor_ids))
+    node_indices = wrap_storage(_node_indices, size(interfaces.node_indices))
 
     new_type_params = (NDIMS,
                        RealT, eltype(_u),
@@ -511,8 +499,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 
     resize!(_u, n_variables * n_nodes^(n_dims - 1) * capacity)
     boundaries.u = wrap_storage(_u,
-                                (n_variables,
-                                 ntuple(_ -> n_nodes, n_dims - 1)...,
+                                (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                  capacity))
 
     resize!(neighbor_ids, capacity)
@@ -687,8 +674,7 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
                               ntuple(_ -> n_nodes, n_dims - 1)..., capacity))
 
     resize!(_neighbor_ids, (2^(n_dims - 1) + 1) * capacity)
-    mortars.neighbor_ids = wrap_storage(_neighbor_ids,
-                                        (2^(n_dims - 1) + 1, capacity))
+    mortars.neighbor_ids = wrap_storage(_neighbor_ids, (2^(n_dims - 1) + 1, capacity))
 
     resize!(_node_indices, 2 * capacity)
     mortars.node_indices = wrap_storage(_node_indices, (2, capacity))
