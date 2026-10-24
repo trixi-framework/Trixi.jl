@@ -95,6 +95,10 @@ for human readability.
 - For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
   different from unity is now supported, which then results in a different temperature
   `T = p / (R * rho)` ([#3165], [#3383]).
+- Trixi.jl now supports KernelAbstractions.jl v0.10 (and AcceleratedKernels.jl v0.5) in
+  addition to v0.9. Note that the `CPU` backend of KernelAbstractions.jl v0.10 compiles
+  kernels like the GPU backends and runs them with PoCL, so the performance of the
+  threading backend `:kernelabstractions` can differ from v0.9.
 
 #### Changed
 - A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
