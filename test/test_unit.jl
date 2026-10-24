@@ -613,9 +613,10 @@ end
 end
 
 @testitem "Unit: AMR with non-isbits element type" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    # `wrap_array` and the containers keep a reference to the `resize!`able vectors
-    # instead of using `unsafe_wrap`, so AMR also works for non-`isbits` element types
-    # such as `BigFloat` (also on Julia v1.10, where `reshape`d arrays cannot be resized).
+    # AMR must also work for non-`isbits` element types such as `BigFloat`, including
+    # on Julia v1.10 (see `wrap_storage`). Refining and coarsening must not read the
+    # newly allocated (uninitialized) memory of the resized solution, which is `#undef`
+    # for such element types.
     using OrdinaryDiffEqLowStorageRK: CarpenterKennedy2N54, solve
     function run_amr(RealT)
         equations = LinearScalarAdvectionEquation1D(1.0)
