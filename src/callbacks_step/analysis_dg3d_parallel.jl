@@ -13,6 +13,13 @@ function calc_error_norms(func, u, t, analyzer,
     @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
 
+    # Calculate error norms on the CPU, to ensure the order of summation is the same.
+    if trixi_backend(u) !== nothing
+        node_coordinates = Array(node_coordinates)
+        inverse_jacobian = Array(inverse_jacobian)
+        u = Array(u)
+    end
+
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
     linf_error = copy(l2_error)
@@ -49,7 +56,7 @@ function calc_error_norms(func, u, t, analyzer,
     return reduce_error_norms_mpi(l2_error, linf_error, volume)
 end
 
-function integrate_via_indices(func::Func, u,
+function integrate_via_indices(func::Func, backend::Nothing, u,
                                mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
@@ -73,6 +80,47 @@ function integrate_via_indices(func::Func, u,
                         func(u, i, j, k, element, equations, dg, args...)
             volume += volume_jacobian * weights[i] * weights[j] * weights[k]
         end
+    end
+
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
+end
+
+function integrate_via_indices(func::Func, backend::Backend, u,
+                               mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
+                               equations,
+                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    function local_plus((integral, total_volume), (integral_element, volume_element))
+        return (integral + integral_element, total_volume + volume_element)
+    end
+
+    # `func(u, 1,1,1,1, equations, dg, args...)` might access GPU memory
+    # so we have to rely on the compiler to correctly infer the type of the integral here.
+    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
+    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
+                                     typeof(equations), typeof(dg),
+                                     map(typeof, args)...))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (integral0, volume0)
+
+    # Use quadrature to numerically integrate over entire domain
+    num_elements = nelements(dg, cache)
+    integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
+                                                    backend; init,
+                                                    neutral) do element
+        # Initialize integral with zeros of the right shape
+        local_integral, local_total_volume = neutral
+
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, k, element]))
+            local_integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
+                              func(u, i, j, k, element, equations, dg, args...)
+            local_total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
+        end
+
+        return (local_integral, local_total_volume)
     end
 
     return reduce_integral_and_volume_mpi(integral, volume, normalize)

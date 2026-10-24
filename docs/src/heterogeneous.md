@@ -57,12 +57,12 @@ are supported on conforming (non-adaptive) `P4estMesh{2}`s and `P4estMesh{3}`s a
 see, e.g., `examples/p4est_2d_dgsem/elixir_navierstokes_lid_driven_cavity.jl` and
 `examples/p4est_3d_dgsem/elixir_navierstokes_convergence.jl`.
 
-Hyperbolic problems on conforming `P4estMesh`es in 2D can also be run on multiple GPUs
-with MPI, using one MPI rank per GPU. The setup is the same as above, and the elixir is
-started with MPI as described in [Parallelization](@ref parallel_system_MPI).
+Hyperbolic problems on conforming `P4estMesh`es in 2D and 3D can also be run on
+multiple GPUs with MPI, using one MPI rank per GPU. The setup is the same as above, and
+the elixir is started with MPI as described in [Parallelization](@ref parallel_system_MPI).
 This requires a local CUDA/ROCm-aware MPI installation, since the MPI buffers are stored
-on the GPU and passed directly to MPI. Mixed hyperbolic-parabolic problems, 3D meshes,
-and non-conforming meshes (mortars, AMR) are not supported with multiple GPUs yet.
+on the GPU and passed directly to MPI. Mixed hyperbolic-parabolic problems and
+non-conforming meshes (mortars, AMR) are not supported with multiple GPUs yet.
 See the section on
 [GPU-aware MPI support](https://juliaparallel.org/MPI.jl/stable/usage/#GPU-aware-MPI-support)
 in the MPI.jl documentation for details, including example scripts such as

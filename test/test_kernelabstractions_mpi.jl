@@ -83,3 +83,80 @@ end
                         ],
                         tspan=(0.0, 0.1))
 end
+
+@testitem "KernelAbstractions MPI CPU 3D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[0.00016263963870641478],
+                        linf=[0.0014537194925779984])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float64}
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+# The unstructured mesh contains MPI interfaces with flipped orientations
+@testitem "KernelAbstractions MPI CPU 3D: elixir_advection_unstructured_curved.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_unstructured_curved.jl"),
+                        # Expected errors agree with the non-MPI version up to round-off
+                        l2=[0.0004750004258546538],
+                        linf=[0.026527551737137167])
+end
+
+@testitem "KernelAbstractions MPI CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=[
+                            0.00016680585980070498,
+                            0.0005174249857687416,
+                            0.00027338410141732186,
+                            0.0006282227969118499,
+                            0.0006628677315607643,
+                            0.0005583953631900831,
+                            0.000181088291202701,
+                            0.0006112889578653593,
+                            0.00023674944227366533
+                        ],
+                        linf=[
+                            0.0009684118857454793,
+                            0.0032142734886018848,
+                            0.001806828008193248,
+                            0.0030945203920691444,
+                            0.0037003192368261217,
+                            0.0031660143839563615,
+                            0.0011578323492360543,
+                            0.003133093207396312,
+                            0.0008290351027180755
+                        ],
+                        tspan=(0.0, 0.1))
+end
