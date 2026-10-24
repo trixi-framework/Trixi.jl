@@ -71,6 +71,7 @@ jobs:
           # - mpi
           # - threaded
           - downgrade
+          - kernelabstractions
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
@@ -85,24 +86,13 @@ jobs:
           # not save the corrupted files to the cache, which would lead to the same
           # issues again in the next run.
           save-always: 'false'
-      - uses: julia-actions/julia-downgrade-compat@v2
-        with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
-          projects: ., test
-          mode: forcedeps
-      # We run the tests manually instead of using julia-action/julia-builpkg and julia-action/julia-runtest or `Pkg.test`
-      # because otherwise the downgraded Manifest.toml is not used in the tests under julia <v1.12
-      # see also https://github.com/julia-actions/julia-downgrade-compat/blob/00f940b7be2b50389571ed016d603be561649103/README.md#L89
+      # The script downgrades the packages using julia-actions/julia-downgrade-compat and
+      # runs the tests in the same way as the GPU jobs on Buildkite
       - name: Run tests
-        run: |
-          julia --project=test --color=yes -e '
-            import Pkg
-            Pkg.develop(Pkg.PackageSpec(path=pwd()))
-            Pkg.instantiate()
-            Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
-            include("test/runtests.jl")
-          '
+        run: julia --color=yes test/run_ci_tests.jl
         env:
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # Downgrade the packages independently of the Julia version
+          TRIXI_TEST_DOWNGRADE: "true"
           # Print every `@testitem` (with its run time) in the test summary.
           TRIXI_TEST_VERBOSE: "true"
