@@ -228,12 +228,13 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     `Threads.@threads` combined with `PtrArray`s once caused sporadic, huge
     #     slowdowns (see https://github.com/trixi-framework/Trixi.jl/pull/509).
-    #     Thus, `wrap_array` does not return `PtrArray`s; only `@batch` from
+    #     Currently, `wrap_array` does not return `PtrArray`s; only `@batch` from
     #     Polyester.jl creates them. Keep this in mind when considering to change
     #     this macro.
     expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
-        # bypasses the Julia task scheduler and provides parallelization with less overhead.
+        # bypasses the Julia task scheduler and provides parallelization
+        # with less overhead.
         quote
             $Trixi.@batch $(expr)
         end
@@ -242,8 +243,8 @@ macro threaded(expr)
         # The following code is a simple version using only `Threads.@threads` from the
         # standard library with an additional check whether only a single thread is used
         # to reduce some overhead (and allocations) for serial execution.
-        # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
-        # for loops that do not yet support GPU execution.
+        # If we want to execute on KernelAbstractions, we use the static backend here
+        # to fallback on, for loops that do not yet support GPU execution.
         quote
             let
                 if $Threads.nthreads() == 1
