@@ -74,7 +74,7 @@ end
     @test has_static_sizes(u)
     @test parent(u) === u_ode
     # the plain wrapper of a `Vector` (as `wrap_array` returns for other solvers)
-    u_fixed = Trixi.wrap_vector(u_ode, size(u))
+    u_fixed = Trixi.wrap_storage(u_ode, size(u))
     @test u_fixed isa Trixi.VectorBackedArray
     # `wrap_array` of a contiguous view, e.g., a column of a matrix as in
     # `jacobian_fd` and `linear_structure`
@@ -107,8 +107,8 @@ end
         # It is created in every call of `wrap_array`, so it must not allocate. The
         # allocation tests of the elixirs allow a few bytes and do not catch this. We use
         # many elements since Julia does not allocate when boxing small integers.
-        u_large = Trixi.wrap_vector(zeros(length(u) * 1000),
-                                    (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
+        u_large = Trixi.wrap_storage(zeros(length(u) * 1000),
+                                     (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
         function static_view_allocs(u, equations, dg)
             return @allocated Trixi.static_view(u, equations, dg)
         end
@@ -129,7 +129,7 @@ end
                du_baseline, u, 1, typeof(semi.mesh), have_nonconservative_terms,
                semi.equations, volume_flux, semi.solver, semi.cache, true)
         for u_ in (u, u_fixed, u_view, u_ptr)
-            du_ = Trixi.wrap_vector(zeros(length(u_ode)), size(u))
+            du_ = Trixi.wrap_storage(zeros(length(u_ode)), size(u))
             du_wrapped = u_ isa PtrArray ? PtrArray(du_) :
                          has_static_sizes(u_) ?
                          Trixi.static_view(du_, semi.equations, semi.solver) : du_
