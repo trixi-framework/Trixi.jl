@@ -489,14 +489,11 @@ mutable struct NormalVectorContainer3D{RealT <: Real} <:
                AbstractNormalVectorContainer
     const n_nodes::Int
     # For normal vectors computed from first contravariant vectors
-    # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
-    normal_vectors_1::VectorBackedArray{RealT, 5}
+    normal_vectors_1::VectorBackedArray{RealT, 5} # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
     # For normal vectors computed from second contravariant vectors
-    # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
-    normal_vectors_2::VectorBackedArray{RealT, 5}
+    normal_vectors_2::VectorBackedArray{RealT, 5} # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
     # For normal vectors computed from third contravariant vectors
-    # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
-    normal_vectors_3::VectorBackedArray{RealT, 5}
+    normal_vectors_3::VectorBackedArray{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
 
     # internal `resize!`able storage
     _normal_vectors_1::Vector{RealT}
