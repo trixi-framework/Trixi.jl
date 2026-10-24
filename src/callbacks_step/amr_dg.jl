@@ -18,10 +18,11 @@ function rebalance_solver!(u_ode::AbstractVector,
        old_global_first_quadrant[mpi_rank() + 1] &&
        global_first_quadrant[mpi_rank() + 2] ==
        old_global_first_quadrant[mpi_rank() + 2]
-        # Global ids of first and last local quadrants are the same for newly partitioned mesh so the
-        # solver does not need to be rebalanced on this rank.
-        # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
-        # locally (there are other MPI ranks that need to be rebalanced if this function is called)
+        # Global ids of first and last local quadrants are the same for newly
+        # partitioned mesh so the solver does not need to be rebalanced on this
+        # rank. Container init uses all-to-all communication -> reinitialize
+        # even if there is nothing to do locally (there are other MPI ranks
+        # that need to be rebalanced if this function is called).
         reinitialize_containers!(mesh, equations, dg, cache)
         return
     end
@@ -45,8 +46,8 @@ function rebalance_solver!(u_ode::AbstractVector,
         # Find elements that will change their rank and send their data to the new rank
         for old_element_id in 1:old_n_elements
             # Get global quad ID of old element; local quad id is element id - 1
-            global_quad_id = old_global_first_quadrant[mpi_rank() + 1] +
-                             old_element_id - 1
+            global_quad_id = (old_global_first_quadrant[mpi_rank() + 1] +
+                              old_element_id - 1)
             if !(global_first_quadrant[mpi_rank() + 1] <= global_quad_id <
                  global_first_quadrant[mpi_rank() + 2])
                 # Send element data to new rank, use global_quad_id as tag (non-blocking)
@@ -67,8 +68,8 @@ function rebalance_solver!(u_ode::AbstractVector,
             if old_global_first_quadrant[mpi_rank() + 1] <= global_quad_id <
                old_global_first_quadrant[mpi_rank() + 2]
                 # Quad ids are 0-based, element ids are 1-based, hence add 1
-                old_element_id = global_quad_id -
-                                 old_global_first_quadrant[mpi_rank() + 1] + 1
+                old_element_id = (global_quad_id -
+                                  old_global_first_quadrant[mpi_rank() + 1] + 1)
                 # Copy old element data to new element container
                 @views u[:, .., element] .= old_u[:, .., old_element_id]
             else
