@@ -160,7 +160,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     skip = 0
     element_id = 1
     for old_element_id in 1:old_n_elements
-        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the
+        # following elements
         if skip > 0
             skip -= 1
             continue

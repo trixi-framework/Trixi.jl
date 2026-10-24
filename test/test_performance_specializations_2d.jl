@@ -66,8 +66,7 @@ end
     is_turbo(u) = endswith(string(kernel_method(u).file), "dg_2d_compressible_euler.jl")
     # a `Vector`-backed `FixedSizeArrayDims` whose first dimension has a static size
     has_static_sizes(u) = u isa Trixi.FixedSizeArrayDims{<:Any, <:Any,
-                                                   <:Tuple{Val, Vararg{Any}},
-                                                   <:Vector}
+                                                   <:Tuple{Val, Vararg{Any}}, <:Vector}
 
     # `wrap_array` of the solution vector: for `DGSEM`, a view whose sizes of the
     # variables and nodes are known at compile time
@@ -117,8 +116,9 @@ end
         # many elements since Julia does not allocate when boxing small integers.
         u_large = Trixi.wrap_vector(zeros(length(u) * 1000),
                                     (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
-        static_view_allocs(u, equations, dg) = @allocated Trixi.static_view(u, equations,
-                                                                            dg)
+        function static_view_allocs(u, equations, dg)
+            return @allocated Trixi.static_view(u, equations, dg)
+        end
         static_view_allocs(u_large, semi.equations, semi.solver)
         @test static_view_allocs(u_large, semi.equations, semi.solver) == 0
         # Polyester.jl converts it to a `PtrArray` with static sizes
@@ -142,9 +142,8 @@ end
                          Trixi.static_view(du_, semi.equations, semi.solver) : du_
             GC.@preserve du_ begin
                 Trixi.flux_differencing_kernel!(du_wrapped, u_, 1, typeof(semi.mesh),
-                                                have_nonconservative_terms,
-                                                semi.equations, volume_flux,
-                                                semi.solver, semi.cache, true)
+                                                have_nonconservative_terms, semi.equations,
+                                                volume_flux, semi.solver, semi.cache, true)
             end
             @test du_[:, :, :, 1] ≈ du_baseline[:, :, :, 1]
         end

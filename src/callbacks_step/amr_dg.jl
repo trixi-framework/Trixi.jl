@@ -74,8 +74,7 @@ function rebalance_solver!(u_ode::AbstractVector,
                 @views u[:, .., element] .= old_u[:, .., old_element_id]
             else
                 # Receive old element data
-                src = findfirst(r -> old_global_first_quadrant[r] <=
-                                     global_quad_id <
+                src = findfirst(r -> old_global_first_quadrant[r] <= global_quad_id <
                                      old_global_first_quadrant[r + 1],
                                 1:mpi_nranks()) - 1 # mpi ranks 0-based
                 request = MPI.Irecv!(@view(u[:, .., element]), src, global_quad_id,
