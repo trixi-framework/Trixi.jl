@@ -976,6 +976,15 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                  n_nodes, n_nodes, n_nodes + 1,
                                                  capacity))
 
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R,
+                                fluxes.antidiffusive_flux3_L,
+                                fluxes.antidiffusive_flux3_R)
+
     return nothing
 end
 
