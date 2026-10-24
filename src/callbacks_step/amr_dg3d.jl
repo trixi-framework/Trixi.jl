@@ -38,7 +38,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
             u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
                                                                       elements_to_refine,
                                                                       mesh,
-                                                                      equations, dg,
+                                                                      equations,
+                                                                      dg,
                                                                       cache)
         end
     end
@@ -95,8 +96,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
                 # Copy old element data to new element container and remove Jacobian scaling
                 for v in eachvariable(equations)
                     u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
-                                             old_inverse_jacobian[..,
-                                                                  old_element_id])
+                                             old_inverse_jacobian[.., old_element_id])
                 end
             else # isa TreeMesh
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
@@ -261,7 +261,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     skip = 0
     element_id = 1
     for old_element_id in 1:old_n_elements
-        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the
+        # following elements
         if skip > 0
             skip -= 1
             continue
@@ -296,8 +297,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # Copy old element data to new element container and remove Jacobian scaling
                 for v in eachvariable(equations)
                     u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
-                                             old_inverse_jacobian[..,
-                                                                  old_element_id])
+                                             old_inverse_jacobian[.., old_element_id])
                 end
             else # isa TreeMesh
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
@@ -449,7 +449,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
                                                                       elements_to_refine,
                                                                       mesh,
-                                                                      equations, dg,
+                                                                      equations,
+                                                                      dg,
                                                                       cache)
         end
     end
@@ -459,8 +460,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
     for old_element_id in 1:old_nelems
         for v in eachvariable(equations)
             old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                             old_inverse_jacobian[..,
-                                                                  old_element_id])
+                                             old_inverse_jacobian[.., old_element_id])
         end
     end
 
@@ -512,8 +512,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             # Before the indices are incremented divide by the new Jacobian and save
             # the result again in the parent element
             for v in eachvariable(equations)
-                u[v, .., new_index] .*= (8 .* cache.elements.inverse_jacobian[..,
-                                                                         new_index])
+                u[v, .., new_index] .*= (8 .*
+                                         cache.elements.inverse_jacobian[.., new_index])
             end
 
             # Increment `old_index` on the original mesh with the number of children

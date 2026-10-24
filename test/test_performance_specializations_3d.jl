@@ -277,9 +277,8 @@ end
     nonconservative_flux = flux_nonconservative_powell
     Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                     have_nonconservative_terms, semi.equations,
-                                    (; symmetric_flux,
-                                     nonconservative_flux), semi.solver,
-                                    semi.cache, true)
+                                    (; symmetric_flux, nonconservative_flux),
+                                    semi.solver, semi.cache, true)
     du_baseline = du[:, :, :, :, 1]
 
     @test du_specialized ≈ du_baseline
