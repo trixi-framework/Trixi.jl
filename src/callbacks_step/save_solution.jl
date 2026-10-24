@@ -304,9 +304,8 @@ end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,
-                       solution_callback,
-                       element_variables,
-                       node_variables; system = system)
+                       solution_callback, element_variables, node_variables;
+                       system = system)
 
     return nothing
 end
