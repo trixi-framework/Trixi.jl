@@ -386,7 +386,7 @@ end
                         l2=[0.204437455578503], linf=[0.8175130986098857],
                         atol=5e-3, rtol=1e-2,
                         record_davis_yin_iterations=true)
-    u = Trixi.wrap_array_native(sol.u[end], semi)
+    u = Trixi.wrap_array(sol.u[end], semi)
     @test minimum(u) > 1e-1 - 10 * eps()
     @test length(global_limiter!.history_davis_yin_iterations) > 0
 end

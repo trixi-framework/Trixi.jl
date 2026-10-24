@@ -554,11 +554,69 @@ end
     end
 end
 
+@testitem "Unit: wrapped container arrays alias their backing vectors" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # The fields of the containers are `FixedSizeArray`s wrapping `resize!`able backing
+    # vectors (`_name` for the field `name`). After a `resize!`, the fields must be
+    # wrapped again, so that they still alias the (possibly reallocated) backing vectors.
+    function backing_pairs(c)
+        result = Tuple{Symbol, Symbol}[]
+        for name in fieldnames(typeof(c))
+            s = string(name)
+            startswith(s, "_") || continue
+            wrapped = Symbol(s[2:end])
+            hasfield(typeof(c), wrapped) || continue
+            getfield(c, name) isa AbstractVector || continue
+            push!(result, (name, wrapped))
+        end
+        return result
+    end
+    function aliases_backing(c)
+        return all(parent(getfield(c, wrapped)) === getfield(c, backing)
+                   for (backing, wrapped) in backing_pairs(c))
+    end
+    function containers(cache)
+        return [c for c in values(cache) if !isempty(backing_pairs(c))]
+    end
+
+    for (dir, file) in (("tree_1d_dgsem", "elixir_advection_amr.jl"),
+                        ("tree_2d_dgsem", "elixir_advection_mortar.jl"),
+                        ("tree_3d_dgsem", "elixir_advection_mortar.jl"),
+                        ("tree_2d_dgsem", "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        ("p4est_2d_dgsem", "elixir_advection_amr_unstructured_flag.jl"),
+                        ("p4est_2d_dgsem", "elixir_navierstokes_convergence.jl"))
+        mod = Module()
+        redirect_stdout(devnull) do
+            trixi_include(mod, joinpath(examples_dir(), dir, file), tspan = (0.0, 0.0))
+        end
+        semi = Base.invokelatest(getglobal, mod, :semi)
+        @testset "$dir/$file" begin
+            cs = containers(semi.cache)
+            @test !isempty(cs)
+            for c in cs
+                @test aliases_backing(c)
+                # grow (reallocating the backing vectors) and shrink again
+                for capacity in (37, 3)
+                    resize!(c, capacity)
+                    @test aliases_backing(c)
+                end
+            end
+            if hasproperty(semi, :cache_parabolic)
+                for c in containers(semi.cache_parabolic)
+                    @test aliases_backing(c)
+                end
+            end
+        end
+    end
+end
+
 @testitem "Unit: AMR with non-isbits element type" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    # Refining and coarsening must not read the newly allocated (uninitialized) memory
-    # of the resized solution. For non-`isbits` element types such as `BigFloat`, this
-    # memory is `#undef`. On Julia v1.10, AMR is not supported for such element types,
-    # see https://github.com/trixi-framework/Trixi.jl/pull/3306.
+    # AMR must also work for non-`isbits` element types such as `BigFloat`, including
+    # on Julia v1.10 (see `wrap_storage`). Refining and coarsening must not read the
+    # newly allocated (uninitialized) memory of the resized solution, which is `#undef`
+    # for such element types.
     using OrdinaryDiffEqLowStorageRK: CarpenterKennedy2N54, solve
     function run_amr(RealT)
         equations = LinearScalarAdvectionEquation1D(1.0)
@@ -583,16 +641,14 @@ end
                     save_everystep = false)
         return sol, semi
     end
-    if VERSION >= v"1.11"
-        sol_float, semi_float = run_amr(Float64)
-        sol_big, semi_big = run_amr(BigFloat)
-        @test eltype(sol_big.u[end]) == BigFloat
-        # AMR has refined the mesh
-        @test Trixi.nelements(semi_big.solver, semi_big.cache) > 2^3
-        @test Trixi.nelements(semi_big.solver, semi_big.cache) ==
-              Trixi.nelements(semi_float.solver, semi_float.cache)
-        @test Float64.(sol_big.u[end]) ≈ sol_float.u[end]
-    end
+    sol_float, semi_float = run_amr(Float64)
+    sol_big, semi_big = run_amr(BigFloat)
+    @test eltype(sol_big.u[end]) == BigFloat
+    # AMR has refined the mesh
+    @test Trixi.nelements(semi_big.solver, semi_big.cache) > 2^3
+    @test Trixi.nelements(semi_big.solver, semi_big.cache) ==
+          Trixi.nelements(semi_float.solver, semi_float.cache)
+    @test Float64.(sol_big.u[end]) ≈ sol_float.u[end]
 end
 
 @testitem "Unit: containers" setup=[Setup, UnitTests] tags=[:misc_part1] begin

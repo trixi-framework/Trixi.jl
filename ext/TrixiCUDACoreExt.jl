@@ -1,20 +1,11 @@
 # Package extension for adding CUDA-based features to Trixi.jl
 module TrixiCUDACoreExt
 
-using CUDACore: CUDACore, CuArray, CuDeviceArray, CUDABackend, KernelAdaptor,
-                @device_override
+using CUDACore: CUDACore, CuArray, CUDABackend, @device_override
 import Trixi
 
 function Trixi.storage_type(::Type{<:CuArray})
     return CuArray
-end
-
-function Trixi.unsafe_wrap_or_alloc(::KernelAdaptor, vec, size)
-    return Trixi.unsafe_wrap_or_alloc(CuDeviceArray, vec, size)
-end
-
-function Trixi.unsafe_wrap_or_alloc(::Type{<:CuDeviceArray}, vec::CuDeviceArray, size)
-    return reshape(vec, size)
 end
 
 @static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"

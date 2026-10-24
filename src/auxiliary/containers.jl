@@ -215,6 +215,10 @@ function storage_type(::Type{<:Array})
     return Array
 end
 
+function storage_type(::Type{<:FixedSizeArrayDims{T, N, D, Mem}}) where {T, N, D, Mem}
+    return storage_type(Mem)
+end
+
 function storage_type(C::Type{<:AbstractContainer})
     return storage_type(Adapt.unwrap_type(C))
 end
@@ -279,45 +283,40 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
-# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
-# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+# Wrap the internal (`resize!`able) storage `vector` of a container as a
+# multi-dimensional array of size `dims` without copying. Only one-dimensional arrays
+# can be `resize!`d in Julia, so containers keep their data in `vector`s and wrap them
+# (at creation, after every `resize!`, and in `Adapt.adapt_structure`). `wrap_array`
+# wraps the solution vector `u_ode` in the same way. All callers adapt or resize `vector`
+# to the target storage type before wrapping it, so we can dispatch on its type.
+# The wrapped array must be re-created after every `resize!` of `vector`.
 #
-# For some storage backends like CUDA.jl, empty arrays do seem to simply be
-# null pointers which can cause `unsafe_wrap` to fail when calling
-# Adapt.adapt (ArgumentError, see
-# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
-# To circumvent this, on length zero arrays this allocates
-# a separate empty array instead of wrapping.
-# However, since zero length arrays are not used in calculations,
-# it should be okay if the underlying storage vectors and wrapped arrays
-# are not the same as long as they are properly wrapped when `resize!`d etc.
+# For CPU `Vector`s, this returns a `VectorBackedArray`, an immutable `FixedSizeArray`
+# backed by `vector`. Previously, we used `unsafe_wrap(Array, pointer(vector), dims)`
+# here. In contrast, a `VectorBackedArray`
+# - keeps a reference to `vector`, so the memory stays rooted and temporaries do not
+#   need to be `GC.@preserve`d,
+# - is safe with respect to the garbage collector also for non-`isbits` element types
+#   (e.g., `BigFloat`s), since stores trigger the necessary write barriers,
+# - allows `resize!`ing `vector` also on Julia v1.10, where `reshape(vector, dims)` marks
+#   `vector` as shared (`ERROR: cannot resize array with shared data`),
+# - has dimensions that are plain values. Since Julia v1.11, `Array` is a mutable struct,
+#   so its size and data pointer are loaded from memory and LLVM often cannot hoist these
+#   loads out of inner loops.
+# It is a `DenseArray` that can be passed to external libraries such as MPI (via the
+# MPI.jl package extension of FixedSizeArrays.jl) and HDF5.
 #
-# !!! danger "Non-`isbits` element types"
-#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
-#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
-#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
-#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
-#     is not rescanned during an incremental collection, and the stored objects can be
-#     freed while `vector` still refers to them. Hence, we use `reshape` for these
-#     element types, which shares the memory of `vector` in a way the garbage collector
-#     understands. On Julia v1.10, this marks `vector` as shared, so
-#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
-#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
-#     wrapped array is in use.
-function unsafe_wrap_or_alloc(to, vector, size)
-    if length(vector) == 0
-        return similar(vector, size)
-    elseif isbitstype(eltype(vector)) ||
-           eltype(vector) === Symbol ||
-           eltype(vector) <: NTuple{N, Symbol} where {N}
-        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
-        # are not `isbitstype`s, they are not freed, so we can also use
-        # `unsafe_wrap` for them.
-        return unsafe_wrap(to, pointer(vector), size)
-    else
-        return reshape(vector, size)
-    end
+# For all other vectors, we use `reshape`. For GPU arrays such as `CuArray` or `ROCArray`,
+# the result shares the (reference-counted) buffer of `vector`. This also covers device
+# arrays used inside kernels (e.g., `CuDeviceArray`) and CPU views that are never
+# `resize!`d, e.g., columns of a matrix in `linear_structure` or `jacobian_fd` and parts
+# of `u_ode` in coupled semidiscretizations.
+const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
+
+@inline function wrap_storage(vector::Vector, dims)
+    return FixedSizeArrays.wrap(FixedSizeArray, vector, dims)
 end
+@inline wrap_storage(vector::AbstractVector, dims) = reshape(vector, dims)
 
 struct TrixiAdaptor{Storage, RealT} end
 
@@ -374,7 +373,4 @@ end
 
 # 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
-function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
-    return unsafe_wrap_or_alloc(Storage, vec, size)
-end
 end # @muladd

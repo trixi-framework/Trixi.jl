@@ -144,8 +144,8 @@ function save_solution_file(u, time, dt, timestep,
 
         # Store each variable of the solution data.
         for v in 1:n_vars
-            temp = zeros(size(u.u))
-            n_nodes, n_elems = size(u.u)
+            temp = zeros(size(data))
+            n_nodes, n_elems = size(data)
             for i_elem in 1:n_elems
                 for i_node in 1:n_nodes
                     temp[i_node, i_elem] = data[i_node, i_elem][v]
@@ -326,7 +326,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
     if !mpi_isroot()
         # Send nodal data to root
         for v in 1:n_vars
-            MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
+            MPI.Gatherv!(@view(data[v, .., :]), nothing, mpi_root(), mpi_comm())
         end
 
         # Send element data to root
@@ -360,7 +360,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         for v in 1:n_vars
             # Convert to 1D array
             recv = Vector{eltype(data)}(undef, sum(node_counts))
-            MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts),
+            MPI.Gatherv!(@view(data[v, .., :]), MPI.VBuffer(recv, node_counts),
                          mpi_root(), mpi_comm())
             file["variables_$v"] = recv
 

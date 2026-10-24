@@ -107,6 +107,17 @@ for human readability.
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
   as in 3D, which is faster and changes results only up to round-off ([#3361]).
+- `wrap_array` and the containers now wrap `resize!`able vectors in `FixedSizeArray`s from
+  [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl) (and use
+  `reshape` for other storage types such as GPU arrays) instead of creating `PtrArray`s or
+  `unsafe_wrap`ped `Array`s around raw pointers. The wrapped arrays keep the underlying
+  memory alive, so temporaries no longer need to be `GC.@preserve`d, and AMR works again
+  for non-`isbits` element types on Julia v1.10 (lifting the restriction from [#3306]).
+  This improves the performance on Julia v1.11 and newer, where the sizes of `Array`s
+  could not be hoisted out of inner loops. For `DGSEM`, `wrap_array` returns arrays whose
+  sizes of the variables and nodes are known at compile time, as the `PtrArray`s did.
+  The internal function `wrap_array_native` is deprecated; use `wrap_array` instead.
+  The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
 - Fixed stochastic memory errors and crashes when the solution has a non-`isbits` element
   type (e.g., `BigFloat` or tracer types of SparseConnectivityTracer.jl): `wrap_array` and
   the containers created with `unsafe_wrap_or_alloc` now use `reshape` instead of
