@@ -408,20 +408,14 @@ end
 # `flux_differencing_kernel!`). We restrict the element types to those supported natively
 # by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
 # `LoopVectorization.check_args`.
-# With Polyester.jl as threading backend, these are the arrays returned by `wrap_array`:
-# a `FixedSizeArrayDims` backed by a CPU `Vector` (with static sizes for `DGSEM`, see
-# `static_view`, otherwise a `VectorBackedArray`), and a reshaped contiguous view of an
-# `Array`, e.g., a column of a matrix in `linear_structure` or `jacobian_fd`, or a part
-# of `u_ode` in coupled semidiscretizations. Threading via Polyester.jl may convert them
-# to `PtrArray`s. With other threading backends, the `@turbo` kernels are not selected
-# for the arrays returned by `wrap_array` (see the "Heisenbug" note in `@threaded`).
-@static if _PREFERENCE_THREADING === :polyester
-    const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
-                             FixedSizeArrayDims{<:LoopVectorization.NativeTypes, <:Any,
-                                                <:Any, <:Vector},
-                             Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
-                                                <:Base.FastContiguousSubArray{<:Any, 1,
-                                                                              <:Array}} where {N}}
-else
-    const TurboArray = PtrArray{<:LoopVectorization.NativeTypes}
-end
+# These are the CPU arrays returned by `wrap_array`: a `FixedSizeArrayDims` backed by a
+# `Vector` (with static sizes for `DGSEM`, see `static_view`, otherwise a
+# `VectorBackedArray`), and a reshaped contiguous view of an `Array`, e.g., a column of a
+# matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode` in coupled
+# semidiscretizations. Threading via Polyester.jl may convert them to `PtrArray`s.
+const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
+                         FixedSizeArrayDims{<:LoopVectorization.NativeTypes, <:Any, <:Any,
+                                            <:Vector},
+                         Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
+                                            <:Base.FastContiguousSubArray{<:Any, 1,
+                                                                          <:Array}} where {N}}

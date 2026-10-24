@@ -510,8 +510,8 @@ starts the Julia sessions itself.
 - Arrays visible to the time integrator have the suffix `_ode` (`u_ode`,
   `du_ode`); when passed with `semi`, normally wrap them with
   `wrap_array(u_ode, semi)` before internal use. Wrapped arrays have no suffix
-  and keep a reference to `u_ode` (no `GC.@preserve` needed). Document
-  exceptions such as AMR.
+  and are passed together with `mesh, equations, solver, cache`. Document
+  exceptions such as AMR, which needs `u_ode` to `resize!` it.
 - Compare 1D/2D/3D and x/y/z implementations of the same function when
   changing one of them; copy-paste errors between dimensions and directions are
   the most common source of bugs.
