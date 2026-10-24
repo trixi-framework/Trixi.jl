@@ -84,17 +84,10 @@ end
     GC.@preserve u_ode begin
         u_ptr = PtrArray(u)
         @test is_turbo(u_ptr)
-
-        if Trixi._PREFERENCE_THREADING === :polyester
-            @test is_turbo(u)
-            @test is_turbo(u_fixed)
-            @test is_turbo(u_view)
-        else
-            # The `@turbo` kernels are not used with other threading backends
-            @test !is_turbo(u)
-            @test !is_turbo(u_fixed)
-            @test !is_turbo(u_view)
-        end
+        # The `@turbo` kernels are used with all threading backends
+        @test is_turbo(u)
+        @test is_turbo(u_fixed)
+        @test is_turbo(u_view)
 
         # `static_view` creates the view with static sizes
         u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
