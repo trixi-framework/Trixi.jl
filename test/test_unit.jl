@@ -5928,3 +5928,161 @@ end
                                                             solver_1d;
                                                             boundary_conditions = boundary_condition_periodic)
 end
+
+@testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Whether auxiliary variables are used is a fixed property of the equations
+    equations = LinearizedEulerEquations3DAuxVars()
+    equations_global = LinearizedEulerEquations3D(v_mean_global = (0.5, -0.3, 0.2),
+                                                  c_mean_global = 1.1,
+                                                  rho_mean_global = 0.9)
+    @test n_aux_node_vars(equations) == 5
+    @test eachauxvariable(equations) == Base.OneTo(5)
+    @test n_aux_node_vars(equations_global) == 0
+    @test isempty(eachauxvariable(equations_global))
+    @test Trixi.varnames(cons2aux, equations) ==
+          ("rho_mean", "v1_mean", "v2_mean", "v3_mean", "c_mean")
+    @test cons2aux(SVector(1.0, 2.0, 3.0, 4.0, 5.0), SVector(0.1, 0.2), equations) ==
+          SVector(0.1, 0.2)
+
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+    solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+    initial_condition(x, t, equations) = zero(SVector{5, Float64})
+    # The auxiliary variables have to be continuous across the periodic boundaries
+    aux_field(x, equations) = SVector(1.0 + 0.1 * sinpi(x[1]), 0.5 * sinpi(x[2]),
+                                      -0.3 * cospi(x[3]), 0.2, 1.1)
+
+    @timed_testset "aux_field required for equations with auxiliary variables" begin
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic)
+        # `aux_field` has to return the correct number of auxiliary variables
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field = (x, equations) -> SVector(1.0,
+                                                                                                      2.0))
+
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        (; aux_node_vars, aux_surface_node_vars) = semi.cache.aux_vars
+        @test size(aux_node_vars) == (5, 3, 3, 3, 8)
+        @test !any(isnan, aux_node_vars)
+        @test !any(isnan, aux_surface_node_vars)
+        # The auxiliary variables are evaluated at the node coordinates
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test all(aux_node_vars[:, i, j, k, element] ≈
+                  aux_field(node_coordinates[:, i, j, k, element], equations)
+                  for i in 1:3, j in 1:3, k in 1:3, element in 1:8)
+        # The auxiliary variables are continuous, so both sides of an interface agree
+        @test aux_surface_node_vars[1, :, :, :, :] ≈ aux_surface_node_vars[2, :, :, :, :]
+        @test_nowarn show(devnull, MIME"text/plain"(), semi)
+        @test_nowarn show(devnull, MIME"text/plain"(), equations)
+    end
+
+    @timed_testset "No auxiliary variables for equations without them" begin
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_global,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations_global, initial_condition,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        @test !haskey(semi.cache, :aux_vars)
+        @test Trixi.get_aux_node_vars_array(semi.cache) === nothing
+        @test Trixi.get_aux_surface_node_vars_array(semi.cache) === nothing
+        @test Trixi.get_aux_node_vars(nothing, equations_global, solver, 1, 1, 1, 1) ===
+              ()
+        @test Trixi.get_aux_surface_node_vars(nothing, equations_global, typeof(solver),
+                                              1, 1, 1) === ()
+    end
+end
+
+@testitem "Unit: Consistency check for LinearizedEulerEquations3DAuxVars" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = LinearizedEulerEquations3DAuxVars()
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.1, -0.2, 0.3, 0.05, 0.4)
+    u_rr = SVector(-0.2, 0.1, 0.25, -0.1, 0.3)
+    aux_ll = SVector(0.9, 0.5, -0.3, 0.2, 1.1)
+    aux_rr = SVector(1.2, -0.4, 0.1, 0.6, 0.8)
+    normal_direction = SVector(-1.2, 0.3, 0.7)
+    unit_normals = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                    SVector(0.0, 0.0, 1.0))
+
+    @timed_testset "Consistency with the physical flux" begin
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            for orientation in 1:3
+                @test flux_central(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+                @test flux_lax_friedrichs(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+            end
+            @test flux_central(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+            @test flux_lax_friedrichs(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:3
+            unit_normal = unit_normals[orientation]
+            @test flux(u_ll, aux_ll, unit_normal, equations) ≈
+                  flux(u_ll, aux_ll, orientation, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, unit_normal, equations) ≈
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux(u_ll, aux_ll, factor * normal_direction, equations) ≈
+                  factor * flux(u_ll, aux_ll, normal_direction, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, factor * normal_direction,
+                                equations) ≈
+                  factor *
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant mean flow agrees with LinearizedEulerEquations3D" begin
+        rho_mean, v1_mean, v2_mean, v3_mean, c_mean = aux_ll
+        equations_global = LinearizedEulerEquations3D(v_mean_global = (v1_mean,
+                                                                       v2_mean,
+                                                                       v3_mean),
+                                                      c_mean_global = c_mean,
+                                                      rho_mean_global = rho_mean)
+        for orientation in 1:3
+            @test flux(u_ll, aux_ll, orientation, equations) ≈
+                  flux(u_ll, orientation, equations_global)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, orientation, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, orientation, equations_global)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) ≈
+              flux(u_ll, normal_direction, equations_global)
+        @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, normal_direction, equations) ≈
+              max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_global)
+        @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_ll, normal_direction,
+                                  equations) ≈
+              flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_global)
+        @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
+                  Trixi.max_abs_speeds(equations_global))
+    end
+end

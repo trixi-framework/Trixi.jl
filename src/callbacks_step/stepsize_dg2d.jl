@@ -134,7 +134,7 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::False, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              element, aux_node_vars = nothing)
     max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -211,7 +211,7 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::True, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              element, aux_node_vars = nothing)
     max_scaled_speed = zero(eltype(u))
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
     for j in eachnode(dg), i in eachnode(dg)

@@ -221,6 +221,7 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
+       LinearizedEulerEquations3DAuxVars,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
        MaxwellEquations1D,
@@ -293,7 +294,9 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons, cons2thermo, thermo2cons, cons2prim_temperature
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons, cons2prim_temperature,
+       cons2aux
+export n_aux_node_vars, eachauxvariable
 export density, pressure, density_pressure, velocity,
        temperature, temperature_given_Vp,
        global_mean_vars,
