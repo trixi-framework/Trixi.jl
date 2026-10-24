@@ -29,7 +29,6 @@ function rebalance_solver!(u_ode::AbstractVector,
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    # `MPI.Isend`/`MPI.Irecv!` below only use contiguous views of `old_u`
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     @trixi_timeit timer() "reinitialize data structures" begin
