@@ -106,8 +106,10 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
-            surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
+    kernel!(kernel_view_surface(surface_flux_values, equations, dg),
+            kernel_view(u, equations, dg), typeof(mesh), have_nonconservative_terms,
+            equations, surface_integral, dg, neighbor_ids, node_indices,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             index_range,
             ndrange = (nnodes(dg), ninterfaces(cache.interfaces)))
 
@@ -541,7 +543,8 @@ function prolong2mortars!(backend::Backend, cache, u,
     nvars = nvariables(equations)
 
     kernel! = prolong2mortars_KAkernel!(backend)
-    kernel!(cache.mortars.u, u, typeof(mesh),
+    kernel!(kernel_view_mortars(cache.mortars.u, equations, dg),
+            kernel_view(u, equations, dg), typeof(mesh),
             neighbor_ids, node_indices,
             mortar_l2.forward_lower, mortar_l2.forward_upper,
             index_range, Val(nvars),
@@ -635,10 +638,12 @@ function calc_mortar_flux!(backend::Backend, surface_flux_values,
     nvars = nvariables(equations)
 
     kernel! = calc_mortar_flux_KAkernel!(backend)
-    kernel!(cache.mortars.u, surface_flux_values, typeof(mesh),
+    kernel!(kernel_view_mortars(cache.mortars.u, equations, dg),
+            kernel_view_surface(surface_flux_values, equations, dg), typeof(mesh),
             have_nonconservative_terms, equations,
             surface_flux, typeof(dg),
-            neighbor_ids, node_indices, contravariant_vectors,
+            neighbor_ids, node_indices,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             (mortar_l2.reverse_lower, mortar_l2.reverse_upper),
             index_range, Val(nvars),
             ndrange = (nnodes(dg), nmortars(dg, cache)))
@@ -874,12 +879,14 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
-    kernel_cache = kernel_filter_cache(cache)
+    kernel_cache = kernel_filter_cache(cache, mesh, dg)
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
-            inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
-            kernel_cache,
+    kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), t,
+            source_terms, kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg),
+            typeof(mesh), equations, inverse_weights[1], Val(NNODES),
+            kernel_view_surface(surface_flux_values, equations, dg), dg,
+            kernel_view_geometry(inverse_jacobian, Val(ndims(mesh)), dg), kernel_cache,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
 
     return nothing

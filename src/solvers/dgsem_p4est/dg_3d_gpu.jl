@@ -37,7 +37,7 @@ end
     kernel! = flux_differencing_KAkernel!(backend,
                                           flux_differencing_workgroupsize_3d(kernel_type,
                                                                              Val(NNODES))...)
-    kernel!(du, u, equations,
+    kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), equations,
             typeof(mesh),
             kernel_type,
             have_nonconservative_terms,
@@ -46,7 +46,7 @@ end
             dg,
             volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
             derivative_split,
-            contravariant_vectors,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -612,7 +612,7 @@ end
     kernel! = flux_differencing_KAkernel_turbo!(backend,
                                                 flux_differencing_workgroupsize_3d(kernel_type,
                                                                                    Val(NNODES))...)
-    kernel!(du, u, equations,
+    kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), equations,
             typeof(mesh),
             kernel_type,
             have_nonconservative_terms,
@@ -620,7 +620,7 @@ end
             numerical_flux, Val(NNODES), Val(nvariables(equations)),
             nturbovars(numerical_flux, equations),
             derivative_split,
-            contravariant_vectors,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -1118,8 +1118,10 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
-            surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
+    kernel!(kernel_view_surface(surface_flux_values, equations, dg),
+            kernel_view(u, equations, dg), typeof(mesh), have_nonconservative_terms,
+            equations, surface_integral, dg, neighbor_ids, node_indices,
+            kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg),
             index_range,
             ndrange = (nnodes(dg), nnodes(dg), ninterfaces(cache.interfaces)))
 
@@ -1365,8 +1367,9 @@ function prolong2boundaries!(backend::Backend, cache, u,
     end
     index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
-    kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
-            node_indices, ndrange = (boundary_node_ndrange(mesh, dg)..., nboundaries))
+    kernel!(kernel_view(u, equations, dg), typeof(mesh), equations, dg, index_range,
+            kernel_view(boundaries.u, equations, dg), neighbor_ids, node_indices,
+            ndrange = (boundary_node_ndrange(mesh, dg)..., nboundaries))
     return nothing
 end
 
@@ -1470,10 +1473,10 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
         end
 
         index_range = eachnode(dg)
-        kernel_cache = kernel_filter_cache(cache)
+        kernel_cache = kernel_filter_cache(cache, mesh, dg)
         kernel! = calc_boundary_flux_kernel!(backend)
-        kernel!(boundaries.u,
-                cache.elements.surface_flux_values,
+        kernel!(kernel_view(boundaries.u, equations, dg),
+                kernel_view_surface(cache.elements.surface_flux_values, equations, dg),
                 boundary_condition_indices,
                 neighbor_ids,
                 node_indices,
@@ -1484,7 +1487,9 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
                 equations,
                 surface_integral,
                 dg,
-                kernel_cache, node_coordinates, contravariant_vectors;
+                kernel_cache,
+                kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg),
+                kernel_view_geometry(contravariant_vectors, Val(ndims(mesh)), dg);
                 ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
     end
 
@@ -1689,12 +1694,14 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
-    kernel_cache = kernel_filter_cache(cache)
+    kernel_cache = kernel_filter_cache(cache, mesh, dg)
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
-            inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
-            kernel_cache,
+    kernel!(kernel_view(du, equations, dg), kernel_view(u, equations, dg), t,
+            source_terms, kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg),
+            typeof(mesh), equations, inverse_weights[1], Val(NNODES),
+            kernel_view_surface(surface_flux_values, equations, dg), dg,
+            kernel_view_geometry(inverse_jacobian, Val(ndims(mesh)), dg), kernel_cache,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
 
     return nothing

@@ -151,7 +151,8 @@ function prolong2mpiinterfaces!(backend::Backend, cache, u,
     end
 
     kernel! = prolong2mpiinterfaces_KAkernel!(backend)
-    kernel!(mpi_send_buffer, u, typeof(mesh), equations, dg, local_neighbor_ids,
+    kernel!(mpi_send_buffer, kernel_view(u, equations, dg), typeof(mesh), equations, dg,
+            local_neighbor_ids,
             node_indices, mpi_interfaces_buffer_offsets, index_range,
             ndrange = (nnodes(dg), nmpiinterfaces(dg, cache)))
     return nothing
@@ -259,7 +260,8 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values, u,
     end
 
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, mpi_recv_buffer, typeof(mesh),
+    kernel!(kernel_view_surface(surface_flux_values, equations, dg),
+            kernel_view(u, equations, dg), mpi_recv_buffer, typeof(mesh),
             have_nonconservative_terms, equations, surface_integral, dg,
             local_neighbor_ids, node_indices, local_sides,
             mpi_interfaces_buffer_offsets, normal_directions, index_range,

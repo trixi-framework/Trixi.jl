@@ -1329,7 +1329,8 @@ function compute_coefficients!(backend::Backend, u, func, t,
     node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
 
     kernel! = compute_coefficients_KAkernel!(backend)
-    kernel!(u, func, t, equations, dg, node_coordinates, node_indices,
+    kernel!(kernel_view(u, equations, dg), func, t, equations, dg,
+            kernel_view_geometry(node_coordinates, Val(ndims(mesh)), dg), node_indices,
             ndrange = nelements(dg, cache))
     return nothing
 end

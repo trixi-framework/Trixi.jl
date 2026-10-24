@@ -404,6 +404,84 @@ end
 end
 @inline static_view(A, equations, dg) = A
 
+# Static sizes at kernel launches
+#
+# KernelAbstractions.jl kernels index arrays such as `u[v, i, j, element]` whose sizes,
+# except for the last one (the number of elements, interfaces, ...), are given by the
+# number of variables, the number of nodes, and the number of spatial dimensions, all
+# known at compile time. On GPUs, `wrap_array` and the containers use plain arrays such as
+# `CuArray`s with dynamic sizes, so that they can also be used on the host, e.g., for
+# broadcasting. `kernel_view` wraps the storage of such an array in a `FixedSizeArrayDims`
+# with these static sizes right at the kernel launch, without copying. Adapt.jl converts
+# its storage to the device array type and keeps the static sizes (see the Adapt.jl
+# extension of FixedSizeArrays.jl), so that the index computations in the kernel use
+# constant strides. These views must only be passed to kernels: on the host, they do not
+# support the operations of GPU arrays (e.g., broadcasting on the GPU).
+# Arrays without a contiguous storage `Vector` (e.g., a reshaped view in coupled
+# semidiscretizations) are passed unchanged.
+@inline kernel_storage(A::FixedSizeArrayDims) = parent(A)
+@inline kernel_storage(A::DenseArray) = vec(A)
+@inline kernel_storage(A) = nothing
+
+# `(Val(X), ..., Val(X))` with `K` entries. A generated function so that the type is
+# inferred also on Julia v1.10 (see `static_dims`).
+@generated function repeat_val(::Val{X}, ::Val{K}) where {X, K}
+    return :(($(ntuple(_ -> :(Val($X)), K)...),))
+end
+
+@inline val_value(::Val{X}) where {X} = X
+
+# Wrap `A` with the static sizes `(prefix..., Val(nnodes)..., suffix...)` for all but its
+# last dimension. The number of node dimensions is the remaining number of dimensions.
+@inline function kernel_view(A::AbstractArray{<:Any, N}, prefix::Tuple, nnodes::Val,
+                             suffix::Tuple = ()) where {N}
+    storage = kernel_storage(A)
+    storage === nothing && return A
+    sizes = (prefix..., repeat_val(nnodes, Val(N - 1 - length(prefix) - length(suffix)))...,
+             suffix...)
+    if map(val_value, sizes) != Base.front(size(A))
+        throw(DimensionMismatch("cannot use the static sizes $(map(val_value, sizes)) " *
+                                "for an array of size $(size(A))"))
+    end
+    return FixedSizeArrays.wrap(FixedSizeArrayDims, storage, (sizes..., size(A, N)))
+end
+
+# Solution-like arrays `[variable, node..., element]`, e.g., `u`, `du`, the gradients
+# in parabolic terms (as a tuple of arrays), or `u` of boundaries
+@inline function kernel_view(A::AbstractArray, equations, dg)
+    return kernel_view(A, (Val(nvariables(equations)),), Val(nnodes(dg)))
+end
+@inline function kernel_view(A::Tuple, equations, dg)
+    return map(a -> kernel_view(a, equations, dg), A)
+end
+
+# `surface_flux_values` of elements: `[variable, node..., direction, element]`
+@inline function kernel_view_surface(A::AbstractArray, equations, dg)
+    return kernel_view(A, (Val(nvariables(equations)),), Val(nnodes(dg)),
+                       (Val(2 * ndims(equations)),))
+end
+
+# `u` of interfaces: `[side, variable, node..., interface]`
+@inline function kernel_view_interfaces(A::AbstractArray, equations, dg)
+    return kernel_view(A, (Val(2), Val(nvariables(equations))), Val(nnodes(dg)))
+end
+
+# `u` of mortars: `[side, variable, position, node..., mortar]`
+@inline function kernel_view_mortars(A::AbstractArray, equations, dg)
+    return kernel_view(A,
+                       (Val(2), Val(nvariables(equations)),
+                        Val(2^(ndims(equations) - 1))), Val(nnodes(dg)))
+end
+
+# Geometric quantities of elements with `NDIMS` node dimensions, e.g.,
+# `contravariant_vectors` and `jacobian_matrix` (`[dim, dim, node..., element]`),
+# `node_coordinates` (`[dim, node..., element]`), and `inverse_jacobian`
+# (`[node..., element]`)
+@inline function kernel_view_geometry(A::AbstractArray{<:Any, N}, ::Val{NDIMS},
+                                      dg) where {N, NDIMS}
+    return kernel_view(A, repeat_val(Val(NDIMS), Val(N - 1 - NDIMS)), Val(nnodes(dg)))
+end
+
 # Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
 # `flux_differencing_kernel!`). We restrict the element types to those supported natively
 # by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring

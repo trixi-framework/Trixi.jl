@@ -5781,3 +5781,61 @@ end
               flux(u, orientation_or_normal, equations)
     end
 end
+
+@testitem "Unit: kernel_view" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    using Trixi: FixedSizeArrayDims
+    equations = CompressibleEulerEquations2D(1.4)
+    dg = DGSEM(polydeg = 3)
+    nelements = 10
+
+    # Solution-like arrays `[variable, node..., element]`, both as plain `Array` (e.g., on
+    # the KernelAbstractions.jl CPU backend) and wrapping a `Vector` (`wrap_array`)
+    u_array = rand(4, 4, 4, nelements)
+    u_fixed = Trixi.wrap_vector(vec(copy(u_array)), size(u_array))
+    for u in (u_array, u_fixed)
+        u_k = @inferred Trixi.kernel_view(u, equations, dg)
+        @test u_k isa FixedSizeArrayDims{Float64, 4, Tuple{Val{4}, Val{4}, Val{4}, Int}}
+        @test size(u_k) == size(u)
+        @test u_k == u
+        @test pointer(u_k) == pointer(u)
+    end
+    # Views with static sizes are re-wrapped unchanged, without allocations
+    u_static = Trixi.kernel_view(u_fixed, equations, dg)
+    @test Trixi.kernel_view(u_static, equations, dg) === u_static
+    kernel_view_allocs(u, equations, dg) = @allocated Trixi.kernel_view(u, equations, dg)
+    kernel_view_allocs(u_fixed, equations, dg)
+    @test kernel_view_allocs(u_fixed, equations, dg) == 0
+    # Tuples of arrays (e.g., gradients) are wrapped element-wise
+    gradients = (u_array, u_fixed)
+    @test all(g -> g isa FixedSizeArrayDims{Float64, 4, Tuple{Val{4}, Val{4}, Val{4}, Int}},
+              @inferred Trixi.kernel_view(gradients, equations, dg))
+
+    # Other layouts
+    surface_flux_values = rand(4, 4, 4, nelements)
+    @test (@inferred Trixi.kernel_view_surface(surface_flux_values, equations, dg)) isa
+          FixedSizeArrayDims{Float64, 4, Tuple{Val{4}, Val{4}, Val{4}, Int}}
+    interfaces_u = rand(2, 4, 4, nelements)
+    @test (@inferred Trixi.kernel_view_interfaces(interfaces_u, equations, dg)) isa
+          FixedSizeArrayDims{Float64, 4, Tuple{Val{2}, Val{4}, Val{4}, Int}}
+    mortars_u = rand(2, 4, 2, 4, nelements)
+    @test (@inferred Trixi.kernel_view_mortars(mortars_u, equations, dg)) isa
+          FixedSizeArrayDims{Float64, 5, Tuple{Val{2}, Val{4}, Val{2}, Val{4}, Int}}
+    contravariant_vectors = rand(2, 2, 4, 4, nelements)
+    @test (@inferred Trixi.kernel_view_geometry(contravariant_vectors, Val(2), dg)) isa
+          FixedSizeArrayDims{Float64, 5, Tuple{Val{2}, Val{2}, Val{4}, Val{4}, Int}}
+    node_coordinates = rand(2, 4, 4, nelements)
+    @test (@inferred Trixi.kernel_view_geometry(node_coordinates, Val(2), dg)) isa
+          FixedSizeArrayDims{Float64, 4, Tuple{Val{2}, Val{4}, Val{4}, Int}}
+    inverse_jacobian = rand(4, 4, nelements)
+    @test (@inferred Trixi.kernel_view_geometry(inverse_jacobian, Val(2), dg)) isa
+          FixedSizeArrayDims{Float64, 3, Tuple{Val{4}, Val{4}, Int}}
+
+    # Arrays without contiguous storage are passed unchanged
+    U = rand(length(u_array), 2)
+    u_view = reshape(view(U, :, 2), size(u_array))
+    @test Trixi.kernel_view(u_view, equations, dg) === u_view
+
+    # The static sizes must match the array
+    @test_throws DimensionMismatch Trixi.kernel_view(rand(5, 4, 4, nelements), equations,
+                                                     dg)
+end
