@@ -31,12 +31,12 @@ function Base.resize!(elements::TreeElementContainer2D, capacity)
     resize!(inverse_jacobian, capacity)
 
     resize!(_node_coordinates, 2 * n_nodes * n_nodes * capacity)
-    elements.node_coordinates = wrap_vector(_node_coordinates,
-                                            (2, n_nodes, n_nodes, capacity))
+    elements.node_coordinates = wrap_storage(_node_coordinates,
+                                             (2, n_nodes, n_nodes, capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * 2 * 2 * capacity)
-    elements.surface_flux_values = wrap_vector(_surface_flux_values,
-                                               (n_variables, n_nodes, 2 * 2, capacity))
+    elements.surface_flux_values = wrap_storage(_surface_flux_values,
+                                                (n_variables, n_nodes, 2 * 2, capacity))
 
     resize!(cell_ids, capacity)
 
@@ -53,11 +53,11 @@ function TreeElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     inverse_jacobian = fill(nan_RealT, capacity)
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * n_nodes * capacity)
-    node_coordinates = wrap_vector(_node_coordinates, (2, n_nodes, n_nodes, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (2, n_nodes, n_nodes, capacity))
 
     _surface_flux_values = fill(nan_uEltype, n_variables * n_nodes * 2 * 2 * capacity)
-    surface_flux_values = wrap_vector(_surface_flux_values,
-                                      (n_variables, n_nodes, 2 * 2, capacity))
+    surface_flux_values = wrap_storage(_surface_flux_values,
+                                       (n_variables, n_nodes, 2 * 2, capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
@@ -157,10 +157,10 @@ function Base.resize!(interfaces::TreeInterfaceContainer2D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    interfaces.u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    interfaces.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
+    interfaces.neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     resize!(orientations, capacity)
 
@@ -173,10 +173,10 @@ function TreeInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
-    neighbor_ids = wrap_vector(_neighbor_ids, (2, capacity))
+    neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     orientations = fill(typemin(Int), capacity)
 
@@ -326,10 +326,11 @@ function Base.resize!(boundaries::TreeBoundaryContainer2D, capacity)
     neighbor_ids, orientations, neighbor_sides = boundaries
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    boundaries.u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    boundaries.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(_node_coordinates, 2 * n_nodes * capacity)
-    boundaries.node_coordinates = wrap_vector(_node_coordinates, (2, n_nodes, capacity))
+    boundaries.node_coordinates = wrap_storage(_node_coordinates,
+                                               (2, n_nodes, capacity))
 
     resize!(neighbor_ids, capacity)
 
@@ -348,7 +349,7 @@ function TreeBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan_uEltype, 2 * n_variables * n_nodes * capacity)
-    u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     neighbor_ids = fill(typemin(Int), capacity)
 
@@ -357,7 +358,7 @@ function TreeBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     neighbor_sides = fill(typemin(Int), capacity)
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * capacity)
-    node_coordinates = wrap_vector(_node_coordinates, (2, n_nodes, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (2, n_nodes, capacity))
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
@@ -613,13 +614,13 @@ function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
     large_sides, orientations = mortars
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
-    mortars.u_upper = wrap_vector(_u_upper, (2, n_variables, n_nodes, capacity))
+    mortars.u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
-    mortars.u_lower = wrap_vector(_u_lower, (2, n_variables, n_nodes, capacity))
+    mortars.u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     resize!(_neighbor_ids, 3 * capacity)
-    mortars.neighbor_ids = wrap_vector(_neighbor_ids, (3, capacity))
+    mortars.neighbor_ids = wrap_storage(_neighbor_ids, (3, capacity))
 
     resize!(large_sides, capacity)
 
@@ -634,13 +635,13 @@ function TreeL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_upper = wrap_vector(_u_upper, (2, n_variables, n_nodes, capacity))
+    u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_lower = wrap_vector(_u_lower, (2, n_variables, n_nodes, capacity))
+    u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 3 * capacity)
-    neighbor_ids = wrap_vector(_neighbor_ids, (3, capacity))
+    neighbor_ids = wrap_storage(_neighbor_ids, (3, capacity))
 
     large_sides = fill(typemin(Int), capacity)
 
@@ -877,7 +878,7 @@ function Base.resize!(mpi_interfaces::TreeMPIInterfaceContainer2D, capacity)
     @unpack _u, local_neighbor_ids, orientations, remote_sides = mpi_interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    mpi_interfaces.u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    mpi_interfaces.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(local_neighbor_ids, capacity)
 
@@ -894,7 +895,7 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u = wrap_vector(_u, (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     local_neighbor_ids = fill(typemin(Int), capacity)
 
@@ -1065,10 +1066,10 @@ function Base.resize!(mpi_mortars::TreeMPIL2MortarContainer2D, capacity)
     large_sides, orientations = mpi_mortars
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
-    mpi_mortars.u_upper = wrap_vector(_u_upper, (2, n_variables, n_nodes, capacity))
+    mpi_mortars.u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
-    mpi_mortars.u_lower = wrap_vector(_u_lower, (2, n_variables, n_nodes, capacity))
+    mpi_mortars.u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     resize!(local_neighbor_ids, capacity)
     resize!(local_neighbor_positions, capacity)
@@ -1086,10 +1087,10 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_upper = wrap_vector(_u_upper, (2, n_variables, n_nodes, capacity))
+    u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_lower = wrap_vector(_u_lower, (2, n_variables, n_nodes, capacity))
+    u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     local_neighbor_ids = fill(Vector{Int}(), capacity)
     local_neighbor_positions = fill(Vector{Int}(), capacity)
@@ -1406,21 +1407,21 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     # Initialize fields with defaults
     _antidiffusive_flux1_L = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * capacity)
-    antidiffusive_flux1_L = wrap_vector(_antidiffusive_flux1_L,
-                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    antidiffusive_flux1_L = wrap_storage(_antidiffusive_flux1_L,
+                                         (n_variables, n_nodes + 1, n_nodes, capacity))
     _antidiffusive_flux1_R = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * capacity)
-    antidiffusive_flux1_R = wrap_vector(_antidiffusive_flux1_R,
-                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    antidiffusive_flux1_R = wrap_storage(_antidiffusive_flux1_R,
+                                         (n_variables, n_nodes + 1, n_nodes, capacity))
 
     _antidiffusive_flux2_L = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * capacity)
-    antidiffusive_flux2_L = wrap_vector(_antidiffusive_flux2_L,
-                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+    antidiffusive_flux2_L = wrap_storage(_antidiffusive_flux2_L,
+                                         (n_variables, n_nodes, n_nodes + 1, capacity))
     _antidiffusive_flux2_R = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * capacity)
-    antidiffusive_flux2_R = wrap_vector(_antidiffusive_flux2_R,
-                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+    antidiffusive_flux2_R = wrap_storage(_antidiffusive_flux2_R,
+                                         (n_variables, n_nodes, n_nodes + 1, capacity))
 
     reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
                                 antidiffusive_flux2_L, antidiffusive_flux2_R)
@@ -1447,21 +1448,21 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     @unpack _antidiffusive_flux1_L, _antidiffusive_flux2_L, _antidiffusive_flux1_R, _antidiffusive_flux2_R = fluxes
 
     resize!(_antidiffusive_flux1_L, n_variables * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_L = wrap_vector(_antidiffusive_flux1_L,
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                capacity))
+    fluxes.antidiffusive_flux1_L = wrap_storage(_antidiffusive_flux1_L,
+                                                (n_variables, n_nodes + 1, n_nodes,
+                                                 capacity))
     resize!(_antidiffusive_flux1_R, n_variables * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_R = wrap_vector(_antidiffusive_flux1_R,
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                capacity))
+    fluxes.antidiffusive_flux1_R = wrap_storage(_antidiffusive_flux1_R,
+                                                (n_variables, n_nodes + 1, n_nodes,
+                                                 capacity))
     resize!(_antidiffusive_flux2_L, n_variables * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux2_L = wrap_vector(_antidiffusive_flux2_L,
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                capacity))
+    fluxes.antidiffusive_flux2_L = wrap_storage(_antidiffusive_flux2_L,
+                                                (n_variables, n_nodes, n_nodes + 1,
+                                                 capacity))
     resize!(_antidiffusive_flux2_R, n_variables * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux2_R = wrap_vector(_antidiffusive_flux2_R,
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                capacity))
+    fluxes.antidiffusive_flux2_R = wrap_storage(_antidiffusive_flux2_R,
+                                                (n_variables, n_nodes, n_nodes + 1,
+                                                 capacity))
 
     return nothing
 end

@@ -144,30 +144,30 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
     nelements = ncells(mesh)
 
     _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
-    node_coordinates = wrap_vector(_node_coordinates,
-                                   (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
-                                    nelements))
+    node_coordinates = wrap_storage(_node_coordinates,
+                                    (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                     nelements))
 
     _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * nnodes(basis)^NDIMS * nelements)
-    jacobian_matrix = wrap_vector(_jacobian_matrix,
-                                  (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
-                                   nelements))
+    jacobian_matrix = wrap_storage(_jacobian_matrix,
+                                   (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
+                                    nelements))
 
     _contravariant_vectors = similar(_jacobian_matrix)
-    contravariant_vectors = wrap_vector(_contravariant_vectors, size(jacobian_matrix))
+    contravariant_vectors = wrap_storage(_contravariant_vectors, size(jacobian_matrix))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
-    inverse_jacobian = wrap_vector(_inverse_jacobian,
-                                   (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
+    inverse_jacobian = wrap_storage(_inverse_jacobian,
+                                    (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
 
     _surface_flux_values = Vector{uEltype}(undef,
                                            nvariables(equations) *
                                            nnodes(basis)^(NDIMS - 1) * (NDIMS * 2) *
                                            nelements)
-    surface_flux_values = wrap_vector(_surface_flux_values,
-                                      (nvariables(equations),
-                                       ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                       NDIMS * 2, nelements))
+    surface_flux_values = wrap_storage(_surface_flux_values,
+                                       (nvariables(equations),
+                                        ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                        NDIMS * 2, nelements))
 
     elements = P4estElementContainer{NDIMS, RealT, uEltype,
                                      NDIMS + 1, NDIMS + 2, NDIMS + 3,
@@ -350,28 +350,29 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_interfaces)
-    u = wrap_vector(_u,
-                    (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                     n_interfaces))
+    u = wrap_storage(_u,
+                     (2, nvariables(equations),
+                      ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                      n_interfaces))
 
     if !trivial_interface_normals(basis)
         _normal_directions = Vector{RealT}(undef,
                                            NDIMS * nnodes(basis)^(NDIMS - 1) *
                                            n_interfaces)
-        normal_directions = wrap_vector(_normal_directions,
-                                        (NDIMS,
-                                         ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                         n_interfaces))
+        normal_directions = wrap_storage(_normal_directions,
+                                         (NDIMS,
+                                          ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                          n_interfaces))
     else
         _normal_directions = nothing
         normal_directions = nothing
     end
 
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
-    neighbor_ids = wrap_vector(_neighbor_ids, (2, n_interfaces))
+    neighbor_ids = wrap_storage(_neighbor_ids, (2, n_interfaces))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
-    node_indices = wrap_vector(_node_indices, (2, n_interfaces))
+    node_indices = wrap_storage(_node_indices, (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, RealT, uEltype,
                                          NDIMS + 1, NDIMS + 2,
@@ -523,9 +524,9 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _u = Vector{uEltype}(undef,
                          nvariables(equations) * nnodes(basis)^(NDIMS - 1) *
                          n_boundaries)
-    u = wrap_vector(_u,
-                    (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                     n_boundaries))
+    u = wrap_storage(_u,
+                     (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                      n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
     node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
@@ -694,15 +695,15 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
     _u = Vector{uEltype}(undef,
                          2 * nvariables(equations) * 2^(NDIMS - 1) *
                          nnodes(basis)^(NDIMS - 1) * n_mortars)
-    u = wrap_vector(_u,
-                    (2, nvariables(equations), 2^(NDIMS - 1),
-                     ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
+    u = wrap_storage(_u,
+                     (2, nvariables(equations), 2^(NDIMS - 1),
+                      ntuple(_ -> nnodes(basis), NDIMS - 1)..., n_mortars))
 
     _neighbor_ids = Vector{Int}(undef, (2^(NDIMS - 1) + 1) * n_mortars)
-    neighbor_ids = wrap_vector(_neighbor_ids, (2^(NDIMS - 1) + 1, n_mortars))
+    neighbor_ids = wrap_storage(_neighbor_ids, (2^(NDIMS - 1) + 1, n_mortars))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
-    node_indices = wrap_vector(_node_indices, (2, n_mortars))
+    node_indices = wrap_storage(_node_indices, (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                    typeof(neighbor_ids), typeof(node_indices),

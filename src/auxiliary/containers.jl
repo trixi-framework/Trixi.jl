@@ -284,20 +284,38 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
 end
 
 # Wrap the internal (`resize!`able) storage `vector` of a container as a
-# multi-dimensional array of size `dims` without copying. This is used for the
-# containers (initial creation, `resize!`, and `Adapt.adapt_structure`). All callers
-# adapt or resize `vector` to the target storage type before wrapping it, so we can
-# dispatch on the type of `vector` itself.
+# multi-dimensional array of size `dims` without copying. Only one-dimensional arrays
+# can be `resize!`d in Julia, so containers keep their data in `vector`s and wrap them
+# (at creation, after every `resize!`, and in `Adapt.adapt_structure`). `wrap_array`
+# wraps the solution vector `u_ode` in the same way. All callers adapt or resize `vector`
+# to the target storage type before wrapping it, so we can dispatch on its type.
+# The wrapped array must be re-created after every `resize!` of `vector`.
 #
-# For CPU `Vector`s, this returns a `VectorBackedArray` (see `wrap_vector`), which keeps
-# a reference to `vector`. This is safe with respect to the garbage collector for all
-# element types (including non-`isbits` ones) and allows `resize!`ing `vector`
-# afterwards (followed by wrapping it again), also on Julia v1.10.
+# For CPU `Vector`s, this returns a `VectorBackedArray`, an immutable `FixedSizeArray`
+# backed by `vector`. Previously, we used `unsafe_wrap(Array, pointer(vector), dims)`
+# here. In contrast, a `VectorBackedArray`
+# - keeps a reference to `vector`, so the memory stays rooted and temporaries do not
+#   need to be `GC.@preserve`d,
+# - is safe with respect to the garbage collector also for non-`isbits` element types
+#   (e.g., `BigFloat`s), since stores trigger the necessary write barriers,
+# - allows `resize!`ing `vector` also on Julia v1.10, where `reshape(vector, dims)` marks
+#   `vector` as shared (`ERROR: cannot resize array with shared data`),
+# - has dimensions that are plain values. Since Julia v1.11, `Array` is a mutable struct,
+#   so its size and data pointer are loaded from memory and LLVM often cannot hoist these
+#   loads out of inner loops.
+# It is a `DenseArray` that can be passed to external libraries such as MPI (via the
+# MPI.jl package extension of FixedSizeArrays.jl) and HDF5.
 #
 # For all other vectors, we use `reshape`. For GPU arrays such as `CuArray` or `ROCArray`,
 # the result shares the (reference-counted) buffer of `vector`. This also covers device
-# arrays used inside kernels (e.g., `CuDeviceArray`) and CPU views.
-@inline wrap_storage(vector::Vector, dims) = wrap_vector(vector, dims)
+# arrays used inside kernels (e.g., `CuDeviceArray`) and CPU views that are never
+# `resize!`d, e.g., columns of a matrix in `linear_structure` or `jacobian_fd` and parts
+# of `u_ode` in coupled semidiscretizations.
+const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
+
+@inline function wrap_storage(vector::Vector, dims)
+    return FixedSizeArrays.wrap(FixedSizeArray, vector, dims)
+end
 @inline wrap_storage(vector::AbstractVector, dims) = reshape(vector, dims)
 
 struct TrixiAdaptor{Storage, RealT} end
@@ -356,66 +374,3 @@ end
 # 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
 end # @muladd
-
-# An N-dimensional view of a `resize!`able backing `Vector`, used instead of
-# `unsafe_wrap(Array, pointer(v), dims)` in containers that are resized by AMR.
-# Since Julia v1.11, `Array` is a mutable struct, so its size and data pointer are
-# loaded from memory and LLVM often cannot hoist these loads out of inner loops.
-# A `FixedSizeArray` is immutable, so its dimensions are plain values. It holds a
-# reference to `v`, so the memory stays rooted (no `GC.@preserve` needed) and stores
-# of non-isbits elements get the necessary write barriers.
-# The view must be re-created after every `resize!` of `v`.
-const VectorBackedArray{T, N} = FixedSizeArray{T, N, Vector{T}}
-
-@inline function wrap_vector(v::Vector, dims)
-    return FixedSizeArrays.wrap(FixedSizeArray, v, dims)
-end
-
-# The view is a `FixedSizeArrayDims` backed by the same `Vector` as `A`, with the sizes
-# `(Val(nvariables), Val(nnodes)..., nelements)`. This is the typical layout of the
-# solution and its time derivative in Trixi.jl, where the number of variables and nodes
-# is fixed but the number of elements changes, e.g., with AMR. Knowing the strides at
-# compile time simplifies the index computations in performance-critical kernels.
-# Like `VectorBackedArray`s, these views keep a reference to the `Vector`, so the memory
-# stays alive, and must be re-created after every `resize!` of the `Vector`.
-# Polyester.jl converts them to `PtrArray`s with static sizes via the
-# StaticArrayInterface.jl traits defined in FixedSizeArrays.jl.
-"""
-    static_view(A, equations, dg)
-
-Return a view of the solution-like array `A` with dimensions
-`[variable, node..., element]` whose sizes of all but the last dimension (i.e.,
-`nvariables(equations)` and `nnodes(dg)`) are known at compile time, without copying.
-Returns `A` itself for array types without such a view. Requires that `nnodes(dg)` is
-known at compile time (e.g., `DGSEM`). `wrap_array` returns such a view for `DGSEM`.
-"""
-@inline function static_view(A::VectorBackedArray, equations, dg)
-    dims = static_dims(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(A) - 2),
-                       size(A, ndims(A)))
-    return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(A), dims)
-end
-# `(Val(nvariables), Val(nnodes)..., nlast)` for `ndims_nodes` node dimensions. A generated
-# function so that the type is inferred also on Julia v1.10, which does not infer
-# `(Val(nvariables(equations)), ntuple(_ -> Val(nnodes(dg)), ndims(A) - 2)..., nlast)`;
-# `wrap_array` returns this view and must be type stable.
-@generated function static_dims(::Val{NVARS}, ::Val{NNODES}, ::Val{NDIMS_NODES},
-                                nlast::Int) where {NVARS, NNODES, NDIMS_NODES}
-    return :((Val($NVARS), $(ntuple(_ -> :(Val($NNODES)), NDIMS_NODES)...), nlast))
-end
-@inline static_view(A, equations, dg) = A
-
-# Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
-# `flux_differencing_kernel!`). We restrict the element types to those supported natively
-# by LoopVectorization.jl (e.g., no `ForwardDiff.Dual`s), mirroring
-# `LoopVectorization.check_args`.
-# These are the CPU arrays returned by `wrap_array`: a `FixedSizeArrayDims` backed by a
-# `Vector` (with static sizes for `DGSEM`, see `static_view`, otherwise a
-# `VectorBackedArray`), and a reshaped contiguous view of an `Array`, e.g., a column of a
-# matrix in `linear_structure` or `jacobian_fd`, or a part of `u_ode` in coupled
-# semidiscretizations. Threading via Polyester.jl may convert them to `PtrArray`s.
-const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
-                         FixedSizeArrayDims{<:LoopVectorization.NativeTypes, <:Any, <:Any,
-                                            <:Vector},
-                         Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
-                                            <:Base.FastContiguousSubArray{<:Any, 1,
-                                                                          <:Array}} where {N}}
