@@ -226,7 +226,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
 
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
-    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
+    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements; backend,
                                                     init, neutral) do element
         max_scaled_speed_per_element(u, MeshT, constant_speed,
                                      equations, dg,
