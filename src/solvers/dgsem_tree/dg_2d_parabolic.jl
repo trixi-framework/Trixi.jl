@@ -637,7 +637,7 @@ end
 function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{2}, # for dispatch only
-                                      equations_parabolic::AbstractEquationsParabolic,
+                                      equations_parabolic,
                                       surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries

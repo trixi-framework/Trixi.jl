@@ -1130,7 +1130,7 @@ end
 function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_conditions::UnstructuredSortedBoundaryTypes,
                                       mesh::P4estMesh,
-                                      equations_parabolic::AbstractEquationsParabolic,
+                                      equations_parabolic,
                                       surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
