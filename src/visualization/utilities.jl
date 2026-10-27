@@ -1798,6 +1798,8 @@ end
 # belong to the same group. Mortars are not considered, since `BlockFV` does not support
 # non-conforming meshes yet.
 function calc_fv_corner_groups(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    @assert nmortars(cache.mortars)==0 "Corner groups of finite volume cells are not supported for meshes with mortars."
+
     n = nnodes(solver)
     corner_range = Base.OneTo(n + 1)
     corners = LinearIndices((n + 1, n + 1, nelements(solver, cache)))

@@ -88,7 +88,7 @@ end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
-                              VariableNames, PlottingTriangulation, PointDataType} <:
+                              VariableNames, PlottingTriangulation, NodeGroupsType} <:
        AbstractPlotData{2}
     x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
     y::NodeType
@@ -99,9 +99,12 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     face_data::FaceDataType
     variable_names::VariableNames
     point_values::Bool # `false` for cell (mean) values, e.g., for `BlockFV`
-    # For cell (mean) values: the values averaged onto the nodes, which contour plots need.
-    # `nothing` for point values.
-    point_data::PointDataType
+    # For cell (mean) values: a group for each plotting node (same size as `x`), which is
+    # the same for all nodes at the same mesh vertex, including vertices that are identified
+    # through periodic boundaries. Contour plots average the cell values over these groups.
+    # `nothing` for point values. The constructors for solution and scalar data ensure that
+    # `node_groups` is available whenever `point_values == false`.
+    node_groups::NodeGroupsType
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -114,7 +117,8 @@ function Base.show(io::IO, pd::PlotData2DTriangulated)
           typeof(pd.x_face), ", ",
           typeof(pd.face_data), ", ",
           typeof(pd.variable_names),
-          "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
+          "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>, point_values = ",
+          pd.point_values, ")")
     return nothing
 end
 
@@ -426,6 +430,11 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables = nothing,
                                 nvisnodes = 2 * polydeg(dg))
     @assert ndims(mesh)==2 "Input must be two-dimensional."
+    if !visualize_point_values(mesh, dg)
+        throw(ArgumentError("Triangulated plot data does not support DGSEM with " *
+                            "`polydeg = 0`. On a `TreeMesh`, `PlotData2D` " *
+                            "visualizes such solutions as cell values."))
+    end
 
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
@@ -569,6 +578,10 @@ end
 function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
                           variable_name = nothing,
                           nvisnodes = 2 * nnodes(dg))
+    if !visualize_point_values(mesh, dg)
+        throw(ArgumentError("`ScalarPlotData2D` does not support DGSEM with " *
+                            "`polydeg = 0`."))
+    end
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
 
@@ -836,13 +849,12 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
 
     x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
 
-    # Contour plots need point values, so the cell values are also averaged onto the cell
-    # corners.
-    point_data = calc_group_means(data, groups)
-
+    # Contour plots need point values. They average the cell values over the `groups`,
+    # i.e., over all cells sharing a mesh vertex. 
+    # This is done only when needed and only for the plotted variable.
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
                                   variable_names, visualize_point_values(mesh, dg),
-                                  point_data)
+                                  groups)
 end
 
 # unwrap u if it is VectorOfArray
