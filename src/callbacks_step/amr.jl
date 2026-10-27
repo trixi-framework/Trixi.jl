@@ -655,7 +655,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 @unpack parabolic_container = cache_parabolic
                 resize!(parabolic_container, equations, dg, cache)
                 # 3D does currently not have a `GradientBoundaryContainer`
-                # => `prolong_gradients2boundaries!` only available for 2D
                 if mesh isa P4estMesh{2}
                     @unpack gradients_at_boundaries_container = cache_parabolic
                     resize!(gradients_at_boundaries_container, equations, dg, cache)

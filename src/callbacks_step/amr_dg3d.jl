@@ -209,6 +209,23 @@ function refine_element!(u::AbstractArray{<:Any, 5}, element_id,
     return nothing
 end
 
+# 3D does currently not have a `GradientBoundaryContainer`
+# => Own function for parabolic helper variable resizing
+function refine!(u_ode::AbstractVector, adaptor,
+                 mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                 equations, dg::DGSEM, cache, cache_parabolic,
+                 elements_to_refine, limiter!)
+    # Call `refine!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the refined cells
+    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
+
+    # Resize parabolic helper variables
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
+
+    return nothing
+end
+
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed.
 # On `P4estMesh`, if an element coarsens the solution scaled by the Jacobian `J*u` is projected
 # from the eight children elements back onto the parent element. The solution on the parent
