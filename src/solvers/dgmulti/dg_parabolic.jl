@@ -289,11 +289,13 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
     return nothing
 end
 
-function calc_parabolic_fluxes!(flux_parabolic, u, gradients, mesh::DGMultiMesh,
+# note: we use `flux_parabolic_` to avoid having a variable name shadow the `flux_parabolic`
+# function, which leads to cfunction errors when running arm64 multithreading.
+function calc_parabolic_fluxes!(flux_parabolic_, u, gradients, mesh::DGMultiMesh,
                                 equations::AbstractEquationsParabolic,
                                 dg::DGMulti, cache, cache_parabolic)
     for dim in eachdim(mesh)
-        set_zero!(flux_parabolic[dim], dg)
+        set_zero!(flux_parabolic_[dim], dg)
     end
 
     (; local_u_values_threaded) = cache_parabolic
@@ -312,7 +314,7 @@ function calc_parabolic_fluxes!(flux_parabolic, u, gradients, mesh::DGMultiMesh,
             gradients_i = getindex.(gradients, i, e)
             for dim in eachdim(mesh)
                 flux_parabolic_i = flux(u_i, gradients_i, dim, equations)
-                setindex!(flux_parabolic[dim], flux_parabolic_i, i, e)
+                setindex!(flux_parabolic_[dim], flux_parabolic_i, i, e)
             end
         end
     end
@@ -346,7 +348,7 @@ function calc_parabolic_penalty!(scalar_flux_face_values, u_face_values, t,
     return nothing
 end
 
-function calc_volume_integral_divergence!(du, u, flux_parabolic, mesh::DGMultiMesh,
+function calc_volume_integral_divergence!(du, u, flux_parabolic_, mesh::DGMultiMesh,
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic)
     (; weak_differentiation_matrices) = cache_parabolic
@@ -356,14 +358,14 @@ function calc_volume_integral_divergence!(du, u, flux_parabolic, mesh::DGMultiMe
         for i in eachdim(mesh), j in eachdim(mesh)
             dxidxhatj = mesh.md.rstxyzJ[i, j][1, e] # assumes mesh is affine
             apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j], dxidxhatj),
-                                view(du, :, e), view(flux_parabolic[i], :, e))
+                                view(du, :, e), view(flux_parabolic_[i], :, e))
         end
     end
 
     return nothing
 end
 
-function calc_volume_integral_divergence!(du, u, flux_parabolic,
+function calc_volume_integral_divergence!(du, u, flux_parabolic_,
                                           mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic) where {NDIMS}
@@ -379,7 +381,7 @@ function calc_volume_integral_divergence!(du, u, flux_parabolic,
                 for node in eachindex(local_parabolic_flux)
                     local_parabolic_flux[node] = local_parabolic_flux[node] +
                                                  dxidxhatj[j, i][node, e] *
-                                                 flux_parabolic[j][node, e]
+                                                 flux_parabolic_[j][node, e]
                 end
             end
 
