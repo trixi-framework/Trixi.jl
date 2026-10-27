@@ -193,6 +193,23 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
+# Catches `@threaded` loops capturing local variables that shadow global functions,
+# which errors on aarch64 (see `flux_parabolic_x` in `dg_1d_parabolic.jl`)
+@testitem "Threaded TreeMesh: elixir_advection_diffusion.jl (1D)" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[8.40483031802723e-6],
+                        linf=[2.8990878868540015e-5])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
+end
+
 @testitem "Threaded TreeMesh: FDSBP, elixir_advection_extended.jl" setup=[
     Setup,
     ThreadedExamples
@@ -510,4 +527,45 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+# Catches `@threaded` loops capturing local variables that shadow global functions,
+# which errors on aarch64 (see `flux_parabolic_` in `dgmulti/dg_parabolic.jl`)
+@testitem "Threaded DGMulti: elixir_advection_diffusion.jl" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_advection_diffusion.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[0.2485803335154642],
+                        linf=[1.079606969242132])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
+end
+
+# Covers the `NonAffine` method of `calc_volume_integral_divergence!`
+@testitem "Threaded DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_curved.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0042551020940351444,
+                            0.011118489080358264,
+                            0.011281831362358863,
+                            0.035736565778376306
+                        ],
+                        linf=[
+                            0.015071709836357083,
+                            0.04103131887989486,
+                            0.03990424032494211,
+                            0.13094018584692968
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
