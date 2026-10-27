@@ -8,9 +8,7 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     count_required_surfaces!(mesh)
     required = count_required_surfaces(mesh)
@@ -47,8 +45,10 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     empty!(mpi_mesh_info.neighbor_ranks_mortar)
     empty!(mpi_mesh_info.neighbor_ranks_interface)
 
-    # Re-initialize and distribute normal directions of MPI mortars; requires
-    # MPI communication, so the MPI cache must be re-initialized beforehand.
+    # Re-initialize and distribute normal directions of MPI interfaces and mortars;
+    # requires MPI communication, so the MPI cache must be re-initialized beforehand.
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
