@@ -857,7 +857,7 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
     x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
 
     # Contour plots need point values. They average the cell values over the `groups`,
-    # i.e., over all cells sharing a mesh vertex. 
+    # i.e., over all cells sharing a mesh vertex.
     # This is done only when needed and only for the plotted variable.
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
                                   variable_names, visualize_point_values(mesh, dg),
