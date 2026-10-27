@@ -69,9 +69,10 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right).
 ```
-which is the form implemented below in the [`flux`](@ref) function.
+However, the [`flux`](@ref) function uses the first of these expressions,
+i.e., both the thermal conductivity ``\kappa`` and the temperature ``T`` include ``R``.
 
 In three spatial dimensions we require gradients for four quantities, e.g.,
 primitive quantities
@@ -218,8 +219,9 @@ end
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
-    # Note, the gas constant cancels under this formulation, so it is not present
-    # in the implementation
+    # Note, the gas constant R cancels mathematically in this formulation. However,
+    # it is included in both `kappa_over_mu` and the temperature gradient since the
+    # gradient variables and boundary conditions use the temperature T = p / (R rho).
     q1 = equations.kappa_over_mu * dTdx
     q2 = equations.kappa_over_mu * dTdy
     q3 = equations.kappa_over_mu * dTdz

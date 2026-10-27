@@ -1466,6 +1466,51 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach08.jl (entropy gradient variables)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        l2=[0.00018594980973881656,
+                            0.0005125796180749062,
+                            0.00038371304694500115,
+                            0.0021157711045400283],
+                        linf=[0.5125645624266784,
+                            1.2347607775786207,
+                            0.9219577223090923,
+                            5.609128002255419], tspan=(0.0, 0.001),
+                        initial_refinement_level=0)
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    # The shear stress is computed from the gradients of the entropy variables.
+    # The values are close to the ones obtained with `GradientVariablesPrimitive`
+    # above (drag coefficient 1.5427441885921553).
+    drag_f = Trixi.analyze(drag_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi, semi.cache_parabolic)
+    lift_f = Trixi.analyze(lift_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi, semi.cache_parabolic)
+
+    @test isapprox(drag_f, 1.5544983191877073, atol = 1e-13)
+    @test isapprox(lift_f, 0.010271534458877359, atol = 1e-13)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" setup=[
     Setup,
     Parabolic2D
