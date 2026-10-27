@@ -3980,19 +3980,34 @@ end
         @test max_diffusivity(u, equations_parabolic) ≈
               mu_T / rho * equations_parabolic.max_visc_cond
 
-        if gradient_variables isa GradientVariablesPrimitive
-            # Gradients of (rho, v1, v2, T) in x- and y-direction
-            gradients_1 = SVector(0.1, 0.2, 0.3, 0.4)
-            gradients_2 = SVector(-0.5, 0.6, -0.7, 0.8)
-            tau = Trixi.viscous_stress_tensor(u, equations_parabolic,
-                                              gradients_1, gradients_2)
-            @test collect(tau) ≈
-                  mu_T .* [
-                4 / 3 * 0.2 - 2 / 3 * (-0.7),
-                0.6 + 0.3,
-                4 / 3 * (-0.7) - 2 / 3 * 0.2
-            ]
+        # Gradients of (rho, v1, v2, T) in x- and y-direction
+        gradients_prim_1 = SVector(0.1, 0.2, 0.3, 0.4)
+        gradients_prim_2 = SVector(-0.5, 0.6, -0.7, 0.8)
+        # `viscous_stress_tensor` expects the gradients of the transformed variables,
+        # which we compute from the gradients of (rho, v1, v2, T) by the chain rule
+        prim_temperature = cons2prim_temperature(u, equations_parabolic)
+        function prim_temperature2transformed(q)
+            rho, v1, v2, T = q
+            u_ = prim2cons(SVector(rho, v1, v2, R_specific * rho * T),
+                           equations_parabolic)
+            return transformation(u_, equations_parabolic)
         end
+        gradients_1 = ForwardDiff.derivative(s -> prim_temperature2transformed(prim_temperature +
+                                                                               s *
+                                                                               gradients_prim_1),
+                                             0.0)
+        gradients_2 = ForwardDiff.derivative(s -> prim_temperature2transformed(prim_temperature +
+                                                                               s *
+                                                                               gradients_prim_2),
+                                             0.0)
+        tau = Trixi.viscous_stress_tensor(u, equations_parabolic,
+                                          gradients_1, gradients_2)
+        @test collect(tau) ≈
+              mu_T .* [
+            4 / 3 * 0.2 - 2 / 3 * (-0.7),
+            0.6 + 0.3,
+            4 / 3 * (-0.7) - 2 / 3 * 0.2
+        ]
     end
 end
 
