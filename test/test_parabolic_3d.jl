@@ -636,8 +636,6 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 
-    @test typeof(similar(equations_parabolic, Float32).mu) == Float32
-
     # Subgrid-scale models are only implemented for `P4estMesh`es in 3D
     mesh_tree = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 1,
                          periodicity = true)

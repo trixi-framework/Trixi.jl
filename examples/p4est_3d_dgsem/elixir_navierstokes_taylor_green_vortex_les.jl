@@ -94,6 +94,6 @@ time_int_tol = 1e-8
 # A `Rational` initial time step `dt` keeps the real type of `semi` for the time
 sol = solve(ode, ode_alg;
             # not necessary, added for overwriting in tests
-            adaptive = true, dt = 3913 // 1_000_000,
+            adaptive = true, dt = 1 // 256,
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
