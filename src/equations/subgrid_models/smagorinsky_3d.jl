@@ -32,8 +32,6 @@ Base.@propagate_inbounds function calc_subgrid_model_coefficients(u_transformed,
         volume += weights[i] * weights[j] * weights[k] /
                   inverse_jacobian[i, j, k, element]
     end
-    # `cbrt` is not used since it computes in `Float64` for `Float32`, which is not
-    # supported on all GPUs
     delta = volume^(one(RealT) / 3) / nnodes(dg)
 
     return (subgrid_model.C_s * delta)^2
