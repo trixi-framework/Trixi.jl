@@ -22,16 +22,17 @@ The classical inviscid Taylor-Green vortex.
 """
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations3D)
-    A = 1.0 # magnitude of speed
-    Ms = 0.1 # maximum Mach number
+    RealT = eltype(x)
+    A = 1 # magnitude of speed
+    Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1.0
+    rho = one(RealT)
     v1 = A * sin(x[1]) * cos(x[2]) * cos(x[3])
     v2 = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
-    v3 = 0.0
+    v3 = zero(RealT)
     p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
     p = p +
-        1.0 / 16.0 * A^2 * rho *
+        A^2 * rho / 16 *
         (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) +
          cos(2 * x[2]) * cos(2 * x[3]))
 
@@ -61,6 +62,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 20.0)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -86,8 +91,9 @@ callbacks = CallbackSet(summary_callback,
 
 ode_alg = RDPK3SpFSAL49(thread = Trixi.Threaded())
 time_int_tol = 1e-8
+# A `Rational` initial time step `dt` keeps the real type of `semi` for the time
 sol = solve(ode, ode_alg;
             # not necessary, added for overwriting in tests
-            adaptive = true, dt = 3.913e-3,
+            adaptive = true, dt = 3913 // 1_000_000,
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

@@ -10,7 +10,7 @@ for human readability.
 #### Added
 - Parabolic terms `CompressibleLES3D` of the filtered compressible Navier-Stokes equations
   for large eddy simulations with the Smagorinsky subgrid-scale model `Smagorinsky` on 3D
-  `P4estMesh`es.
+  `P4estMesh`es, also on GPUs.
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)

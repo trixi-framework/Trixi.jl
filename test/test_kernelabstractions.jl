@@ -872,3 +872,38 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "KernelAbstractions CPU 3D: elixir_navierstokes_taylor_green_vortex_les.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_les.jl"),
+                        tspan=(0.0, 0.5),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.0003488573429907198,
+                            0.03123238520917775,
+                            0.031232385209178145,
+                            0.04351907504859387,
+                            0.016771329400351937
+                        ],
+                        linf=[
+                            0.0013866184899016254,
+                            0.07297687794575491,
+                            0.07297687794736218,
+                            0.12675647456343345,
+                            0.08089618397340814
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end

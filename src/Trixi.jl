@@ -184,6 +184,7 @@ include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 # LES with subgrid-scale models depend on the parabolic equations and the solvers
 include("solvers/dgsem_p4est/dg_3d_parabolic_les.jl")
+include("solvers/dgsem_p4est/dg_3d_parabolic_les_gpu.jl")
 include("equations/subgrid_models/smagorinsky_3d.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")

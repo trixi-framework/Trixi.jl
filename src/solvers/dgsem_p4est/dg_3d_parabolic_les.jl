@@ -19,7 +19,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
                                 gradients, u_transformed,
                                 mesh::P4estMesh{3},
                                 equations_parabolic::AbstractLESDiffusion{3},
-                                dg::DGSEM, cache)
+                                dg::DG, cache)
     gradients_x, gradients_y, gradients_z = gradients
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic # output arrays
 
@@ -42,7 +42,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
                                                                  gradients,
                                                                  element,
                                                                  subgrid_model_,
-                                                                 mesh,
+                                                                 typeof(mesh),
                                                                  equations_parabolic,
                                                                  dg, cache)
 
@@ -50,12 +50,13 @@ function calc_parabolic_fluxes!(flux_parabolic,
             # Get solution and gradients
             u_node = get_node_vars(u_transformed, equations_parabolic, dg,
                                    i, j, k, element)
-            gradients_node = (get_node_vars(gradients_x, equations_parabolic, dg,
-                                            i, j, k, element),
-                              get_node_vars(gradients_y, equations_parabolic, dg,
-                                            i, j, k, element),
-                              get_node_vars(gradients_z, equations_parabolic, dg,
-                                            i, j, k, element))
+            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
+                                             i, j, k, element)
+            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
+                                             i, j, k, element)
+            gradients_3_node = get_node_vars(gradients_z, equations_parabolic, dg,
+                                             i, j, k, element)
+            gradients_node = (gradients_1_node, gradients_2_node, gradients_3_node)
 
             # Diffusivities, e.g., viscosity and thermal conductivity, including the eddy
             # viscosity `mu_t`
@@ -64,18 +65,21 @@ function calc_parabolic_fluxes!(flux_parabolic,
             diffusivities_node = diffusivities(u_node, mu_t, equations_parabolic)
 
             # Calculate parabolic flux and store each component for later use
-            set_node_vars!(flux_parabolic_x,
-                           flux(u_node, gradients_node, 1, diffusivities_node,
-                                equations_parabolic),
-                           equations_parabolic, dg, i, j, k, element)
-            set_node_vars!(flux_parabolic_y,
-                           flux(u_node, gradients_node, 2, diffusivities_node,
-                                equations_parabolic),
-                           equations_parabolic, dg, i, j, k, element)
-            set_node_vars!(flux_parabolic_z,
-                           flux(u_node, gradients_node, 3, diffusivities_node,
-                                equations_parabolic),
-                           equations_parabolic, dg, i, j, k, element)
+            flux_parabolic_node_x = flux(u_node, gradients_node, 1, diffusivities_node,
+                                         equations_parabolic)
+            flux_parabolic_node_y = flux(u_node, gradients_node, 2, diffusivities_node,
+                                         equations_parabolic)
+            flux_parabolic_node_z = flux(u_node, gradients_node, 3, diffusivities_node,
+                                         equations_parabolic)
+            set_node_vars!(flux_parabolic_x, flux_parabolic_node_x,
+                           equations_parabolic, dg,
+                           i, j, k, element)
+            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y,
+                           equations_parabolic, dg,
+                           i, j, k, element)
+            set_node_vars!(flux_parabolic_z, flux_parabolic_node_z,
+                           equations_parabolic, dg,
+                           i, j, k, element)
         end
     end
 

@@ -20,18 +20,21 @@ end
 Base.@propagate_inbounds function calc_subgrid_model_coefficients(u_transformed,
                                                                   gradients, element,
                                                                   subgrid_model::Smagorinsky,
-                                                                  mesh::P4estMesh{3},
+                                                                  MeshT::Type{<:P4estMesh{3}},
                                                                   equations_parabolic::AbstractLESDiffusion{3},
                                                                   dg::DGSEM, cache)
     (; weights) = dg.basis
     (; inverse_jacobian) = cache.elements
 
-    volume = zero(eltype(inverse_jacobian))
+    RealT = eltype(inverse_jacobian)
+    volume = zero(RealT)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         volume += weights[i] * weights[j] * weights[k] /
                   inverse_jacobian[i, j, k, element]
     end
-    delta = cbrt(volume) / nnodes(dg)
+    # `cbrt` is not used since it computes in `Float64` for `Float32`, which is not
+    # supported on all GPUs
+    delta = volume^(one(RealT) / 3) / nnodes(dg)
 
     return (subgrid_model.C_s * delta)^2
 end
