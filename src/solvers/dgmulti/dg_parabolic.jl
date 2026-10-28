@@ -274,7 +274,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
             # for the gradient, it is the solution; for divergence, it is the normal flux.
             flux_face_values[fid, e] = boundary_condition(flux_face_values[fid, e],
                                                           u_face_values[fid, e],
-                                                          nothing, # gradients_inner
+                                                          nothing, # `gradients_inner` placeholder
                                                           face_normal, face_coordinates, t,
                                                           operator_type, equations)
 
