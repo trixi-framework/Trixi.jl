@@ -433,6 +433,23 @@ function coarsen_elements!(u::AbstractArray{<:Any, 5}, element_id,
     return nothing
 end
 
+# 3D does currently not have a `GradientBoundaryContainer`
+# => Own function for parabolic helper variable resizing
+function coarsen!(u_ode::AbstractVector, adaptor,
+                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                  equations, dg::DGSEM, cache, cache_parabolic,
+                  elements_to_remove, limiter!)
+    # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the coarsened cells
+    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
+
+    # Resize parabolic helper variables
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
+
+    return nothing
+end
+
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 dg::DGSEM, cache, difference, limiter!)
