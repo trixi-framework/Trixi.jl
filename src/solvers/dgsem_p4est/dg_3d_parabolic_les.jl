@@ -42,7 +42,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
                                                                  gradients,
                                                                  element,
                                                                  subgrid_model_,
-                                                                 mesh,
+                                                                 typeof(mesh),
                                                                  equations_parabolic,
                                                                  dg, cache)
 

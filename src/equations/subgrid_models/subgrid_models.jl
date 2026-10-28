@@ -13,14 +13,17 @@ passed as the keyword argument `subgrid_model` of parabolic equations such as
 [`CompressibleLES3D`](@ref).
 
 A subgrid-scale model `subgrid_model` must have a field `Prandtl_turbulent` and implement
-- `calc_subgrid_model_coefficients(u_transformed, gradients, element, subgrid_model, mesh,
-  equations, dg, cache)`, which returns the `coefficients` of `element`, e.g., depending
-  on the size of the element,
+- `calc_subgrid_model_coefficients(u_transformed, gradients, element, subgrid_model,
+  MeshT, equations, dg, cache)`, which returns the `coefficients` of `element`, e.g.,
+  depending on the size of the element, for the type `MeshT` of the mesh. On GPUs,
+  `cache` contains only `elements.inverse_jacobian`,
 - `eddy_viscosity(u, gradients, coefficients, subgrid_model, equations)`, which returns
   the eddy viscosity `mu_t` for the transformed variables `u` and the `gradients` at a
   node with the `coefficients` of its element.
 
 Optionally, it can implement
+- `similar(subgrid_model, RealT)`, which converts the parameters to the real type `RealT`,
+  e.g., `Float32` on GPUs,
 - `create_cache_subgrid_model(subgrid_model, mesh, equations, dg, cache, uEltype)`, which
   returns a `NamedTuple` of arrays added to the `cache`, e.g., scratch arrays for
   `calc_subgrid_model_coefficients` (by default, none).

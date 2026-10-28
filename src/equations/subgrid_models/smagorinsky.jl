@@ -26,9 +26,9 @@ dynamic viscosity in the viscous stresses, and the eddy conductivity
 polynomial degree ``N`` of the solver.
 
 !!! note "Limitations"
-    The model is only implemented for [`P4estMesh`](@ref)es in 3D on the CPU. The
-    parabolic time step estimate ([`max_diffusivity`](@ref)) only accounts for the
-    dynamic viscosity `mu`.
+    The model is only implemented for [`P4estMesh`](@ref)es in 3D. The parabolic time
+    step estimate ([`max_diffusivity`](@ref)) only accounts for the dynamic viscosity
+    `mu`.
 
 References:
 - Joseph Smagorinsky (1963)
@@ -46,5 +46,11 @@ end
 function Smagorinsky(; C_s = 0.17, Prandtl_turbulent = 0.9)
     RealT = promote_type(typeof(C_s), typeof(Prandtl_turbulent))
     return Smagorinsky(convert(RealT, C_s), convert(RealT, Prandtl_turbulent))
+end
+
+function Base.similar(subgrid_model::Smagorinsky, ::Type{NewRealT}) where {NewRealT}
+    return Smagorinsky(C_s = convert(NewRealT, subgrid_model.C_s),
+                       Prandtl_turbulent = convert(NewRealT,
+                                                   subgrid_model.Prandtl_turbulent))
 end
 end # @muladd

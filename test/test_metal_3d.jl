@@ -467,3 +467,37 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "Metal 3D: elixir_navierstokes_taylor_green_vortex_les.jl Float32 / Metal" setup=[
+    Setup,
+    Metal3DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_navierstokes_taylor_green_vortex_les.jl"),
+                        tspan=(0.0f0, 0.5f0),
+                        # The default `time_int_tol = 1e-8` of the adaptive time
+                        # integrator is below the machine epsilon of `Float32`.
+                        # Metal does not support `Float64`, so the tolerance must
+                        # be a `Float32` to be usable in the GPU kernels.
+                        time_int_tol=1.0f-6,
+                        l2=Float32[0.00034889503,
+                                   0.031233288,
+                                   0.031233348,
+                                   0.043520775,
+                                   0.01677153],
+                        linf=Float32[0.0013898611,
+                                     0.072980046,
+                                     0.072980404,
+                                     0.12676166,
+                                     0.080566406],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test typeof(semi.equations_parabolic.subgrid_model.C_s) == Float32
+    @test ode.u0 isa MtlArray{Float32}
+end
