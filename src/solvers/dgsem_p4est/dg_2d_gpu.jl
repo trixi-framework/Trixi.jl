@@ -930,7 +930,7 @@ end
                                                                                   element]),
                                                     _zero)),
                                   Val(nvariables(equations))))
-    source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
+    source_node = calc_source_terms_node(u, (), t, source_terms, node_coordinates,
                                          equations, dg, i, j, element)
     jacobian_factor = inverse_jacobian[i, j, element]
     du_local = get_node_vars(du, equations, dg, i, j, element) + factor * surface_node
@@ -938,16 +938,19 @@ end
     set_node_vars!(du, du_node, equations, dg, i, j, element)
 end
 
-Base.@propagate_inbounds function calc_source_terms_node(u, t, source_terms,
+# `aux_node` are the auxiliary variables at the node as a tuple, which is empty for
+# equations without auxiliary variables, see `get_aux_node_vars`
+Base.@propagate_inbounds function calc_source_terms_node(u, aux_node::Tuple, t,
+                                                         source_terms,
                                                          node_coordinates,
                                                          equations, dg::DG, indices...)
     u_local = get_node_vars(u, equations, dg, indices...)
     x_local = get_node_coords(node_coordinates, equations, dg, indices...)
 
-    return source_terms(u_local, x_local, t, equations)
+    return source_terms(u_local, aux_node..., x_local, t, equations)
 end
 
-@inline function calc_source_terms_node(u, t, source_terms::Nothing,
+@inline function calc_source_terms_node(u, aux_node::Tuple, t, source_terms::Nothing,
                                         node_coordinates,
                                         equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})

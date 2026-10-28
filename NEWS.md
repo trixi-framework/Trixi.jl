@@ -14,8 +14,9 @@ for human readability.
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
-  they are supported for conforming `P4estMesh{3}`es without AMR. The new equations
-  `LinearizedEulerEquations3DAuxVars` use them for a spatially varying mean flow.
+  they are supported for conforming `P4estMesh{3}`es without AMR, also on GPUs. The new
+  equations `LinearizedEulerEquations3DAuxVars` use them for a spatially varying mean
+  flow.
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)

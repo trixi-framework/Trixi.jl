@@ -8,12 +8,26 @@
 # Container for the values of the auxiliary variables at the volume and surface
 # quadrature nodes, see [`n_aux_node_vars`](@ref). It is stored as `cache.aux_vars` and
 # only created for equations with auxiliary variables.
-struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
-    aux_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, k, element]
-    aux_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, j, interface]
+struct AuxNodeVarsContainer{NDIMS, uEltype <: Real,
+                            AuxNodeVars <: AbstractArray{uEltype},
+                            AuxSurfaceNodeVars <: AbstractArray{uEltype}, AuxField}
+    aux_node_vars::AuxNodeVars                # [var, i, j, k, element]
+    aux_surface_node_vars::AuxSurfaceNodeVars # [leftright, var, i, j, interface]
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
+end
+
+# Move the arrays of the auxiliary variables, e.g., to a GPU, see `trixi_adapt`
+function Adapt.adapt_structure(to, aux_vars::AuxNodeVarsContainer{NDIMS}) where {NDIMS}
+    aux_node_vars = adapt(to, aux_vars.aux_node_vars)
+    aux_surface_node_vars = adapt(to, aux_vars.aux_surface_node_vars)
+    @unpack aux_field = aux_vars
+
+    return AuxNodeVarsContainer{NDIMS, eltype(aux_node_vars), typeof(aux_node_vars),
+                                typeof(aux_surface_node_vars),
+                                typeof(aux_field)}(aux_node_vars,
+                                                   aux_surface_node_vars, aux_field)
 end
 
 # Check whether the arrays of auxiliary variables have the axes we assume in the inner
@@ -59,7 +73,8 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                                  (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
                                   ninterfaces(cache.interfaces)))
 
-    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2,
+    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, typeof(aux_node_vars),
+                                    typeof(aux_surface_node_vars),
                                     typeof(aux_field)}(aux_node_vars,
                                                        aux_surface_node_vars,
                                                        aux_field)
