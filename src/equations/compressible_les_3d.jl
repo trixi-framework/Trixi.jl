@@ -74,14 +74,6 @@ function CompressibleLES3D(equations::CompressibleEulerEquations3D; mu, Prandtl,
                                                     subgrid_model)
 end
 
-function Base.similar(equations::CompressibleLES3D, ::Type{NewRealT}) where {NewRealT}
-    mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu
-    return CompressibleLES3D(similar(equations.equations_hyperbolic, NewRealT); mu,
-                             Prandtl = convert(NewRealT, equations.Pr),
-                             R = convert(NewRealT, equations.R),
-                             subgrid_model = equations.subgrid_model)
-end
-
 # Forward the accesses of `gamma` and `inv_gamma_minus_one` to the hyperbolic equations
 @inline function Base.getproperty(equations::CompressibleLES3D, field::Symbol)
     if field === :gamma || field === :inv_gamma_minus_one
