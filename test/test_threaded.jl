@@ -344,6 +344,29 @@ end
                         tspan=(0.0, 0.1))
 end
 
+@testitem "Threaded P4estMesh: elixir_navierstokes_taylor_green_vortex_les.jl" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_les.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.0003488573429907198,
+                            0.03123238520917775,
+                            0.031232385209178145,
+                            0.04351907504859387,
+                            0.016771329400351937
+                        ],
+                        linf=[
+                            0.0013866184899016254,
+                            0.07297687794575491,
+                            0.07297687794736218,
+                            0.12675647456343345,
+                            0.08089618397340814
+                        ])
+end
+
 @testitem "Threaded T8codeMesh: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
     Setup,
     ThreadedExamples

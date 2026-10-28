@@ -182,6 +182,9 @@ include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
+# LES with subgrid-scale models depend on the parabolic equations and the solvers
+include("solvers/dgsem_p4est/dg_3d_parabolic_les.jl")
+include("equations/subgrid_models/smagorinsky_3d.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_parabolic.jl")
@@ -239,6 +242,8 @@ export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
        CompressibleNavierStokesDiffusion3D
 
 export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
+
+export CompressibleLES3D, Smagorinsky
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
