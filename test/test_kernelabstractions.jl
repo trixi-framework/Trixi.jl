@@ -833,6 +833,76 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: elixir_linearizedeuler_aux_mean_flow.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        # Expected errors are exactly the same as with the regular CPU code!
+                        l2=[
+                            0.09376658249717858, 0.02362059813363448,
+                            0.027758023173570047, 0.024365135712989944,
+                            0.09349650593081046
+                        ],
+                        linf=[
+                            1.0905405868983333, 0.10769970556581673,
+                            0.14308560598829212, 0.09750975703490734,
+                            1.1076522654280505
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache.aux_vars.aux_node_vars isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_linearizedeuler_aux_mean_flow.jl (flux differencing)" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # The central flux of the linear equations results in the same discretization as the
+    # weak form volume integral (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()),
+                        l2=[
+                            0.0937665824971787, 0.023620598133634502,
+                            0.027758023173570057, 0.024365135712989965,
+                            0.09349650593081058
+                        ],
+                        linf=[
+                            1.0905405868983375, 0.10769970556581794,
+                            0.14308560598829173, 0.09750975703490757,
+                            1.1076522654280545
+                        ])
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        tuning=Tuning(flux_differencing_kernel = FullSweepGlobal()),
+                        l2=[
+                            0.0937665824971787, 0.023620598133634502,
+                            0.027758023173570057, 0.024365135712989965,
+                            0.09349650593081058
+                        ],
+                        linf=[
+                            1.0905405868983375, 0.10769970556581794,
+                            0.14308560598829173, 0.09750975703490757,
+                            1.1076522654280545
+                        ])
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples

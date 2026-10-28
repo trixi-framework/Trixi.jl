@@ -636,3 +636,75 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "CUDA 3D: elixir_linearizedeuler_aux_mean_flow.jl native" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        # Expected errors are exactly the same as with the regular CPU code!
+                        l2=[
+                            0.09376658249717858, 0.02362059813363448,
+                            0.027758023173570047, 0.024365135712989944,
+                            0.09349650593081046
+                        ],
+                        linf=[
+                            1.0905405868983333, 0.10769970556581673,
+                            0.14308560598829212, 0.09750975703490734,
+                            1.1076522654280505
+                        ],
+                        storage_type=CuArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa CuArray
+    @test semi.cache.aux_vars.aux_node_vars isa CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 3D: elixir_linearizedeuler_aux_mean_flow.jl Float32 / CUDA" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[
+                            Float32(0.09376658249717858),
+                            Float32(0.02362059813363448),
+                            Float32(0.027758023173570047),
+                            Float32(0.024365135712989944),
+                            Float32(0.09349650593081046)
+                        ],
+                        linf=[
+                            Float32(1.0905405868983333),
+                            Float32(0.10769970556581673),
+                            Float32(0.14308560598829212),
+                            Float32(0.09750975703490734),
+                            Float32(1.1076522654280505)
+                        ],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=CuArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa CuArray{Float32}
+    @test semi.cache.aux_vars.aux_node_vars isa CuArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
