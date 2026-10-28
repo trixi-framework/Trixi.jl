@@ -974,7 +974,8 @@ function PlotData2D(u::StructArray,
     variable_names = SVector(varnames(solution_variables_, equations))
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, triangulation,
-                                  x_face, y_face, face_data, variable_names)
+                                  x_face, y_face, face_data, variable_names,
+                                  visualize_point_values(mesh, dg), nothing)
 end
 
 function PlotData2D(u::Array{<:SVector}, mesh::DGMultiMesh{3}, equations,
