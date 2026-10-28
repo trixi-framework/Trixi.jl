@@ -26,9 +26,9 @@ dynamic viscosity in the viscous stresses, and the eddy conductivity
 polynomial degree ``N`` of the solver.
 
 !!! note "Limitations"
-    The model is only implemented for [`P4estMesh`](@ref)es in 3D on the CPU. It has
-    not been tested with MPI or AMR. The parabolic time step estimate
-    ([`max_diffusivity`](@ref)) only accounts for the dynamic viscosity `mu`.
+    The model is only implemented for [`P4estMesh`](@ref)es in 3D on the CPU. The
+    parabolic time step estimate ([`max_diffusivity`](@ref)) only accounts for the
+    dynamic viscosity `mu`.
 
 References:
 - Joseph Smagorinsky (1963)
@@ -37,9 +37,6 @@ References:
 - Douglas K. Lilly (1967)
   The representation of small-scale turbulence in numerical simulation experiments
   Proceedings of the IBM Scientific Computing Symposium on Environmental Sciences, 195-210
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct Smagorinsky{RealT <: Real} <: AbstractSubgridModel
     C_s::RealT

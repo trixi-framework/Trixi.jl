@@ -41,9 +41,6 @@ is ``\kappa_t = c_p \mu_t / \mathrm{Pr}_t`` with the turbulent Prandtl number
 heat capacity ``c_p = \gamma R / (\gamma - 1)``, and the dynamic viscosity `mu` may be a
 constant or a function `mu(u, equations)` of the primitive variables
 `u = (rho, v1, v2, v3, T)`, whose gradients are used.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct CompressibleLES3D{RealT <: Real, Mu, E <: AbstractCompressibleEulerEquations{3},
                          SubgridModel <: AbstractSubgridModel} <:
@@ -143,7 +140,13 @@ end
 
 @inline function convert_derivative_to_velocity_gradients(u, gradients,
                                                           equations::CompressibleLES3D)
-    return map(gradient -> SVector(gradient[2], gradient[3], gradient[4]), gradients)
+    _, dv1dx, dv2dx, dv3dx, _ = gradients[1]
+    _, dv1dy, dv2dy, dv3dy, _ = gradients[2]
+    _, dv1dz, dv2dz, dv3dz, _ = gradients[3]
+    dv_dx = SVector(dv1dx, dv2dx, dv3dx)
+    dv_dy = SVector(dv1dy, dv2dy, dv3dy)
+    dv_dz = SVector(dv1dz, dv2dz, dv3dz)
+    return dv_dx, dv_dy, dv_dz
 end
 
 # Viscosity `mu + mu_t` and thermal conductivity `kappa + kappa_t` with the eddy

@@ -52,9 +52,6 @@ subgrid-scale models and equations. Concrete equations implement
   flux with these `diffusivities`,
 in addition to the functionality of parabolic equations such as the
 `gradient_variable_transformation` and the boundary conditions.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 abstract type AbstractLESDiffusion{NDIMS, NVARS, GradientVariables} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
