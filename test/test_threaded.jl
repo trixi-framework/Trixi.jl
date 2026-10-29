@@ -529,8 +529,6 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-# Catches `@threaded` loops capturing local variables that shadow global functions,
-# which errors on aarch64 (see `flux_parabolic_` in `dgmulti/dg_parabolic.jl`)
 @testitem "Threaded DGMulti: elixir_advection_diffusion.jl" setup=[
     Setup,
     ThreadedExamples
