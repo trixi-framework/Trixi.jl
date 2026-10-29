@@ -128,6 +128,16 @@ job(s) it belongs to via `tags = [...]` (see [Testing setup](@ref) for how `tags
 correspond to the `TRIXI_TEST` jobs). Please study one of the existing tests and stay
 consistent to the current style when creating new tests.
 
+When adding a numerical flux, dissipation operator, or wave speed estimate with a
+`normal_direction` argument (used on curvilinear meshes), add the corresponding
+equations and fluxes to `normal_direction_test_cases` in
+[`test/test_unit.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_unit.jl).
+The unit tests check that these methods are homogeneous of degree one in
+`normal_direction` and consistent with the `orientation` methods, and they fail if a
+method defined in Trixi.jl is not covered. New callable flux types must also be added to
+the list `numerical_fluxes` in the test item
+"Unit: Numerical fluxes with normal_direction".
+
 Since we want to test as much as possible, we have a lot of tests and
 frequently create new ones. Naturally, this increases the time to wait for all
 tests to pass with each novel feature added to Trixi.jl. Therefore, new tests should be as

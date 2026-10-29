@@ -235,6 +235,32 @@ Notes:
 - When developing new kernels, run Julia with `--check-bounds=yes` so that
   out-of-bounds accesses are caught despite `@inbounds`.
 
+### Running selected MPI test items
+
+Test items with the tag `:mpi` (e.g., in `test/test_mpi_p4est_2d.jl`) exercise
+the MPI code (e.g., `P4estMeshParallel`) only when run with more than one MPI
+rank; in a single Julia process, the mesh is not parallel. Thus, run selected
+MPI test items in the shell (not in a persistent session via MCP) with
+`mpiexec`, as the `mpi` suite does, but without running the complete suite:
+
+1. Write a script calling `@run_package_tests` with a filter as
+   [above](#running-selected-test-items), e.g., `run_agents/run_mpi_items.jl`.
+   The script must be located in `run_agents/`: when called from a file,
+   `@run_package_tests` searches the parent directory of the directory of this
+   file, so a script in another directory (e.g., a temporary directory) finds
+   no test items.
+2. Launch it from the root of the repository via `MPI.mpiexec()`:
+   ```bash
+   julia --project=run_agents -e 'using MPI; julia = Base.julia_cmd()[1]
+       run(`$(MPI.mpiexec()) -n 2 $julia --threads=1 --check-bounds=yes --project=run_agents run_agents/run_mpi_items.jl`)'
+   ```
+   Do not call the `mpiexec` binary of the MPI.jl artifact directly from the
+   shell; it fails since `libhwloc` is not found.
+3. Each rank prints its own test summary, and the output of the ranks may be
+   interleaved. Check that all ranks report only passed tests and that the
+   output of the elixirs shows `#MPI ranks: 2`.
+4. Remove the script afterward.
+
 ### Persistent Julia sessions via MCP
 
 Some developers configure MCP servers providing persistent Julia sessions, in
@@ -402,7 +428,11 @@ starts the Julia sessions itself.
   `f(u, u, orientation, equations) ≈ flux(u, orientation, equations)` and the
   same with `normal_direction`. For all fluxes and wave speed estimates with
   `normal_direction` methods, check agreement with the `orientation` methods
-  for axis-aligned unit normals.
+  for axis-aligned unit normals. For new methods with a `normal_direction`
+  (including new equations), add the equations and fluxes to
+  `normal_direction_test_cases` in `test/test_unit.jl`; the test items
+  `"Unit: Wave speed estimates with normal_direction"` and
+  `"Unit: Numerical fluxes with normal_direction"` fail otherwise.
 - Except for consistency checks, unit tests for numerical fluxes and wave speed
   estimates should use *different* left and right states: many copy-paste bugs
   are invisible for `u_ll == u_rr`.
