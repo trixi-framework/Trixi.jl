@@ -140,11 +140,11 @@ dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
-# Some parts of the code such as the time step computation (`max_diffusivity`) or
-# surface integrals only have access to the conservative variables. Since a
-# state-dependent viscosity `mu(u, equations)` expects the transformed variables,
-# we need to apply the `gradient_variable_transformation` first. This is skipped
-# for a constant viscosity to avoid the cost of the transformation.
+# Some parts of the code such as the time step computation (`max_diffusivity`)
+# only have access to the conservative variables. Since a state-dependent
+# viscosity `mu(u, equations)` expects the transformed variables, we need to
+# apply the `gradient_variable_transformation` first. This is skipped for a
+# constant viscosity to avoid the cost of the transformation.
 @inline function dynamic_viscosity_conservative(u, equations)
     return dynamic_viscosity_conservative(u, equations.mu, equations)
 end
