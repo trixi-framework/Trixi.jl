@@ -269,12 +269,12 @@ end
         callbacks = integrator.opts.callback
         if callbacks isa CallbackSet
             foreach(callbacks.continuous_callbacks) do cb
-                return get_element_variables!(element_variables, u_ode, semi, cb;
-                                              t = integrator.t, iter = iter)
+                return get_element_variables_callback!(element_variables, u_ode, semi,
+                                                       cb; t = integrator.t, iter)
             end
             foreach(callbacks.discrete_callbacks) do cb
-                return get_element_variables!(element_variables, u_ode, semi, cb;
-                                              t = integrator.t, iter = iter)
+                return get_element_variables_callback!(element_variables, u_ode, semi,
+                                                       cb; t = integrator.t, iter)
             end
         end
     end

@@ -5,21 +5,22 @@
 @muladd begin
 #! format: noindent
 
-# overload this function for specific callbacks which use element element variables
-# that should be saved
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                callback; kwargs...)
+# Add "element variables" of a callback such as AMR indicators to the output of the
+# `SaveSolutionCallback`. By default, there are none. Specialize the method with the
+# argument `callback` for specific callbacks.
+function get_element_variables_callback!(element_variables, u, mesh, equations, solver,
+                                         cache, callback; kwargs...)
     return nothing
 end
 
-@inline function get_element_variables!(element_variables, u_ode,
-                                        semi::AbstractSemidiscretization,
-                                        cb::DiscreteCallback;
-                                        kwargs...)
+@inline function get_element_variables_callback!(element_variables, u_ode,
+                                                 semi::AbstractSemidiscretization,
+                                                 cb::DiscreteCallback;
+                                                 kwargs...)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                  cb.affect!; kwargs...)
+    return get_element_variables_callback!(element_variables, u, mesh, equations,
+                                           solver, cache, cb.affect!; kwargs...)
 end
 
 @inline function isfinished(integrator)
