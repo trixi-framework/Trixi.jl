@@ -281,17 +281,11 @@ Optional keyword arguments:
   The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
-
-The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
-deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
-                        storage_type = nothing,
-                        real_type = nothing,
-                        flux_differencing_kernel = nothing)
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -299,8 +293,6 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         Polyester.reset_threads!()
     end
 
-    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
-                                  flux_differencing_kernel)
     tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi)
