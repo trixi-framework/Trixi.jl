@@ -1272,6 +1272,10 @@ end
     # kwargs are forwarded to contour!
     @trixi_test_nowarn Makie.contour(pd["scalar"], levels = 5)
 
+    # the mesh is drawn as lines on top of the contours
+    _, ax, _ = @trixi_test_nowarn Makie.contour(pd["scalar"], plot_mesh = true)
+    @test any(plt -> plt isa Makie.Lines, ax.scene.plots)
+
     # Makie.contour(pd) gives layout for all variables
     @trixi_test_nowarn Makie.contour(pd)
     @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
@@ -1282,6 +1286,8 @@ end
     # the same for filled contours
     @trixi_test_nowarn Makie.contourf(pd["scalar"])
     @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
+    _, ax, _ = @trixi_test_nowarn Makie.contourf(pd["scalar"], plot_mesh = true)
+    @test any(plt -> plt isa Makie.Lines, ax.scene.plots)
     @trixi_test_nowarn Makie.contourf(pd)
     @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
     @trixi_test_nowarn Makie.contourf(sol)

@@ -518,19 +518,25 @@ function Makie.convert_arguments(::Type{<:Makie.Contour},
 end
 
 function Makie.contour(pds::PlotDataSeries{<:PlotData2DCartesian},
-                       fig = Makie.Figure(); kwargs...)
+                       fig = Makie.Figure();
+                       plot_mesh = false, colormap = default_Makie_colormap(),
+                       kwargs...)
     @unpack plot_data, variable_id = pds
-    @unpack x, y, variable_names = plot_data
+    @unpack x, y, variable_names, mesh_vertices_x, mesh_vertices_y = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x),
                     ylabel = _makie_guide(plot_data.orientation_y))
 
-    plt = Makie.contour!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    plt = Makie.contour!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
     Makie.ylims!(ax, y[begin], y[end])
+    if plot_mesh
+        Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                     color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
@@ -585,19 +591,25 @@ function Makie.convert_arguments(::Type{<:Makie.Contourf},
 end
 
 function Makie.contourf(pds::PlotDataSeries{<:PlotData2DCartesian},
-                        fig = Makie.Figure(); kwargs...)
+                        fig = Makie.Figure();
+                        plot_mesh = false, colormap = default_Makie_colormap(),
+                        kwargs...)
     @unpack plot_data, variable_id = pds
-    @unpack x, y, variable_names = plot_data
+    @unpack x, y, variable_names, mesh_vertices_x, mesh_vertices_y = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x),
                     ylabel = _makie_guide(plot_data.orientation_y))
 
-    plt = Makie.contourf!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    plt = Makie.contourf!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
     Makie.ylims!(ax, y[begin], y[end])
+    if plot_mesh
+        Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                     color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
