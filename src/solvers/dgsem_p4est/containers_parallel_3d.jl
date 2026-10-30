@@ -55,6 +55,58 @@
     return mpi_interfaces
 end
 
+# Initialize the normal directions of the primary elements of MPI interfaces with a local
+# primary element. The normal directions of MPI interfaces with a local secondary element
+# are set to NaN; they must be received from the MPI rank owning the primary element via
+# `exchange_normal_directions!`.
+function init_normal_directions!(mpi_interfaces::P4estMPIInterfaceContainer{3},
+                                 basis, elements)
+    @unpack local_neighbor_ids, node_indices, local_sides, normal_directions = mpi_interfaces
+    @unpack contravariant_vectors = elements
+    index_range = eachnode(basis)
+    nan = convert(eltype(normal_directions), NaN)
+
+    @threaded for interface in 1:nmpiinterfaces(mpi_interfaces)
+        if local_sides[interface] == 2
+            @views normal_directions[.., interface] .= nan
+        else
+            local_element = local_neighbor_ids[interface]
+            local_indices = node_indices[interface]
+            local_direction = indices2direction(local_indices)
+
+            i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                         index_range)
+            j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                         index_range)
+            k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                         index_range)
+
+            i_element = i_element_start
+            j_element = j_element_start
+            k_element = k_element_start
+            for j in eachnode(basis)
+                for i in eachnode(basis)
+                    normal_direction = get_normal_direction(local_direction,
+                                                            contravariant_vectors,
+                                                            i_element, j_element,
+                                                            k_element,
+                                                            local_element)
+                    @views normal_directions[:, i, j, interface] .= normal_direction
+
+                    i_element += i_element_step_i
+                    j_element += j_element_step_i
+                    k_element += k_element_step_i
+                end
+                i_element += i_element_step_j
+                j_element += j_element_step_j
+                k_element += k_element_step_j
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
 function check_axes(mpi_mortars::P4estMPIMortarContainer{3}, equations, solver::DG,

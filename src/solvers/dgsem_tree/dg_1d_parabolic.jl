@@ -159,7 +159,7 @@ end
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
 # except that the fluxes are here already precomputed in `calc_parabolic_fluxes!`
-function calc_volume_integral!(du, flux_parabolic, mesh::TreeMesh{1},
+function calc_volume_integral!(du, flux_parabolic_x, mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
     @unpack derivative_hat = dg.basis
@@ -167,14 +167,14 @@ function calc_volume_integral!(du, flux_parabolic, mesh::TreeMesh{1},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations_parabolic, dg, cache)
-        check_axes(flux_parabolic, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
             # Calculate volume terms in one element
             for i in eachnode(dg)
-                flux_1_node = get_node_vars(flux_parabolic, equations_parabolic, dg,
+                flux_1_node = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
                                             i, element)
 
                 for ii in eachnode(dg)
@@ -233,7 +233,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
     return nothing
 end
 
-function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
+function calc_parabolic_fluxes!(flux_parabolic_x, gradients, u_transformed,
                                 mesh::TreeMesh{1},
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, cache)
@@ -241,7 +241,7 @@ function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
         check_axes(gradients, mesh, equations_parabolic, dg, cache)
-        check_axes(flux_parabolic, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -256,7 +256,7 @@ function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
                 # Calculate parabolic flux and store each component for later use
                 flux_parabolic_node = flux(u_node, (gradients_1_node,), 1,
                                            equations_parabolic)
-                set_node_vars!(flux_parabolic, flux_parabolic_node,
+                set_node_vars!(flux_parabolic_x, flux_parabolic_node,
                                equations_parabolic, dg,
                                i, element)
             end
@@ -587,17 +587,16 @@ function calc_surface_integral_gradient!(gradients,
                 surface_flux_minus = surface_flux_values[v, 1, element]
                 surface_flux_plus = surface_flux_values[v, 2, element]
                 for ii in eachnode(dg)
+                    factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                    factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
                     # surface at -x
                     gradients[v, ii, element] = (gradients[v, ii, element] -
-                                                 surface_flux_minus *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        1])
+                                                 surface_flux_minus * factor_minus)
 
                     # surface at +x
                     gradients[v, ii, element] = (gradients[v, ii, element] +
-                                                 surface_flux_plus *
-                                                 boundary_interpolation_inverse_weights[ii,
-                                                                                        2])
+                                                 surface_flux_plus * factor_plus)
                 end
             end
         end

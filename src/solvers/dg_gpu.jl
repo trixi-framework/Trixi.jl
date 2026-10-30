@@ -12,6 +12,13 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
+        check_axes(cache.elements, equations, dg, cache)
+    end
 
     # Reset du
     # In the usual (CPU) code, this is called at the beginning of rhs_hyperbolic!
@@ -41,10 +48,11 @@ end
 # `where {MeshT}` or `where {Source}`) or a type annotation matching all methods of the
 # called functions (e.g., `MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}}`) to
 # avoid this. GPU backends always specialize fully.
-@kernel function volume_integral_KAkernel!(du, u, ::Type{MeshT},
-                                           have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM,
-                                           cache) where {MeshT}
+@kernel inbounds=true function volume_integral_KAkernel!(du, u, ::Type{MeshT},
+                                                         have_nonconservative_terms,
+                                                         equations,
+                                                         volume_integral, dg::DGSEM,
+                                                         cache) where {MeshT}
     element = @index(Global)
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                             equations, volume_integral, dg, cache)
@@ -73,14 +81,14 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
-        In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+        In case, consider using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
     end
 
     workgroup_size = nnodes_element
 
     if workgroup_size > 1024
         @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.
-        Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
+        Please, consider reducing the polynomial degree or using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
     end
 
     return nothing

@@ -104,6 +104,14 @@ CI runs one job per value of the `TRIXI_TEST` variable, which selects the test
 items with the corresponding tag (see `test/runtests.jl` and
 `.github/workflows/ci.yml`).
 
+**Run Julia code (tests, elixirs, scratch scripts) in a persistent session via
+MCP if one is available**, in the order of preference given in
+[Persistent Julia sessions via MCP](#persistent-julia-sessions-via-mcp). Check
+for such tools before running the first Julia command; some agents list MCP
+tools only by name until they are loaded (see `CLAUDE.md` for Claude Code). Use
+the shell commands in this file only if no such session is available.
+Task-specific instructions that show shell commands do not override this rule.
+
 ### The `run_agents` Julia project
 
 Use a local Julia project in the directory `run_agents/` at the root of this
@@ -161,9 +169,10 @@ versions so that the usual `run_agents/` setup remains reproducible.
 
 ### Running selected test items
 
-From the root of the repository, run, e.g., the following command (or, if
-available, the corresponding Julia code in a persistent session via MCP, see
-[below](#optional-persistent-julia-sessions-via-mcp)):
+If a persistent Julia session via MCP is available, run the Julia code of the
+following command there (see
+[below](#persistent-julia-sessions-via-mcp)). Otherwise, run, e.g., from the
+root of the repository,
 
 ```bash
 julia --project=run_agents -e '
@@ -189,9 +198,9 @@ Notes:
   TestItemRunner just prints a summary without any tests (`None`). Make sure
   that the number of passed tests is plausible, and copy test item names
   exactly from the `@testitem "..."` lines.
-- If a persistent Julia session is available, prefer it (see
-  [the next section](#optional-persistent-julia-sessions-via-mcp)). Otherwise,
-  batch related test items into one call to avoid repeated startup costs.
+- Without a persistent Julia session (see
+  [the next section](#persistent-julia-sessions-via-mcp)), batch related test
+  items into one call to avoid repeated startup costs.
 - Always call `@run_package_tests` inside `cd(".../test") do ... end` as
   above. The macro searches for test items in the parent directory of the file
   it is called from; outside of a file (e.g., in `julia -e` or an MCP
@@ -226,11 +235,38 @@ Notes:
 - When developing new kernels, run Julia with `--check-bounds=yes` so that
   out-of-bounds accesses are caught despite `@inbounds`.
 
-### Optional: persistent Julia sessions via MCP
+### Running selected MPI test items
+
+Test items with the tag `:mpi` (e.g., in `test/test_mpi_p4est_2d.jl`) exercise
+the MPI code (e.g., `P4estMeshParallel`) only when run with more than one MPI
+rank; in a single Julia process, the mesh is not parallel. Thus, run selected
+MPI test items in the shell (not in a persistent session via MCP) with
+`mpiexec`, as the `mpi` suite does, but without running the complete suite:
+
+1. Write a script calling `@run_package_tests` with a filter as
+   [above](#running-selected-test-items), e.g., `run_agents/run_mpi_items.jl`.
+   The script must be located in `run_agents/`: when called from a file,
+   `@run_package_tests` searches the parent directory of the directory of this
+   file, so a script in another directory (e.g., a temporary directory) finds
+   no test items.
+2. Launch it from the root of the repository via `MPI.mpiexec()`:
+   ```bash
+   julia --project=run_agents -e 'using MPI; julia = Base.julia_cmd()[1]
+       run(`$(MPI.mpiexec()) -n 2 $julia --threads=1 --check-bounds=yes --project=run_agents run_agents/run_mpi_items.jl`)'
+   ```
+   Do not call the `mpiexec` binary of the MPI.jl artifact directly from the
+   shell; it fails since `libhwloc` is not found.
+3. Each rank prints its own test summary, and the output of the ranks may be
+   interleaved. Check that all ranks report only passed tests and that the
+   output of the elixirs shows `#MPI ranks: 2`.
+4. Remove the script afterward.
+
+### Persistent Julia sessions via MCP
 
 Some developers configure MCP servers providing persistent Julia sessions, in
-which packages are loaded and compiled only once. **Only if the corresponding
-tools are available to you**, use them to run Julia code such as tests and
+which packages are loaded and compiled only once. **If the corresponding tools
+are available to you** (possibly only listed by name until they are loaded, see
+`CLAUDE.md` for Claude Code), use them to run Julia code such as tests and
 elixirs, in the following order of preference:
 
 1. a [Kaimon.jl](https://github.com/kahliburke/Kaimon.jl) session started by
@@ -316,6 +352,18 @@ starts the Julia sessions itself.
 - Always pass the **absolute path** of the `run_agents` directory as
   `env_path` (e.g., `/path/to/Trixi.jl/run_agents`). Do not call
   `Pkg.activate` in the code.
+- If a task needs a different environment (e.g., a copy of `run_agents` in a
+  temporary directory whose `LocalPreferences.toml` selects another threading
+  backend such as `backend = "kernelabstractions"`), pass the absolute path of
+  that environment as `env_path` instead of falling back to the shell. If its
+  `Manifest.toml` was copied from `run_agents`, replace the relative
+  `path = ".."` of Trixi.jl by the absolute path of this repository.
+- The developer chooses the Julia flags of the sessions (e.g.,
+  `--threads=1 --check-bounds=yes`). If a task needs other flags (e.g., the
+  default bounds-checking mode to exercise `@inbounds` code paths), pass them
+  via `julia_cmd` (e.g., `julia_cmd = "julia --check-bounds=auto"`). This
+  replaces the session of this `env_path`; pass the same `julia_cmd` in later
+  calls and verify the flags with `Base.JLOptions().check_bounds`.
 - `julia_eval` returns only the output printed to `stdout` and `stderr`, not
   the value of the last expression. Use `println(...)` or `display(...)` to see
   results, e.g., `println(format([...]))` for the formatter.
@@ -380,7 +428,11 @@ starts the Julia sessions itself.
   `f(u, u, orientation, equations) ≈ flux(u, orientation, equations)` and the
   same with `normal_direction`. For all fluxes and wave speed estimates with
   `normal_direction` methods, check agreement with the `orientation` methods
-  for axis-aligned unit normals.
+  for axis-aligned unit normals. For new methods with a `normal_direction`
+  (including new equations), add the equations and fluxes to
+  `normal_direction_test_cases` in `test/test_unit.jl`; the test items
+  `"Unit: Wave speed estimates with normal_direction"` and
+  `"Unit: Numerical fluxes with normal_direction"` fail otherwise.
 - Except for consistency checks, unit tests for numerical fluxes and wave speed
   estimates should use *different* left and right states: many copy-paste bugs
   are invisible for `u_ll == u_rr`.
