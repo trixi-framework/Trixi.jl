@@ -28,7 +28,7 @@ for human readability.
   `initialize_cache!` (`AveragingCallback`) to `init_cache_averaging!`. The methods of
   `initialize!` for `TreeMesh` and `UnstructuredSortedBoundaryTypes` were renamed to
   `init_refinement!` and `init_boundary_types!`; `initialize!` now only refers to
-  the initialization of callbacks ([#3400]).
+  the initialization of callbacks ([#3402]).
 
 
 ## Changes in the v0.17 lifecycle
