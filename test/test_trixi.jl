@@ -27,7 +27,8 @@ macro test_trixi_include(expr, args...)
         r"┌ Warning: Verbosity toggle: dt_epsilon \n│  Initial timestep too small \(near machine epsilon\), using default: dt = 0.0\n└ @ OrdinaryDiffEqCore ~/.julia/packages/OrdinaryDiffEqCore.*\n",
         # Ignore deprecation warnings from OrdinaryDiffEq
         r"┌ Warning: Passing `stage_limiter!` to the algorithm constructor is deprecated; pass `stage_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n",
-        r"┌ Warning: Passing `step_limiter!` to the algorithm constructor is deprecated; pass `step_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n"
+        r"┌ Warning: Passing `step_limiter!` to the algorithm constructor is deprecated; pass `step_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n",
+        r"WARNING: Use of GPUCompiler\.compile_hook is deprecated, use `run_compile_hook` or `with_compile_hook` instead\.\n(  likely near .+\n)?"
     ]
     # If `maxiters` is set in tests, it is usually set to a small number to
     # run only a few steps - ignore possible warnings coming from that. While
