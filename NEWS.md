@@ -19,7 +19,7 @@ for human readability.
   the methods for a single volume integral to `resize_cache_volume_integral!` and
   `reinit_cache_volume_integral!`. For `DGMulti`, `create_cache_volume_integral` now
   receives the storage created so far instead of the real type `RealT`, as for the other
-  solvers.
+  solvers ([#3398]).
 
 
 ## Changes in the v0.17 lifecycle

@@ -147,7 +147,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # functions called subsequently. Without delving into details, the structure of the primary calls
 # are illustrated as follows:
 
-# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/8bf59422-0537-4d7a-9f13-d9b2253c19d7)
+# ![SemidiscretizationHyperbolic_structure](https://github.com/user-attachments/assets/97439115-79e4-4e32-a0b2-bd52022c35b3)
 
 # ## Overview of the [`semidiscretize`](@ref) function
 
@@ -212,7 +212,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # In summary, the internal workings of `semidiscretize` with brief descriptions can be presented
 # as follows.
 
-# ![semidiscretize_structure](https://github.com/user-attachments/assets/be0642ec-e9d2-44cf-a942-da745d8e32c5)
+# ![semidiscretize_structure](https://github.com/user-attachments/assets/54c28659-ee8f-461f-be54-4e7e23195a8f)
 
 # ## Functions `solve` and `rhs_hyperbolic!`
 
