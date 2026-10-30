@@ -7,8 +7,12 @@
 
 # Create the cache of an indicator constructed from a semidiscretization, e.g., for AMR
 function create_cache_indicator(typ::Type{<:AbstractIndicator}, semi)
-    _, equations, solver, _ = mesh_equations_solver_cache(semi)
-    return create_cache_indicator(typ, equations, solver.basis)
+    return create_cache_indicator(typ, mesh_equations_solver_cache(semi)...)
+end
+
+function create_cache_indicator(typ::Type{<:AbstractIndicator},
+                                mesh, equations::AbstractEquations, dg::DGSEM, cache)
+    return create_cache_indicator(typ, equations, dg.basis)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator,

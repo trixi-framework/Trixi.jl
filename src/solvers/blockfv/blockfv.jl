@@ -103,6 +103,11 @@ end
 # This hack is currently required for the SaveSolutionCallback.
 @inline polydeg(dg::BlockFV) = polydeg(dg.basis)
 
+function create_cache_indicator(typ::Type{<:AbstractIndicator},
+                                mesh, equations::AbstractEquations, dg::BlockFV, cache)
+    return create_cache_indicator(typ, equations, dg.basis)
+end
+
 # No special Adaptor is needed for the BlockFV solver. Thus, we just
 # reuse the `basis::UniformFiniteVolumeBasis` to enable specialized
 # dispatch of the AMR routines.

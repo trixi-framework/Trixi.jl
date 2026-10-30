@@ -4,7 +4,7 @@
 @muladd begin
 #! format: noindent
 
-# by default, return an empty tuple for volume integral caches
+# Sparse low-order operators for the subcell finite volume scheme on the Gauss nodes
 function create_cache_volume_integral(mesh::DGMultiMesh{NDIMS}, equations,
                                       volume_integral::VolumeIntegralShockCapturingHGType,
                                       dg::DGMultiFluxDiff{<:GaussSBP}, cache_containers,
