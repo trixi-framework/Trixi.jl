@@ -134,8 +134,6 @@ end
                           Val(ndims(normal_vectors) - 2)))
 end
 
-@inline storage_type(::AbstractNormalVectorContainer) = Array
-
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")

@@ -54,7 +54,7 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
-    u = wrap_array_native(u_ode, mesh, equations, dg, cache)
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     h5open(restart_file, "r") do file
         # Read attributes to perform some sanity checks
@@ -171,7 +171,7 @@ function save_restart_file_on_root(u, time, dt, timestep,
     if !mpi_isroot()
         # Send nodal data to root
         for v in eachvariable(equations)
-            MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
+            MPI.Gatherv!(@view(data[v, .., :]), nothing, mpi_root(), mpi_comm())
         end
 
         return filename
@@ -195,7 +195,7 @@ function save_restart_file_on_root(u, time, dt, timestep,
         for v in eachvariable(equations)
             # Convert to 1D array
             recv = Vector{eltype(data)}(undef, sum(node_counts))
-            MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts),
+            MPI.Gatherv!(@view(data[v, .., :]), MPI.VBuffer(recv, node_counts),
                          mpi_root(), mpi_comm())
             file["variables_$v"] = recv
 
@@ -231,7 +231,7 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
-    u = wrap_array_native(u_ode, mesh, equations, dg, cache)
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # read in parallel
     h5open(restart_file, "r", mpi_comm()) do file
@@ -281,7 +281,7 @@ function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParall
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
-    u = wrap_array_native(u_ode, mesh, equations, dg, cache)
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # non-root ranks only receive data
     if !mpi_isroot()

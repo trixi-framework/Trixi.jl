@@ -76,9 +76,9 @@ end
 mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1,
                                           VariableValues, VariableValuesStorage} <:
                AbstractContainer
-    alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    alpha::VectorBackedArray{uEltype, NDIMSP1} # [i, j, k, element]
     variable_values::VariableValues # Reusable nodal values of a nonlinear variable
-    variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
+    variable_bounds::Dict{Symbol, VectorBackedArray{uEltype, NDIMSP1}}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
     _variable_values::VariableValuesStorage # Internal storage for `variable_values`
@@ -96,27 +96,26 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
 
     # Initialize fields with defaults
     _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
-    alpha = unsafe_wrap(Array, pointer(_alpha),
-                        (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+    alpha = wrap_storage(_alpha, (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
     if cache_variable_values
         # Initialize caching variable for the computation of the bounds of nonlinear variables
         _variable_values = fill(nan_uEltype,
                                 prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
-        variable_values = unsafe_wrap(Array, pointer(_variable_values),
-                                      (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+        variable_values = wrap_storage(_variable_values,
+                                       (ntuple(_ -> n_nodes, NDIMS)..., capacity))
     else
         _variable_values = nothing
         variable_values = nothing
     end
 
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
-    variable_bounds = Dict{Symbol, Array{uEltype, NDIMS + 1}}()
+    variable_bounds = Dict{Symbol, VectorBackedArray{uEltype, NDIMS + 1}}()
     for key in bound_keys
         _variable_bounds[key] = fill(nan_uEltype,
                                      prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
-        variable_bounds[key] = unsafe_wrap(Array, pointer(_variable_bounds[key]),
-                                           (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+        variable_bounds[key] = wrap_storage(_variable_bounds[key],
+                                            (ntuple(_ -> n_nodes, NDIMS)..., capacity))
     end
 
     return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1,
@@ -134,33 +133,31 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
     n_dims = ndims(container)
 
     (; _alpha) = container
     resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
-    container.alpha = unsafe_wrap(Array, pointer(_alpha),
-                                  (ntuple(_ -> n_nodes, n_dims)..., capacity))
+    container.alpha = wrap_storage(_alpha, (ntuple(_ -> n_nodes, n_dims)..., capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
 
     (; _variable_values) = container
     if !isnothing(_variable_values)
         resize!(_variable_values, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
-        container.variable_values = unsafe_wrap(Array, pointer(_variable_values),
-                                                (ntuple(_ -> n_nodes, n_dims)...,
-                                                 capacity))
+        container.variable_values = wrap_storage(_variable_values,
+                                                 (ntuple(_ -> n_nodes, n_dims)...,
+                                                  capacity))
     end
 
     (; _variable_bounds) = container
     for (key, _) in _variable_bounds
         resize!(_variable_bounds[key], prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
-        container.variable_bounds[key] = unsafe_wrap(Array,
-                                                     pointer(_variable_bounds[key]),
-                                                     (ntuple(_ -> n_nodes, n_dims)...,
-                                                      capacity))
+        container.variable_bounds[key] = wrap_storage(_variable_bounds[key],
+                                                      (ntuple(_ -> n_nodes, n_dims)...,
+                                                       capacity))
     end
 
     return nothing

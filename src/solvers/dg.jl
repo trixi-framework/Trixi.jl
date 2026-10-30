@@ -1484,108 +1484,80 @@ include("blockfv/containers_2d.jl")
 include("blockfv/blockfv_1d.jl")
 include("blockfv/blockfv_2d.jl")
 
+# Wrap `u_ode` without copying as an array with dimensions `[variable, node..., element]`
+# (see `wrap_storage`). For `DGSEM`, the sizes of all but the last dimension are known at
+# compile time (see `static_view`).
+@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
+                            dg::DG, cache)
+    # `wrap_storage` checks that the length of `u_ode` matches.
+    u = wrap_storage(u_ode,
+                     (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                      nelements(dg, cache)))
+    return static_view(u, equations, dg)
+end
+
+# `(Val(nvariables), Val(nnodes)..., nlast)` for `ndims_nodes` node dimensions. A generated
+# function so that the type is inferred also on Julia v1.10, which does not infer
+# `(Val(nvariables(equations)), ntuple(_ -> Val(nnodes(dg)), ndims(A) - 2)..., nlast)`;
+# `wrap_array` returns the view created by `static_view` and must be type stable.
+@generated function static_dims(::Val{NVARS}, ::Val{NNODES}, ::Val{NDIMS_NODES},
+                                nlast::Int) where {NVARS, NNODES, NDIMS_NODES}
+    return :((Val($NVARS), $(ntuple(_ -> :(Val($NNODES)), NDIMS_NODES)...), nlast))
+end
+
+"""
+    static_view(A, equations, dg)
+
+Return a view of the solution-like array `A` with dimensions
+`[variable, node..., element]` whose sizes of all but the last dimension (i.e.,
+`nvariables(equations)` and `nnodes(dg)`) are known at compile time, without copying.
+Returns `A` itself for other array types and for solvers whose number of nodes is not
+known at compile time (i.e., other than `DGSEM`).
+"""
+function static_view end
+
+# This is the typical layout of the solution and its time derivative in Trixi.jl, where
+# the number of variables and nodes is fixed but the number of elements changes, e.g.,
+# with AMR. Knowing the strides at compile time simplifies the index computations in all
+# kernels using the arrays returned by `wrap_array`. Previously, `wrap_array` achieved
+# this by returning `PtrArray`s with `StaticInt` sizes, but only for the Polyester.jl
+# threading backend and element types supported by LoopVectorization.jl.
+# The view is a `FixedSizeArrayDims` backed by the same `Vector` as `A`. Thus, it keeps
+# the memory alive and must be re-created after every `resize!` of the `Vector` (see
+# `wrap_storage`). Polyester.jl converts it to a `PtrArray` with static sizes via the
+# StaticArrayInterface.jl traits defined in FixedSizeArrays.jl.
+@inline function static_view(A::VectorBackedArray, equations, dg::DGSEM)
+    dims = static_dims(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(A) - 2),
+                       size(A, ndims(A)))
+    return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(A), dims)
+end
+@inline static_view(A, equations, dg) = A
+
+# Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
+# `flux_differencing_kernel!`). These are the CPU arrays returned by `wrap_array`:
+# - a `FixedSizeArrayDims` backed by a `Vector` (with static sizes for `DGSEM`, see
+#   `static_view`, otherwise a `VectorBackedArray`),
+# - a reshaped contiguous view of an `Array` (see `wrap_storage`),
+# - a `PtrArray` that Polyester.jl creates from them in `@threaded` loops.
+# We restrict the element types to those supported natively by LoopVectorization.jl
+# (e.g., no `ForwardDiff.Dual`s), mirroring `LoopVectorization.check_args`.
+const TurboArray = Union{PtrArray{<:LoopVectorization.NativeTypes},
+                         FixedSizeArrayDims{<:LoopVectorization.NativeTypes,
+                                            <:Any, <:Any, <:Vector},
+                         Base.ReshapedArray{<:LoopVectorization.NativeTypes, N,
+                                            <:Base.FastContiguousSubArray{<:Any, 1,
+                                                                          <:Array}} where {N}}
+
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
-    u_ode = similar(cache.elements.node_coordinates, eltype(cache.elements),
+    # We use `parent` since `similar` of a `VectorBackedArray` returns a `FixedSizeArray`
+    # (for other storage types such as `Array` or GPU arrays, `parent` is a no-op).
+    u_ode = similar(parent(cache.elements.node_coordinates), eltype(cache.elements),
                     nvariables(equations) * nnodes(dg)^ndims(mesh) *
                     nelements(dg, cache))
     fill!(u_ode, zero(eltype(u_ode)))
     return u_ode
-end
-
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
-                            dg::DGSEM, cache)
-    @boundscheck begin
-        @assert length(u_ode) ==
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-    end
-    # We would like to use
-    #     reshape(u_ode, (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    # but, on Julia v1.10, that results in
-    #     ERROR: LoadError: cannot resize array with shared data
-    # when we resize! `u_ode` during AMR. Thus, `unsafe_wrap_or_alloc` uses `unsafe_wrap`
-    # for `isbits` element types and `reshape` only for other element types, for which
-    # `unsafe_wrap` is not safe with respect to the garbage collector (see the comment
-    # there).
-    #
-    # !!! danger "Segfaults"
-    #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-    #     and other stuff that is only used indirectly via `wrap_array` afterwards!
-
-    # Currently, there are problems when AD is used with `PtrArray`s in broadcasts
-    # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
-    # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
-    # otherwise.
-    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
-        # This version using `PtrArray`s from StrideArrays.jl is very fast and
-        # does not result in allocations.
-        #
-        # !!! danger "Heisenbug"
-        #     Do not use this code when `@threaded` uses `Threads.@threads`. There is
-        #     a very strange Heisenbug that makes some parts very slow *sometimes*.
-        #     In fact, everything can be fast and fine for many cases but some parts
-        #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
-        #     Hence, this version should only be used when `@threaded` is based on
-        #     `@batch` from Polyester.jl or something similar.
-        PtrArray(pointer(u_ode),
-                 (StaticInt(nvariables(equations)),
-                  ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
-                  nelements(dg, cache)))
-        #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    else
-        # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        ArrayType = Trixi.storage_type(u_ode)
-        unsafe_wrap_or_alloc(ArrayType, u_ode,
-                             (nvariables(equations),
-                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                              nelements(dg, cache)))
-    end
-end
-
-# Finite difference summation by parts (FDSBP) methods
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
-                            dg::FDSBP, cache)
-    @boundscheck begin
-        @assert length(u_ode) ==
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-    end
-    # See comments on the DGSEM version above
-    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
-        # Here, we do not specialize on the number of nodes using `StaticInt` since
-        # - it will not be type stable (SBP operators just store it as a runtime value)
-        # - FD methods tend to use high node counts
-        PtrArray(pointer(u_ode),
-                 (StaticInt(nvariables(equations)),
-                  ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
-    else
-        # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap_or_alloc(Array, u_ode,
-                             (nvariables(equations),
-                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                              nelements(dg, cache)))
-    end
-end
-
-# General fallback
-@inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
-                            dg::DG, cache)
-    return wrap_array_native(u_ode, mesh, equations, dg, cache)
-end
-
-# Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
-# for interfacing with external C libraries (MPI, HDF5, visualization),
-# writing solution files etc.
-@inline function wrap_array_native(u_ode::AbstractVector, mesh::AbstractMesh, equations,
-                                   dg::DG, cache)
-    @boundscheck begin
-        @assert length(u_ode) ==
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-    end
-    return unsafe_wrap_or_alloc(Array, u_ode,
-                                (nvariables(equations),
-                                 ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                                 nelements(dg, cache)))
 end
 
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{1},
