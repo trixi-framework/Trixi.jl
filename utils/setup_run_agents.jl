@@ -4,6 +4,8 @@
 # - `run_agents/` develops the local version of Trixi.jl and contains all test
 #   dependencies (copied from `test/Project.toml`, including compat bounds and
 #   preferences).
+# - `run_agents/kernelabstractions/` is a copy of `run_agents/` with the threading backend
+#   of Trixi.jl set to KernelAbstractions.jl, as in the `kernelabstractions` CI jobs.
 # - `run_agents/formatter/` contains JuliaFormatter.jl pinned to the version used in CI,
 #   since its dependencies are incompatible with those of Trixi.jl.
 # This script is idempotent: it only re-creates a project if it is outdated. Run it as
@@ -14,10 +16,10 @@
 #   julia +release utils/setup_run_agents.jl run_kaimon
 # This is useful for a Julia session with a different Julia version than `run_agents/`,
 # since a manifest should only be used with the Julia version it was resolved for. In
-# this case, the formatter project is not set up, and an existing project in this
-# directory is never re-created or resolved with another Julia version, since it may
-# contain additional packages added by the developer. Instead, the script throws an
-# error explaining what is outdated.
+# this case, the KernelAbstractions.jl and formatter projects are not set up, and an
+# existing project in this directory is never re-created or resolved with another Julia
+# version, since it may contain additional packages added by the developer. Instead, the
+# script throws an error explaining what is outdated.
 
 using Pkg, TOML
 
@@ -29,6 +31,7 @@ ENV["JULIA_PKG_PRECOMPILE_AUTO"] = "0"
 const REPO_DIR = dirname(@__DIR__)
 const CUSTOM_DIR = !isempty(ARGS)
 const RUN_AGENTS_DIR = joinpath(REPO_DIR, CUSTOM_DIR ? only(ARGS) : "run_agents")
+const KERNELABSTRACTIONS_DIR = joinpath(REPO_DIR, "run_agents", "kernelabstractions")
 const FORMATTER_DIR = joinpath(REPO_DIR, "run_agents", "formatter")
 const FORMATTER_VERSION = "1.0.60"
 
@@ -94,6 +97,37 @@ function setup_run_agents()
     Pkg.instantiate()
 end
 
+# The project and manifest are copied from `run_agents/` so that both environments use
+# the same package versions and share most precompiled packages. Changes made directly
+# in `run_agents/kernelabstractions/` are overwritten whenever `run_agents/` differs.
+function setup_kernelabstractions()
+    mkpath(KERNELABSTRACTIONS_DIR)
+    project = parse_toml(joinpath(RUN_AGENTS_DIR, "Project.toml"))
+    manifest = parse_toml(joinpath(RUN_AGENTS_DIR, "Manifest.toml"))
+    # Relative paths of developed packages (such as Trixi.jl) are stored relative to the
+    # manifest
+    for entries in values(manifest["deps"]), entry in entries
+        path = get(entry, "path", nothing)
+        if path !== nothing && !isabspath(path)
+            entry["path"] = relpath(joinpath(RUN_AGENTS_DIR, path), KERNELABSTRACTIONS_DIR)
+        end
+    end
+
+    preferences_file = joinpath(KERNELABSTRACTIONS_DIR, "LocalPreferences.toml")
+    preferences = parse_toml(preferences_file)
+    get!(preferences, "Trixi", Dict{String, Any}())["backend"] = "kernelabstractions"
+
+    for (file, content) in (joinpath(KERNELABSTRACTIONS_DIR, "Project.toml") => project,
+                            joinpath(KERNELABSTRACTIONS_DIR, "Manifest.toml") => manifest,
+                            preferences_file => preferences)
+        if parse_toml(file) != content
+            open(io -> TOML.print(io, content; sorted = true), file, "w")
+        end
+    end
+    Pkg.activate(KERNELABSTRACTIONS_DIR)
+    Pkg.instantiate()
+end
+
 function setup_formatter()
     manifest = parse_toml(joinpath(FORMATTER_DIR, "Manifest.toml"))
     entries = get(get(manifest, "deps", Dict{String, Any}()), "JuliaFormatter", [])
@@ -110,4 +144,7 @@ function setup_formatter()
 end
 
 setup_run_agents()
-isempty(ARGS) && setup_formatter()
+if isempty(ARGS)
+    setup_kernelabstractions()
+    setup_formatter()
+end
