@@ -5645,16 +5645,6 @@ end
     @test Trixi.remake(semi_hyp_para_global).cache.tuning ===
           semi_hyp_para_global.cache.tuning
 
-    # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
-    semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())
-    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
-    semi_full = @test_deprecated trixi_adapt(semi; tuning = Tuning(),
-                                             flux_differencing_kernel = FullSweep())
-    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
-    @test_throws ArgumentError trixi_adapt(semi;
-                                           tuning = Tuning(flux_differencing_kernel = HalfSweep()),
-                                           flux_differencing_kernel = FullSweep())
-
     # The tuning is available for all volume integrals and does not change the
     # volume integral cache
     solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -5700,16 +5690,6 @@ end
     ode = semidiscretize(semi, (0.0f0, 1.0f0))
     @test ode.p === semi
     @test ode.tspan === (0.0, 1.0)
-
-    # Deprecated keyword arguments of `semidiscretize`
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
-    @test real(ode.p) == Float32
-    @test ode.tspan === (0.0f0, 1.0f0)
-    @test ode.u0 isa Vector{Float32}
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
-                                          flux_differencing_kernel = FullSweep())
-    @test real(ode.p) == Float64
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
 
     # The `SummaryCallback` warns if the time type differs from the real type of
     # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
