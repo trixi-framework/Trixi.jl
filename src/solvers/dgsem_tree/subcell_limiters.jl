@@ -230,8 +230,8 @@ function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
                               basis::LobattoLegendreBasis, bound_keys,
                               cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later via `resize_cache_volume_integral!` when the cache of the
-    # semidiscretization is created.
+    # and resize it later via `resize_cache_volume_integral!`
+    # when the cache of the semidiscretization is created.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys,

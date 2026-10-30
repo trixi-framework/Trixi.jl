@@ -12,8 +12,8 @@ function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
                                                                       <:VolumeIntegralWeakForm,
                                                                       <:VolumeIntegralFluxDifferencing}},
                                  RealT, uEltype) where {NDIMS, ElemType}
-    # Construct temporary solvers for each sub-integral to reuse the
-    # `create_cache_hyperbolic` functions
+    # Construct temporary solvers for each sub-integral
+    # to reuse the `create_cache_hyperbolic` functions
 
     # `VolumeIntegralAdaptive` for `DGMulti` currently limited to Weak Form & Flux Differencing combi
     dg_WF = DG(dg.basis, dg.mortar, dg.surface_integral,

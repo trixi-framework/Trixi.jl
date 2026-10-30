@@ -74,8 +74,8 @@ end
 # BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
 # The shared `create_cache_hyperbolic` (TreeMesh/P4estMesh) calls `create_cache_mortar`,
 # and the shared `rhs_hyperbolic!` calls `prolong2mortars!` and `calc_mortar_flux!`
-# with `dg.mortar`. BlockFV on P4estMesh needs none of these, since mortars are not
-# yet supported.
+# with `dg.mortar`.
+# BlockFV on P4estMesh needs none of these, since mortars are not yet supported.
 function create_cache_mortar(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis,
                              ::Any)
     if count_required_surfaces(mesh).mortars > 0

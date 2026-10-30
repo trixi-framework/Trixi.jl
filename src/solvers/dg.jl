@@ -32,8 +32,8 @@ abstract type AbstractVolumeIntegral end
 # `volume_integral_children`, starting from `dg.volume_integral`. Thus, the methods
 # for the storage only handle the volume integral itself, not its children.
 # - `volume_integral_children(volume_integral)`
-# - `create_cache_volume_integral(mesh, equations, volume_integral, dg, cache_containers,
-#                                  uEltype)`
+# - `create_cache_volume_integral(mesh, equations, volume_integral, dg,
+#                                 cache_containers, uEltype)`
 # - `resize_cache_volume_integral!(cache, mesh, volume_integral, dg, new_size)`
 # - `reinit_cache_volume_integral!(cache, mesh, volume_integral, dg, new_size)`
 # - `get_element_variables!(element_variables, u, mesh, equations,
@@ -71,8 +71,8 @@ end
 # and after mesh adaptation. Thus, the sizes at creation and after mesh adaptation are
 # set by the same code. Since `reinit_cache_volume_integral!` is not called when the
 # cache is created, resizing to the current size must keep data initialized in
-# `create_cache_volume_integral`, such as the subcell normal vectors. By default, there
-# is nothing to resize.
+# `create_cache_volume_integral`, such as the subcell normal vectors.
+# By default, there is nothing to resize.
 function resize_cache_volume_integral!(cache, mesh,
                                        volume_integral::AbstractVolumeIntegral, dg,
                                        new_size)
@@ -374,10 +374,10 @@ end
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 
-# Subcell-based volume integrals need storage for the finite volume fluxes on the
-# subcells, created by `create_cache_volume_integral` in
-# `dgsem/special_volume_integrals.jl`, and the subcell normal vectors on non-Cartesian
-# meshes, which are resized and reinitialized after mesh adaptation.
+# Subcell-based volume integrals need storage for the finite volume fluxes on the subcells,
+# created by `create_cache_volume_integral` in `dgsem/special_volume_integrals.jl`,
+# and the subcell normal vectors on non-Cartesian meshes,
+# which are resized and reinitialized after mesh adaptation.
 function resize_cache_volume_integral!(cache, mesh,
                                        volume_integral::AbstractVolumeIntegralSubcell,
                                        dg, new_size)

@@ -395,8 +395,8 @@ end
     return nothing
 end
 
-# For now, this is mostly the same as `create_cache_hyperbolic` for
-# DGMultiFluxDiff{<:Polynomial}.
+# For now, this is mostly the same as `create_cache_hyperbolic`
+# for `DGMultiFluxDiff{<:Polynomial}`.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
                                  dg::DGMultiFluxDiff{<:GaussSBP,

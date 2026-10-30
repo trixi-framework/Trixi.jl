@@ -55,7 +55,7 @@ end
 
 # Buffers for the finite volume fluxes on the subcells, called from
 # `create_cache_volume_integral` of subcell-based volume integrals
-# (`AbstractVolumeIntegralSubcell`)
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
