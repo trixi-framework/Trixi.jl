@@ -105,10 +105,10 @@ end
     # density equation
     du1 = rho_t + rho_x * v1 + rho * v1_x
 
-    # y-momentum equation
+    # x-momentum equation
     du2 = (rho_t * v1 + rho * v1_t
            + p_x + rho_x * v1^2 + 2 * rho * v1 * v1_x -
-           # stress tensor from y-direction
+           # stress tensor from x-direction
            v1_xx * mu_ * 4 / 3)
 
     # total energy equation

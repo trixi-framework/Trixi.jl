@@ -27,7 +27,7 @@ using Trixi
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
 ### Fixed parameters ###
-# We want kappa = cp * mu = mu_bar to ensure constant enthalpy
+# We want kappa = cp * mu_bar to ensure constant enthalpy
 # See footnote 1 on page 335 in Margolin et al.
 prandtl_number() = 3 / 4
 

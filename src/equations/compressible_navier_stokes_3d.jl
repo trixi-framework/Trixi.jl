@@ -198,7 +198,8 @@ end
     _, dv1dz, dv2dz, dv3dz, dTdz = convert_derivative_to_primitive(u, gradients[3],
                                                                    equations)
 
-    # Components of viscous stress tensor with general formula (see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
+    # Components of viscous stress tensor of a Newtonian fluid with zero bulk viscosity
+    # (Stokes' hypothesis, see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
     # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
 
     # Diagonal parts

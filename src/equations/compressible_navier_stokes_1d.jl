@@ -98,7 +98,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                  # dynamic viscosity
     Pr::RealT               # Prandtl number
     kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
-    max_visc_cond::RealT    # max(1, gamma/Pr) used for parabolic cfl => `max_diffusivity`
+    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
 
     equations_hyperbolic::E # `CompressibleEulerEquations1D`
     gradient_variables::GradientVariables # `GradientVariablesPrimitive` or `GradientVariablesEntropy`
@@ -193,11 +193,14 @@ end
     # by way of the `convert_gradient_variables` function.
     _, dv1dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
 
-    # Viscous stress (tensor) with general formula (see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
+    # Viscous stress (tensor) of a Newtonian fluid with zero bulk viscosity (Stokes' hypothesis)
+    # (see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
     # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
     # Thus, in 1D we have tau_11 = mu * (2 dv1/dx - 2/3 dv1/dx) = 4/3 mu dv1/dx.
     # For more details, see e.g. equation (5-1) in
-    # - Wallace D. Hayes (1960) Gasdynamic Discontinuities https://www.jstor.org/stable/j.ctt183pmwn
+    # - Wallace D. Hayes (1960)
+    #   Gasdynamic Discontinuities
+    #   https://www.jstor.org/stable/j.ctt183pmwn
     tau_11 = 4 * dv1dx / 3
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
@@ -229,7 +232,7 @@ end
 - `mu / u[1] * equations_parabolic.max_visc_cond` for the conservative variables `u`,
 where `mu` is the [`dynamic_viscosity`](@ref) evaluated for the transformed variables
 (see [`gradient_variable_transformation`](@ref)),
-and `max_visc_cond = max(1, gamma_over_Pr)` is computed in the constructor.
+and `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -246,9 +249,9 @@ for the compressible Navier-Stokes equations see for instance
   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
 
 The eigenvalues of the diffusivity matrix in 1D are
-``-\frac{\mu}{\rho} \{0, 1, \gamma/Pr\}``
+``-\frac{\mu}{\rho} \{0, 4/3, \gamma/Pr\}``
 and thus the largest absolute eigenvalue is
-``\frac{\mu}{\rho} \max(1, \gamma/Pr)``.
+``\frac{\mu}{\rho} \max(4/3, \gamma/Pr)``.
 """
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion1D)
