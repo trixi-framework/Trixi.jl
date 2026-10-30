@@ -656,11 +656,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
         # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
-            reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
+            reinit_boundaries!(semi.boundary_conditions_parabolic, cache)
         end
     end
 
@@ -765,7 +765,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     # Return true if there were any cells coarsened or refined, otherwise false
@@ -824,7 +824,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     mesh.unsaved_changes |= has_changed
@@ -833,13 +833,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
     return has_changed
 end
 
-function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
-                                  cache)
+function reinit_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
+                            cache)
     # Reinitialize boundary types container because boundaries may have changed.
-    return initialize!(boundary_conditions, cache)
+    return init_boundary_types!(boundary_conditions, cache)
 end
 
-function reinitialize_boundaries!(boundary_conditions, cache)
+function reinit_boundaries!(boundary_conditions, cache)
     return boundary_conditions
 end
 

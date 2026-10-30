@@ -1,4 +1,4 @@
-function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
     @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
     mpi_cache = cache
 

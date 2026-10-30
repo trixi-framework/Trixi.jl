@@ -788,7 +788,7 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
                                                     _u, _neighbor_ids, _node_indices)
 end
 
-function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     n_cells = ncells(mesh)
 
     # Re-initialize elements container

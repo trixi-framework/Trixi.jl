@@ -341,7 +341,7 @@ function init_boundaries!(boundaries, mesh::P4estMeshParallel)
     return boundaries
 end
 
-function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM, cache)
     # Make sure to re-create ghost layer before reinitializing MPI-related containers
     update_ghost_layer!(mesh)
 

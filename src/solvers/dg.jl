@@ -215,7 +215,7 @@ end
 
 # Resize and reinitialize the storage of all volume integrals starting with
 # `dg.volume_integral` after mesh adaptation. This is called by the mesh-specific
-# `reinitialize_containers!`.
+# `reinit_containers!`.
 function reinit_cache_all_volume_integrals!(cache, mesh, dg, new_size)
     resize_cache_all_volume_integrals!(cache, mesh, dg.volume_integral, dg, new_size)
     foreach_volume_integral(dg.volume_integral) do volume_integral

@@ -27,7 +27,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, basis::LobattoLegendr
         calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
     end
 
-    initialize_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
+    init_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
 
     return nothing
 end
@@ -285,8 +285,8 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, eleme
 end
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3},
-                                                linear_indices)
+function init_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3},
+                                          linear_indices)
     # Neighbors in x-direction
     for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2)
         # Inner elements

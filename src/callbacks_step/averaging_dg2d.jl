@@ -6,9 +6,9 @@
 #! format: noindent
 
 # Create arrays with DGSEM-specific structure to store the mean values and set them all to 0
-function initialize_mean_values(mesh::TreeMesh{2},
-                                equations::AbstractCompressibleEulerEquations{2},
-                                dg::DGSEM, cache)
+function init_mean_values(mesh::TreeMesh{2},
+                          equations::AbstractCompressibleEulerEquations{2},
+                          dg::DGSEM, cache)
     uEltype = eltype(cache.elements)
     v_mean = zeros(uEltype,
                    (ndims(equations), nnodes(dg), nnodes(dg),
@@ -32,10 +32,10 @@ function create_cache_averaging(mesh::TreeMesh{2},
 end
 
 # Calculate vorticity for the initial solution and store it in the cache
-function initialize_cache!(averaging_callback_cache, u,
-                           mesh::TreeMesh{2},
-                           equations::AbstractCompressibleEulerEquations{2},
-                           dg::DGSEM, cache)
+function init_cache_averaging!(averaging_callback_cache, u,
+                               mesh::TreeMesh{2},
+                               equations::AbstractCompressibleEulerEquations{2},
+                               dg::DGSEM, cache)
     @unpack vorticity_prev = averaging_callback_cache
 
     # Calculate vorticity for initial solution

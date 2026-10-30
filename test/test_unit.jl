@@ -4929,12 +4929,12 @@ end
         # Reference: large capacity, no growth needed
         mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
                                                     domain_length)
-        Trixi.initialize!(mesh_ref, 3, (), ())
+        Trixi.init_refinement!(mesh_ref, 3, (), ())
 
         # Small: deliberately tiny initial capacity, must grow
         mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
                                                       domain_length)
-        Trixi.initialize!(mesh_small, 3, (), ())
+        Trixi.init_refinement!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)

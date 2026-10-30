@@ -520,7 +520,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D, basis)
     return boundaries.n_boundaries_per_direction
 end
 
-function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
     n_cells = length(leaf_cell_ids)

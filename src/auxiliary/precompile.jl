@@ -242,7 +242,7 @@ function _precompile_manual_()
                                       Tuple{RealT, RealT, RealT}})
     end
     for TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
-        @assert Base.precompile(Tuple{typeof(Trixi.initialize!),
+        @assert Base.precompile(Tuple{typeof(Trixi.init_refinement!),
                                       TreeMesh{NDIMS, TreeType{NDIMS}, Float64}, Int,
                                       Tuple{},
                                       Tuple{}})
