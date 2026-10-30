@@ -5670,7 +5670,8 @@ end
 
     # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver, nothing, Float64)
+    cache_view = Trixi.create_cache_hyperbolic(mesh_view, equations, solver, nothing,
+                                               Float64)
     @test cache_view.tuning === Trixi.default_tuning()
 
     # The GPU resource limits are not checked for CPU arrays, see also
@@ -5919,7 +5920,7 @@ end
         fill!(antidiffusive_flux, NaN)
     end
     new_size = nelements(semi.solver, semi.cache) + 3
-    Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
+    Trixi.reinit_cache_all_volume_integrals!(semi.cache, mesh, semi.solver, new_size)
     (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
     @test size(antidiffusive_flux1_L, 4) == new_size
     @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size

@@ -7,11 +7,6 @@
 
 abstract type AbstractSubcellLimiter end
 
-function create_cache(typ::Type{LimiterType},
-                      semi) where {LimiterType <: AbstractSubcellLimiter}
-    return create_cache(typ, mesh_equations_solver_cache(semi)...)
-end
-
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
                       local_twosided_variables_cons = String[],
@@ -147,8 +142,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
-                         cache_variable_values)
+    cache = create_cache_limiter(SubcellLimiterIDP, equations, basis, bound_keys,
+                                 cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -230,12 +225,12 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache(limiter::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys,
-                      cache_variable_values) where {NDIMS}
+function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
+                              equations::AbstractEquations{NDIMS},
+                              basis::LobattoLegendreBasis, bound_keys,
+                              cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later via `resize_volume_integral_cache!` when the cache of the
+    # and resize it later via `resize_cache_volume_integral!` when the cache of the
     # semidiscretization is created.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),

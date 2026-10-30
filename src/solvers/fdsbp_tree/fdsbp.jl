@@ -47,7 +47,7 @@ polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
 
 # TODO: FD. No mortars supported at the moment
 init_mortars(cell_ids, mesh, elements, mortar::Nothing) = nothing
-create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
+create_cache_mortar(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
 nmortars(mortar::Nothing) = 0
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,

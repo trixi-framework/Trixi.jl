@@ -183,8 +183,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
     return nothing
 end
 
-function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
+                                 dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,

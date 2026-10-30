@@ -104,8 +104,8 @@ end
     P4estMesh2DBlockFV
 ] tags=[:p4est_part1] begin
     # Non-periodic (Dirichlet) boundaries on a curved mesh exercise the exact
-    # boundary-face normal and midpoint computed in `create_cache` (as opposed
-    # to the offset FV cell center), see `get_fv_boundary_normal`/
+    # boundary-face normal and midpoint computed in `create_cache_volume_integral`
+    # (as opposed to the offset FV cell center), see `get_fv_boundary_normal`/
     # `get_fv_boundary_midpoint` in `blockfv_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_term_nonperiodic.jl"),

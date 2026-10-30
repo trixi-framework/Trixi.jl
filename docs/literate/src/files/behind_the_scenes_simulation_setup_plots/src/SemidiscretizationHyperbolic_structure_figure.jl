@@ -1,13 +1,13 @@
 using Plots
 plot(Shape([(-2.3, 4.5), (2.35, 4.5), (2.35, 2.5), (-2.3, 2.5)]), linecolor = "black",
      fillcolor = "white", label = false, linewidth = 2, size = (800, 600), showaxis = false,
-     grid = false, xlim = (-2.4, 2.8), ylim = (-25, 5.5))
+     grid = false, xlim = (-2.4, 2.8), ylim = (-26, 5.5))
 annotate!(2.3, 3.5,
-          ("SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver; source_terms,
+          ("SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver; source_terms,
 boundary_conditions, RealT, uEltype)                               ", 10, :black, :right))
 annotate!(-2.3, 1.5,
           ("creates and returns SemidiscretizationHyperbolic object, initialized using a mesh, equations,
-initial_conditions, boundary_conditions, source_terms, solver and cache", 9, :black, :left))
+initial_condition, boundary_conditions, source_terms, solver and cache", 9, :black, :left))
 plot!([-1.2, -1.2], [0.6, -2], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([-1.2, -1.4], [0.6, -2], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([-1.2, -1.0], [0.6, -2], arrow = true, color = :black, linewidth = 2, label = "")
@@ -20,18 +20,19 @@ annotate!(1.48, -0.7, ("specialized for mesh
 and boundary_conditions
 types", 9, :black, :left))
 
-plot!(Shape([(-2.3, -2), (-0.1, -2), (-0.1, -4), (-2.3, -4)]), linecolor = "black",
+plot!(Shape([(-2.38, -2), (0.0, -2), (0.0, -4), (-2.38, -4)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
-annotate!(-1.2, -3, ("create_cache(mesh::TreeMesh, equations,
-                   solver::Dg, RealT, uEltype)", 10, :black, :center))
-plot!([-2.22, -2.22], [-4, -22], arrow = false, color = :black, linewidth = 2, label = "")
+annotate!(-2.33, -3,
+          ("create_cache_hyperbolic(mesh::TreeMesh,
+    equations, dg::DG, RealT, uEltype)", 10, :black, :left))
+plot!([-2.22, -2.22], [-4, -22.5], arrow = false, color = :black, linewidth = 2, label = "")
 
-plot!(Shape([(-0.05, -2), (2.6, -2), (2.6, -4), (-0.05, -4)]), linecolor = "black",
+plot!(Shape([(0.1, -2), (2.75, -2), (2.75, -4), (0.1, -4)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
-annotate!(1.27, -3,
-          ("digest_boundary_conditions(boundary_conditions,
-                                   mesh, solver, cache)", 10, :black, :center))
-annotate!(2.6, -5, ("if necessary, converts passed boundary_conditions
+annotate!(0.15, -3,
+          ("digest_boundary_conditions(
+    boundary_conditions, mesh, solver, cache)", 10, :black, :left))
+annotate!(2.75, -5, ("if necessary, converts passed boundary_conditions
  into a suitable form for processing by Trixi.jl", 9, :black, :right))
 
 plot!(Shape([(-2, -6), (-0.55, -6), (-0.55, -7.1), (-2, -7.1)]), linecolor = "black",
@@ -61,10 +62,10 @@ annotate!(-2, -13.5,
            9, :black, :left))
 plot!([-2.22, -2], [-12.5, -12.5], arrow = true, color = :black, linewidth = 2, label = "")
 
-plot!(Shape([(-2, -15), (0.5, -15), (0.5, -16.1), (-2, -16.1)]), linecolor = "black",
+plot!(Shape([(-2, -15), (1.05, -15), (1.05, -16.1), (-2, -16.1)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
 annotate!(-1.95, -15.5,
-          ("init_boundaries(leaf_cell_ids, mesh, elements)", 10, :black, :left))
+          ("init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)", 10, :black, :left))
 annotate!(-2, -17,
           ("creates and initializes boundaries, remembers each boundary element, as well as the coordinates of
 each boundary node", 9, :black, :left))
@@ -75,20 +76,22 @@ plot!(Shape([(-1.6, -18), (1.3, -18), (1.3, -19.1), (-1.6, -19.1)]), linecolor =
 annotate!(-1.55, -18.5,
           ("init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)", 10, :black, :left))
 annotate!(-1.6, -20,
-          ("creates and initializes mortars (type of interfaces) between each triple of adjacent coarsened
-and corresponding small elements", 9, :black, :left))
+          ("creates and initializes mortars (type of interfaces) between each large element and
+its two (2D) or four (3D) adjacent smaller elements", 9, :black, :left))
 plot!([-2.22, -1.6], [-18.5, -18.5], arrow = true, color = :black, linewidth = 2,
       label = "")
 annotate!(-2.15, -19, ("2D and 3D", 8, :black, :left))
 
-plot!(Shape([(-2, -21), (1.5, -21), (1.5, -23.1), (-2, -23.1)]), linecolor = "black",
+plot!(Shape([(-2, -21), (2.25, -21), (2.25, -24), (-2, -24)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
-annotate!(-1.95, -22,
-          ("create_cache(mesh, equations, dg.volume_integral, dg, uEltype)
-for 2D and 3D create_cache(mesh, equations, dg.mortar, uEltype)", 10, :black, :left))
-annotate!(-2, -23.5,
+annotate!(-1.95, -22.5,
+          ("create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+    dg, cache, uEltype)
+for 2D and 3D: create_cache_mortar(mesh, equations, dg.mortar, uEltype)", 10, :black,
+           :left))
+annotate!(-2, -24.5,
           ("add specialized parts of the cache required to compute the volume integral, etc.",
            9, :black, :left))
-plot!([-2.22, -2], [-22, -22], arrow = true, color = :black, linewidth = 2, label = "")
+plot!([-2.22, -2], [-22.5, -22.5], arrow = true, color = :black, linewidth = 2, label = "")
 
 savefig("./SemidiscretizationHyperbolic")

@@ -5,17 +5,10 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(typ::Type{IndicatorType},
-                      semi) where {IndicatorType <: AbstractIndicator}
-    return create_cache_indicator_for_amr(typ, mesh_equations_solver_cache(semi)...)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache_indicator_for_amr(typ::Type{IndicatorType},
-                                        mesh, equations::AbstractEquations, dg::DGSEM,
-                                        cache) where {IndicatorType <:
-                                                      AbstractIndicator}
-    return create_cache(typ, equations, dg.basis)
+# Create the cache of an indicator constructed from a semidiscretization, e.g., for AMR
+function create_cache_indicator(typ::Type{<:AbstractIndicator}, semi)
+    _, equations, solver, _ = mesh_equations_solver_cache(semi)
+    return create_cache_indicator(typ, equations, solver.basis)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator,
@@ -62,7 +55,7 @@ function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    alpha_smooth = true,
                                    variable)
     alpha_max, alpha_min = promote(alpha_max, alpha_min)
-    cache = create_cache(IndicatorHennemannGassner, equations, basis)
+    cache = create_cache_indicator(IndicatorHennemannGassner, equations, basis)
     return IndicatorHennemannGassner{typeof(alpha_max), typeof(variable),
                                      typeof(cache)}(alpha_max,
                                                     alpha_min,
@@ -78,7 +71,7 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    alpha_smooth = true,
                                    variable)
     alpha_max, alpha_min = promote(alpha_max, alpha_min)
-    cache = create_cache(IndicatorHennemannGassner, semi)
+    cache = create_cache_indicator(IndicatorHennemannGassner, semi)
     return IndicatorHennemannGassner{typeof(alpha_max), typeof(variable),
                                      typeof(cache)}(alpha_max,
                                                     alpha_min,
@@ -116,7 +109,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     @unpack alpha_smooth = indicator_hg
     @unpack alpha, alpha_tmp = indicator_hg.cache
     # The blending factors are resized lazily on every call instead of eagerly via
-    # `resize_volume_integral_cache!` since this indicator is also used by AMR
+    # `resize_cache_volume_integral!` since this indicator is also used by AMR
     # controllers, i.e., outside of any tree of volume integrals. This is safe since
     # the indicator is evaluated for all elements before the per-element loop of the
     # volume integral, and `resize!` does nothing if the size does not change.
@@ -198,7 +191,7 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorLöhner(equations::AbstractEquations, basis;
                          f_wave = 0.2, variable)
-    cache = create_cache(IndicatorLöhner, equations, basis)
+    cache = create_cache_indicator(IndicatorLöhner, equations, basis)
     return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave,
                                                                             variable,
                                                                             cache)
@@ -207,7 +200,7 @@ end
 # this method is used when the indicator is constructed as for AMR
 function IndicatorLöhner(semi::AbstractSemidiscretization;
                          f_wave = 0.2, variable)
-    cache = create_cache(IndicatorLöhner, semi)
+    cache = create_cache_indicator(IndicatorLöhner, semi)
     return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave,
                                                                             variable,
                                                                             cache)
@@ -271,14 +264,14 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMax(equations::AbstractEquations, basis;
                       variable)
-    cache = create_cache(IndicatorMax, equations, basis)
+    cache = create_cache_indicator(IndicatorMax, equations, basis)
     return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorMax(semi::AbstractSemidiscretization;
                       variable)
-    cache = create_cache(IndicatorMax, semi)
+    cache = create_cache_indicator(IndicatorMax, semi)
     return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
@@ -426,15 +419,15 @@ end
 function IndicatorEntropyCorrection(equations::AbstractEquations,
                                     basis::LobattoLegendreBasis;
                                     scaling = true) # true = 1 in floating point multiplication
-    cache = create_cache(IndicatorEntropyCorrection, equations, basis)
+    cache = create_cache_indicator(IndicatorEntropyCorrection, equations, basis)
     return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
 end
 
 # this method is used when the indicator is constructed as for
 # shock-capturing volume integrals.
-function create_cache(::Type{IndicatorEntropyCorrection},
-                      equations::AbstractEquations{NDIMS, NVARS},
-                      basis::LobattoLegendreBasis) where {NDIMS, NVARS}
+function create_cache_indicator(::Type{IndicatorEntropyCorrection},
+                                equations::AbstractEquations{NDIMS, NVARS},
+                                basis::LobattoLegendreBasis) where {NDIMS, NVARS}
     uEltype = real(basis)
     AT = Array{uEltype, NDIMS + 1}
 
@@ -534,15 +527,16 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorNodalFunction(indicator_function, semi::AbstractSemidiscretization)
-    cache = create_cache(IndicatorNodalFunction, semi)
+    cache = create_cache_indicator(IndicatorNodalFunction, semi)
     return IndicatorNodalFunction{typeof(indicator_function), typeof(cache)}(indicator_function,
                                                                              cache)
 end
 
 # this method is directly used when the indicator is constructed as for shock-capturing volume integrals
 # and by the dimension-independent method called for AMR
-function create_cache(::Type{IndicatorNodalFunction},
-                      equations::AbstractEquations, basis::LobattoLegendreBasis)
+function create_cache_indicator(::Type{IndicatorNodalFunction},
+                                equations::AbstractEquations,
+                                basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
 

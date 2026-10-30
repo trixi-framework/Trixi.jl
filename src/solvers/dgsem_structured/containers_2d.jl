@@ -328,7 +328,7 @@ end
 resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
 # Non-Cartesian meshes without AMR: the normal vectors are created with the correct
 # size. This is called only when the cache is created, see
-# `create_volume_integral_caches`.
+# `create_cache_all_volume_integrals`.
 function resize_normal_vectors!(cache, mesh::Union{StructuredMesh, UnstructuredMesh2D},
                                 capacity)
     return nothing

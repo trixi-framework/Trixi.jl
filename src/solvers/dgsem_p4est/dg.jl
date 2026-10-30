@@ -8,8 +8,9 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMesh, equations::AbstractEquations, dg::DG,
+                                 ::Any,
+                                 ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh)
@@ -24,10 +25,10 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
     # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
     # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
@@ -40,8 +41,9 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMeshView, equations::AbstractEquations,
+                                 dg::DG, ::Any,
+                                 ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh.parent)
@@ -67,10 +69,10 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
     # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
     # that they are available for all backends, e.g., the KernelAbstractions.jl CPU

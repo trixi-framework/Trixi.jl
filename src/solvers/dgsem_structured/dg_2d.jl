@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# Buffers for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of
 # subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
 function create_cache_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                              P4estMesh{2}, T8codeMesh{2}}, equations,

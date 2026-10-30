@@ -226,8 +226,9 @@ function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
 end
 
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
-                      uEltype) where {NDIMS}
+function create_cache_hyperbolic(mesh::DGMultiMesh{NDIMS}, equations,
+                                 dg::DGMultiWeakForm, RealT,
+                                 uEltype) where {NDIMS}
     rd = dg.basis
     md = mesh.md
 

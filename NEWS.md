@@ -5,6 +5,23 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+- The internal function `create_cache` was split into separate functions for the
+  different parts of the storage, which affects packages extending or calling it:
+  `create_cache_hyperbolic` (cache of a hyperbolic semidiscretization),
+  `create_cache_volume_integral`, `create_cache_mortar`, `create_cache_indicator`,
+  `create_cache_limiter`, `create_cache_controller`, `create_cache_averaging`, and
+  `create_cache_euler_acoustics`. The functions handling the storage of all nested volume
+  integrals were renamed to `create_cache_all_volume_integrals`,
+  `resize_cache_all_volume_integrals!`, and `reinit_cache_all_volume_integrals!`;
+  the methods for a single volume integral to `resize_cache_volume_integral!` and
+  `reinit_cache_volume_integral!`. For `DGMulti`, `create_cache_volume_integral` now
+  receives the storage created so far instead of the real type `RealT`, as for the other
+  solvers.
+
+
 ## Changes in the v0.17 lifecycle
 
 #### Added

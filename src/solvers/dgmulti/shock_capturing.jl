@@ -5,9 +5,10 @@
 #! format: noindent
 
 # by default, return an empty tuple for volume integral caches
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHGType,
-                      dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
+function create_cache_volume_integral(mesh::DGMultiMesh{NDIMS}, equations,
+                                      volume_integral::VolumeIntegralShockCapturingHGType,
+                                      dg::DGMultiFluxDiff{<:GaussSBP}, cache_containers,
+                                      uEltype) where {NDIMS}
     (; volume_integral_default, volume_integral_blend_high_order) = volume_integral
     @assert volume_integral_default isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_default`"
     @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
@@ -30,10 +31,11 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
             element_to_element_connectivity)
 end
 
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
-                                             VolumeIntegralPureLGLFiniteVolume},
-                      dg::DGMultiFluxDiffSBP, RealT, uEltype) where {NDIMS}
+function create_cache_volume_integral(mesh::DGMultiMesh{NDIMS}, equations,
+                                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
+                                                             VolumeIntegralPureLGLFiniteVolume},
+                                      dg::DGMultiFluxDiffSBP, cache_containers,
+                                      uEltype) where {NDIMS}
     element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
 
     # create skew-symmetric parts of sparse hybridized operators for low order scheme.
@@ -49,8 +51,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations,
-                      basis::DGMultiBasis{NDIMS}) where {NDIMS}
+function create_cache_indicator(::Type{IndicatorHennemannGassner},
+                                equations::AbstractEquations,
+                                basis::DGMultiBasis{NDIMS}) where {NDIMS}
     uEltype = real(basis)
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
