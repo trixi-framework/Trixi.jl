@@ -10,11 +10,11 @@ need additional packages, or when comparing results with CI.
 - `run_agents/` develops the local version of Trixi.jl (`Pkg.develop`) and
   contains all dependencies of the tests (copied from `test/Project.toml`,
   including compat bounds and preferences).
-- `run_agents/kernelabstractions/` is a copy of `run_agents/` (same project and
-  manifest) whose `LocalPreferences.toml` sets the threading backend of
-  Trixi.jl to KernelAbstractions.jl, as in the CI jobs `kernelabstractions` and
-  `kernelabstractions_mpi`. The setup script overwrites changes made directly
-  in this directory whenever `run_agents/` differs.
+- `run_agents/kernelabstractions/` is a copy of `run_agents/` (same project,
+  manifest, and local preferences) whose `LocalPreferences.toml` sets the
+  threading backend of Trixi.jl to KernelAbstractions.jl, as in the CI jobs
+  `kernelabstractions` and `kernelabstractions_mpi`. The setup script overwrites
+  changes made directly in this directory whenever `run_agents/` differs.
 - `run_agents/formatter/` contains JuliaFormatter.jl v1.0.60, which cannot be
   installed in `run_agents/` since its dependencies are incompatible with those
   of Trixi.jl.

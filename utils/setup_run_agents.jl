@@ -114,7 +114,8 @@ function setup_kernelabstractions()
     end
 
     preferences_file = joinpath(KERNELABSTRACTIONS_DIR, "LocalPreferences.toml")
-    preferences = parse_toml(preferences_file)
+    # Preserve library selections such as system MPI and HDF5 in both environments.
+    preferences = parse_toml(joinpath(RUN_AGENTS_DIR, "LocalPreferences.toml"))
     get!(preferences, "Trixi", Dict{String, Any}())["backend"] = "kernelabstractions"
 
     for (file, content) in (joinpath(KERNELABSTRACTIONS_DIR, "Project.toml") => project,
