@@ -154,5 +154,5 @@ with nodes traversed in positive `y`-direction. The possible values are
 
 The type of the values is `NodeIndex.T`.
 """
-@enumx NodeIndex::UInt8 Begin End IForward IBackward JForward JBackward
+@enumx NodeIndex::Int8 Begin End IForward IBackward JForward JBackward
 end # @muladd
