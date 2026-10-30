@@ -400,8 +400,8 @@ end
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
                                  dg::DGMultiFluxDiff{<:GaussSBP,
-                                                     <:Union{Line, Quad, Hex}}, RealT,
-                                 uEltype)
+                                                     <:Union{Line, Quad, Hex}},
+                                 RealT, uEltype)
 
     # call general Polynomial flux differencing constructor
     cache = invoke(create_cache_hyperbolic,

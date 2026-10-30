@@ -71,8 +71,8 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
 end
 
 # Buffers for the finite volume fluxes on the subcells, called from
-# `create_cache_volume_integral` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`)
 function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,

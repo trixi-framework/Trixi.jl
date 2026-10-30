@@ -4,9 +4,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache_hyperbolic(mesh::T8codeMesh, equations::AbstractEquations, dg::DG,
-                                 ::Any,
-                                 ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::T8codeMesh, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     count_required_surfaces!(mesh)
 
     elements = init_elements(mesh, equations, dg.basis, uEltype)

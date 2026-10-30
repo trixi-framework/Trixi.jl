@@ -159,8 +159,7 @@ end
 function _collect_caches_volume_integral(mesh, equations, volume_integral, dg,
                                          cache_containers, uEltype)
     cache = create_cache_volume_integral(mesh, equations, volume_integral, dg,
-                                         cache_containers,
-                                         uEltype)
+                                         cache_containers, uEltype)
     # `map` is unrolled for tuples, and each recursive call gets a single child, i.e.,
     # a smaller type. This keeps the recursion inferable for nested composites.
     caches_children = map(volume_integral_children(volume_integral)) do child

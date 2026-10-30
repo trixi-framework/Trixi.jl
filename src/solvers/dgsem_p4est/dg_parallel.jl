@@ -294,8 +294,7 @@ end
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_hyperbolic(mesh::P4estMeshParallel, equations::AbstractEquations,
-                                 dg::DG,
-                                 ::Any, ::Type{uEltype}) where {uEltype <: Real}
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the p4est and create a new ghost layer before creating any
     # containers in case someone has tampered with the p4est after creating the mesh
     balance!(mesh)

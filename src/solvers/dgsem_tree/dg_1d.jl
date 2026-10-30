@@ -34,8 +34,8 @@ function create_cache_hyperbolic(mesh::TreeMesh{1}, equations,
 end
 
 # Buffers for the finite volume fluxes on the subcells, called from
-# `create_cache_volume_integral` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`)
 function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                                  dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
