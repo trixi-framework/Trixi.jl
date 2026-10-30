@@ -196,6 +196,9 @@ jobs:
       - run: ls -R
       # Next, we merge the individual coverage files and upload
       # the combined results to Coveralls.
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
       - name: Merge lcov files using Coverage.jl
         shell: julia --color=yes {0}
         run: |
