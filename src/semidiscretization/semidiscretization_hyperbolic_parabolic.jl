@@ -93,6 +93,10 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    # Add the arrays of a subgrid-scale model of the parabolic terms, if any
+    cache = (; cache...,
+             create_cache_subgrid_model(subgrid_model(equations_parabolic), mesh,
+                                        equations_parabolic, solver, cache, uEltype)...)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)

@@ -19,3 +19,7 @@ include("laplace_diffusion_entropy_variables.jl")
 include("linear_diffusion_equation.jl")
 
 include("compressible_navier_stokes.jl")
+
+include("subgrid_models/subgrid_models.jl")
+
+include("compressible_les_3d.jl")
