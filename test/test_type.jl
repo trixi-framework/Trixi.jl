@@ -2999,6 +2999,45 @@ end
     end
 end
 
+@testitem "Type stability: Linearized Euler 3D with auxiliary variables" setup=[
+    Setup,
+    TypeStability
+] tags=[:misc_part1] begin
+    equations = @inferred LinearizedEulerEquations3DAuxVars()
+    for RealT in (Float32, Float64)
+        u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT), one(RealT),
+                                  one(RealT))
+        aux = aux_ll = aux_rr = SVector(one(RealT), RealT(0.5), zero(RealT), zero(RealT),
+                                        one(RealT))
+        orientations = [1, 2, 3]
+        normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
+
+        for orientation in orientations
+            @test eltype(@inferred flux(u, aux, orientation, equations)) == RealT
+            @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                                 orientation, equations)) == RealT
+            @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                       orientation, equations)) == RealT
+        end
+
+        @test eltype(@inferred flux(u, aux, normal_direction, equations)) == RealT
+        @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                             normal_direction, equations)) == RealT
+        @test eltype(@inferred flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                                            normal_direction, equations)) == RealT
+        @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                   normal_direction, equations)) == RealT
+        @test eltype(@inferred Trixi.max_abs_speeds(u, aux, equations)) == RealT
+
+        @test eltype(@inferred cons2prim(u, equations)) == RealT
+        @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        @test eltype(@inferred cons2aux(u, aux, equations)) == RealT
+    end
+
+    adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)
+    @test adapted === equations
+end
+
 @testitem "Type stability: Polytropic Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
     for RealT in (Float32, Float64)
         equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
