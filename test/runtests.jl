@@ -81,8 +81,8 @@ end
 # nothing instead of erroring.
 # The GPU packages are listed only in the `[extras]` of `test/Project.toml` so that they
 # do not restrict the versions of other packages in the test environment. The GPU CI jobs
-# add the respective package via `test/run_ci_tests.jl`. For `TRIXI_TEST == "all"`, we
-# only use the GPU packages available in the test environment.
+# add the respective package via `test/run_gpu_downgrade_tests.jl`. For
+# `TRIXI_TEST == "all"`, we only use the GPU packages available in the test environment.
 function use_gpu_package(name)
     return TRIXI_TEST == name ||
            (TRIXI_TEST == "all" && Base.find_package(name) !== nothing)

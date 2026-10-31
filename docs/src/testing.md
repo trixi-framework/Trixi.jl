@@ -92,7 +92,7 @@ The GPU tests run on Buildkite (see
 The GPU packages CUDA.jl, AMDGPU.jl, and Metal.jl are listed only in the `[extras]` of
 `test/Project.toml` so that they do not restrict the versions of other packages in the
 test environment. The script
-[`test/run_ci_tests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/run_ci_tests.jl)
+[`test/run_gpu_downgrade_tests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/run_gpu_downgrade_tests.jl)
 adds the GPU package required by a job to the test environment. On the oldest Julia
 version supported by Trixi.jl, it also downgrades all packages to the oldest versions
 compatible with the compat bounds, as in the downgrade jobs on GitHub Actions (see

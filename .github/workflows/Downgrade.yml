@@ -89,7 +89,7 @@ jobs:
       # The script downgrades the packages using julia-actions/julia-downgrade-compat and
       # runs the tests in the same way as the GPU jobs on Buildkite
       - name: Run tests
-        run: julia --color=yes test/run_ci_tests.jl
+        run: julia --color=yes test/run_gpu_downgrade_tests.jl
         env:
           TRIXI_TEST: ${{ matrix.trixi_test }}
           # Downgrade the packages independently of the Julia version

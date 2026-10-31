@@ -1,6 +1,6 @@
 # Prepare the test environment and run the tests in a CI job, e.g., from the root of the
 # repository,
-#   TRIXI_TEST=CUDA julia --color=yes test/run_ci_tests.jl CUDA
+#   TRIXI_TEST=CUDA julia --color=yes test/run_gpu_downgrade_tests.jl CUDA
 # The arguments are packages listed in the `[extras]` of `test/Project.toml` that are
 # required for the tests, e.g., `CUDA`, `AMDGPU`, or `Metal` for the GPU tests. They are
 # not regular test dependencies so that they do not restrict the versions of other

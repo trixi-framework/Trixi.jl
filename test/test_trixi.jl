@@ -28,6 +28,8 @@ macro test_trixi_include(expr, args...)
         # Ignore deprecation warnings from OrdinaryDiffEq
         r"┌ Warning: Passing `stage_limiter!` to the algorithm constructor is deprecated; pass `stage_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n",
         r"┌ Warning: Passing `step_limiter!` to the algorithm constructor is deprecated; pass `step_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n",
+        # Deprecation warning from GPUCompiler.jl, triggered by GPU backend packages such as
+        # CUDA.jl and Metal.jl that still access `GPUCompiler.compile_hook`
         r"WARNING: Use of GPUCompiler\.compile_hook is deprecated, use `run_compile_hook` or `with_compile_hook` instead\.\n(  likely near .+\n)?"
     ]
     # If `maxiters` is set in tests, it is usually set to a small number to
