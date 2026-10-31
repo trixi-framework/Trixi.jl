@@ -15,8 +15,12 @@ function create_cache_indicator(typ::Type{<:AbstractIndicator},
     return create_cache_indicator(typ, equations, dg.basis)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::AbstractVolumeIntegralShockCapturing)
+# Add the values of `indicator` to `element_variables` under a name depending on the
+# component using the indicator (last argument), e.g., a volume integral or the
+# `AMRCallback`.
+function get_element_variables_indicator!(element_variables,
+                                          indicator::AbstractIndicator,
+                                          ::AbstractVolumeIntegralShockCapturing)
     element_variables[:indicator_shock_capturing] = indicator.cache.alpha
     return nothing
 end
@@ -149,17 +153,19 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     return alpha
 end
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
+                                                dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
-    return get_element_variables!(element_variables, volume_integral.indicator,
-                                  volume_integral)
+    return get_element_variables_indicator!(element_variables,
+                                            volume_integral.indicator,
+                                            volume_integral)
 end
 
-function get_element_variables!(element_variables, indicator::IndicatorHennemannGassner,
-                                ::VolumeIntegralAdaptive)
+function get_element_variables_indicator!(element_variables,
+                                          indicator::IndicatorHennemannGassner,
+                                          ::VolumeIntegralAdaptive)
     element_variables[:indicator_volume_integral_adaptive] = indicator.cache.alpha
     return nothing
 end

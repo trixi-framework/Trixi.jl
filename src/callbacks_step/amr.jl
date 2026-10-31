@@ -134,10 +134,12 @@ function uses_amr(cb::DiscreteCallback{Condition, Affect!}) where {Condition,
 end
 uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                amr_callback::AMRCallback; kwargs...)
-    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                  amr_callback.controller, amr_callback; kwargs...)
+function get_element_variables_callback!(element_variables, u, mesh, equations, solver,
+                                         cache, amr_callback::AMRCallback; kwargs...)
+    return get_element_variables_controller!(element_variables, u, mesh, equations,
+                                             solver, cache,
+                                             amr_callback.controller, amr_callback;
+                                             kwargs...)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -1044,17 +1046,20 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevel,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevel,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator, amr_callback)
+    return get_element_variables_indicator!(element_variables, controller.indicator,
+                                            amr_callback)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::AMRCallback)
+function get_element_variables_indicator!(element_variables,
+                                          indicator::AbstractIndicator,
+                                          ::AMRCallback)
     element_variables[:indicator_amr] = indicator.cache.alpha
     return nothing
 end
@@ -1241,14 +1246,16 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevelCombined,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevelCombined,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator_primary(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator_primary,
-                                  amr_callback)
+    return get_element_variables_indicator!(element_variables,
+                                            controller.indicator_primary,
+                                            amr_callback)
 end
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},

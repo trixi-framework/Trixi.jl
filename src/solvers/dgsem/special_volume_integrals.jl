@@ -62,9 +62,9 @@ to be defined.
 """
 const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrection,
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralEntropyCorrection,
+                                                dg, cache)
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
     return nothing
 end
@@ -85,9 +85,9 @@ end
 # indicator with a heuristic shock capturing indicator.
 const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                                dg, cache)
     # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
     return nothing
