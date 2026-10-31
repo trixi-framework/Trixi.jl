@@ -822,6 +822,31 @@ end
                                        0.010358210347485542])
 end
 
+@testitem "DGMulti2D: divergence of the magnetic field" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    # B = (3x, 5y) has the constant divergence 8. The Jacobian of the elements
+    # differs from one so that a missing division by the Jacobian is detected.
+    equations = IdealGlmMhdEquations2D(1.4)
+    function initial_condition(x, t, equations)
+        prim = SVector(1.0, 0.0, 0.0, 0.0, 1.0, 3 * x[1], 5 * x[2], 0.0, 0.0)
+        return prim2cons(prim, equations)
+    end
+    for element_type in (Quad(), Tri())
+        dg = DGMulti(polydeg = 3, element_type = element_type,
+                     approximation_type = Polynomial(),
+                     surface_integral = SurfaceIntegralWeakForm(flux_hll),
+                     volume_integral = VolumeIntegralWeakForm())
+        mesh = DGMultiMesh(dg, (4, 4), periodicity = true,
+                           coordinates_min = (-1.5, -1.5), coordinates_max = (1.5, 1.5))
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        @test !isapprox(mesh.md.J[1, 1], 1)
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        @test Trixi.analyze(Val(:l2_divb), nothing, u, 0.0, semi) ≈ 8
+        @test Trixi.analyze(Val(:linf_divb), nothing, u, 0.0, semi) ≈ 8
+    end
+end
+
 @testitem "DGMulti2D: elixir_mhd_reflective_wall.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
                         cells_per_dimension=4,
