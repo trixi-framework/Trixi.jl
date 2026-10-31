@@ -99,6 +99,12 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
+  now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
+  are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
+  `initial_condition_convergence_test` is now an exact solution for all material
+  parameters; previously, it agreed with the solution only at integer times for
+  `c1 = 1` ([#3409]).
 - Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
   `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
   computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).

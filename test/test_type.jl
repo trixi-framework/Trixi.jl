@@ -3331,6 +3331,5 @@ end
         @test adapted isa LinearElasticityEquations1D{Float32}
         @test typeof(adapted.rho) == Float32
         @test typeof(adapted.c1) == Float32
-        @test typeof(adapted.E) == Float32
     end
 end
