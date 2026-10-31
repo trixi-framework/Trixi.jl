@@ -113,8 +113,7 @@ end
 
 # Convenience constructor for 2D data, whose coordinates are always `x` and `y`
 function PlotData2DTriangulated(x, y, data, t, x_face, y_face, face_data,
-                                variable_names,
-                                point_values, node_groups)
+                                variable_names, point_values, node_groups)
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, face_data,
                                   variable_names, point_values, node_groups, 1, 2)
 end

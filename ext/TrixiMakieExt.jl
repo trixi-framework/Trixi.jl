@@ -648,24 +648,28 @@ function Makie.contourf(pd::PlotData2DCartesian, fig = Makie.Figure();
     return FigureAndAxes(fig, axes)
 end
 
-# Keywords of the `PlotData2D` constructors besides `solution_variables`, e.g., to select
-# the slice of 3D solutions. All other keywords of the plotting functions for solutions are
+# Keywords besides `solution_variables` accepted by (some of) the `PlotData1D` and
+# `PlotData2D` constructors for 1D and 2D/3D solutions, respectively, e.g., to select the
+# slice of 3D solutions. All other keywords of the plotting functions for solutions are
 # passed to Makie.
+const PLOT_DATA_1D_KEYWORDS = (:nvisnodes, :reinterpolate)
 const PLOT_DATA_2D_KEYWORDS = (:nvisnodes, :slice, :point, :grid_lines,
                                :max_supported_level)
 
-function _split_plot_data_2d_kwargs(kwargs)
-    is_plot_data_keyword = kv -> first(kv) in PLOT_DATA_2D_KEYWORDS
-    return filter(is_plot_data_keyword, collect(kwargs)),
-           filter(!is_plot_data_keyword, collect(kwargs))
+# Split `kwargs` into those whose names are in `keywords` and all others
+function _split_kwargs(kwargs, keywords)
+    is_selected = kv -> first(kv) in keywords
+    return filter(is_selected, collect(kwargs)), filter(!is_selected, collect(kwargs))
 end
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution; solution_variables = nothing, kwargs...)
     if ndims(sol.prob.p) == 1
-        return Makie.plot(PlotData1D(sol; solution_variables); kwargs...)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_1D_KEYWORDS)
+        pd = PlotData1D(sol; solution_variables, plot_data_kwargs...)
+        return Makie.plot(pd; makie_kwargs...)
     else
-        plot_data_kwargs, makie_kwargs = _split_plot_data_2d_kwargs(kwargs)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
         pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
         return Makie.plot(pd; makie_kwargs...)
     end
@@ -675,7 +679,7 @@ function Makie.contour(sol::TrixiODESolution; solution_variables = nothing, kwar
     if ndims(sol.prob.p) == 1
         throw(ArgumentError("Contour plots are not supported for 1D solutions."))
     else
-        plot_data_kwargs, makie_kwargs = _split_plot_data_2d_kwargs(kwargs)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
         pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
         return Makie.contour(pd; makie_kwargs...)
     end
@@ -685,7 +689,7 @@ function Makie.contourf(sol::TrixiODESolution; solution_variables = nothing, kwa
     if ndims(sol.prob.p) == 1
         throw(ArgumentError("Filled contour plots are not supported for 1D solutions."))
     else
-        plot_data_kwargs, makie_kwargs = _split_plot_data_2d_kwargs(kwargs)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
         pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
         return Makie.contourf(pd; makie_kwargs...)
     end

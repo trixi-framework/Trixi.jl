@@ -722,8 +722,9 @@ end
         for (slice, xlabel, ylabel) in ((:xy, "\$x\$", "\$y\$"), (:xz, "\$x\$", "\$z\$"),
                                         (:yz, "\$y\$", "\$z\$"))
             pd_slice = PlotData2D(sol; slice, point)
-            @test Plots.plot(pd_slice["rho"])[1][:xaxis][:guide] == xlabel
-            @test Plots.plot(pd_slice["rho"])[1][:yaxis][:guide] == ylabel
+            subplot = Plots.plot(pd_slice["rho"])[1]
+            @test subplot[:xaxis][:guide] == xlabel
+            @test subplot[:yaxis][:guide] == ylabel
 
             for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
                 _, ax, _ = plot_function(pd_slice["rho"])
@@ -903,6 +904,18 @@ end
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :xz) isa Trixi.PlotData2DCartesian
+
+    @testset "Makie plots of slices" begin
+        # Makie does not accept the keywords of `PlotData2D`, so these calls fail unless
+        # they are passed to `PlotData2D`. `colormap` is passed to Makie.
+        kwargs = (; slice = :xz, point = (0.0, 0.5, 0.0), nvisnodes = 3,
+                  grid_lines = false, max_supported_level = 5)
+        for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+            _, axes_sol = plot_function(sol; kwargs..., colormap = :viridis)
+            @test string(first(axes_sol).xlabel[]) == "\$x\$"
+            @test string(first(axes_sol).ylabel[]) == "\$z\$"
+        end
+    end
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
         @testset "Create 1D plot as slice" begin
@@ -1233,6 +1246,11 @@ end
 
     # Makie.plot(sol) for 1D solutions
     @trixi_test_nowarn Makie.plot(sol)
+
+    # Makie does not accept the keywords of `PlotData1D`, so this call fails unless they
+    # are passed to `PlotData1D`. `plot_mesh` is passed to Makie.
+    @trixi_test_nowarn Makie.plot(sol, nvisnodes = 3, reinterpolate = false,
+                                  plot_mesh = true)
 
     # PlotMesh overlay
     Makie.plot(pd["scalar"])
