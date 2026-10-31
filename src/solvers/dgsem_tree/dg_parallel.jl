@@ -70,6 +70,7 @@ function apply_smoothing_mpi!(mesh::Union{TreeMeshParallel, P4estMeshParallel,
     @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = cache.mpi_cache
     @unpack send_buffer, recv_buffer, send_requests, recv_requests = indicator_cache.alpha_mpi_buffers
     @unpack local_neighbor_ids, local_neighbor_positions = cache.mpi_mortars
+    interface_neighbor_ids = cache.mpi_interfaces.local_neighbor_ids
     # positions `1:n_small_elements` denote the small elements of a mortar,
     # position `n_positions` denotes the large element
     n_positions = 2^(ndims(mesh) - 1) + 1
@@ -107,11 +108,11 @@ function apply_smoothing_mpi!(mesh::Union{TreeMeshParallel, P4estMeshParallel,
     # solution in `rhs!`, which may still be in progress when this function is called.
     tag = mpi_nranks()
     offset = 0
-    for (index, rank) in enumerate(mpi_neighbor_ranks)
+    for (index, rank) in pairs(mpi_neighbor_ranks)
         first = offset + 1
         for interface in mpi_neighbor_interfaces[index]
             offset += 1
-            send_buffer[offset] = alpha_tmp[cache.mpi_interfaces.local_neighbor_ids[interface]]
+            send_buffer[offset] = alpha_tmp[interface_neighbor_ids[interface]]
         end
         for mortar in mpi_neighbor_mortars[index]
             # Zero is a neutral value for the smoothing since the blending factors are
@@ -138,7 +139,7 @@ function apply_smoothing_mpi!(mesh::Union{TreeMeshParallel, P4estMeshParallel,
     for index in eachindex(mpi_neighbor_ranks)
         for interface in mpi_neighbor_interfaces[index]
             offset += 1
-            element = cache.mpi_interfaces.local_neighbor_ids[interface]
+            element = interface_neighbor_ids[interface]
             alpha[element] = max(alpha[element], 0.5f0 * recv_buffer[offset])
         end
         for mortar in mpi_neighbor_mortars[index]
