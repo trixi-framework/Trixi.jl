@@ -100,7 +100,7 @@ for human readability.
 - Trixi.jl now supports KernelAbstractions.jl v0.10 (and AcceleratedKernels.jl v0.5) in
   addition to v0.9. Note that the `CPU` backend of KernelAbstractions.jl v0.10 compiles
   kernels like the GPU backends and runs them with PoCL, so the performance of the
-  threading backend `:kernelabstractions` can differ from v0.9.
+  threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
 - Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
