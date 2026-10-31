@@ -109,6 +109,9 @@ for human readability.
   `LiftCoefficientShearStress2D` now support the `CompressibleNavierStokesDiffusion2D`
   equations with `gradient_variables = GradientVariablesEntropy()` ([#3387]).
   Previously, they silently returned wrong values in this case.
+- Fixed crashes of the `AnalysisCallback` in MPI-parallel simulations on `P4estMesh`es
+  and `T8codeMesh`es if an MPI rank has no elements, e.g., after coarsening with AMR
+  ([#3418]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension

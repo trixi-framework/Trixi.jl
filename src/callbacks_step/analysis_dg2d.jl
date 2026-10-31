@@ -396,8 +396,8 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
-                                     typeof(dg), map(typeof, args)...))
+    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, typeof(equations),
+                                 typeof(dg), map(typeof, args)...)
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (integral0, volume0)
 

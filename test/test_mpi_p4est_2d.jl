@@ -30,6 +30,20 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 2D: elixir_advection_basic.jl (single element)" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    # A mesh with a single element leaves all but one MPI rank without elements,
+    # see https://github.com/trixi-framework/Trixi.jl/issues/1973
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        trees_per_dimension=(1, 1), initial_refinement_level=0,
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.15241418350207245],
+                        linf=[0.26869273065839194])
+end
+
 @testitem "P4estMesh MPI 2D: elixir_advection_nonconforming_flag.jl" setup=[
     Setup,
     MPIP4estMesh2D
