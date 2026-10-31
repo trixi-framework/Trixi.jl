@@ -6,7 +6,8 @@
 #! format: noindent
 
 @doc raw"""
-    LinearizedEulerEquations3D(v_mean_global, c_mean_global, rho_mean_global)
+    LinearizedEulerEquations3D(v_mean_global, c_mean_global::Real, rho_mean_global::Real)
+    LinearizedEulerEquations3D(; v_mean_global, c_mean_global::Real, rho_mean_global::Real)
 
 Linearized Euler equations in three space dimensions. The equations are given by
 ```math
@@ -46,29 +47,39 @@ Linearized Euler equations in three space dimensions. The equations are given by
     0 \\ 0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
-The unknowns are the acoustic velocities ``v' = (v_1', v_2, v_3')``, the pressure ``p'`` and the density ``\rho'``.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables, i.e., the velocity
+``(\bar{v_1}, \bar{v_2}, \bar{v_3})`` (`v_mean_global`) and the density ``\bar{\rho} > 0`` (`rho_mean_global`).
+The constant speed of sound is ``c > 0`` (`c_mean_global`).
+The unknowns are the acoustic velocities ``v' = (v_1', v_2', v_3')``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations3D{RealT <: Real} <:
        AbstractLinearizedEulerEquations{3, 5}
     v_mean_global::SVector{3, RealT}
     c_mean_global::RealT
     rho_mean_global::RealT
-end
 
-function LinearizedEulerEquations3D(v_mean_global::NTuple{3, <:Real},
-                                    c_mean_global::Real, rho_mean_global::Real)
-    if rho_mean_global < 0
-        throw(ArgumentError("rho_mean_global must be non-negative"))
-    elseif c_mean_global < 0
-        throw(ArgumentError("c_mean_global must be non-negative"))
+    function LinearizedEulerEquations3D{RealT}(v_mean_global, c_mean_global,
+                                               rho_mean_global) where {RealT <: Real}
+        if !(rho_mean_global > 0)
+            throw(ArgumentError("rho_mean_global must be positive"))
+        elseif !(c_mean_global > 0)
+            throw(ArgumentError("c_mean_global must be positive"))
+        end
+
+        return new{RealT}(v_mean_global, c_mean_global, rho_mean_global)
     end
-
-    return LinearizedEulerEquations3D(SVector(v_mean_global), c_mean_global,
-                                      rho_mean_global)
 end
 
-function LinearizedEulerEquations3D(; v_mean_global::NTuple{3, <:Real},
+function LinearizedEulerEquations3D(v_mean_global,
+                                    c_mean_global::Real, rho_mean_global::Real)
+    v_mean_global = SVector{3}(v_mean_global)
+    RealT = promote_type(eltype(v_mean_global), typeof(c_mean_global),
+                         typeof(rho_mean_global))
+    return LinearizedEulerEquations3D{RealT}(v_mean_global, c_mean_global,
+                                             rho_mean_global)
+end
+
+function LinearizedEulerEquations3D(; v_mean_global,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations3D(v_mean_global, c_mean_global,
                                       rho_mean_global)
