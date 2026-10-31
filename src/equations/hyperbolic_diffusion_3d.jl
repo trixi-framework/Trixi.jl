@@ -200,8 +200,7 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation_or_normal_direction,
-                 equations::HyperbolicDiffusionEquations3D)
+    flux_godunov(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations3D)
 
 Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
 """
@@ -225,7 +224,7 @@ Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
         f2 = 0.5f0 * (f_ll[2] + f_rr[2])
         f3 = 0.5f0 * (f_ll[3] + f_rr[3]) - 0.5f0 * λ_max * (q2_rr - q2_ll)
         f4 = 0.5f0 * (f_ll[4] + f_rr[4])
-    else # y-direction
+    else # z-direction
         f2 = 0.5f0 * (f_ll[2] + f_rr[2])
         f3 = 0.5f0 * (f_ll[3] + f_rr[3])
         f4 = 0.5f0 * (f_ll[4] + f_rr[4]) - 0.5f0 * λ_max * (q3_rr - q3_ll)
