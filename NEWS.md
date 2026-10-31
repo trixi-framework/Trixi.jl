@@ -180,6 +180,11 @@ for human readability.
   methods for the volume integral itself (e.g., the internal methods `create_cache`,
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- The smoothing of the blending factors of the `IndicatorHennemannGassner`
+  (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
+  into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
+  neighboring elements on other MPI ranks were ignored, so that results of MPI-parallel
+  simulations with shock capturing differed from serial ones ([#3416]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
