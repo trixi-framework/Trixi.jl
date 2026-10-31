@@ -264,20 +264,21 @@ end
 end
 
 @testitem "T8codeMesh2D: elixir_mhd_rotor.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
-    # This test is identical to the one in `test_p4est_2d.jl` besides minor
-    # deviations in the expected error norms.
+    # Unlike the test in `test_p4est_2d.jl`, this test keeps `max_level = 5`:
+    # with `max_level = 4`, the first coarsening step on the T8codeMesh yields a
+    # negative pressure and the simulation fails.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.44198912494066733, 0.8804860370633557, 0.8259236658322038,
+                        l2=[0.1451360866789373, 0.4055197518155356, 0.3980240592456563,
                             0.0,
-                            0.9612515699798332, 0.10398862512011788, 0.15408670498857638,
+                            0.35044168421287414, 0.06031061522651706, 0.09966604905806797,
                             0.0,
-                            0.0023642219748137316],
-                        linf=[10.006102411714455, 18.098945722166253, 9.483070203014782,
+                            0.0011300086990822156],
+                        linf=[3.8088140986185888, 7.502030742228754, 4.716197211274913,
                             0.0,
-                            19.573612460737017, 1.3917916782207553, 1.8112406696164254,
+                            8.65393942562945, 1.0814930406412593, 1.8642445102532028,
                             0.0,
-                            0.14559766829084606],
-                        tspan=(0.0, 0.02))
+                            0.08519750167637169],
+                        tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

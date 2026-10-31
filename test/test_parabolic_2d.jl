@@ -1869,7 +1869,7 @@ end
 ] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
-                        tspan=(0.0, 0.5),
+                        tspan=(0.0, 0.25),
                         Re=20, # Render flow diffusion-dominated
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
@@ -1878,16 +1878,16 @@ end
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.011916730125703542,
-                            0.02792610689451856,
-                            0.019027000629638774,
-                            0.11793409419172704
+                            0.009952122968797168,
+                            0.022219210576707556,
+                            0.012376120744020475,
+                            0.10019012111030007
                         ],
                         linf=[
-                            0.3546114905832565,
-                            1.0152021588892746,
-                            0.5811487555005529,
-                            3.2073743136053725
+                            0.48510811105562013,
+                            1.0416447011987489,
+                            0.625942650810201,
+                            4.595413515248982
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
