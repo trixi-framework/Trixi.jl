@@ -181,9 +181,10 @@ for human readability.
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
 - Fixed `energy_kinetic` and `energy_kinetic_nondimensional` of the
-  `LatticeBoltzmannEquations3D`, which returned `|v|^2 / (2 rho rho0)` instead of
-  `rho |v|^2 / (2 rho0)`. This changes the output of the `AnalysisCallback` for these
-  quantities, e.g., in `elixir_lbm_taylor_green_vortex.jl` ([#3410]).
+  `LatticeBoltzmannEquations3D`. They return `rho |v|^2 / 2` and
+  `rho |v|^2 / (2 rho0 u0^2)`, respectively, instead of `|v|^2 / (2 rho rho0)` and
+  `|v|^2 / (2 rho rho0 u0^2)`. This changes the output of the `AnalysisCallback` for
+  these quantities, e.g., in `elixir_lbm_taylor_green_vortex.jl` ([#3410]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of

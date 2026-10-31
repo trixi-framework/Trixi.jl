@@ -814,14 +814,15 @@ end
     @test isapprox(velocity(u, 2, equation), 3)
     @test isapprox(velocity(u, 3, equation), 4)
 
-    # Kinetic energy with a density different from one
+    # Kinetic energy with densities different from one
+    equation = LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, rho0 = 3.0)
     rho = 2.0
     v1, v2, v3 = 0.01, -0.02, 0.03
     u = Trixi.equilibrium_distribution(rho, v1, v2, v3, equation)
-    e_kin = 0.5 * rho * (v1^2 + v2^2 + v3^2) / equation.rho0
+    e_kin = 0.5 * rho * (v1^2 + v2^2 + v3^2)
     @test isapprox(energy_kinetic(u, equation), e_kin)
     @test isapprox(Trixi.energy_kinetic_nondimensional(u, equation),
-                   e_kin / equation.u0^2)
+                   e_kin / (3.0 * equation.u0^2))
 end
 
 @testitem "Unit: LBMCollisionCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
