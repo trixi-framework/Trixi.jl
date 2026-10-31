@@ -72,6 +72,98 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
+@inline function max_dt(u, t, mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
+                        constant_speed::False, equations, semi, dg::DG, cache,
+                        limiter::Union{SubcellLimiterIDP, SubcellLimiterMCL})
+    @unpack inverse_weights = dg.basis
+    @trixi_timeit timer() "calc_lambda!" calc_lambdas_bar_states!(u, t, mesh,
+                                                                  have_nonconservative_terms(equations),
+                                                                  equations,
+                                                                  limiter, dg, cache,
+                                                                  semi.boundary_conditions;
+                                                                  calc_bar_states = false)
+    @unpack lambda1, lambda2 = limiter.cache.container_bar_states
+
+    maxdt = typemax(eltype(u))
+    if dg.volume_integral isa VolumeIntegralAdaptive
+        dg.volume_integral.indicator(u, mesh, equations, dg, cache)
+    end
+
+    for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+
+        if mesh isa TreeMesh
+            jacobian = 1 / cache.elements.inverse_jacobian[element]
+        end
+        for j in eachnode(dg), i in eachnode(dg)
+            if (mesh isa StructuredMesh{2}) || (mesh isa P4estMesh{2})
+                jacobian = 1 / cache.elements.inverse_jacobian[i, j, element]
+            end
+            denom = inverse_weights[i] *
+                    (lambda1[i, j, element] + lambda1[i + 1, j, element]) +
+                    inverse_weights[j] *
+                    (lambda2[i, j, element] + lambda2[i, j + 1, element])
+            maxdt = min(maxdt, jacobian / denom)
+        end
+    end
+
+    if dg.volume_integral isa VolumeIntegralAdaptive
+        maxdt = min(maxdt,
+                    max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache,
+                              limiter))
+    end
+
+    return maxdt
+end
+
+@inline function max_dt_RK(u, t, mesh::TreeMesh{2}, constant_speed, equations, dg::DG,
+                           cache, limiter)
+    max_scaled_speed = nextfloat(zero(t))
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary. Only compute compute for no subcell limiting
+        !perform_subcell_limiting(dg.volume_integral, element) || continue
+
+        max_lambda1 = max_lambda2 = zero(max_scaled_speed)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            lambda1, lambda2 = max_abs_speeds(u_node, equations)
+            max_lambda1 = Base.max(max_lambda1, lambda1)
+            max_lambda2 = Base.max(max_lambda2, lambda2)
+        end
+        inv_jacobian = cache.elements.inverse_jacobian[element]
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
+    end
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+@inline function max_dt_RK(u, t, mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                           constant_speed, equations, dg::DG, cache, limiter)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    max_scaled_speed = zero(eltype(u))
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary. Only compute compute for no subcell limiting
+        !perform_subcell_limiting(dg.volume_integral, element) || continue
+
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
+                                                  equations, dg,
+                                                  contravariant_vectors,
+                                                  inverse_jacobian,
+                                                  element)
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
+    end
+
+    max_scaled_speed = Base.max(nextfloat(zero(t)), max_scaled_speed)
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
 function max_dt(u, t, mesh::TreeMeshParallel{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
