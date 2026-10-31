@@ -88,6 +88,27 @@ and
 [`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
 
 
+### GPU tests
+The tests for the GPU backends cannot run on GitHub Actions since they require actual
+hardware. They are therefore executed on [Buildkite](https://buildkite.com) on dedicated
+machines with NVIDIA (`TRIXI_TEST=CUDA`), AMD (`TRIXI_TEST=AMDGPU`), and Apple
+(`TRIXI_TEST=Metal`) GPUs, configured in
+[`.buildkite/pipeline.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.buildkite/pipeline.yml).
+
+Since most pull requests do not touch any GPU-related code and the GPU machines are a
+scarce resource, these tests do **not** run automatically. Instead, they are only run
+* on demand, by adding the label `run gpu tests` to the pull request, which requires at
+  least triage permissions for this repository,
+* automatically for every push to `main`, i.e., after a pull request has been merged, and
+* when a build is started manually from the Buildkite web interface.
+
+Adding the label starts a build of the current head commit of the pull request. Thus, if
+you push further changes and want to test them as well, remove the label and add it again
+(or start a new build from the Buildkite web interface). If you modify GPU code, please
+request a GPU run before merging. If you cannot add labels yourself, please ask a
+maintainer to request the GPU tests for you.
+
+
 ## Adding new tests
 We use [TestItems.jl](https://github.com/julia-vscode/TestItems.jl) on top of Julia's
 built-in [unit testing capabilities](https://docs.julialang.org/en/v1/stdlib/Test/):
