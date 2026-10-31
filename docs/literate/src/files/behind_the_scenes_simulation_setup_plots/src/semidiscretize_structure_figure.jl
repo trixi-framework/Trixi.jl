@@ -27,8 +27,8 @@ plot!([0, -0.87], [-3, -9.5], arrow = true, color = :black, linewidth = 2, label
 
 plot!(Shape([(0.1, -4.5), (2.5, -4.5), (2.5, -6.5), (0.1, -6.5)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
-annotate!(0.15, -5.5, ("allocate_coefficients(mesh, equations, solver,
-                                 cache)", 10, :black, :left))
+annotate!(0.15, -5.5, ("allocate_coefficients(mesh, equations,
+    solver, cache)", 10, :black, :left))
 annotate!(0.1, -8,
           ("initializes u_ode as a 1D zero-vector with a length
 depending on the number of variables, nodes,

@@ -244,8 +244,8 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::TreeMeshParallel{2}, equations,
-                      dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::TreeMeshParallel{2}, equations,
+                                 dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
@@ -270,10 +270,10 @@ function create_cache(mesh::TreeMeshParallel{2}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end

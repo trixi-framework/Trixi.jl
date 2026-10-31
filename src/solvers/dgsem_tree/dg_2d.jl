@@ -11,8 +11,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
-                      dg::DG, RealT, uEltype)
+function create_cache_hyperbolic(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                                 dg::DG, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
@@ -29,10 +29,10 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
@@ -70,8 +70,9 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
            f2_L_threaded, f2_R_threaded
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Buffers for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
@@ -83,10 +84,10 @@ function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
 end
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::Union{LobattoLegendreMortarL2,
-                                       UniformFiniteVolumeBasis}, uEltype)
+# and called from `create_cache_hyperbolic`.
+function create_cache_mortar(mesh::TreeMesh{2}, equations,
+                             mortar_l2::Union{LobattoLegendreMortarL2,
+                                              UniformFiniteVolumeBasis}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}

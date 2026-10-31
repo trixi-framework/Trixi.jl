@@ -95,10 +95,8 @@ end
 
 # Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
 # This method is called when a controller is constructed
-function create_cache(::Union{Type{ControllerThreeLevel},
-                              Type{ControllerThreeLevelCombined}},
-                      mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
-                      equations, dg::DG, cache)
+function create_cache_controller(mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
+                                 equations, dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end

@@ -7,8 +7,9 @@
 
 # this method is directly used when the indicator is constructed as for shock-capturing volume integrals
 # and by the dimension-independent method called for AMR
-function create_cache(::Type{IndicatorHennemannGassner},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+function create_cache_indicator(::Type{IndicatorHennemannGassner},
+                                equations::AbstractEquations{1},
+                                basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
@@ -112,8 +113,9 @@ end
 
 # this method is directly used when the indicator is constructed as for shock-capturing volume integrals
 # and by the dimension-independent method called for AMR
-function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+function create_cache_indicator(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                                equations::AbstractEquations{1},
+                                basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
 

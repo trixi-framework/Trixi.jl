@@ -50,8 +50,8 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
     # Check if both solvers use the same polynomial basis
     @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
-    cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
-                         mesh_equations_solver_cache(semi_acoustics)...)
+    cache = create_cache_euler_acoustics(source_region, weights,
+                                         mesh_equations_solver_cache(semi_acoustics)...)
 
     performance_counter = PerformanceCounter()
 
@@ -60,10 +60,9 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
                                                            cache, performance_counter)
 end
 
-function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,
-                      mesh, equations::AcousticPerturbationEquations2D,
-                      dg::DGSEM,
-                      cache)
+function create_cache_euler_acoustics(source_region, weights,
+                                      mesh, equations::AcousticPerturbationEquations2D,
+                                      dg::DGSEM, cache)
     coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
     acoustic_source_terms = zeros(eltype(cache.elements),

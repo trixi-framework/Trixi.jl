@@ -156,12 +156,12 @@ function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
 end
 
 # The `cache` of a `P4estMesh` or `T8codeMesh` contains the performance settings of
-# the GPU and KernelAbstractions.jl kernels as a `Tuning`, see `create_cache` in
-# `src/solvers/dgsem_p4est/dg.jl`. We set them (if requested) and check them every time
-# the semidiscretization is adapted, since the checks depend on the settings, the real
-# type, and the storage type. We store settings that are `nothing` (the defaults of the
-# backend) without resolving them, so that they follow the backend if the
-# semidiscretization is adapted again.
+# the GPU and KernelAbstractions.jl kernels as a `Tuning`,
+# see `create_cache_hyperbolic` in `src/solvers/dgsem_p4est/dg.jl`.
+# We set them (if requested) and check them every time the semidiscretization is adapted,
+# since the checks depend on the settings, the real type, and the storage type.
+# We store settings that are `nothing` (the defaults of the backend) without resolving
+# them, so that they follow the backend if the semidiscretization is adapted again.
 function adapt_tuning(semi, tuning)
     if !(hasproperty(semi, :cache) && haskey(semi.cache, :tuning))
         if tuning !== nothing
@@ -717,7 +717,7 @@ end
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)
-# - create_cache(mesh, equations, solver, RealT)
+# - create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
 # - wrap_array(u_ode, mesh, equations, solver, cache)
 # - integrate(func, u, mesh, equations, solver, cache; normalize=true)
 # - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)

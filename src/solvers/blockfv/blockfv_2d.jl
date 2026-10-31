@@ -10,9 +10,9 @@
 #                   shape (nvars, n+1, n); slots i=1 and i=n+1 are zero (boundary)
 # fstar_y[v, i, j]: flux at interface between cells (i,j-1) and (i,j) in y-direction
 #                   shape (nvars, n, n+1); slots j=1 and j=n+1 are zero (boundary)
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::VolumeIntegralFiniteVolume,
-                      dg::BlockFV, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::TreeMesh{2}, equations,
+                                      volume_integral::VolumeIntegralFiniteVolume,
+                                      dg::BlockFV, cache_containers, uEltype)
     n = nnodes(dg)
     nv = nvariables(equations)
 

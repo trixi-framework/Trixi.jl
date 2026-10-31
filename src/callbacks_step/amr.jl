@@ -995,7 +995,7 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                               med_level = base_level, med_threshold = 0.0,
                               max_level = base_level, max_threshold = 1.0)
     med_threshold, max_threshold = promote(med_threshold, max_threshold)
-    cache = create_cache(ControllerThreeLevel, semi)
+    cache = create_cache_controller(semi)
     return ControllerThreeLevel{typeof(max_threshold), typeof(indicator),
                                 typeof(cache)}(base_level,
                                                med_level,
@@ -1008,8 +1008,8 @@ end
 
 max_level(controller::AbstractController) = controller.max_level
 
-function create_cache(controller_type::Type{<:AbstractController}, semi)
-    return create_cache(controller_type, mesh_equations_solver_cache(semi)...)
+function create_cache_controller(semi)
+    return create_cache_controller(mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevel)
@@ -1188,7 +1188,7 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
     med_threshold, max_threshold, max_threshold_secondary = promote(med_threshold,
                                                                     max_threshold,
                                                                     max_threshold_secondary)
-    cache = create_cache(ControllerThreeLevelCombined, semi)
+    cache = create_cache_controller(semi)
     return ControllerThreeLevelCombined{typeof(max_threshold),
                                         typeof(indicator_primary),
                                         typeof(indicator_secondary), typeof(cache)}(base_level,
