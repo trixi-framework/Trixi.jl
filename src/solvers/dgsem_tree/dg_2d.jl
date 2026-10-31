@@ -1203,6 +1203,10 @@ Base.@propagate_inbounds function add_nonconservative_mortar_fluxes!(fstar_prima
     # central fluxes/SATs) explains why we need the factor 0.5.
     # Alternatively, you can also follow the argumentation of Bohm et al. 2018
     # ("nonconservative diamond flux")
+    # As for interfaces, the first argument of the nonconservative flux is the
+    # state of the element receiving the flux. The primary fluxes are copied to
+    # the small elements and the secondary fluxes are projected to the large
+    # element, see `mortar_fluxes_to_elements!`.
     if large_side == 1 # -> small elements on right side
         for i in eachnode(dg)
             # Pull the left and right solutions
@@ -1213,16 +1217,16 @@ Base.@propagate_inbounds function add_nonconservative_mortar_fluxes!(fstar_prima
                                                            equations, dg,
                                                            i, mortar)
             # Call pointwise nonconservative term
-            noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
+            noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
                                                          orientation, equations)
-            noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
+            noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
                                                          orientation, equations)
-            noncons_secondary_upper = nonconservative_flux(u_upper_rr,
-                                                           u_upper_ll,
+            noncons_secondary_upper = nonconservative_flux(u_upper_ll,
+                                                           u_upper_rr,
                                                            orientation,
                                                            equations)
-            noncons_secondary_lower = nonconservative_flux(u_lower_rr,
-                                                           u_lower_ll,
+            noncons_secondary_lower = nonconservative_flux(u_lower_ll,
+                                                           u_lower_rr,
                                                            orientation,
                                                            equations)
             # Add to primary and secondary temporary storage
@@ -1249,16 +1253,16 @@ Base.@propagate_inbounds function add_nonconservative_mortar_fluxes!(fstar_prima
                                                            equations, dg,
                                                            i, mortar)
             # Call pointwise nonconservative term
-            noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
+            noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
                                                          orientation, equations)
-            noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
+            noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
                                                          orientation, equations)
-            noncons_secondary_upper = nonconservative_flux(u_upper_ll,
-                                                           u_upper_rr,
+            noncons_secondary_upper = nonconservative_flux(u_upper_rr,
+                                                           u_upper_ll,
                                                            orientation,
                                                            equations)
-            noncons_secondary_lower = nonconservative_flux(u_lower_ll,
-                                                           u_lower_rr,
+            noncons_secondary_lower = nonconservative_flux(u_lower_rr,
+                                                           u_lower_ll,
                                                            orientation,
                                                            equations)
             # Add to primary and secondary temporary storage
