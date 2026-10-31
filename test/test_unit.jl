@@ -934,6 +934,53 @@ end
           LatticeBoltzmannEquations3D
 end
 
+@testitem "Unit: Linearized Euler constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Mixed argument types are promoted
+    equations = @inferred LinearizedEulerEquations1D(1, 2.0f0, 3.0)
+    @test equations isa LinearizedEulerEquations1D{Float64}
+    @test (equations.v_mean_global, equations.c_mean_global,
+           equations.rho_mean_global) == (1.0, 2.0, 3.0)
+    @test @inferred(LinearizedEulerEquations1D(1, 2, 3.0f0)) isa
+          LinearizedEulerEquations1D{Float32}
+    @test @inferred(LinearizedEulerEquations1D{Float32}(1, 2.0, 3)) isa
+          LinearizedEulerEquations1D{Float32}
+    equations = @inferred LinearizedEulerEquations2D((1, 2.0f0), 3, 4.0)
+    @test equations isa LinearizedEulerEquations2D{Float64}
+    @test equations.v_mean_global == SVector(1.0, 2.0)
+    @test @inferred(LinearizedEulerEquations2D(SVector(1.0f0, 2.0f0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    @test @inferred(LinearizedEulerEquations2D{Float32}((1, 2.0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    equations = @inferred LinearizedEulerEquations3D(v_mean_global = (1, 2, 3.0f0),
+                                                     c_mean_global = 4,
+                                                     rho_mean_global = 5)
+    @test equations isa LinearizedEulerEquations3D{Float32}
+    @test equations.v_mean_global == SVector(1.0f0, 2.0f0, 3.0f0)
+    @test @inferred(LinearizedEulerEquations3D(SVector(1, 2, 3), 4.0, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+    @test @inferred(LinearizedEulerEquations3D{Float64}((1, 2, 3.0f0), 4, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+
+    # Invalid mean values are rejected by all constructors
+    msg_c = "c_mean_global must be positive"
+    msg_rho = "rho_mean_global must be positive"
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, -1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0, 1.0, -1.0f0)
+    @test_throws msg_c LinearizedEulerEquations1D{Float64}(0.0, -1.0, 1.0)
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, 0.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, 0.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, NaN)
+    @test_throws msg_c LinearizedEulerEquations2D(SVector(0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations2D((0.0, 0.0), 1.0, -1)
+    @test_throws msg_c LinearizedEulerEquations2D((0.0, 0.0), 0, 1)
+    @test_throws msg_c LinearizedEulerEquations3D(SVector(0.0, 0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations3D((0, 0, 0), 1, 0)
+    @test_throws msg_rho LinearizedEulerEquations3D(v_mean_global = (0.0, 0.0, 0.0),
+                                                    c_mean_global = 1.0,
+                                                    rho_mean_global = -1.0)
+end
+
 @testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000)
