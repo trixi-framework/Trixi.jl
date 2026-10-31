@@ -229,13 +229,14 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
 
-    global_element_id = 0 # zero-based index
+    # Zero-based index, updated by the `adapt_callback` below
+    global_element_id = Ref(0)
 
     # Compute the offset within the to-be-reconstructed forest. Depends on the
     # MPI rank resp. first global tree id.
     if mpi_rank() > 0 && t8_forest_get_local_num_leaf_elements(forest) > 0
         last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
-        global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
+        global_element_id[] += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
 
     function adapt_callback(forest, local_tree_id, tree_class, local_element_id, scheme,
@@ -243,18 +244,18 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
         # Check if we are already in the next tree in terms of the `global_element_id`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
-        if global_element_id + 1 > cum_sum_num_elements_per_tree[global_tree_id + 1]
+        if global_element_id[] + 1 > cum_sum_num_elements_per_tree[global_tree_id + 1]
             return 0
         end
 
         # Test if we already reached the targeted level.
         level = t8_element_get_level(scheme, tree_class, elements[1])
-        if level < levels[global_element_id + 1]
+        if level < levels[global_element_id[] + 1]
             return 1 # Go one refinement level deeper.
         end
 
         # Targeted level is reached.
-        global_element_id += 1
+        global_element_id[] += 1
         return 0
     end
 
@@ -457,11 +458,13 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 
     # Extract mapping
-    if faces !== nothing
+    domain_mapping = if faces !== nothing
         validate_faces(faces)
-        mapping = transfinite_mapping(faces)
+        transfinite_mapping(faces)
     elseif coordinates_min !== nothing
-        mapping = coordinates2mapping(coordinates_min, coordinates_max)
+        coordinates2mapping(coordinates_min, coordinates_max)
+    else
+        mapping
     end
 
     NDIMS = length(trees_per_dimension)
@@ -518,8 +521,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 
     # Note, `t8_cmesh_new_brick_*d` converts a domain of `[0,nx] x [0,ny] x ....`.
     # Hence, transform mesh coordinates to reference space [-1,1]^NDIMS before applying user defined mapping.
-    mapping_(xyz...) = mapping((x * 2.0 / tpd - 1.0 for (x, tpd) in zip(xyz,
-                                                                        trees_per_dimension))...)
+    mapping_(xyz...) = domain_mapping((x * 2.0 / tpd - 1.0
+                                       for (x, tpd) in zip(xyz, trees_per_dimension))...)
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
                                     mapping = mapping_,
@@ -1288,6 +1291,13 @@ function count_interfaces(forest, ndims)
             mpi_mortars = local_num_mpi_mortars)
 end
 
+# Return the MPI rank owning the ghost element with the process-local index `ielement`,
+# given the ranks `remotes` of the ghost layer and the process-local indices
+# `ghost_remote_first_elem` of their first elements.
+function ghost_element_owner_rank(remotes, ghost_remote_first_elem, ielement)
+    return remotes[findlast(ghost_remote_first_elem .<= ielement)]
+end
+
 # I know this routine is an unmaintainable behemoth. However, I see no real
 # and elegant way to refactor this into, for example, smaller parts. The
 # `t8_forest_leaf_face_neighbors` routine is as of now rather costly and it
@@ -1529,8 +1539,9 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                              faces, local_side, orientation,
                                                              local_num_mpi_conform)
 
-                            neighbor_rank = remotes[findlast(ghost_remote_first_elem .<=
-                                                             neighbor_ielements[1])]
+                            neighbor_rank = ghost_element_owner_rank(remotes,
+                                                                     ghost_remote_first_elem,
+                                                                     neighbor_ielements[1])
                             mpi_mesh_info.neighbor_ranks_interface[local_num_mpi_conform] = neighbor_rank
 
                             mpi_mesh_info.global_interface_ids[local_num_mpi_conform] = global_interface_id
@@ -1561,11 +1572,13 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                       (dual_faces[1], iface), orientation,
                                                       local_num_mpi_mortars)
 
-                            neighbor_ranks = [remotes[findlast(ghost_remote_first_elem .<=
-                                                               ineighbor_ghost)]
-                                              for ineighbor_ghost in filter(x -> x >=
-                                                                                 num_local_elements,
-                                                                            neighbor_ielements)]
+                            # Broadcasting instead of a comprehension avoids capturing
+                            # the conditionally defined `remotes` in a closure.
+                            neighbor_ghosts = filter(x -> x >= num_local_elements,
+                                                     neighbor_ielements)
+                            neighbor_ranks = ghost_element_owner_rank.(Ref(remotes),
+                                                                       Ref(ghost_remote_first_elem),
+                                                                       neighbor_ghosts)
                             mpi_mesh_info.neighbor_ranks_mortar[local_num_mpi_mortars] = neighbor_ranks
 
                             mpi_mesh_info.global_mortar_ids[local_num_mpi_mortars] = global_mortar_id
@@ -1607,8 +1620,9 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                           orientation, local_mpi_mortar_id)
 
                                 neighbor_ranks = [
-                                    remotes[findlast(ghost_remote_first_elem .<=
-                                                     neighbor_ielements[1])]
+                                    ghost_element_owner_rank(remotes,
+                                                             ghost_remote_first_elem,
+                                                             neighbor_ielements[1])
                                 ]
                                 mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] = neighbor_ranks
 

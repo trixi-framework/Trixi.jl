@@ -180,21 +180,12 @@ function initial_condition_weak_blast_wave(x, t,
     # We initialize each species with a fraction of the total density `rho`, such
     # that the sum of the densities is `rho := density(prim, equations)`. The density of
     # a species is double the density of the next species.
-    if r > 0.5f0
-        rho = one(RealT)
-        prim_rho = SVector{ncomponents(equations), RealT}(2^(i - 1) *
-                                                          (1 - 2) * rho /
-                                                          (1 -
-                                                           2^ncomponents(equations))
-                                                          for i in eachcomponent(equations))
-    else
-        rho = convert(RealT, 1.1691)
-        prim_rho = SVector{ncomponents(equations), RealT}(2^(i - 1) *
-                                                          (1 - 2) * rho /
-                                                          (1 -
-                                                           2^ncomponents(equations))
-                                                          for i in eachcomponent(equations))
-    end
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    prim_rho = SVector{ncomponents(equations), RealT}(2^(i - 1) *
+                                                      (1 - 2) * rho /
+                                                      (1 -
+                                                       2^ncomponents(equations))
+                                                      for i in eachcomponent(equations))
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)
     p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 

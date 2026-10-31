@@ -387,11 +387,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
 
-    if Vp isa UniformScaling
-        num_plotting_points = size(u, 1)
-    else
-        num_plotting_points = size(Vp, 1)
-    end
+    num_plotting_points = Vp isa UniformScaling ? size(u, 1) : size(Vp, 1)
     nvars = nvariables(equations)
     uEltype = eltype(first(u))
     u_plot = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype,
