@@ -6163,3 +6163,34 @@ end
                                                             solver_1d;
                                                             boundary_conditions = boundary_condition_periodic)
 end
+
+@testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The fallback `@turbo` used when LoopVectorization.jl is disabled
+    # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
+    # to every loop level.
+    MockTurbo = Module()
+    Base.include(MockTurbo, joinpath(pkgdir(Trixi), "src", "auxiliary", "mock_turbo.jl"))
+    Core.eval(MockTurbo,
+              quote
+                  function f!(c, a, b)
+                      @turbo for j in axes(c, 2)
+                          for i in axes(c, 1)
+                              c[i, j] = a[i, j] + b[i, j]
+                          end
+                      end
+                      return c
+                  end
+              end)
+
+    a = [1.0 2.0; 3.0 4.0]
+    b = [5.0 6.0; 7.0 8.0]
+    c = zeros(2, 2)
+    @test MockTurbo.f!(c, a, b) == [6.0 8.0; 10.0 12.0]
+
+    code = only(code_lowered(MockTurbo.f!,
+                             (Matrix{Float64}, Matrix{Float64},
+                              Matrix{Float64}))).code
+    loopinfos = filter(x -> Meta.isexpr(x, :loopinfo), code)
+    @test length(loopinfos) == 2
+    @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
+end
