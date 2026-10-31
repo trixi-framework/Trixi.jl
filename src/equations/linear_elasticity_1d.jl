@@ -17,7 +17,7 @@ Linear elasticity equations in one space dimension. The equations are given by
 +
 \partial_x
 \begin{pmatrix}
-    -\frac{1}{\rho} \sigma_{11} \\ -\frac{\rho}{c_1^2} v_1
+    -\frac{1}{\rho} \sigma_{11} \\ -\rho c_1^2 v_1
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -30,7 +30,7 @@ The parameters are the constant density of the material `\rho`
 and the Lamé parameters `\lambda` and `\mu`.
 From these, one can compute the dilatational wave speed as
 ```math
-c_1^2= \frac{\lambda + 2 * \mu}{\rho}
+c_1^2 = \frac{\lambda + 2 \mu}{\rho}.
 ```
 In one dimension the linear elasticity equations reduce to a wave equation.
 
@@ -43,7 +43,6 @@ struct LinearElasticityEquations1D{RealT <: Real} <:
        AbstractLinearElasticityEquations{1, 2}
     rho::RealT # Constant density of the material
     c1::RealT # Dilatational wave speed
-    E::RealT # Young's modulus
 end
 
 function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
@@ -55,12 +54,7 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
     end
 
     c1_squared = (lambda + 2 * mu) / rho
-
-    # Young's modulus
-    # See for reference equation (11-11) in
-    # https://cns.gatech.edu/~predrag/courses/PHYS-4421-04/lautrup/book/elastic.pdf
-    E = mu * (3 * lambda + 2 * mu) / (lambda + mu)
-    return LinearElasticityEquations1D(rho, sqrt(c1_squared), E)
+    return LinearElasticityEquations1D(rho, sqrt(c1_squared))
 end
 
 # Together with our specialization of `Adapt.adapt_structure`,
@@ -70,8 +64,7 @@ end
 function Base.similar(equations::LinearElasticityEquations1D,
                       ::Type{NewRealT}) where {NewRealT}
     return LinearElasticityEquations1D(convert(NewRealT, equations.rho),
-                                       convert(NewRealT, equations.c1),
-                                       convert(NewRealT, equations.E))
+                                       convert(NewRealT, equations.c1))
 end
 
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
@@ -81,19 +74,22 @@ function varnames(::typeof(cons2prim), ::LinearElasticityEquations1D)
     return ("v1", "sigma11")
 end
 
-"""
+@doc raw"""
     initial_condition_convergence_test(x, t, equations::LinearElasticityEquations1D)
 
-A smooth initial condition used for convergence tests.
-This requires that the material parameters `rho` is a positive integer
-and `c1` is equal to one.
+A smooth solution used for convergence tests, given by
+```math
+v_1 = \sin(2 \pi c_1 t) \cos(2 \pi x), \quad
+\sigma_{11} = \rho c_1 \cos(2 \pi c_1 t) \sin(2 \pi x).
+```
+It is periodic in space with period one.
 """
 function initial_condition_convergence_test(x, t,
                                             equations::LinearElasticityEquations1D)
-    @unpack rho = equations
+    @unpack rho, c1 = equations
 
-    v1 = sinpi(2 * t) * cospi(2 * x[1] / rho)
-    sigma11 = -cospi(2 * t) * sinpi(2 * x[1] * rho)
+    v1 = sinpi(2 * c1 * t) * cospi(2 * x[1])
+    sigma11 = rho * c1 * cospi(2 * c1 * t) * sinpi(2 * x[1])
 
     return SVector(v1, sigma11)
 end
@@ -142,7 +138,13 @@ end
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::LinearElasticityEquations1D) = u
-@inline cons2entropy(u, ::LinearElasticityEquations1D) = u
+
+# Gradient of the `entropy` with respect to the conservative variables
+@inline function cons2entropy(u, equations::LinearElasticityEquations1D)
+    @unpack rho, c1 = equations
+    v1, sigma11 = u
+    return SVector(rho * v1, sigma11 / (rho * c1^2))
+end
 
 # Useful for e.g. limiting indicator variable selection
 @inline function velocity(u, equations::LinearElasticityEquations1D)
@@ -166,11 +168,13 @@ end
 
 Calculate internal energy for a conservative state `u` as
 ```math
-E_{int} = \frac{1}{2} \frac{\sigma_{11}^2}{E}
+E_{int} = \frac{1}{2} \frac{\sigma_{11}^2}{\rho c_1^2}
 ```
+with the P-wave modulus ``\rho c_1^2 = \lambda + 2 \mu``.
 """
 @inline function energy_internal(u, equations::LinearElasticityEquations1D)
-    return 0.5f0 * u[2]^2 / equations.E
+    @unpack rho, c1 = equations
+    return 0.5f0 * u[2]^2 / (rho * c1^2)
 end
 
 """
