@@ -2270,6 +2270,39 @@ end
           flux(u, orientation, equations)
 end
 
+@testitem "Unit: Entropy and exact solution of LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = LinearElasticityEquations1D(rho = 2.0, mu = 1.0, lambda = 3.0)
+    orientation = 1
+
+    u = SVector(1.42, 2.666)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test entropy(u, equations) ≈ energy_total(u, equations)
+
+    # The entropy flux of a linear system is `w' * f(u) / 2` with the entropy
+    # variables `w`. Conservation of the entropy requires that its derivative
+    # with respect to `u` equals `w' * f'(u)`.
+    entropy_flux(u) = 0.5 * dot(cons2entropy(u, equations), flux(u, orientation, equations))
+    flux_jacobian = ForwardDiff.jacobian(u -> flux(u, orientation, equations), u)
+    @test ForwardDiff.gradient(entropy_flux, u) ≈
+          flux_jacobian' * cons2entropy(u, equations)
+
+    # `initial_condition_convergence_test` is an exact solution: u_t + f(u)_x = 0
+    for (x, t) in ((0.1, 0.0), (0.37, 0.3), (0.8, 1.7))
+        u_t = ForwardDiff.derivative(t -> initial_condition_convergence_test(SVector(x), t,
+                                                                             equations),
+                                     t)
+        f_x = ForwardDiff.derivative(x -> flux(initial_condition_convergence_test(SVector(x),
+                                                                                  t,
+                                                                                  equations),
+                                               orientation, equations), x)
+        @test isapprox(u_t + f_x, zero(u_t); atol = 100 * eps())
+    end
+end
+
 @testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
     Setup,
     UnitTests
