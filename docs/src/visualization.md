@@ -612,6 +612,9 @@ Both functions also accept the solution directly:
 ```@example makie-2d
 Makie.contour(sol)
 ```
+As for `Makie.plot(sol)`, the keyword arguments `solution_variables`, `nvisnodes`, `slice`,
+`point`, `grid_lines`, and `max_supported_level` are passed to [`PlotData2D`](@ref), e.g.,
+`Makie.contour(sol, slice = :xz, point = (0.0, 0.5, 0.0))` for a 3D solution.
 
 Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
 contour lines or bands is controlled by `levels`, which takes either the number of levels or a

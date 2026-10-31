@@ -717,6 +717,27 @@ end
         @trixi_test_nowarn Trixi.iplot(pd)
     end
 
+    @testset "Axis labels of slices" begin
+        point = (0.125, 0.125, 0.125)
+        for (slice, xlabel, ylabel) in ((:xy, "\$x\$", "\$y\$"), (:xz, "\$x\$", "\$z\$"),
+                                        (:yz, "\$y\$", "\$z\$"))
+            pd_slice = PlotData2D(sol; slice, point)
+            @test Plots.plot(pd_slice["rho"])[1][:xaxis][:guide] == xlabel
+            @test Plots.plot(pd_slice["rho"])[1][:yaxis][:guide] == ylabel
+
+            for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+                _, ax, _ = plot_function(pd_slice["rho"])
+                @test string(ax.xlabel[]) == xlabel
+                @test string(ax.ylabel[]) == ylabel
+
+                # `slice` and `point` are passed to `PlotData2D`, `colormap` to Makie
+                _, axes_sol = plot_function(sol; slice, point, colormap = :viridis)
+                @test string(first(axes_sol).xlabel[]) == xlabel
+                @test string(first(axes_sol).ylabel[]) == ylabel
+            end
+        end
+    end
+
     @testset "Slice planes" begin
         slice_point(::Val{:xy}, x, y, c) = SVector(x, y, c)
         slice_point(::Val{:xz}, x, y, c) = SVector(x, c, y)

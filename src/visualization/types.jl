@@ -105,6 +105,18 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     # `nothing` for point values. The constructors for solution and scalar data ensure that
     # `node_groups` is available whenever `point_values == false`.
     node_groups::NodeGroupsType
+    # Coordinate directions (1 -> `x`, 2 -> `y`, 3 -> `z`) of `x` and `y`, which differ from
+    # `(1, 2)` for slices of 3D data
+    orientation_x::Int
+    orientation_y::Int
+end
+
+# Convenience constructor for 2D data, whose coordinates are always `x` and `y`
+function PlotData2DTriangulated(x, y, data, t, x_face, y_face, face_data,
+                                variable_names,
+                                point_values, node_groups)
+    return PlotData2DTriangulated(x, y, data, t, x_face, y_face, face_data,
+                                  variable_names, point_values, node_groups, 1, 2)
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -975,7 +987,8 @@ function PlotData2D(u::StructArray,
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, triangulation,
                                   x_face, y_face, face_data, variable_names,
-                                  visualize_point_values(mesh, dg), nothing)
+                                  visualize_point_values(mesh, dg), nothing,
+                                  orientation_x, orientation_y)
 end
 
 function PlotData2D(u::Array{<:SVector}, mesh::DGMultiMesh{3}, equations,
