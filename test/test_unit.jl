@@ -5561,8 +5561,9 @@ end
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    # Backend to check the defaults of GPU backends without a GPU
-    struct DummyGPUBackend <: Trixi.KernelAbstractions.GPU end
+    # Backend to check the defaults of GPU backends without a GPU.
+    # `KernelAbstractions.GPU` is deprecated in KernelAbstractions.jl v0.10.
+    struct DummyGPUBackend <: Trixi.KernelAbstractions.Backend end
 
     mesh = P4estMesh((2, 2), polydeg = 1,
                      coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
