@@ -449,7 +449,7 @@ end
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
 
-    return 0.5f0 * (v1^2 + v2^2 + v3^2) / rho / equations.rho0
+    return 0.5f0 * rho * (v1^2 + v2^2 + v3^2) / equations.rho0
 end
 
 # Calculate nondimensionalized kinetic energy for a conservative state `u`
