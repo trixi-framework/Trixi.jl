@@ -1,0 +1,43 @@
+name: Cache cleanup
+
+# The workflows below save caches of the Julia depot only from runs on `main`, with keys
+# of the form `julia-depot;<prefix>;run_id=<id>;run_attempt=<n>`. Only the newest entry
+# per prefix is restored, so all older entries just occupy repository cache storage.
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Documentation
+      - Downgrade
+      - Downstream
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all but the newest Julia depot cache per key prefix on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh cache list --ref refs/heads/main --key 'julia-depot;' --limit 1000 \
+            --json id,key,createdAt \
+            --jq 'group_by(.key | sub(";run_id=.*$"; ""))
+                  | map(sort_by(.createdAt) | .[:-1][])
+                  | .[] | "\(.id) \(.key)"' |
+          while read -r id key; do
+            echo "Deleting cache $id: $key"
+            gh cache delete "$id"
+          done

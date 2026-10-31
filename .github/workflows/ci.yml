@@ -35,9 +35,7 @@ on:
       - 'utils/**'
   workflow_dispatch:
 
-# needed to allow julia-actions/cache to delete old caches that it has created
 permissions:
-  actions: write
   contents: read
 
 # Cancel redundant CI tests automatically
@@ -53,6 +51,28 @@ jobs:
     # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
     name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    env:
+      # Parts of the Julia depot to cache, excluding lock files. Restoring and saving
+      # must use the same list since it is part of the cache version.
+      JULIA_DEPOT_CACHE_PATHS: |
+        ~/.julia/artifacts
+        ~/.julia/packages
+        ~/.julia/registries
+        ~/.julia/compiled
+        ~/.julia/scratchspaces
+        ~/.julia/logs
+        !~/.julia/artifacts/*.pid
+        !~/.julia/artifacts/*.pidfile
+        !~/.julia/compiled/v*.*/*.pid
+        !~/.julia/compiled/v*.*/*.pidfile
+        !~/.julia/compiled/v*.*/*/*.pid
+        !~/.julia/compiled/v*.*/*/*.pidfile
+        !~/.julia/packages/*/*.pid
+        !~/.julia/packages/*/*.pidfile
+        !~/.julia/registries/*/.pid
+        !~/.julia/registries/*/.pidfile
+        !~/.julia/logs/*.pid
+        !~/.julia/logs/*.pidfile
     strategy:
       fail-fast: false
       matrix:
@@ -118,9 +138,25 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v3
+      # Caches of the Julia depot are saved only from runs on `main` (see the save step
+      # below). Pull requests restore them but do not save their own, since entries saved
+      # from pull requests fill the repository cache storage and get the entries of `main`
+      # evicted. The workflow `CacheCleanup.yml` deletes all but the newest entry per key
+      # prefix.
+      # All jobs with the same OS, architecture, and Julia version share one entry, since
+      # they precompile the same test environment; the Julia version is part of the key
+      # because precompiled files of one Julia version are useless for another.
+      - name: Restore Julia depot cache
+        id: julia-cache
+        uses: actions/cache/restore@v6
         with:
-          include-matrix: false
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: julia-depot;workflow=CI;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ matrix.version }};run_id=${{ github.run_id }};run_attempt=${{ github.run_attempt }}
+          restore-keys: |
+            julia-depot;workflow=CI;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ matrix.version }};
+      - name: Update cached registries
+        if: steps.julia-cache.outputs.cache-matched-key != ''
+        run: julia --color=yes -e 'import Pkg; Pkg.Registry.update()'
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
@@ -172,6 +208,19 @@ jobs:
         with:
           name: lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           path: ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
+      # Exactly one job per cache key saves the depot: the `threaded` or `threaded_legacy`
+      # job. Their worker processes run without code coverage, so these jobs precompile
+      # the test environment both with and without coverage, i.e., for all jobs with the
+      # same key.
+      - name: Save Julia depot cache
+        if: >-
+          ${{ !cancelled() && steps.julia-cache.outcome == 'success' &&
+          github.ref == 'refs/heads/main' &&
+          (matrix.trixi_test == 'threaded' || matrix.trixi_test == 'threaded_legacy') }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: ${{ steps.julia-cache.outputs.cache-primary-key }}
 
   finish:
     needs: test
