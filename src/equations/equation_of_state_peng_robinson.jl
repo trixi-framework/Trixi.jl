@@ -96,11 +96,6 @@ function PengRobinson(; RealT = Float64)
     return PengRobinson(RealT.((a0, b, cv0, kappa, Tc, R))...)
 end
 
-# the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
-# so we choose a looser tolerance here. Researchers at the US Naval Research Lab noted
-# that they typically just use 8 fixed Newton iterations for Peng-Robinson.
-eos_newton_tol(eos::PengRobinson) = 1e-8
-
 """
     pressure(V, T, eos::PengRobinson)
 
@@ -172,21 +167,5 @@ function calc_pressure_derivatives(V, T, eos::PengRobinson)
     dpdV_T = -RdivVb * T * inv_V_minus_b *
              (1 - 2 * a_T / (R * T * (V + b) * (denom / (V^2 - b^2))^2))
     return dpdT_V, dpdV_T
-end
-
-# The following are auxiliary functions used in calculating the PR EOS
-@inline function peng_robinson_a(T, eos::PengRobinson)
-    (; a0, kappa, Tc) = eos
-    return a0 * (1 + kappa * (1 - sqrt(T / Tc)))^2
-end
-@inline peng_robinson_da(T, eos) = ForwardDiff.derivative(T -> peng_robinson_a(T, eos),
-                                                          T)
-@inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos),
-                                                           T)
-
-@inline function calc_K(V, eos::PengRobinson)
-    (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos
-    K = inv2sqrt2b * log((V + one_minus_sqrt2_b) / (V + one_plus_sqrt2_b))
-    return K
 end
 end # @muladd
