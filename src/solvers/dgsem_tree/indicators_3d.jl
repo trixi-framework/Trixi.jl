@@ -28,8 +28,10 @@ function create_cache(::Type{IndicatorHennemannGassner},
                                   nnodes(basis), nnodes(basis), nnodes(basis))
                               for _ in 1:Threads.maxthreadid()]
 
+    alpha_mpi_buffers = create_alpha_mpi_buffers(uEltype)
+
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
-            modal_tmp1_threaded, modal_tmp2_threaded)
+            modal_tmp1_threaded, modal_tmp2_threaded, alpha_mpi_buffers)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
