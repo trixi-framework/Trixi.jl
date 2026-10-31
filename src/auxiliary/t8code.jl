@@ -115,13 +115,19 @@ function adapt_callback(forest::Ptr{t8_forest},
     indicators = unsafe_wrap(Array, indicator_ptr, num_levels)
 
     offset = t8_forest_get_tree_element_offset(forest_from, which_tree)
+    first_element = offset + lelement_id + 1
 
-    # Only allow coarsening for complete families.
-    if indicators[offset + lelement_id + 1] < 0 && is_family == 0
-        return Cint(0)
+    # Only coarsen complete families whose members are all marked for coarsening.
+    # The members of a family are consecutive local elements of `forest_from`.
+    if indicators[first_element] < 0
+        if is_family == 0 ||
+           !all(i -> indicators[i] < 0,
+                first_element:(first_element + num_elements - 1))
+            return Cint(0)
+        end
     end
 
-    return Cint(indicators[offset + lelement_id + 1])
+    return Cint(indicators[first_element])
 end
 
 function trixi_t8_adapt_new(old_forest, indicators)
