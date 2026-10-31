@@ -99,6 +99,14 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
+  `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
+  computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).
+  Normal fluxes prescribed by boundary conditions (e.g., `BoundaryConditionNeumann` and the
+  heat flux of adiabatic `BoundaryConditionNavierStokesWall`s) are now scaled by the face
+  Jacobian. `source_terms_parabolic` are now evaluated at the quadrature points and
+  projected onto the polynomial space, which changes results for `Polynomial()`
+  approximations ([#3407]).
 - A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
   equations is now always called with the transformed variables (see
   `gradient_variable_transformation`), i.e., primitive variables with temperature or

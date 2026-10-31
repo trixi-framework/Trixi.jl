@@ -71,6 +71,66 @@ end
     @test getindex.(du, 1) ≈ 2 * y
 end
 
+@testitem "Parabolic2D: DGMulti 2D rhs_parabolic! (Neumann BCs, source terms)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    using Trixi
+    left(x, tol = 50 * eps()) = abs(x[1] + 1) < tol
+    right(x, tol = 50 * eps()) = abs(x[1] - 1) < tol
+    bottom(x, tol = 50 * eps()) = abs(x[2] + 1) < tol
+    top(x, tol = 50 * eps()) = abs(x[2] - 1) < tol
+    is_on_boundary = (; left, right, top, bottom)
+
+    diffusivity = 0.7
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    equations_parabolic = LaplaceDiffusion2D(diffusivity, equations)
+
+    # u = (x^2 + y^2) / 2 has the outward normal derivative 1 on all boundaries
+    # of [-1, 1]^2 and the Laplacian 2.
+    initial_condition = (x, t, equations) -> SVector(0.5f0 * (x[1]^2 + x[2]^2))
+    boundary_condition = BoundaryConditionNeumann((x, t, equations) -> SVector(diffusivity))
+    boundary_conditions_parabolic = (; left = boundary_condition,
+                                     right = boundary_condition,
+                                     top = boundary_condition,
+                                     bottom = boundary_condition)
+    # polynomial of degree 3 that is projected exactly
+    source_terms_parabolic = (u, gradients, x, t, equations) -> SVector(x[1] * x[2]^2 +
+                                                                        u[1] *
+                                                                        gradients[1][1])
+
+    for (element_type, approximation_type) in ((Tri(), Polynomial()), (Quad(), SBP()))
+        dg = DGMulti(; polydeg = 3, element_type, approximation_type,
+                     surface_integral = SurfaceIntegralWeakForm(flux_central),
+                     volume_integral = VolumeIntegralWeakForm())
+        mesh = DGMultiMesh(dg, (2, 2); is_on_boundary)
+        (; x, y, xq, yq) = mesh.md
+
+        for source_terms in (nothing, source_terms_parabolic)
+            semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                         (equations, equations_parabolic),
+                                                         initial_condition, dg;
+                                                         source_terms_parabolic = source_terms,
+                                                         boundary_conditions = (boundary_condition_do_nothing,
+                                                                                boundary_conditions_parabolic))
+            u_ode = compute_coefficients(0.0, semi)
+            du_ode = similar(u_ode)
+            Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+            du = Trixi.wrap_array(du_ode, semi)
+
+            (; gradients) = semi.cache_parabolic
+            @test getindex.(gradients[1], 1) ≈ xq
+            @test getindex.(gradients[2], 1) ≈ yq
+
+            du_exact = fill(2 * diffusivity, size(x))
+            if !isnothing(source_terms)
+                @. du_exact += x * y^2 + 0.5 * (x^2 + y^2) * x
+            end
+            @test getindex.(du, 1) ≈ du_exact
+        end
+    end
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_advection_diffusion.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion.jl"),
