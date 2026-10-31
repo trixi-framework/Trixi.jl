@@ -547,6 +547,10 @@ Alternatively, you can also pass the keyword argument `plot_mesh = true`:
 plot(pd["scalar"], plot_mesh = true)
 ```
 
+The solution can also be plotted directly with `plot(sol)`, which passes the keyword
+arguments `solution_variables`, `nvisnodes`, and `reinterpolate` to [`PlotData1D`](@ref),
+e.g., `plot(sol, nvisnodes = 10, plot_mesh = true)`.
+
 ### 2D visualization
 
 After running a 2D simulation, visualize a single variable with
@@ -612,11 +616,17 @@ Both functions also accept the solution directly:
 ```@example makie-2d
 Makie.contour(sol)
 ```
+For 2D and 3D solutions, `Makie.plot(sol)`, `Makie.contour(sol)`, and `Makie.contourf(sol)`
+pass the keyword arguments `solution_variables`, `nvisnodes`, `slice`, `point`, `grid_lines`,
+and `max_supported_level` to [`PlotData2D`](@ref), e.g.,
+`Makie.contour(sol, slice = :xz, point = (0.0, 0.5, 0.0))` for a 3D solution. Not all meshes
+support all of these keyword arguments; for example, `grid_lines` and `max_supported_level`
+are only available for the [`TreeMesh`](@ref).
 
-Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
-contour lines or bands is controlled by `levels`, which takes either the number of levels or a
-vector of level values. Attributes of the contour lines such as `linewidth` apply to `contour`
-only, since `contourf` draws filled bands instead of lines:
+All other keyword arguments are forwarded to the underlying Makie plot. For example, the
+number of contour lines or bands is controlled by `levels`, which takes either the number of
+levels or a vector of level values. Attributes of the contour lines such as `linewidth` apply
+to `contour` only, since `contourf` draws filled bands instead of lines:
 ```@example makie-2d
 Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
 ```

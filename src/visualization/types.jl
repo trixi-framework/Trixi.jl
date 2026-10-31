@@ -105,6 +105,10 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     # `nothing` for point values. The constructors for solution and scalar data ensure that
     # `node_groups` is available whenever `point_values == false`.
     node_groups::NodeGroupsType
+    # Coordinate directions (1 -> `x`, 2 -> `y`, 3 -> `z`) of `x` and `y`, which differ from
+    # `(1, 2)` for slices of 3D data
+    orientation_x::Int
+    orientation_y::Int
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -420,7 +424,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data,
                                   variable_names, visualize_point_values(mesh, dg),
-                                  nothing)
+                                  nothing, 1, 2)
 end
 
 # One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
@@ -497,7 +501,7 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     transform_to_solution_variables!(ufp, solution_variables_, equations)
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names,
-                                  visualize_point_values(mesh, dg), nothing)
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
@@ -579,7 +583,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
                                   x_face, y_face, face_data, variable_name,
-                                  visualize_point_values(mesh, dg), nothing)
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
 end
 
 function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
@@ -625,7 +629,7 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
                                   x_face, y_face, face_data, variable_name,
-                                  visualize_point_values(mesh, dg), nothing)
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
 end
 
 """
@@ -861,7 +865,7 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
     # This is done only when needed and only for the plotted variable.
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
                                   variable_names, visualize_point_values(mesh, dg),
-                                  groups)
+                                  groups, 1, 2)
 end
 
 # unwrap u if it is VectorOfArray
@@ -975,7 +979,8 @@ function PlotData2D(u::StructArray,
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, triangulation,
                                   x_face, y_face, face_data, variable_names,
-                                  visualize_point_values(mesh, dg), nothing)
+                                  visualize_point_values(mesh, dg), nothing,
+                                  orientation_x, orientation_y)
 end
 
 function PlotData2D(u::Array{<:SVector}, mesh::DGMultiMesh{3}, equations,

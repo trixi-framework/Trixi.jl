@@ -717,6 +717,28 @@ end
         @trixi_test_nowarn Trixi.iplot(pd)
     end
 
+    @testset "Axis labels of slices" begin
+        point = (0.125, 0.125, 0.125)
+        for (slice, xlabel, ylabel) in ((:xy, "\$x\$", "\$y\$"), (:xz, "\$x\$", "\$z\$"),
+                                        (:yz, "\$y\$", "\$z\$"))
+            pd_slice = PlotData2D(sol; slice, point)
+            subplot = Plots.plot(pd_slice["rho"])[1]
+            @test subplot[:xaxis][:guide] == xlabel
+            @test subplot[:yaxis][:guide] == ylabel
+
+            for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+                _, ax, _ = plot_function(pd_slice["rho"])
+                @test string(ax.xlabel[]) == xlabel
+                @test string(ax.ylabel[]) == ylabel
+
+                # `slice` and `point` are passed to `PlotData2D`, `colormap` to Makie
+                _, axes_sol = plot_function(sol; slice, point, colormap = :viridis)
+                @test string(first(axes_sol).xlabel[]) == xlabel
+                @test string(first(axes_sol).ylabel[]) == ylabel
+            end
+        end
+    end
+
     @testset "Slice planes" begin
         slice_point(::Val{:xy}, x, y, c) = SVector(x, y, c)
         slice_point(::Val{:xz}, x, y, c) = SVector(x, c, y)
@@ -882,6 +904,18 @@ end
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :xz) isa Trixi.PlotData2DCartesian
+
+    @testset "Makie plots of slices" begin
+        # Makie does not accept the keywords of `PlotData2D`, so these calls fail unless
+        # they are passed to `PlotData2D`. `colormap` is passed to Makie.
+        kwargs = (; slice = :xz, point = (0.0, 0.5, 0.0), nvisnodes = 3,
+                  grid_lines = false, max_supported_level = 5)
+        for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+            _, axes_sol = plot_function(sol; kwargs..., colormap = :viridis)
+            @test string(first(axes_sol).xlabel[]) == "\$x\$"
+            @test string(first(axes_sol).ylabel[]) == "\$z\$"
+        end
+    end
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
         @testset "Create 1D plot as slice" begin
@@ -1213,6 +1247,11 @@ end
     # Makie.plot(sol) for 1D solutions
     @trixi_test_nowarn Makie.plot(sol)
 
+    # Makie does not accept the keywords of `PlotData1D`, so this call fails unless they
+    # are passed to `PlotData1D`. `plot_mesh` is passed to Makie.
+    @trixi_test_nowarn Makie.plot(sol, nvisnodes = 3, reinterpolate = false,
+                                  plot_mesh = true)
+
     # PlotMesh overlay
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
@@ -1431,7 +1470,7 @@ end
     # they are available, so plot data without them has to be assembled manually here.
     pd_cells = Trixi.PlotData2DTriangulated(pd.x, pd.y, pd.data, pd.t, pd.x_face,
                                             pd.y_face, pd.face_data, pd.variable_names,
-                                            false, nothing)
+                                            false, nothing, 1, 2)
     @test_throws ArgumentError Makie.contour(pd_cells["rho"])
     @test_throws ArgumentError Makie.contourf(pd_cells["rho"])
 
