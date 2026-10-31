@@ -807,9 +807,9 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
             fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes on the small elements, ordered by their mortar positions.
-            # The loop over the small elements inlines the numerical fluxes only once,
-            # which reduces the compile time.
+            # Calculate fluxes on the small elements, ordered by their mortar positions,
+            # in a loop to reduce the compile time (see `calc_fstar!` for nonconservative
+            # terms)
             orientation = orientations[mortar]
             fstar_primary = (fstar_primary_lower, fstar_primary_upper)
             u_mortars = (u_lower, u_upper)
@@ -818,9 +818,9 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                             u_mortars[position], mortar, orientation)
             end
 
-            # Because `have_nonconservative_terms` is `False`, the primary and secondary
-            # fluxes are identical. Thus, we pass the primary fluxes as secondary fluxes
-            # as well, as in `calc_mortar_flux!`.
+            # Without nonconservative terms, the primary and secondary fluxes are
+            # identical. Thus, we pass the primary fluxes as secondary fluxes as well,
+            # as in `calc_mortar_flux!`.
             mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                            mesh, equations, mortar_l2, dg, cache,
                                            mortar,

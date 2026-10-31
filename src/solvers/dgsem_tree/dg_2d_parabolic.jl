@@ -952,9 +952,8 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
             fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`.
-            # The loop over the small elements inlines the numerical fluxes only once,
-            # which reduces the compile time.
+            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`, in a
+            # loop to reduce the compile time (see `calc_fstar!` for nonconservative terms)
             orientation = orientations[mortar]
             fstar = (fstar_lower, fstar_upper)
             u_mortars = (u_lower, u_upper)

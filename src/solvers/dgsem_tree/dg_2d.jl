@@ -1105,9 +1105,8 @@ function calc_mortar_flux!(surface_flux_values,
             fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`.
-            # The loop over the small elements inlines the numerical fluxes only once,
-            # which reduces the compile time.
+            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`, in a
+            # loop to reduce the compile time (see `calc_fstar!` for nonconservative terms)
             orientation = orientations[mortar]
             fstar_primary = (fstar_primary_lower, fstar_primary_upper)
             u_mortars = (u_lower, u_upper)
@@ -1157,9 +1156,8 @@ function calc_mortar_flux!(surface_flux_values,
             fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
             fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`.
-            # The loop over the small elements inlines the numerical fluxes only once,
-            # which reduces the compile time.
+            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`, in a
+            # loop to reduce the compile time (see `calc_fstar!` for nonconservative terms)
             orientation = orientations[mortar]
             large_side = large_sides[mortar]
             fstar_primary = (fstar_primary_lower, fstar_primary_upper)
@@ -1207,13 +1205,18 @@ Base.@propagate_inbounds function calc_fstar!(destination::AbstractArray{<:Any, 
     return nothing
 end
 
-# Fluxes on one small face of a mortar for equations with nonconservative terms.
+# Fluxes on the face of one small element of a mortar for equations with nonconservative
+# terms.
 # The primary fluxes are copied to the small element and the secondary fluxes are
 # projected to the large element, see `mortar_fluxes_to_elements!`. As for interfaces,
 # the first argument of the nonconservative flux is the state of the element receiving
 # the flux. The factor 0.5 of the nonconservative fluxes follows from the interpretation
 # of global SBP operators coupled discontinuously via central fluxes/SATs; alternatively,
 # see the "nonconservative diamond flux" of Bohm et al. (2018).
+#
+# Callers of the `calc_fstar!` methods for mortars loop over the small elements. Since
+# `calc_fstar!` is inlined, the numerical fluxes are compiled only once per loop instead
+# of once per small element, which reduces the compile time.
 Base.@propagate_inbounds function calc_fstar!(fstar_primary::AbstractArray{<:Any, 2},
                                               fstar_secondary::AbstractArray{<:Any, 2},
                                               equations, surface_flux,
