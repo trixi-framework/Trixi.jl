@@ -71,7 +71,7 @@ end
     @test getindex.(du, 1) ≈ 2 * y
 end
 
-@testitem "Parabolic2D: DGMulti 2D rhs_parabolic! (Neumann BCs, source terms)" setup=[
+@testitem "Parabolic2D: DGMulti 2D rhs_parabolic! (non-zero Neumann BCs, source terms)" setup=[
     Setup,
     Parabolic2D
 ] tags=[:parabolic_part1] begin
