@@ -183,6 +183,16 @@ for human readability.
   methods for the volume integral itself (e.g., the internal methods `create_cache`,
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- Fixed the pressure coefficients `LiftCoefficientPressure3D` and
+  `DragCoefficientPressure3D` on boundary faces that are not affine, where wrong surface
+  nodes were used. With MPI, these coefficients are now summed over all ranks ([#3408]).
+- The analysis quantities `l2_divb` and `linf_divb` of `DGMulti` solvers now compute
+  the divergence of the magnetic field instead of its product with the Jacobian of the
+  elements, and `l2_divb` is normalized by the volume of the domain as for the DGSEM
+  solvers. `linf_divb` no longer fails with multiple threads ([#3408]).
+- `linf_divb` of a 2D `TreeMesh` is now the maximum over all MPI ranks ([#3408]).
+- With MPI, the `SteadyStateCallback` now terminates the simulation only if the steady
+  state is reached on all MPI ranks, not on any of them ([#3408]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of

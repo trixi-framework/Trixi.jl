@@ -61,9 +61,12 @@ function (steady_state_callback::SteadyStateCallback)(u_ode, t, integrator)
     du = wrap_array(get_du(integrator), semi)
     terminate = steady_state_callback(du, u, semi)
     if mpi_isparallel()
-        # MPI.jl doesn't seem to have MPI_C_BOOL
+        # MPI.jl doesn't seem to have MPI_C_BOOL.
+        # Terminate only if all ranks have reached the steady state.
+        # Base.min instead of min needed, see comment in src/auxiliary/math.jl
         terminate_integer = Int(terminate)
-        terminate = !iszero(MPI.Allreduce!(Ref(terminate_integer), +, mpi_comm())[])
+        terminate = isone(MPI.Allreduce!(Ref(terminate_integer), Base.min,
+                                         mpi_comm())[])
     end
     if mpi_isroot() && terminate
         @info "  Steady state tolerance reached" steady_state_callback t

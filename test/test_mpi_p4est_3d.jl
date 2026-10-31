@@ -51,6 +51,17 @@ end
                         linf=[0.4388801673496169])
 end
 
+@testitem "P4estMesh MPI 3D: AnalysisSurfaceIntegral on curved mesh" setup=[
+    Setup,
+    SurfaceIntegralsCurvedMesh3D
+] tags=[:mpi] begin
+    # The boundaries are distributed among the MPI ranks
+    lift, drag, lift_top = surface_integrals_curved_mesh_3d()
+    @test isapprox(lift, 8; atol = 1.0e-5)
+    @test isapprox(drag, 0; atol = 1.0e-5)
+    @test isapprox(lift_top, 12; atol = 1.0e-5)
+end
+
 @testitem "P4estMesh MPI 3D: elixir_advection_amr.jl" setup=[Setup, MPIP4estMesh3D] tags=[
     :mpi,
     :mpi_skip_windows
