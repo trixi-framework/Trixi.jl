@@ -538,14 +538,23 @@ end
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
-    (; gamma_constant_newton) = limiter
-
     indices = (i, j, element)
     isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
+    # The updated state is a convex combination of one provisional state per antidiffusive flux
+    # contributing to this node. Each provisional state is the low-order state plus the
+    # antidiffusive flux scaled by the number of contributions. Limiting each flux such that
+    # its provisional state satisfies the (convex) bounds then ensures that the combination
+    # satisfies them as well. Instead of using the uniform constant `2 * ndims` for the number of
+    # contributions (as in equation (29) of Rueda-Ramírez et al. (2022)), we use the actual number
+    # of contributions to the update of the node `(i, j)`, see `n_antidiffusive_contributions`.
+    # In 2D, the number of contributions is 4 for inner nodes, 3 for nodes at an element boundary,
+    # and 2 for nodes at an element corner.
+    gamma = n_antidiffusive_contributions(i, j, dg)
+
     # negative xi direction
     if i > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = gamma * inverse_jacobian *
                              inverse_weights[i] *
                              get_node_vars(antidiffusive_flux1_R, equations, dg,
                                            i, j, element)
@@ -556,7 +565,7 @@ end
 
     # positive xi direction
     if i < nnodes(dg)
-        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = -gamma * inverse_jacobian *
                              inverse_weights[i] *
                              get_node_vars(antidiffusive_flux1_L, equations, dg,
                                            i + 1, j, element)
@@ -567,7 +576,7 @@ end
 
     # negative eta direction
     if j > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = gamma * inverse_jacobian *
                              inverse_weights[j] *
                              get_node_vars(antidiffusive_flux2_R, equations, dg,
                                            i, j, element)
@@ -578,7 +587,7 @@ end
 
     # positive eta direction
     if j < nnodes(dg)
-        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = -gamma * inverse_jacobian *
                              inverse_weights[j] *
                              get_node_vars(antidiffusive_flux2_L, equations, dg,
                                            i, j + 1, element)
@@ -587,5 +596,13 @@ end
     end
 
     return nothing
+end
+
+# Number of antidiffusive flux contributions to the update of the node `(i, j)`, i.e., the
+# number of provisional states whose convex combination gives the new state. Nodes at an element
+# boundary get fewer contributions than inner nodes because the flux across that boundary is not
+# limited.
+@inline function n_antidiffusive_contributions(i, j, dg)
+    return (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg))
 end
 end # @muladd
