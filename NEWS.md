@@ -99,6 +99,20 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
+  now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
+  are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
+  `initial_condition_convergence_test` is now an exact solution for all material
+  parameters; previously, it agreed with the solution only at integer times for
+  `c1 = 1` ([#3409]).
+- Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
+  `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
+  computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).
+  Normal fluxes prescribed by boundary conditions (e.g., `BoundaryConditionNeumann` and the
+  heat flux of adiabatic `BoundaryConditionNavierStokesWall`s) are now scaled by the face
+  Jacobian. `source_terms_parabolic` are now evaluated at the quadrature points and
+  projected onto the polynomial space, which changes results for `Polynomial()`
+  approximations ([#3407]).
 - A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
   equations is now always called with the transformed variables (see
   `gradient_variable_transformation`), i.e., primitive variables with temperature or
@@ -180,6 +194,28 @@ for human readability.
   methods for the volume integral itself (e.g., the internal methods `create_cache`,
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- Fixes a bug in the nonconservative surface terms at mortars of `TreeMesh2D`s and
+  `TreeMesh3D`s: The nonconservative fluxes of the small and the large elements were
+  swapped, i.e., each element received the nonconservative term of its neighbor.
+  Thus, results of simulations with nonconservative terms (e.g., ideal GLM-MHD with
+  `flux_nonconservative_powell`) on nonconforming `TreeMesh`es (e.g., with AMR) change
+  ([#3293]).
+- Fixed the pressure coefficients `LiftCoefficientPressure3D` and
+  `DragCoefficientPressure3D` on boundary faces that are not affine, where wrong surface
+  nodes were used. With MPI, these coefficients are now summed over all ranks ([#3408]).
+- The analysis quantities `l2_divb` and `linf_divb` of `DGMulti` solvers now compute
+  the divergence of the magnetic field instead of its product with the Jacobian of the
+  elements, and `l2_divb` is normalized by the volume of the domain as for the DGSEM
+  solvers. `linf_divb` no longer fails with multiple threads ([#3408]).
+- `linf_divb` of a 2D `TreeMesh` is now the maximum over all MPI ranks ([#3408]).
+- With MPI, the `SteadyStateCallback` now terminates the simulation only if the steady
+  state is reached on all MPI ranks, not on any of them ([#3408]).
+- Fixes a bug in parabolic boundary conditions prescribing a normal flux on `P4estMesh`es:
+  the normal flux of `BoundaryConditionNeumann` and the normal heat flux of `Adiabatic`
+  walls were not scaled by the surface Jacobian. Thus, results with nonzero prescribed
+  normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
+  operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
+  same way; `flux_inner` already includes this scaling ([#3412]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of

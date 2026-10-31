@@ -15,8 +15,8 @@ end
                                                            extra_analysis_integrals = (energy_kinetic,
                                                                                        energy_internal,
                                                                                        entropy)),
-                        l2=[0.0007205516785218745, 0.0008036755866155103],
-                        linf=[0.0011507266875070855, 0.003249818227066381])
+                        l2=[1.1686322878287191e-5, 2.683989522212065e-5],
+                        linf=[2.5820386859359834e-5, 0.00011009510821025081])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
