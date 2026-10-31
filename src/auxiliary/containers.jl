@@ -319,6 +319,27 @@ function unsafe_wrap_or_alloc(to, vector, size)
     end
 end
 
+# Allocate an uninitialized `StrideArray` with element type `T` and size `dims` if `T`
+# is an `isbitstype`, and a plain `Array` otherwise.
+#
+# The sizes `dims` can be `StaticInt`s, which makes `StrideArray`s faster and allows
+# them to be allocated on the stack if all sizes are known statically. Plain `Array`s
+# do not support `StaticInt`s, so the sizes are converted to `Int`s for them.
+#
+# !!! danger "Non-`isbits` element types"
+#     A `StrideArray` stores its elements through a pointer, i.e., without triggering
+#     the write barrier of the garbage collector. If the `StrideArray` is old (e.g., a
+#     buffer in a cache) and a newly allocated object (e.g., a `BigFloat` or the
+#     derivatives stored in a `Measurement` from Measurements.jl) is stored in it,
+#     the object can be freed while the `StrideArray` still refers to it.
+function stride_array_or_array(::Type{T}, dims...) where {T}
+    if isbitstype(T)
+        return StrideArray(undef, T, dims...)
+    else
+        return Array{T}(undef, map(Int, dims))
+    end
+end
+
 struct TrixiAdaptor{Storage, RealT} end
 
 """
