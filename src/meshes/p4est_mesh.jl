@@ -561,44 +561,42 @@ function preprocess_standard_abaqus(meshfile,
                                     n_dimensions)
     meshfile_preproc = replace(meshfile, ".inp" => "_preproc.inp")
 
-    # Line number where the element section begins
-    elements_begin_idx = 0
-    # Line number where the node and element sets begin (if present)
-    sets_begin_idx = 0
-
-    open(meshfile, "r") do infile
+    # Line number where the element section begins and line number relative to the
+    # element section where the node and element sets begin (zero if not present)
+    elements_begin_idx, sets_begin_offset = open(meshfile, "r") do infile
         # Copy header and node data to pre-processed file
-        open(meshfile_preproc, "w") do outfile
+        elements_begin = open(meshfile_preproc, "w") do outfile
             for (line_index, line) in enumerate(eachline(infile))
                 println(outfile, line)
                 if occursin("******* E L E M E N T S *************", line)
-                    elements_begin_idx = line_index + 1
-                    break
+                    return line_index + 1
                 end
             end
+            return 0
         end
 
         # Find the line number where the node and element sets begin
         for (line_index, line) in enumerate(eachline(infile))
             if startswith(line, "*ELSET") || startswith(line, "*NSET")
-                sets_begin_idx = line_index
-                break
+                return elements_begin, line_index
             end
         end
+        return elements_begin, 0
     end
-    # Catch the case where there are no node or element sets
-    if sets_begin_idx == 0
-        sets_begin_idx = length(readlines(meshfile)) + 1
+    # Line number where the node and element sets begin
+    sets_begin_idx = if sets_begin_offset == 0
+        # Catch the case where there are no node or element sets
+        length(readlines(meshfile)) + 1
     else
         # Need to add `elements_begin_idx - 1` since the loop above starts at `elements_begin_idx`
-        sets_begin_idx += elements_begin_idx - 1
+        sets_begin_offset + elements_begin_idx - 1
     end
 
-    element_index = 0
-    preproc_element_section_lines = 0
-    open(meshfile, "r") do infile
+    preproc_element_section_lines = open(meshfile, "r") do infile
         open(meshfile_preproc, "a") do outfile
             print_following_lines = false
+            element_index = 0
+            n_element_lines = 0
 
             for (line_index, line) in enumerate(eachline(infile))
                 # Act only in the element section
@@ -615,13 +613,13 @@ function preprocess_standard_abaqus(meshfile,
                             occursin(quadratic_quads, current_element_type))
                             print_following_lines = true
                             println(outfile, line)
-                            preproc_element_section_lines += 1
+                            n_element_lines += 1
                         elseif n_dimensions == 3 &&
                                (occursin(linear_hexes, current_element_type) ||
                                 occursin(quadratic_hexes, current_element_type))
                             print_following_lines = true
                             println(outfile, line)
-                            preproc_element_section_lines += 1
+                            n_element_lines += 1
                         else
                             print_following_lines = false
                         end
@@ -632,7 +630,7 @@ function preprocess_standard_abaqus(meshfile,
                             # Exchange element index
                             parts[1] = string(element_index)
                             println(outfile, join(parts, ','))
-                            preproc_element_section_lines += 1
+                            n_element_lines += 1
                         end
                     end
                 end
@@ -642,12 +640,13 @@ function preprocess_standard_abaqus(meshfile,
                     println(outfile, line)
                 end
             end
+            return n_element_lines
         end
     end
-    # Adjust `sets_begin_idx` to correct line number after removing unnecessary elements
-    sets_begin_idx = elements_begin_idx + preproc_element_section_lines
 
-    return elements_begin_idx, sets_begin_idx
+    # Return the line number where the node and element sets begin in the pre-processed
+    # file, i.e., after removing unnecessary elements
+    return elements_begin_idx, elements_begin_idx + preproc_element_section_lines
 end
 
 # p4est can handle only linear elements. This function checks the `meshfile_pre_proc`
@@ -661,14 +660,15 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                                               sets_begin_idx)
     meshfile_p4est_rdy = replace(meshfile_pre_proc,
                                  "_preproc.inp" => "_p4est_ready.inp")
-    order = 1 # Assume linear elements by default
 
-    # Some useful function-wide variables
-    current_element_type = ""
-    new_line = ""
-
-    open(meshfile_pre_proc, "r") do infile
+    return open(meshfile_pre_proc, "r") do infile
         open(meshfile_p4est_rdy, "w") do outfile
+            order = 1 # Assume linear elements by default
+
+            # Some useful variables persisting across lines
+            current_element_type = ""
+            new_line = ""
+
             for (line_index, line) in enumerate(eachline(infile))
                 # Copy header and node data
                 if line_index < elements_begin_idx || line_index >= sets_begin_idx
@@ -719,10 +719,9 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                     end
                 end
             end
+            return order
         end
     end
-
-    return order
 end
 
 # Read all nodes (not only vertices, i.e., endpoints of elements) into a dict.
@@ -731,8 +730,8 @@ function read_nodes_standard_abaqus(meshfile, n_dimensions,
                                     elements_begin_idx, RealT)
     mesh_nodes = Dict{Int, SVector{n_dimensions, RealT}}()
 
-    node_section = false
     open(meshfile, "r") do infile
+        node_section = false
         for (line_index, line) in enumerate(eachline(infile))
             if line_index < elements_begin_idx
                 if startswith(line, "*NODE")
@@ -852,8 +851,9 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
         nodes = SVector{mesh_nnodes}(cheby_nodes)
     end
 
+    n_nodes = length(nodes)
     tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
-                                                           ntuple(_ -> length(nodes),
+                                                           ntuple(_ -> n_nodes,
                                                                   n_dimensions)...,
                                                            n_trees)
 
@@ -909,10 +909,10 @@ function parse_elements(meshfile, n_trees, n_dims,
     expected_content_length = n_dims == 2 ? 5 : 9
 
     element_node_matrix = Matrix{Int64}(undef, n_trees, expected_content_length - 1)
-    el_list_follows = false
-    tree_id = 1
 
     open(meshfile, "r") do infile
+        el_list_follows = false
+        tree_id = 1
         for (line_index, line) in enumerate(eachline(infile))
             if elements_begin_idx <= line_index < sets_begin_idx
                 if startswith(line, "*ELEMENT")
@@ -938,10 +938,10 @@ end
 
 function parse_node_sets(meshfile, boundary_symbols)
     nodes_dict = Dict{Symbol, Set{Int64}}()
-    current_symbol = nothing
-    current_nodes = Int64[]
 
     open(meshfile, "r") do file
+        current_symbol = nothing
+        current_nodes = Int64[]
         for line in eachline(file)
             # Check if the line contains nodes assembled in a special set, i.e., a physical boundary
             if startswith(line, "*NSET,NSET=")

@@ -581,13 +581,10 @@ function init_mpi_mortars_iter_face_inner(info_pw, sides_pw, user_data)
     offsets = SVector(trees_pw[1].quadrants_offset[],
                       trees_pw[2].quadrants_offset[])
 
-    if sides_pw[1].is_hanging[] == true
-        hanging_side = 1
-        full_side = 2
-    else # sides_pw[2].is_hanging[] == true
-        hanging_side = 2
-        full_side = 1
-    end
+    # Exactly one side is hanging. `hanging_side` is assigned only once since it is
+    # captured by a closure below.
+    hanging_side = sides_pw[1].is_hanging[] == true ? 1 : 2
+    full_side = 3 - hanging_side
     # Just be sure before accessing is.full or is.hanging later
     @assert sides_pw[full_side].is_hanging[] == false
     @assert sides_pw[hanging_side].is_hanging[] == true

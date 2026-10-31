@@ -5,8 +5,8 @@ module TrixiMakieExt
 using Makie: Makie, GeometryBasics
 using LaTeXStrings: latexstring
 
-# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
-using Trixi
+# Use exported symbols
+using Trixi: Trixi, @unpack, StructArrays, nnodes
 
 # Use additional symbols that are not exported
 using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,

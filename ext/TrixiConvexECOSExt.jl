@@ -5,11 +5,8 @@ module TrixiConvexECOSExt
 using Convex: MOI, solve!, Variable, minimize, evaluate
 using ECOS: Optimizer
 
-# Use other necessary libraries
-using LinearAlgebra: eigvals
-
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, bisect_stability_polynomial, @muladd
+using Trixi: Trixi, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,

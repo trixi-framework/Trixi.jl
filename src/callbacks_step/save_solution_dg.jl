@@ -27,20 +27,20 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Convert to different set of variables if requested
-    if solution_variables === cons2cons
-        data = u
-        n_vars = nvariables(equations)
+    data, n_vars = if solution_variables === cons2cons
+        u, nvariables(equations)
     else
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
+        data_ = Array(reinterpret(eltype(u),
+                                  solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                          eltype(u)},
+                                                                  u),
+                                                      Ref(equations))))
 
         # Find out variable count by looking at output from `solution_variables` function
-        n_vars = size(data, 1)
+        data_, size(data_, 1)
     end
 
     # Open file (clobber existing content)
@@ -109,13 +109,12 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Convert to different set of variables if requested.
-    if solution_variables === cons2cons
-        data = u
-        n_vars = nvariables(equations)
+    data, n_vars = if solution_variables === cons2cons
+        u, nvariables(equations)
     else
-        data = map(u_node -> solution_variables(u_node, equations), parent(u))
+        data_ = map(u_node -> solution_variables(u_node, equations), parent(u))
         # Find out variable count by looking at output from `solution_variables` function.
-        n_vars = length(data[1])
+        data_, length(data_[1])
     end
 
     # Open file (clobber existing content).

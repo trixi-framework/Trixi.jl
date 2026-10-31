@@ -95,6 +95,11 @@ jobs:
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
+          # Quality assurance checks; `Test.detect_closure_boxes` requires Julia v1.14
+          - version: 'pre'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: qa
           - version: '1.10'
             os: macos-latest
             arch: aarch64
@@ -131,6 +136,10 @@ jobs:
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # The test environment contains GPU packages that may fail to precompile on
+          # prerelease versions of Julia. The `qa` items do not load them, so we
+          # precompile packages only when they are loaded.
+          JULIA_PKG_PRECOMPILE_AUTO: ${{ matrix.trixi_test == 'qa' && '0' || '1' }}
           # Print every `@testitem` (with its run time) in the test summary, so per-testitem
           # timings show up in the job logs.
           TRIXI_TEST_VERBOSE: "true"

@@ -505,6 +505,13 @@ function cfunction(::typeof(init_neighbor_rank_connectivity_iter_face), ::Val{3}
                (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 end
 
+# Return the (0-based) MPI rank owning the quadrant with the (0-based) index `ghost_id`
+# in a p4est ghost layer with the offsets `proc_offsets` (of length `mpi_nranks() + 1`).
+function ghost_quadrant_owner_rank(proc_offsets, ghost_id)
+    return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r + 1],
+                     1:mpi_nranks()) - 1 # MPI ranks are 0-based
+end
+
 # Function barrier for type stability
 function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
     @unpack interfaces, interface_id, global_interface_ids, neighbor_ranks_interface,
@@ -541,9 +548,7 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
                                        info_pw.ghost_layer.proc_offsets,
                                        mpi_nranks() + 1)
             ghost_id = sides_pw[remote_side].is.full.quadid[] # indexes the ghost layer, 0-based
-            neighbor_rank = findfirst(r -> proc_offsets[r] <= ghost_id <
-                                           proc_offsets[r + 1],
-                                      1:mpi_nranks()) - 1 # MPI ranks are 0-based
+            neighbor_rank = ghost_quadrant_owner_rank(proc_offsets, ghost_id)
             neighbor_ranks_interface[interface_id] = neighbor_rank
 
             # Global interface id is the globally unique quadrant id of the quadrant on the primary
@@ -560,13 +565,9 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
 
             user_data.interface_id += 1
         else # hanging node
-            if sides_pw[1].is_hanging[] == true
-                hanging_side = 1
-                full_side = 2
-            else
-                hanging_side = 2
-                full_side = 1
-            end
+            # `hanging_side` is assigned only once since it is captured by a closure below.
+            hanging_side = sides_pw[1].is_hanging[] == true ? 1 : 2
+            full_side = 3 - hanging_side
             # Verify before accessing is.full / is.hanging
             @assert sides_pw[hanging_side].is_hanging[] == true &&
                     sides_pw[full_side].is_hanging[] == false
@@ -589,17 +590,13 @@ function init_neighbor_rank_connectivity_iter_face_inner(info, user_data)
             # indices of small remote quads inside the ghost layer, 0-based
             ghost_ids = map(pos -> sides_pw[hanging_side].is.hanging.quadid[][pos],
                             remote_small_quad_positions)
-            neighbor_ranks = map(ghost_ids) do ghost_id
-                return findfirst(r -> proc_offsets[r] <= ghost_id < proc_offsets[r + 1],
-                                 1:mpi_nranks()) - 1 # MPI ranks are 0-based
-            end
+            neighbor_ranks = ghost_quadrant_owner_rank.(Ref(proc_offsets), ghost_ids)
             # Determine global quad id of large element to determine global MPI mortar id
             # Furthermore, if large element is ghost, add its owner rank to neighbor_ranks
             if sides_pw[full_side].is.full.is_ghost[] == true
                 ghost_id = sides_pw[full_side].is.full.quadid[]
-                large_quad_owner_rank = findfirst(r -> proc_offsets[r] <= ghost_id <
-                                                       proc_offsets[r + 1],
-                                                  1:mpi_nranks()) - 1 # MPI ranks are 0-based
+                large_quad_owner_rank = ghost_quadrant_owner_rank(proc_offsets,
+                                                                  ghost_id)
                 push!(neighbor_ranks, large_quad_owner_rank)
 
                 offset = mesh.p4est.global_first_quadrant[large_quad_owner_rank + 1] # one-based indexing

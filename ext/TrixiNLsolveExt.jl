@@ -103,17 +103,17 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                       iterations = 10^4, xtol = 1.0e-13,
                       autodiff = NLSOLVE_AUTODIFF)
 
-        a_unknown = sol.zero # Retrieve solution (root = zero)
+        a_solution = sol.zero # Retrieve solution (root = zero)
 
         # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver)
         # and also c[i] - a[i, i-1] >= 0.0 since all coefficients should be non-negative
         # to avoid downwinding of numerical fluxes.
-        is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
-                       all(!isnan(c[i] - a_unknown[i - 2]) &&
-                           c[i] - a_unknown[i - 2] >= 0 for i in eachindex(c) if i > 2)
+        is_sol_valid = all(x -> !isnan(x) && x >= 0, a_solution) &&
+                       all(!isnan(c[i] - a_solution[i - 2]) &&
+                           c[i] - a_solution[i - 2] >= 0 for i in eachindex(c) if i > 2)
 
         if is_sol_valid
-            return a_unknown
+            return a_solution
         else
             if verbose
                 println("Solution invalid. Restart the process of solving non-linear system of equations again.")

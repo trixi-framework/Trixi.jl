@@ -159,12 +159,11 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
     mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
-    if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+    filename, p4est_filename = if timestep > 0
+        (joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep)),
+         @sprintf("p4est_data_%09d", timestep))
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        (joinpath(output_directory, "mesh.h5"), "p4est_data")
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
@@ -195,12 +194,11 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     mpi_isroot() && mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
-    if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+    filename, p4est_filename = if timestep > 0
+        (joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep)),
+         @sprintf("p4est_data_%09d", timestep))
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        (joinpath(output_directory, "mesh.h5"), "p4est_data")
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
@@ -250,21 +248,23 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         filename = joinpath(output_directory, "mesh.h5")
     end
 
-    # Retrieve refinement levels of all elements.
+    # Retrieve refinement levels of all elements (only needed on the root rank).
     local_levels = get_levels(mesh)
-    if mpi_isparallel()
+    levels = if mpi_isparallel()
         count = [length(local_levels)]
         counts = MPI.Gather(view(count, 1), mpi_root(), mpi_comm())
 
         if mpi_isroot()
-            levels = similar(local_levels, ncellsglobal(mesh))
-            MPI.Gatherv!(local_levels, MPI.VBuffer(levels, counts),
+            levels_ = similar(local_levels, ncellsglobal(mesh))
+            MPI.Gatherv!(local_levels, MPI.VBuffer(levels_, counts),
                          mpi_root(), mpi_comm())
+            levels_
         else
             MPI.Gatherv!(local_levels, nothing, mpi_root(), mpi_comm())
+            nothing
         end
     else
-        levels = local_levels
+        local_levels
     end
 
     # Retrieve the number of elements per tree. Since a tree can be distributed
@@ -512,12 +512,11 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         mesh = P4estMeshView(parent_mesh, cell_ids)
 
     elseif mesh_type == "T8codeMesh"
-        ndims, ntrees, nelements, tree_node_coordinates,
+        ntrees, nelements, tree_node_coordinates,
         nodes, boundary_names_, treeIDs, neighIDs, faces, duals, orientations,
         levels, num_elements_per_tree,
         partition_allow_for_coarsening = h5open(mesh_file, "r") do file
-            return read(attributes(file)["ndims"]),
-                   read(attributes(file)["ntrees"]),
+            return read(attributes(file)["ntrees"]),
                    read(attributes(file)["nelements"]),
                    read(file["tree_node_coordinates"]),
                    read(file["nodes"]),
@@ -540,9 +539,8 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
                           partition_allow_for_coarsening)
 
     elseif mesh_type == "DGMultiMesh"
-        ndims, nelements, etype_str, EToV = h5open(mesh_file, "r") do file
-            return read(attributes(file)["ndims"]),
-                   read(attributes(file)["nelements"]),
+        nelements, etype_str, EToV = h5open(mesh_file, "r") do file
+            return read(attributes(file)["nelements"]),
                    read(attributes(file)["element_type"]),
                    read(file["EToV"])
         end
@@ -734,7 +732,7 @@ function load_mesh!(mesh::TreeMeshParallel, mesh_file::AbstractString)
             MPI.Bcast!(collect(mesh.tree.periodicity), mpi_root(), mpi_comm())
 
             # Set length
-            n_cells = read(attributes(file)["n_cells"])
+            local n_cells = read(attributes(file)["n_cells"])
             MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
             resize!(mesh.tree, n_cells)
 
