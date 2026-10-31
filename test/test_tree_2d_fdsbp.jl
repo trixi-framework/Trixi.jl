@@ -103,6 +103,55 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D FDSBP: elixir_euler_convergence_flux_diff.jl" setup=[
+    Setup,
+    TreeMesh2DFDSBP
+] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            5.936821535586292e-7,
+                            6.391809117520006e-7,
+                            6.391809117121754e-7,
+                            1.4424798920059498e-6
+                        ],
+                        linf=[
+                            1.8258639695734047e-6,
+                            2.071509331180721e-6,
+                            2.071509333845256e-6,
+                            4.9926398344446454e-6
+                        ],
+                        tspan=(0.0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D FDSBP: elixir_euler_convergence_flux_diff_periodic.jl" setup=[
+    Setup,
+    TreeMesh2DFDSBP
+] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_flux_diff_periodic.jl"),
+                        l2=[
+                            8.900923938504744e-7,
+                            1.4223111951787409e-6,
+                            1.4223111951579013e-6,
+                            4.578575310257754e-6
+                        ],
+                        linf=[
+                            1.5084960749423004e-6,
+                            2.1352986596667733e-6,
+                            2.1352986607769964e-6,
+                            6.820921866879104e-6
+                        ],
+                        tspan=(0.0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D FDSBP: elixir_euler_kelvin_helmholtz_instability.jl" setup=[
     Setup,
     TreeMesh2DFDSBP

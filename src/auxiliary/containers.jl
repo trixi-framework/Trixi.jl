@@ -139,48 +139,6 @@ function move!(c::AbstractContainer, from::Int, destination::Int)
     return move!(c, from, from, destination)
 end
 
-# Default implementation for moving a single element
-function move_connectivity!(c::AbstractContainer, from::Int, destination::Int)
-    return move_connectivity!(c, from, from, destination)
-end
-
-# Default implementation for invalidating a single element
-function invalidate!(c::AbstractContainer, id::Int)
-    return invalidate!(c, id, id)
-end
-
-# Insert blank elements in container, shifting the following elements back.
-#
-# After a call to insert!, the range `position:position + count - 1` will be available for use.
-# TODO: Shall we extend Base.insert! ?
-function insert!(c::AbstractContainer, position::Int, count::Int)
-    @assert 1<=position<=length(c)+1 "Insert position out of range"
-    @assert count>=0 "Count must be non-negative"
-    @assert count + length(c)<=capacity(c) "New length would exceed capacity"
-
-    # Return if insertation would be a no-op
-    if count == 0
-        return c
-    end
-
-    # Append and return if insertion is beyond last current element
-    if position == length(c) + 1
-        resize!(c, length(c) + count)
-        return c
-    end
-
-    # Increase length
-    c.length += count
-
-    # Move original cells that currently occupy the insertion region, unless
-    # insert position is one beyond previous length
-    if position <= length(c) - count
-        move!(c, position, length(c) - count, position + count)
-    end
-
-    return c
-end
-
 # Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
     @assert 1<=first<=length(c) "First cell out of range"
@@ -221,13 +179,6 @@ end
 # Helpful overloads for `raw_copy`
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
     return raw_copy!(c, c, first, last, destination)
-end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int,
-                   destination::Int)
-    return raw_copy!(target, source, from, from, destination)
-end
-function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-    return raw_copy!(c, c, from, from, destination)
 end
 
 # Trixi storage types must implement these two Adapt.jl methods
@@ -328,6 +279,9 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
+# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
+# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+#
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
@@ -337,11 +291,31 @@ end
 # However, since zero length arrays are not used in calculations,
 # it should be okay if the underlying storage vectors and wrapped arrays
 # are not the same as long as they are properly wrapped when `resize!`d etc.
+#
+# !!! danger "Non-`isbits` element types"
+#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
+#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
+#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
+#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
+#     is not rescanned during an incremental collection, and the stored objects can be
+#     freed while `vector` still refers to them. Hence, we use `reshape` for these
+#     element types, which shares the memory of `vector` in a way the garbage collector
+#     understands. On Julia v1.10, this marks `vector` as shared, so
+#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
+#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
+#     wrapped array is in use.
 function unsafe_wrap_or_alloc(to, vector, size)
     if length(vector) == 0
         return similar(vector, size)
-    else
+    elseif isbitstype(eltype(vector)) ||
+           eltype(vector) === Symbol ||
+           eltype(vector) <: NTuple{N, Symbol} where {N}
+        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
+        # are not `isbitstype`s, they are not freed, so we can also use
+        # `unsafe_wrap` for them.
         return unsafe_wrap(to, pointer(vector), size)
+    else
+        return reshape(vector, size)
     end
 end
 
@@ -351,6 +325,10 @@ struct TrixiAdaptor{Storage, RealT} end
     trixi_adapt(Storage, RealT, x)
 
 Adapt `x` to the storage type `Storage` and real type `RealT`.
+
+To adapt a semidiscretization, use the method
+`trixi_adapt(semi; storage_type, real_type, tuning)` with keyword
+arguments instead.
 """
 function trixi_adapt(Storage, RealT, x)
     return adapt(TrixiAdaptor{Storage, RealT}(), x)

@@ -45,6 +45,27 @@ end
                         linf=[0.008446655719187679])
 end
 
+@testitem "TreeMesh MPI 2D: check_axes" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    # Refine the upper half of the domain to get MPI mortars for 2 and 3 MPI ranks
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
+                        refinement_patches=((type = "box",
+                                             coordinates_min = (-1.0, 0.0),
+                                             coordinates_max = (1.0, 1.0)),),
+                        maxiters=1)
+    mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+    u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+    @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+    # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +, Trixi.mpi_comm()) > 0
+    for container in (cache.elements, cache.interfaces, cache.mpi_interfaces,
+                      cache.boundaries, cache.mortars, cache.mpi_mortars)
+        @test Trixi.check_axes(container, equations, dg, cache) === nothing
+    end
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_amr.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the serial test!
@@ -340,6 +361,7 @@ end
 ] tags=[:mpi, :mpi_skip_windows] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_vortex_shockcapturing.jl"),
+                        # Expected errors are exactly the same as in the serial test!
                         l2=[
                             0.0017158367642679273,
                             0.09619888722871434,
@@ -351,8 +373,31 @@ end
                             0.9878047229255944,
                             0.9880191167111795,
                             2.2154030488035588
+                        ])
+end
+
+# Shock capturing with smoothing of the blending factors across MPI interfaces and
+# MPI mortars
+@testitem "TreeMesh MPI 2D: elixir_euler_riemannproblem_quadrants_amr.jl" setup=[
+    Setup,
+    MPITreeMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants_amr.jl"),
+                        tspan=(0.0, 0.05),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.12802172216950314,
+                            0.1333199240875145,
+                            0.13331992408751456,
+                            0.48888051192644405
                         ],
-                        rtol=0.001)
+                        linf=[
+                            0.853710403180942,
+                            0.9151148367639803,
+                            0.9151148367639808,
+                            3.4300525777582864
+                        ])
 end
 
 @testitem "TreeMesh MPI 2D: elixir_advection_limiter_liu_zhang.jl" setup=[

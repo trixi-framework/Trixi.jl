@@ -201,8 +201,8 @@ Approximately pressure equilibrium conserving (APEC) flux.
   compressible multi-species and real-fluid interfacial flows
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 """
-function flux_terashima_etal(u_ll, u_rr, orientation::Int,
-                             equations::NonIdealCompressibleEulerEquations2D)
+@inline function flux_terashima_etal(u_ll, u_rr, orientation::Int,
+                                     equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
     V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
@@ -249,8 +249,8 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
-function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
-                             equations::NonIdealCompressibleEulerEquations2D)
+@inline function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
     V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
@@ -305,8 +305,8 @@ A version of the central flux which uses the approximately pressure equilibrium 
   compressible multi-species and real-fluid interfacial flows
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 """
-function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
-                                     equations::NonIdealCompressibleEulerEquations2D)
+@inline function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
+                                             equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
     V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)
@@ -356,8 +356,9 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
     return SVector(f_rho, f_rho_v1, f_rho_v2, f_rho_e_total)
 end
 
-function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::NonIdealCompressibleEulerEquations2D)
+@inline function flux_central_terashima_etal(u_ll, u_rr,
+                                             normal_direction::AbstractVector,
+                                             equations::NonIdealCompressibleEulerEquations2D)
     eos = equations.equation_of_state
     V_ll, v1_ll, v2_ll, T_ll = cons2thermo(u_ll, equations)
     V_rr, v1_rr, v2_rr, T_rr = cons2thermo(u_rr, equations)

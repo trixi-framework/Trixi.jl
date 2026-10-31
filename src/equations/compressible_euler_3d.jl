@@ -1420,8 +1420,8 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer,
-                   equations::CompressibleEulerEquations3D)
+@inline function flux_hllc(u_ll, u_rr, orientation::Integer,
+                           equations::CompressibleEulerEquations3D)
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr = u_rr
@@ -1540,8 +1540,8 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     return SVector(f1, f2, f3, f4, f5)
 end
 
-function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
-                   equations::CompressibleEulerEquations3D)
+@inline function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                           equations::CompressibleEulerEquations3D)
     # Calculate primitive variables and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
@@ -1948,6 +1948,19 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, _ = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1) * SVector(0.5f0 * v_square, -v1, -v2, -v3, 1)
+end
+
 @inline function density_pressure(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
     rho_times_p = (equations.gamma - 1) *
@@ -1973,6 +1986,12 @@ end
     # Mathematical entropy
 
     return S
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy(u, equations)
 end
 
 @doc raw"""

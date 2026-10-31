@@ -193,6 +193,23 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
+# Catches `@threaded` loops capturing local variables that shadow global functions,
+# which errors on aarch64 (see `flux_parabolic_x` in `dg_1d_parabolic.jl`)
+@testitem "Threaded TreeMesh: elixir_advection_diffusion.jl (1D)" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[8.40483031802723e-6],
+                        linf=[2.8990878868540015e-5])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
+end
+
 @testitem "Threaded TreeMesh: FDSBP, elixir_advection_extended.jl" setup=[
     Setup,
     ThreadedExamples
@@ -257,16 +274,16 @@ end
 @testitem "Threaded StructuredMesh: elixir_mhd_ec.jl" setup=[Setup, ThreadedExamples] tags=[:threaded] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
                                  "elixir_mhd_ec.jl"),
-                        l2=[0.04937478399958968, 0.0611701500558669,
-                            0.06099805934392425, 0.031551737882277144,
-                            0.23191853685798858, 0.02476297013104899,
-                            0.024482975007695532, 0.035440179203707095,
-                            0.0016002328034991635],
-                        linf=[0.24744671083295033, 0.2990591185187605,
-                            0.3968520446251412, 0.2226544553988576,
-                            0.9752669317263143, 0.12117894533967843,
-                            0.12845218263379432, 0.17795590713819576,
-                            0.0348517136607105],
+                        l2=[0.04933104425405548, 0.06115966545280778,
+                            0.06095935716042677, 0.031535344983242605,
+                            0.23174010718715246, 0.024756245423285066,
+                            0.02454330651313403, 0.03540888614254055,
+                            0.003198990190614683],
+                        linf=[0.23699011258872849, 0.3010922751593751,
+                            0.39031674641843217, 0.22168707174529842,
+                            0.9835232760382162, 0.1229163010648412,
+                            0.13977781294096125, 0.17663469078477922,
+                            0.08083790569368657],
                         tspan=(0.0, 0.3))
 
     # Ensure that we do not have excessive memory allocations
@@ -510,4 +527,43 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "Threaded DGMulti: elixir_advection_diffusion.jl" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_advection_diffusion.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[0.2485803335154642],
+                        linf=[1.079606969242132])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
+end
+
+# Covers the `NonAffine` method of `calc_volume_integral_divergence!`
+@testitem "Threaded DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
+    Setup,
+    ThreadedExamples
+] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_curved.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0042551020940351444,
+                            0.011118489080358264,
+                            0.011281831362358863,
+                            0.035736565778376306
+                        ],
+                        linf=[
+                            0.015071709836357083,
+                            0.04103131887989486,
+                            0.03990424032494211,
+                            0.13094018584692968
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
