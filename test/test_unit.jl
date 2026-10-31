@@ -690,10 +690,12 @@ end
             end
             du_ode = similar(u_ode)
             Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
-            return copy(Trixi.wrap_array(du_ode, semi)), copy(node_coordinates)
+            return copy(Trixi.wrap_array_native(du_ode, semi)), copy(node_coordinates)
         end
         (du_tree, x_tree), (du_p4est, x_p4est) = results
         @test size(du_tree) == size(du_p4est)
+        @test all(isfinite, du_tree)
+        @test all(isfinite, du_p4est)
 
         # The element ordering differs, so we match elements by their node coordinates
         max_difference = zero(eltype(du_tree))
@@ -714,7 +716,7 @@ end
     end
 
     @testset "IdealGlmMhdEquations2D" begin
-        equations = IdealGlmMhdEquations2D(1.4)
+        equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
         solver = DGSEM(polydeg = 3,
                        surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                        volume_integral = VolumeIntegralFluxDifferencing((flux_central,
@@ -754,7 +756,7 @@ end
     end
 
     @testset "IdealGlmMhdEquations3D" begin
-        equations = IdealGlmMhdEquations3D(1.4)
+        equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
         solver = DGSEM(polydeg = 3,
                        surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                        volume_integral = VolumeIntegralFluxDifferencing((flux_central,
