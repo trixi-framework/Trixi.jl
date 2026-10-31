@@ -38,20 +38,22 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 3,
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
+    RealT = eltype(x)
     # Constants. Note: Must match those in `source_terms_navier_stokes_convergence_test`
-    c = 2.0
-    A1 = 0.5
-    A2 = 1.0
-    A3 = 0.5
+    c = 2
+    A1 = 0.5f0
+    A2 = 1
+    A3 = 0.5f0
 
     # Convenience values for trig. functions
-    pi_x = pi * x[1]
-    pi_y = pi * x[2]
-    pi_z = pi * x[3]
-    pi_t = pi * t
+    pi_ = convert(RealT, pi)
+    pi_x = pi_ * x[1]
+    pi_y = pi_ * x[2]
+    pi_z = pi_ * x[3]
+    pi_t = pi_ * t
 
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
-    v1 = A2 * sin(pi_x) * log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0))) * sin(pi_z) *
+    v1 = A2 * sin(pi_x) * log(x[2] + 2) * (1 - exp(-A3 * (x[2] - 1))) * sin(pi_z) *
          cos(pi_t)
     v2 = v1
     v3 = v1
@@ -65,53 +67,55 @@ end
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    Pr = prandtl_number()
-    mu_ = mu()
+    RealT = eltype(x)
+    Pr = convert(RealT, prandtl_number())
+    mu_ = convert(RealT, mu())
 
     # Constants. Note: Must match those in `initial_condition_navier_stokes_convergence_test`
-    c = 2.0
-    A1 = 0.5
-    A2 = 1.0
-    A3 = 0.5
+    c = 2
+    A1 = 0.5f0
+    A2 = 1
+    A3 = 0.5f0
 
     # Convenience values for trig. functions
-    pi_x = pi * x[1]
-    pi_y = pi * x[2]
-    pi_z = pi * x[3]
-    pi_t = pi * t
+    pi_ = convert(RealT, pi)
+    pi_x = pi_ * x[1]
+    pi_y = pi_ * x[2]
+    pi_z = pi_ * x[3]
+    pi_t = pi_ * t
 
     # Define auxiliary functions for the strange function of the y variable
     # to make expressions easier to read
-    g = log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0)))
-    g_y = (A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
-           (1.0 - exp(-A3 * (x[2] - 1.0))) / (x[2] + 2.0))
-    g_yy = (2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0) -
-            (1.0 - exp(-A3 * (x[2] - 1.0))) / ((x[2] + 2.0)^2) -
-            A3^2 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)))
+    g = log(x[2] + 2) * (1 - exp(-A3 * (x[2] - 1)))
+    g_y = (A3 * log(x[2] + 2) * exp(-A3 * (x[2] - 1)) +
+           (1 - exp(-A3 * (x[2] - 1))) / (x[2] + 2))
+    g_yy = (2 * A3 * exp(-A3 * (x[2] - 1)) / (x[2] + 2) -
+            (1 - exp(-A3 * (x[2] - 1))) / ((x[2] + 2)^2) -
+            A3^2 * log(x[2] + 2) * exp(-A3 * (x[2] - 1)))
 
     # Density and its derivatives
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
-    rho_t = -pi * A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * sin(pi_t)
-    rho_x = pi * A1 * cos(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
-    rho_y = -pi * A1 * sin(pi_x) * sin(pi_y) * sin(pi_z) * cos(pi_t)
-    rho_z = pi * A1 * sin(pi_x) * cos(pi_y) * cos(pi_z) * cos(pi_t)
-    rho_xx = -pi^2 * (rho - c)
-    rho_yy = -pi^2 * (rho - c)
-    rho_zz = -pi^2 * (rho - c)
+    rho_t = -pi_ * A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * sin(pi_t)
+    rho_x = pi_ * A1 * cos(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
+    rho_y = -pi_ * A1 * sin(pi_x) * sin(pi_y) * sin(pi_z) * cos(pi_t)
+    rho_z = pi_ * A1 * sin(pi_x) * cos(pi_y) * cos(pi_z) * cos(pi_t)
+    rho_xx = -pi_^2 * (rho - c)
+    rho_yy = -pi_^2 * (rho - c)
+    rho_zz = -pi_^2 * (rho - c)
 
     # Velocities and their derivatives
     # v1 terms
     v1 = A2 * sin(pi_x) * g * sin(pi_z) * cos(pi_t)
-    v1_t = -pi * A2 * sin(pi_x) * g * sin(pi_z) * sin(pi_t)
-    v1_x = pi * A2 * cos(pi_x) * g * sin(pi_z) * cos(pi_t)
+    v1_t = -pi_ * A2 * sin(pi_x) * g * sin(pi_z) * sin(pi_t)
+    v1_x = pi_ * A2 * cos(pi_x) * g * sin(pi_z) * cos(pi_t)
     v1_y = A2 * sin(pi_x) * g_y * sin(pi_z) * cos(pi_t)
-    v1_z = pi * A2 * sin(pi_x) * g * cos(pi_z) * cos(pi_t)
-    v1_xx = -pi^2 * v1
+    v1_z = pi_ * A2 * sin(pi_x) * g * cos(pi_z) * cos(pi_t)
+    v1_xx = -pi_^2 * v1
     v1_yy = A2 * sin(pi_x) * g_yy * sin(pi_z) * cos(pi_t)
-    v1_zz = -pi^2 * v1
-    v1_xy = pi * A2 * cos(pi_x) * g_y * sin(pi_z) * cos(pi_t)
-    v1_xz = pi^2 * A2 * cos(pi_x) * g * cos(pi_z) * cos(pi_t)
-    v1_yz = pi * A2 * sin(pi_x) * g_y * cos(pi_z) * cos(pi_t)
+    v1_zz = -pi_^2 * v1
+    v1_xy = pi_ * A2 * cos(pi_x) * g_y * sin(pi_z) * cos(pi_t)
+    v1_xz = pi_^2 * A2 * cos(pi_x) * g * cos(pi_z) * cos(pi_t)
+    v1_yz = pi_ * A2 * sin(pi_x) * g_y * cos(pi_z) * cos(pi_t)
     # v2 terms (simplifies from ansatz)
     v2 = v1
     v2_t = v1_t
@@ -137,17 +141,17 @@ end
 
     # Pressure and its derivatives
     p = rho^2
-    p_t = 2.0 * rho * rho_t
-    p_x = 2.0 * rho * rho_x
-    p_y = 2.0 * rho * rho_y
-    p_z = 2.0 * rho * rho_z
+    p_t = 2 * rho * rho_t
+    p_x = 2 * rho * rho_x
+    p_y = 2 * rho * rho_y
+    p_z = 2 * rho * rho_z
 
     # Total energy and its derivatives; simiplifies from ansatz that v2 = v1 and v3 = v1
-    E = p * inv_gamma_minus_one + 1.5 * rho * v1^2
-    E_t = p_t * inv_gamma_minus_one + 1.5 * rho_t * v1^2 + 3.0 * rho * v1 * v1_t
-    E_x = p_x * inv_gamma_minus_one + 1.5 * rho_x * v1^2 + 3.0 * rho * v1 * v1_x
-    E_y = p_y * inv_gamma_minus_one + 1.5 * rho_y * v1^2 + 3.0 * rho * v1 * v1_y
-    E_z = p_z * inv_gamma_minus_one + 1.5 * rho_z * v1^2 + 3.0 * rho * v1 * v1_z
+    E = p * inv_gamma_minus_one + 1.5f0 * rho * v1^2
+    E_t = p_t * inv_gamma_minus_one + 1.5f0 * rho_t * v1^2 + 3 * rho * v1 * v1_t
+    E_x = p_x * inv_gamma_minus_one + 1.5f0 * rho_x * v1^2 + 3 * rho * v1 * v1_x
+    E_y = p_y * inv_gamma_minus_one + 1.5f0 * rho_y * v1^2 + 3 * rho * v1 * v1_y
+    E_z = p_z * inv_gamma_minus_one + 1.5f0 * rho_z * v1^2 + 3 * rho * v1 * v1_z
 
     # Divergence of Fourier's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
     kappa = gamma * inv_gamma_minus_one / Pr
@@ -156,24 +160,24 @@ end
     q_zz = kappa * rho_zz # kappa T_zz
 
     # Stress tensor and its derivatives (exploit symmetry)
-    tau11 = 4.0 / 3.0 * v1_x - 2.0 / 3.0 * (v2_y + v3_z)
+    tau11 = RealT(4) / 3 * v1_x - RealT(2) / 3 * (v2_y + v3_z)
     tau12 = v1_y + v2_x
     tau13 = v1_z + v3_x
-    tau22 = 4.0 / 3.0 * v2_y - 2.0 / 3.0 * (v1_x + v3_z)
+    tau22 = RealT(4) / 3 * v2_y - RealT(2) / 3 * (v1_x + v3_z)
     tau23 = v2_z + v3_y
-    tau33 = 4.0 / 3.0 * v3_z - 2.0 / 3.0 * (v1_x + v2_y)
+    tau33 = RealT(4) / 3 * v3_z - RealT(2) / 3 * (v1_x + v2_y)
 
-    tau11_x = 4.0 / 3.0 * v1_xx - 2.0 / 3.0 * (v2_xy + v3_xz)
+    tau11_x = RealT(4) / 3 * v1_xx - RealT(2) / 3 * (v2_xy + v3_xz)
     tau12_x = v1_xy + v2_xx
     tau13_x = v1_xz + v3_xx
 
     tau12_y = v1_yy + v2_xy
-    tau22_y = 4.0 / 3.0 * v2_yy - 2.0 / 3.0 * (v1_xy + v3_yz)
+    tau22_y = RealT(4) / 3 * v2_yy - RealT(2) / 3 * (v1_xy + v3_yz)
     tau23_y = v2_yz + v3_yy
 
     tau13_z = v1_zz + v3_xz
     tau23_z = v2_zz + v3_yz
-    tau33_z = 4.0 / 3.0 * v3_zz - 2.0 / 3.0 * (v1_xz + v2_yz)
+    tau33_z = RealT(4) / 3 * v3_zz - RealT(2) / 3 * (v1_xz + v2_yz)
 
     # Compute the source terms
     # Density equation
@@ -182,7 +186,7 @@ end
            + rho_z * v3 + rho * v3_z)
     # x-momentum equation
     du2 = (rho_t * v1 + rho * v1_t + p_x + rho_x * v1^2
-           + 2.0 * rho * v1 * v1_x
+           + 2 * rho * v1 * v1_x
            + rho_y * v1 * v2
            + rho * v1_y * v2
            + rho * v1 * v2_y
@@ -195,7 +199,7 @@ end
            + rho * v1_x * v2
            + rho * v1 * v2_x
            + rho_y * v2^2
-           + 2.0 * rho * v2 * v2_y
+           + 2 * rho * v2 * v2_y
            + rho_z * v2 * v3
            + rho * v2_z * v3
            + rho * v2 * v3_z -
@@ -208,7 +212,7 @@ end
            + rho * v2_y * v3
            + rho * v2 * v3_y
            + rho_z * v3^2
-           + 2.0 * rho * v3 * v3_z -
+           + 2 * rho * v3 * v3_z -
            mu_ * (tau13_x + tau23_y + tau33_z))
     # Total energy equation
     du5 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x)
@@ -235,7 +239,7 @@ velocity_bc_top_bottom = NoSlip() do x, t, equations_parabolic
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1], u_cons[4] / u_cons[1])
 end
 
-heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> 0.0)
+heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)
 
@@ -258,6 +262,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 0.2)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -270,6 +278,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
+# A `Rational` initial time step `dt` keeps the real type of `semi` for the time
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
-            abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
+            abstol = time_int_tol, reltol = time_int_tol, dt = 1 // 100_000,
             ode_default_options()..., callback = callbacks)

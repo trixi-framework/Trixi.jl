@@ -135,13 +135,18 @@ end
 # This is required for drag and lift coefficients based on shear stress,
 # as well as for the non-integrated quantities such as
 # skin friction coefficient (to be added).
-# NOTE: This function is only valid for the compressible Navier-Stokes diffusion operator with
-# `gradient_variables = GradientVariablesPrimitive()`.
+# Here, `u` are the conservative variables, while `gradients_1` and `gradients_2` are the
+# gradients of the transformed variables (see `gradient_variable_transformation`), e.g.,
+# primitive or entropy variables of the compressible Navier-Stokes equations. Thus, we
+# need to convert `u` to the transformed variables to compute the velocity gradients
+# and to evaluate a state-dependent viscosity.
 function viscous_stress_tensor(u, equations_parabolic,
                                gradients_1, gradients_2)
-    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1,
+    u_transformed = gradient_variable_transformation(equations_parabolic)(u,
+                                                                          equations_parabolic)
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u_transformed, gradients_1,
                                                          equations_parabolic)
-    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients_2,
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u_transformed, gradients_2,
                                                          equations_parabolic)
 
     # Components of viscous stress tensor
@@ -153,7 +158,7 @@ function viscous_stress_tensor(u, equations_parabolic,
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
     tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
-    mu = dynamic_viscosity(u, equations_parabolic)
+    mu = dynamic_viscosity(u_transformed, equations_parabolic)
 
     return mu .* (tau_11, tau_12, tau_22)
 end
