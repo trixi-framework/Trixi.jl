@@ -793,7 +793,7 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mpi_mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -806,26 +806,26 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
             # Choose thread-specific pre-allocated container
             fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
-            fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
-            fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-            # Because `have_nonconservative_terms` is `False` the primary and secondary fluxes
-            # are identical. So, we could possibly save on computation and just pass two copies later.
+            # Calculate fluxes on the small elements, ordered by their mortar positions,
+            # in a loop to reduce the compile time (see `calc_fstar!` for nonconservative
+            # terms)
             orientation = orientations[mortar]
-            calc_fstar!(fstar_primary_upper, equations, surface_flux, dg,
-                        u_upper, mortar, orientation)
-            calc_fstar!(fstar_primary_lower, equations, surface_flux, dg,
-                        u_lower, mortar, orientation)
-            calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg,
-                        u_upper, mortar, orientation)
-            calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg,
-                        u_lower, mortar, orientation)
+            fstar_primary = (fstar_primary_lower, fstar_primary_upper)
+            u_mortars = (u_lower, u_upper)
+            for position in 1:2
+                calc_fstar!(fstar_primary[position], equations, surface_flux, dg,
+                            u_mortars[position], mortar, orientation)
+            end
 
+            # Without nonconservative terms, the primary and secondary fluxes are
+            # identical. Thus, we pass the primary fluxes as secondary fluxes as well,
+            # as in `calc_mortar_flux!`.
             mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                            mesh, equations, mortar_l2, dg, cache,
                                            mortar,
                                            fstar_primary_upper, fstar_primary_lower,
-                                           fstar_secondary_upper, fstar_secondary_lower)
+                                           fstar_primary_upper, fstar_primary_lower)
         end
     end
 
