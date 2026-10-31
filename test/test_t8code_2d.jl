@@ -289,19 +289,17 @@ end
 @testitem "T8codeMesh2D: elixir_mhd_rotor.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.38218858272066675, 0.83676833521797, 0.8060902696716481,
+                        l2=[0.15077720513548795, 0.40971672165769757, 0.39929779245008895,
                             0.0,
-                            0.9026752400014422, 0.09744229220989381,
-                            0.14801216800861783,
+                            0.35419782031671293, 0.060941724778874995, 0.1010717121078255,
                             0.0,
-                            0.002711941327345571],
-                        linf=[6.299016221022414, 11.690673974069338,
-                            7.775975420489866,
+                            0.0007111513401867172],
+                        linf=[3.7551368898150956, 8.050018281646318, 4.896322852173753,
                             0.0,
-                            12.483589537019869, 1.1882829336272624, 1.6966911044356634,
+                            8.18212387717509, 1.0737243649810042, 1.9039664986949623,
                             0.0,
-                            0.11132780908480444],
-                        tspan=(0.0, 0.02), max_level=4)
+                            0.04316282709001302],
+                        tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
