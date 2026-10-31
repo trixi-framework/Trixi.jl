@@ -188,6 +188,12 @@ for human readability.
   methods for the volume integral itself (e.g., the internal methods `create_cache`,
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- Fixes a bug in the nonconservative surface terms at mortars of `TreeMesh2D`s and
+  `TreeMesh3D`s: The nonconservative fluxes of the small and the large elements were
+  swapped, i.e., each element received the nonconservative term of its neighbor.
+  Thus, results of simulations with nonconservative terms (e.g., ideal GLM-MHD with
+  `flux_nonconservative_powell`) on nonconforming `TreeMesh`es (e.g., with AMR) change
+  ([#3293]).
 - Fixed the pressure coefficients `LiftCoefficientPressure3D` and
   `DragCoefficientPressure3D` on boundary faces that are not affine, where wrong surface
   nodes were used. With MPI, these coefficients are now summed over all ranks ([#3408]).
