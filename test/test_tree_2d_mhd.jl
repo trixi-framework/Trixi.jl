@@ -181,6 +181,40 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D MHD: elixir_mhd_ec_float32.jl (Float64 equations)" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
+    # Start with a clean environment: remove Trixi.jl output directory if it exists
+    outdir = "out"
+    isdir(outdir) && rm(outdir, recursive = true)
+
+    # The solution is stored as `Float32`, but `cons2prim` returns `Float64` values
+    # since the equations use `Float64`. See #2135
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_float32.jl"),
+                        equations=IdealGlmMhdEquations2D(1.4),
+                        tspan=(0.0f0, 0.01f0))
+
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    @test eltype(u) == Float32
+    prim = [cons2prim(Trixi.get_node_vars(u, equations, solver, i, j, element),
+                      equations)
+            for i in eachnode(solver), j in eachnode(solver),
+                element in eachelement(solver, semi.cache)]
+
+    filename = joinpath(outdir, "solution_" * lpad(sol.stats.naccept, 9, '0') * ".h5")
+    Trixi.h5open(filename, "r") do file
+        @test read(Trixi.attributes(file)["n_vars"]) == nvariables(equations)
+        for v in eachvariable(equations)
+            data = read(file["variables_$v"])
+            @test eltype(data) == Float64
+            @test data ≈ vec(getindex.(prim, v))
+            @test read(Trixi.attributes(file["variables_$v"])["name"]) ==
+                  Trixi.varnames(cons2prim, equations)[v]
+        end
+    end
+end
+
 @testitem "TreeMesh2D MHD: elixir_mhd_orszag_tang.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
                         l2=[
