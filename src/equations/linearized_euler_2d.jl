@@ -37,21 +37,29 @@ struct LinearizedEulerEquations2D{RealT <: Real} <:
     v_mean_global::SVector{2, RealT}
     c_mean_global::RealT
     rho_mean_global::RealT
-end
 
-function LinearizedEulerEquations2D(v_mean_global::NTuple{2, <:Real},
-                                    c_mean_global::Real, rho_mean_global::Real)
-    if rho_mean_global < 0
-        throw(ArgumentError("rho_mean_global must be non-negative"))
-    elseif c_mean_global < 0
-        throw(ArgumentError("c_mean_global must be non-negative"))
+    function LinearizedEulerEquations2D{RealT}(v_mean_global, c_mean_global,
+                                               rho_mean_global) where {RealT <: Real}
+        if rho_mean_global < 0
+            throw(ArgumentError("rho_mean_global must be non-negative"))
+        elseif c_mean_global < 0
+            throw(ArgumentError("c_mean_global must be non-negative"))
+        end
+
+        return new{RealT}(v_mean_global, c_mean_global, rho_mean_global)
     end
-
-    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global,
-                                      rho_mean_global)
 end
 
-function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
+function LinearizedEulerEquations2D(v_mean_global,
+                                    c_mean_global::Real, rho_mean_global::Real)
+    v_mean_global = SVector{2}(v_mean_global)
+    RealT = promote_type(eltype(v_mean_global), typeof(c_mean_global),
+                         typeof(rho_mean_global))
+    return LinearizedEulerEquations2D{RealT}(v_mean_global, c_mean_global,
+                                             rho_mean_global)
+end
+
+function LinearizedEulerEquations2D(; v_mean_global,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations2D(v_mean_global, c_mean_global,
                                       rho_mean_global)

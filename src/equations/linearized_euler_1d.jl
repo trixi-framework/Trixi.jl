@@ -33,18 +33,25 @@ struct LinearizedEulerEquations1D{RealT <: Real} <:
     v_mean_global::RealT
     c_mean_global::RealT
     rho_mean_global::RealT
+
+    function LinearizedEulerEquations1D{RealT}(v_mean_global, c_mean_global,
+                                               rho_mean_global) where {RealT <: Real}
+        if rho_mean_global < 0
+            throw(ArgumentError("rho_mean_global must be non-negative"))
+        elseif c_mean_global < 0
+            throw(ArgumentError("c_mean_global must be non-negative"))
+        end
+
+        return new{RealT}(v_mean_global, c_mean_global, rho_mean_global)
+    end
 end
 
 function LinearizedEulerEquations1D(v_mean_global::Real,
                                     c_mean_global::Real, rho_mean_global::Real)
-    if rho_mean_global < 0
-        throw(ArgumentError("rho_mean_global must be non-negative"))
-    elseif c_mean_global < 0
-        throw(ArgumentError("c_mean_global must be non-negative"))
-    end
-
-    return LinearizedEulerEquations1D(v_mean_global, c_mean_global,
-                                      rho_mean_global)
+    RealT = promote_type(typeof(v_mean_global), typeof(c_mean_global),
+                         typeof(rho_mean_global))
+    return LinearizedEulerEquations1D{RealT}(v_mean_global, c_mean_global,
+                                             rho_mean_global)
 end
 
 # Constructor with keywords
