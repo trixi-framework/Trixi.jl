@@ -12,7 +12,7 @@ using Trixi
 using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
              PlotData1D, PlotData2D, PlotData2DCartesian, PlotData2DTriangulated,
              TrixiODESolution,
-             wrap_array_native, mesh_equations_solver_cache
+             wrap_array_native, mesh_equations_solver_cache, calc_group_means
 
 # Import functions such that they can be extended with new methods
 import Trixi: iplot, iplot!, trixiheatmap, trixiheatmap!
@@ -518,23 +518,29 @@ function Makie.convert_arguments(::Type{<:Makie.Contour},
 end
 
 function Makie.contour(pds::PlotDataSeries{<:PlotData2DCartesian},
-                       fig = Makie.Figure(); kwargs...)
+                       fig = Makie.Figure();
+                       plot_mesh = false, colormap = default_Makie_colormap(),
+                       kwargs...)
     @unpack plot_data, variable_id = pds
-    @unpack x, y, variable_names = plot_data
+    @unpack x, y, variable_names, mesh_vertices_x, mesh_vertices_y = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x),
                     ylabel = _makie_guide(plot_data.orientation_y))
 
-    plt = Makie.contour!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    plt = Makie.contour!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
     Makie.ylims!(ax, y[begin], y[end])
+    if plot_mesh
+        Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                     color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
-function Makie.contour!(pds::PlotDataSeries{<:PlotData2DCartesian}; kwargs...)
+function Makie.contour!(pds::PlotDataSeries{<:AbstractPlotData{2}}; kwargs...)
     ax = Makie.current_axis()
     plt = Makie.contour!(ax, pds; kwargs...)
     display(Makie.current_figure())
@@ -585,19 +591,25 @@ function Makie.convert_arguments(::Type{<:Makie.Contourf},
 end
 
 function Makie.contourf(pds::PlotDataSeries{<:PlotData2DCartesian},
-                        fig = Makie.Figure(); kwargs...)
+                        fig = Makie.Figure();
+                        plot_mesh = false, colormap = default_Makie_colormap(),
+                        kwargs...)
     @unpack plot_data, variable_id = pds
-    @unpack x, y, variable_names = plot_data
+    @unpack x, y, variable_names, mesh_vertices_x, mesh_vertices_y = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x),
                     ylabel = _makie_guide(plot_data.orientation_y))
 
-    plt = Makie.contourf!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    plt = Makie.contourf!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
     Makie.ylims!(ax, y[begin], y[end])
+    if plot_mesh
+        Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                     color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
@@ -721,6 +733,196 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
     _fill_empty_axes!(axes, fig, n, rows, cols)
 
     return FigureAndAxes(fig, axes)
+end
+
+# We use Makie's `tricontour` and `tricontourf` to plot triangulated data
+# and use the triangulation of each element instead of a Delaunay triangulation
+# of all plotting nodes, which could extend beyond concave domain boundaries.
+# Since nodes at element interfaces are duplicated, contours are computed
+# separately for each element.
+function _tricontour_arguments(pds::PlotDataSeries{<:PlotData2DTriangulated})
+    @unpack plot_data, variable_id = pds
+    @unpack x, y, data, t, point_values, node_groups = plot_data
+
+    # Cell (mean) values are constant in each cell and have no contour lines, so we average
+    # them over all cells sharing a mesh vertex, which requires the `node_groups`.
+    if !point_values && isnothing(node_groups)
+        throw(ArgumentError("Contour plots of cell (mean) values in triangulated plot " *
+                            "data require `node_groups`, which are only " *
+                            "computed for `BlockFV`."))
+    end
+
+    num_plotting_nodes, num_elements = size(x)
+    num_reference_triangles = size(t, 1)
+    triangles = Matrix{Int}(undef, 3, num_reference_triangles * num_elements)
+    for element in Base.OneTo(num_elements)
+        offset = (element - 1) * num_plotting_nodes
+        for triangle in Base.OneTo(num_reference_triangles)
+            triangle_id = triangle + (element - 1) * num_reference_triangles
+            triangles[:, triangle_id] .= @views t[triangle, :] .+ offset
+        end
+    end
+
+    z = _variable_values(data, variable_id)
+    if !point_values
+        z = calc_group_means(z, node_groups)
+    end
+    return vec(x), vec(y), vec(z), triangles
+end
+
+# Values and title of a single variable. `ScalarPlotData2D` wraps the values of its only
+# variable in `ScalarData` and holds a single, optional variable name.
+_variable_values(data, variable_id) = StructArrays.component(data, variable_id)
+_variable_values(data::ScalarData, _) = data.data
+
+_variable_title(pd::PlotData2DTriangulated, variable_id) = pd.variable_names[variable_id]
+function _variable_title(pd::PlotData2DTriangulated{<:ScalarData}, _)
+    return isnothing(pd.variable_names) ? "" : pd.variable_names
+end
+
+function Makie.contour!(ax, pds::PlotDataSeries{<:PlotData2DTriangulated}; kwargs...)
+    x, y, z, triangles = _tricontour_arguments(pds)
+    return Makie.tricontour!(ax, x, y, z; triangulation = triangles, kwargs...)
+end
+
+function Makie.contourf!(ax, pds::PlotDataSeries{<:PlotData2DTriangulated}; kwargs...)
+    x, y, z, triangles = _tricontour_arguments(pds)
+    return Makie.tricontourf!(ax, x, y, z; triangulation = triangles, kwargs...)
+end
+
+function Makie.contour(pds::PlotDataSeries{<:PlotData2DTriangulated},
+                       fig = Makie.Figure();
+                       plot_mesh = false, colormap = default_Makie_colormap(),
+                       kwargs...)
+    @unpack plot_data, variable_id = pds
+    ax = Makie.Axis(fig[1, 1],
+                    title = _variable_title(plot_data, variable_id),
+                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    aspect = Makie.DataAspect())
+    plt = Makie.contour!(ax, pds; colormap, kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    Makie.xlims!(ax, extrema(plot_data.x))
+    Makie.ylims!(ax, extrema(plot_data.y))
+    if plot_mesh
+        Makie.lines!(ax,
+                     convert_PlotData2D_to_mesh_Points(pds;
+                                                       set_z_coordinate_zero = true);
+                     color = :grey, linewidth = 1)
+    end
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.contour(pd::PlotData2DTriangulated, fig = Makie.Figure();
+                       plot_mesh = false, colormap = default_Makie_colormap(),
+                       kwargs...)
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
+        plt = Makie.contour!(ax, pds; colormap, kwargs...)
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
+        Makie.xlims!(ax, extrema(pd.x))
+        Makie.ylims!(ax, extrema(pd.y))
+        if plot_mesh
+            Makie.lines!(ax,
+                         convert_PlotData2D_to_mesh_Points(pds;
+                                                           set_z_coordinate_zero = true);
+                         color = :grey, linewidth = 1)
+        end
+    end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
+
+    display(fig)
+    return FigureAndAxes(fig, axes)
+end
+
+function Makie.contourf(pds::PlotDataSeries{<:PlotData2DTriangulated},
+                        fig = Makie.Figure();
+                        plot_mesh = false, colormap = default_Makie_colormap(),
+                        kwargs...)
+    @unpack plot_data, variable_id = pds
+    ax = Makie.Axis(fig[1, 1],
+                    title = _variable_title(plot_data, variable_id),
+                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    aspect = Makie.DataAspect())
+    plt = Makie.contourf!(ax, pds; colormap, kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    Makie.xlims!(ax, extrema(plot_data.x))
+    Makie.ylims!(ax, extrema(plot_data.y))
+    if plot_mesh
+        Makie.lines!(ax,
+                     convert_PlotData2D_to_mesh_Points(pds;
+                                                       set_z_coordinate_zero = true);
+                     color = :grey, linewidth = 1)
+    end
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.contourf(pd::PlotData2DTriangulated, fig = Makie.Figure();
+                        plot_mesh = false, colormap = default_Makie_colormap(),
+                        kwargs...)
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
+        plt = Makie.contourf!(ax, pds; colormap, kwargs...)
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
+        Makie.xlims!(ax, extrema(pd.x))
+        Makie.ylims!(ax, extrema(pd.y))
+        if plot_mesh
+            Makie.lines!(ax,
+                         convert_PlotData2D_to_mesh_Points(pds;
+                                                           set_z_coordinate_zero = true);
+                         color = :grey, linewidth = 1)
+        end
+    end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
+
+    display(fig)
+    return FigureAndAxes(fig, axes)
+end
+
+# `ScalarPlotData2D` holds a single scalar field, which is plotted like a single variable
+function Makie.contour(pd::PlotData2DTriangulated{<:ScalarData}, fig = Makie.Figure();
+                       kwargs...)
+    return Makie.contour(PlotDataSeries(pd, 1), fig; kwargs...)
+end
+
+function Makie.contourf(pd::PlotData2DTriangulated{<:ScalarData}, fig = Makie.Figure();
+                        kwargs...)
+    return Makie.contourf(PlotDataSeries(pd, 1), fig; kwargs...)
+end
+
+function Makie.contour!(ax, pd::PlotData2DTriangulated{<:ScalarData}; kwargs...)
+    return Makie.contour!(ax, PlotDataSeries(pd, 1); kwargs...)
+end
+
+function Makie.contourf!(ax, pd::PlotData2DTriangulated{<:ScalarData}; kwargs...)
+    return Makie.contourf!(ax, PlotDataSeries(pd, 1); kwargs...)
+end
+
+function Makie.contour!(pd::PlotData2DTriangulated{<:ScalarData}; kwargs...)
+    return Makie.contour!(PlotDataSeries(pd, 1); kwargs...)
 end
 end # @muladd
 

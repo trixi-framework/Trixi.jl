@@ -972,6 +972,72 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
+# Surface integrals of the pressure computed via `AnalysisSurfaceIntegral` on a curved
+# mesh of [-1, 1]^3. The pressure p = 2 + y (1 + x) (1 + z) yields
+# ∮ p n_x dS = ∫ ∂p/∂x dV = 0, ∮ p n_y dS = ∫ ∂p/∂y dV = 8, and
+# ∫_{y = 1} p dS = ∫∫ 2 + (1 + x) (1 + z) dx dz = 12.
+# The mapping keeps the boundary planar but distorts the boundary faces.
+@testsnippet SurfaceIntegralsCurvedMesh3D begin
+    function surface_integrals_curved_mesh_3d()
+        equations = CompressibleEulerEquations3D(1.4)
+        function initial_condition(x, t, equations)
+            p = 2 + x[2] * (1 + x[1]) * (1 + x[3])
+            return prim2cons(SVector(1.0, 0.0, 0.0, 0.0, p), equations)
+        end
+        function mapping(xi, eta, zeta)
+            return SVector(xi + 0.05 * sinpi(xi) * (2 + eta + zeta),
+                           eta + 0.05 * sinpi(eta) * (2 + zeta + xi),
+                           zeta + 0.05 * sinpi(zeta) * (2 + xi + eta))
+        end
+        polydeg = 3
+        solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+        mesh = P4estMesh((4, 4, 4); polydeg, mapping, periodicity = false)
+        boundary_condition = BoundaryConditionDirichlet(initial_condition)
+        boundary_conditions = (; x_neg = boundary_condition, x_pos = boundary_condition,
+                               y_neg = boundary_condition, y_pos = boundary_condition,
+                               z_neg = boundary_condition, z_pos = boundary_condition)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions)
+
+        # With these free-stream values, the coefficients are the surface integrals
+        # of p (n ⋅ ψ)
+        aoa, rho_inf, u_inf, a_inf = 0.0, 1.0, 1.0, 2.0
+        all_boundaries = (:x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos)
+        lift = AnalysisSurfaceIntegral(all_boundaries,
+                                       LiftCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                 a_inf))
+        drag = AnalysisSurfaceIntegral(all_boundaries,
+                                       DragCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                 a_inf))
+        lift_top = AnalysisSurfaceIntegral((:y_pos,),
+                                           LiftCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                     a_inf))
+
+        # The right-hand side evaluation prolongs the solution to the boundaries
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        # `wrap_array` may not keep `u_ode` and `du_ode` alive
+        GC.@preserve u_ode du_ode begin
+            u = Trixi.wrap_array(u_ode, semi)
+            du = Trixi.wrap_array(du_ode, semi)
+            return (Trixi.analyze(lift, du, u, 0.0, semi),
+                    Trixi.analyze(drag, du, u, 0.0, semi),
+                    Trixi.analyze(lift_top, du, u, 0.0, semi))
+        end
+    end
+end
+
+@testitem "P4estMesh3D: AnalysisSurfaceIntegral on curved mesh" setup=[
+    Setup,
+    SurfaceIntegralsCurvedMesh3D
+] tags=[:p4est_part2] begin
+    lift, drag, lift_top = surface_integrals_curved_mesh_3d()
+    @test isapprox(lift, 8; atol = 1.0e-5)
+    @test isapprox(drag, 0; atol = 1.0e-5)
+    @test isapprox(lift_top, 12; atol = 1.0e-5)
+end
+
 @testitem "P4estMesh3D: elixir_euler_ONERA_M6_wing.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_ONERA_M6_wing.jl"),
