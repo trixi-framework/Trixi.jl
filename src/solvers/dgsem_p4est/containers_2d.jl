@@ -41,14 +41,14 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2, NDIMS_AMBIENT},
                                 nodes::AbstractVector) where {NDIMS_AMBIENT}
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(NDIMS_AMBIENT), static_length(nodes),
-                       static_length(mesh.nodes))
-    matrix1 = StrideArray(undef, real(mesh),
-                          static_length(nodes), static_length(mesh.nodes))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    tmp1 = stride_array_or_array(real(mesh),
+                                 StaticInt(NDIMS_AMBIENT), static_length(nodes),
+                                 static_length(mesh.nodes))
+    matrix1 = stride_array_or_array(real(mesh),
+                                    static_length(nodes), static_length(mesh.nodes))
     matrix2 = similar(matrix1)
     baryweights_in = barycentric_weights(mesh.nodes)
 
