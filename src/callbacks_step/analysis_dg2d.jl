@@ -145,16 +145,20 @@ function calc_error_norms(func, u, t, analyzer,
                                       T8codeMesh{2}},
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
+    return calc_error_norms(func, trixi_backend(u), u, t, analyzer, mesh, equations,
+                            initial_condition, dg, cache, cache_analysis)
+end
+
+function calc_error_norms(func, ::Nothing, u, t, analyzer,
+                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                      UnstructuredMesh2D,
+                                      P4estMesh{2}, P4estMeshView{2},
+                                      T8codeMesh{2}},
+                          equations,
+                          initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
-
-    # Calculate error norms on the CPU, to ensure the order of summation is the same.
-    if trixi_backend(u) !== nothing
-        node_coordinates = Array(node_coordinates)
-        inverse_jacobian = Array(inverse_jacobian)
-        u = Array(u)
-    end
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
@@ -184,6 +188,83 @@ function calc_error_norms(func, u, t, analyzer,
             linf_error = @. max(linf_error, abs(diff))
             total_volume += weights[i] * weights[j] * abs_jacobian_local_ij
         end
+    end
+
+    # For L2 error, divide by total volume
+    l2_error = @. sqrt(l2_error / total_volume)
+
+    return l2_error, linf_error
+end
+
+# Since the reduction on the GPU is parallel, the order of summation differs from the
+# serial CPU version above. Thus, the L2 errors can differ by round-off.
+function calc_error_norms(func, backend::Backend, u, t, analyzer,
+                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                      UnstructuredMesh2D,
+                                      P4estMesh{2}, P4estMeshView{2},
+                                      T8codeMesh{2}},
+                          equations,
+                          initial_condition, dg::DGSEM, cache, cache_analysis)
+    @unpack weights = analyzer
+    @unpack node_coordinates, inverse_jacobian = cache.elements
+
+    n_nodes = nnodes(dg)
+    n_nodes_analysis = nnodes(analyzer)
+    n_elements = nelements(dg, cache)
+
+    # TODO GPU: vandermonde needs to be moved to the GPU
+    vandermonde = SMatrix{n_nodes_analysis, n_nodes}(analyzer.vandermonde)
+
+    u_node_type = SVector{nvariables(equations), eltype(u)}
+    u0 = zero(u_node_type)
+    x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
+
+    # We cannot evaluate `func` on GPU data here to get the type of the errors.
+    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
+    error0 = zero(Base.promote_op(func, u_node_type, typeof(equations)))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (error0, error0, volume0)
+
+    function local_reduce((l2_error, linf_error, total_volume),
+                          (l2_error_element, linf_error_element, volume_element))
+        return (l2_error + l2_error_element, max.(linf_error, linf_error_element),
+                total_volume + volume_element)
+    end
+
+    l2_error, linf_error, total_volume = AcceleratedKernels.mapreduce(local_reduce,
+                                                                      1:n_elements,
+                                                                      backend; init,
+                                                                      neutral) do element
+        l2_error_element, linf_error_element, volume_element = neutral
+
+        # Naive versions of multiply_(scalar_)dimensionwise
+        for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+            u_local = u0
+            x_local = x0
+            jacobian_local = zero(eltype(inverse_jacobian))
+            for jj in 1:n_nodes, ii in 1:n_nodes
+                u_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                           get_node_vars(u, equations, dg, ii, jj, element)
+                x_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                           get_node_coords(node_coordinates, equations, dg, ii, jj,
+                                           element)
+                jacobian_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                                  inv(inverse_jacobian[ii, jj, element])
+            end
+
+            # Calculate errors at the analysis node
+            u_exact = initial_condition(x_local, t, equations)
+            diff = func(u_exact, equations) - func(u_local, equations)
+            # We take absolute value as we need the Jacobian here for the volume calculation
+            abs_jacobian_local = abs(jacobian_local)
+
+            l2_error_element += diff .^ 2 *
+                                (weights[i] * weights[j] * abs_jacobian_local)
+            linf_error_element = @. max(linf_error_element, abs(diff))
+            volume_element += weights[i] * weights[j] * abs_jacobian_local
+        end
+
+        return (l2_error_element, linf_error_element, volume_element)
     end
 
     # For L2 error, divide by total volume
