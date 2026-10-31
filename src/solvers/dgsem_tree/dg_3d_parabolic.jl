@@ -881,24 +881,19 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
             fstar_lower_right = fstar_primary_lower_right_threaded[Threads.threadid()]
             fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
-            # Calculate fluxes
+            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`.
+            # The loop over the small elements inlines the numerical fluxes only once,
+            # which reduces the compile time.
             orientation = orientations[mortar]
-            calc_fstar!(fstar_upper_left, mesh, equations_parabolic,
-                        surface_flux, dg,
-                        parabolic_scheme, gradient_or_divergence,
-                        u_upper_left, mortar, orientation)
-            calc_fstar!(fstar_upper_right, mesh, equations_parabolic,
-                        surface_flux, dg,
-                        parabolic_scheme, gradient_or_divergence,
-                        u_upper_right, mortar, orientation)
-            calc_fstar!(fstar_lower_left, mesh, equations_parabolic,
-                        surface_flux, dg,
-                        parabolic_scheme, gradient_or_divergence,
-                        u_lower_left, mortar, orientation)
-            calc_fstar!(fstar_lower_right, mesh, equations_parabolic,
-                        surface_flux, dg,
-                        parabolic_scheme, gradient_or_divergence,
-                        u_lower_right, mortar, orientation)
+            fstar = (fstar_lower_left, fstar_lower_right,
+                     fstar_upper_left, fstar_upper_right)
+            u_mortars = (u_lower_left, u_lower_right, u_upper_left, u_upper_right)
+            for position in 1:4
+                calc_fstar!(fstar[position], mesh, equations_parabolic,
+                            surface_flux, dg,
+                            parabolic_scheme, gradient_or_divergence,
+                            u_mortars[position], mortar, orientation)
+            end
 
             mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations_parabolic, mortar_l2, dg, cache,
