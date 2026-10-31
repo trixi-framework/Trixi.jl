@@ -962,15 +962,20 @@ end
           LinearizedEulerEquations3D{Float64}
 
     # Invalid mean values are rejected by all constructors
-    msg_c = "c_mean_global must be non-negative"
-    msg_rho = "rho_mean_global must be non-negative"
+    msg_c = "c_mean_global must be positive"
+    msg_rho = "rho_mean_global must be positive"
     @test_throws msg_c LinearizedEulerEquations1D(0.0, -1.0, 1.0)
     @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, -1.0)
     @test_throws msg_rho LinearizedEulerEquations1D(0, 1.0, -1.0f0)
     @test_throws msg_c LinearizedEulerEquations1D{Float64}(0.0, -1.0, 1.0)
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, 0.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, 0.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, NaN)
     @test_throws msg_c LinearizedEulerEquations2D(SVector(0.0, 0.0), -1.0, 1.0)
     @test_throws msg_rho LinearizedEulerEquations2D((0.0, 0.0), 1.0, -1)
+    @test_throws msg_c LinearizedEulerEquations2D((0.0, 0.0), 0, 1)
     @test_throws msg_c LinearizedEulerEquations3D(SVector(0.0, 0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations3D((0, 0, 0), 1, 0)
     @test_throws msg_rho LinearizedEulerEquations3D(v_mean_global = (0.0, 0.0, 0.0),
                                                     c_mean_global = 1.0,
                                                     rho_mean_global = -1.0)
