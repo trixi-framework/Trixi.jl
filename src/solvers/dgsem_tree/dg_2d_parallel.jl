@@ -86,21 +86,8 @@ function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
         send_buffer[(interfaces_data_size + 1):(interfaces_data_size + mortars_data_size)] .= NaN
 
         for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[rank])
-            # First and last indices in the send buffer for mortar data obtained from local element
-            # in a given position
             index_base = interfaces_data_size + (index - 1) * 4 * data_size
-            indices = (
-                       # first, last for local element in position 1 (lower element)
-                       (index_base + 1,
-                        index_base + 1 * data_size),
-                       # first, last for local element in position 2 (upper element)
-                       (index_base + 1 * data_size + 1,
-                        index_base + 2 * data_size),
-                       # firsts, lasts for local element in position 3 (large element)
-                       (index_base + 2 * data_size + 1,
-                        index_base + 3 * data_size,
-                        index_base + 3 * data_size + 1,
-                        index_base + 4 * data_size))
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
 
             for position in cache.mpi_mortars.local_neighbor_positions[mortar]
                 # Determine whether the data belongs to the left or right side
@@ -131,15 +118,17 @@ function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
                                                                                     :,
                                                                                     mortar])
                 else # large element
-                    first_lower, last_lower, first_upper, last_upper = indices[position]
-                    @views send_buffer[first_lower:last_lower] .= vec(cache.mpi_mortars.u_lower[leftright,
-                                                                                                :,
-                                                                                                :,
-                                                                                                mortar])
-                    @views send_buffer[first_upper:last_upper] .= vec(cache.mpi_mortars.u_upper[leftright,
-                                                                                                :,
-                                                                                                :,
-                                                                                                mortar])
+                    first, last = indices[position]
+                    # The data of the lower part is followed by the data of the upper part
+                    last_lower = first + data_size - 1
+                    @views send_buffer[first:last_lower] .= vec(cache.mpi_mortars.u_lower[leftright,
+                                                                                          :,
+                                                                                          :,
+                                                                                          mortar])
+                    @views send_buffer[(last_lower + 1):last] .= vec(cache.mpi_mortars.u_upper[leftright,
+                                                                                               :,
+                                                                                               :,
+                                                                                               mortar])
                 end
             end
         end
@@ -183,21 +172,8 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
         interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[data]) *
                                data_size
         for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[data])
-            # First and last indices in the receive buffer for mortar data obtained from remote element
-            # in a given position
             index_base = interfaces_data_size + (index - 1) * 4 * data_size
-            indices = (
-                       # first, last for local element in position 1 (lower element)
-                       (index_base + 1,
-                        index_base + 1 * data_size),
-                       # first, last for local element in position 2 (upper element)
-                       (index_base + 1 * data_size + 1,
-                        index_base + 2 * data_size),
-                       # firsts, lasts for local element in position 3 (large element)
-                       (index_base + 2 * data_size + 1,
-                        index_base + 3 * data_size,
-                        index_base + 3 * data_size + 1,
-                        index_base + 4 * data_size))
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
 
             for position in 1:3
                 # Skip if received data for `pos` is NaN as no real data has been sent for the
@@ -228,9 +204,11 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
                     first, last = indices[position]
                     @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first:last]
                 else # large element data has been received
-                    first_lower, last_lower, first_upper, last_upper = indices[position]
-                    @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first_lower:last_lower]
-                    @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[first_upper:last_upper]
+                    first, last = indices[position]
+                    # The data of the lower part is followed by the data of the upper part
+                    last_lower = first + data_size - 1
+                    @views vec(cache.mpi_mortars.u_lower[leftright, :, :, mortar]) .= recv_buffer[first:last_lower]
+                    @views vec(cache.mpi_mortars.u_upper[leftright, :, :, mortar]) .= recv_buffer[(last_lower + 1):last]
                 end
             end
         end
@@ -239,6 +217,26 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
     end
 
     return nothing
+end
+
+# Return a tuple `indices` where `indices[position]` is a `(first, last)` tuple for accessing
+# the data corresponding to the `position` part of a mortar in an MPI buffer. The mortar data
+# must begin at `index_base + 1` in the MPI buffer. `data_size` is the data size associated
+# with each small position (i.e., position 1 or 2). The data corresponding to the large side
+# (i.e., position 3) has size `2 * data_size`.
+# All entries have the same type so that `indices[position]` can be inferred for a runtime
+# value of `position` without allocations.
+@inline function buffer_mortar_indices(mesh::TreeMeshParallel{2}, index_base, data_size)
+    return (
+            # first, last for local element in position 1 (lower element)
+            (index_base + 1,
+             index_base + 1 * data_size),
+            # first, last for local element in position 2 (upper element)
+            (index_base + 1 * data_size + 1,
+             index_base + 2 * data_size),
+            # first, last for local element in position 3 (large element)
+            (index_base + 2 * data_size + 1,
+             index_base + 4 * data_size))
 end
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
@@ -786,6 +784,69 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
+function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
+                                  mesh::TreeMeshParallel{2},
+                                  have_nonconservative_terms::True, equations,
+                                  surface_integral, dg::DG, cache)
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mpi_interfaces, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
+    @threaded for interface in eachmpiinterface(dg, cache)
+        @inbounds begin
+            # Get local neighboring element
+            element = local_neighbor_ids[interface]
+            orientation = orientations[interface]
+            remote_side = remote_sides[interface]
+
+            # Determine interface direction with respect to element:
+            if orientation == 1 # interface in x-direction
+                if remote_side == 1 # local element in positive direction
+                    direction = 1
+                else # local element in negative direction
+                    direction = 2
+                end
+            else # interface in y-direction
+                if remote_side == 1 # local element in positive direction
+                    direction = 3
+                else # local element in negative direction
+                    direction = 4
+                end
+            end
+
+            for i in eachnode(dg)
+                # Call pointwise Riemann solver
+                u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+                flux = surface_flux(u_ll, u_rr, orientation, equations)
+
+                # Compute the nonconservative flux of the local element, which
+                # expects the state of the local element as first argument
+                if remote_side == 1 # local element on the right
+                    noncons = nonconservative_flux(u_rr, u_ll, orientation, equations)
+                else # local element on the left
+                    noncons = nonconservative_flux(u_ll, u_rr, orientation, equations)
+                end
+
+                # Copy flux to local element storage
+                for v in eachvariable(equations)
+                    # Note the factor 0.5 necessary for the nonconservative fluxes based on
+                    # the interpretation of global SBP operators coupled discontinuously via
+                    # central fluxes/SATs
+                    surface_flux_values[v, i, direction, element] = flux[v] +
+                                                                    0.5f0 * noncons[v]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                mesh::TreeMeshParallel{2},
                                have_nonconservative_terms::False, equations,
@@ -820,6 +881,60 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                         u_upper, mortar, orientation)
             calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg,
                         u_lower, mortar, orientation)
+
+            mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                           mesh, equations, mortar_l2, dg, cache,
+                                           mortar,
+                                           fstar_primary_upper, fstar_primary_lower,
+                                           fstar_secondary_upper, fstar_secondary_lower)
+        end
+    end
+
+    return nothing
+end
+
+function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
+                               mesh::TreeMeshParallel{2},
+                               have_nonconservative_terms::True, equations,
+                               mortar_l2::LobattoLegendreMortarL2,
+                               surface_integral, dg::DG, cache)
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    @unpack u_lower, u_upper, orientations, large_sides = cache.mpi_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.mpi_mortars, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
+    @threaded for mortar in eachmpimortar(dg, cache)
+        @inbounds begin
+            # Choose thread-specific pre-allocated container
+            fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+            fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+            fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+            fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+
+            # Calculate fluxes
+            orientation = orientations[mortar]
+            calc_fstar!(fstar_primary_upper, equations, surface_flux, dg,
+                        u_upper, mortar, orientation)
+            calc_fstar!(fstar_primary_lower, equations, surface_flux, dg,
+                        u_lower, mortar, orientation)
+            calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg,
+                        u_upper, mortar, orientation)
+            calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg,
+                        u_lower, mortar, orientation)
+
+            # Add nonconservative fluxes
+            add_nonconservative_mortar_fluxes!(fstar_primary_upper, fstar_primary_lower,
+                                               fstar_secondary_upper,
+                                               fstar_secondary_lower,
+                                               u_upper, u_lower, mortar, orientation,
+                                               large_sides[mortar],
+                                               nonconservative_flux,
+                                               equations, dg)
 
             mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                            mesh, equations, mortar_l2, dg, cache,
