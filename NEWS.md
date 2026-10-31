@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Contour plotting using Makie.jl is now supported for
+  `PlotData2DTriangulated` data ([#3253]).
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
