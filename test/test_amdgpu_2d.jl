@@ -322,7 +322,7 @@ end
     # Make sure that the mortar kernels are used, including mortars
     # whose large side runs backwards (flipped orientation)
     @test Trixi.nmortars(semi.solver, semi.cache) > 0
-    @test any(indices -> :i_backward in indices,
+    @test any(indices -> NodeIndex.IBackward in indices,
               Array(semi.cache.mortars.node_indices)[2, :])
     @test ode.u0 isa ROCArray
     @test semi.solver.basis.derivative_matrix isa ROCArray

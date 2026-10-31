@@ -300,7 +300,7 @@ end
 
     # The surface flux storage must be indexed in alignment with the local element
     # indexing
-    if :i_backward in local_indices
+    if NodeIndex.IBackward in local_indices
         surface_node = last(index_range) + 1 - i
     else
         surface_node = i

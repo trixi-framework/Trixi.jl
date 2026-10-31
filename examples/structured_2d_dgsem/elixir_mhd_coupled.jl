@@ -56,9 +56,15 @@ mesh1 = StructuredMesh(cells_per_dimension,
                        periodicity = (false, true))
 
 coupling_function1 = (x, u, equations_other, equations_own) -> u
-boundary_conditions1 = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+boundary_conditions1 = (x_neg = BoundaryConditionCoupled(2,
+                                                         (NodeIndex.End,
+                                                          NodeIndex.IForward),
+                                                         Float64,
                                                          coupling_function1),
-                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(2,
+                                                         (NodeIndex.Begin,
+                                                          NodeIndex.IForward),
+                                                         Float64,
                                                          coupling_function1),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
@@ -79,9 +85,15 @@ mesh2 = StructuredMesh(cells_per_dimension,
                        periodicity = (false, true))
 
 coupling_function2 = (x, u, equations_other, equations_own) -> u
-boundary_conditions2 = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
+boundary_conditions2 = (x_neg = BoundaryConditionCoupled(1,
+                                                         (NodeIndex.End,
+                                                          NodeIndex.IForward),
+                                                         Float64,
                                                          coupling_function2),
-                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(1,
+                                                         (NodeIndex.Begin,
+                                                          NodeIndex.IForward),
+                                                         Float64,
                                                          coupling_function2),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
