@@ -1186,6 +1186,112 @@ end
     @test max_abs_rhs_parabolic(semi) < 1.0e-9
 end
 
+@testitem "Parabolic2D: P4estMesh2D/DGMulti: Neumann and adiabatic wall BCs (linear solution)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # The parabolic terms must vanish for a linear solution with the corresponding
+    # nonzero normal fluxes prescribed at the boundaries. Since the surface Jacobian
+    # is not one, this checks that the prescribed normal fluxes are scaled correctly.
+    function max_abs_rhs_parabolic(mesh, solver, equations, equations_parabolic,
+                                   initial_condition, boundary_conditions_parabolic,
+                                   boundary_condition_hyperbolic)
+        boundary_conditions = map(_ -> boundary_condition_hyperbolic,
+                                  boundary_conditions_parabolic)
+        semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions_parabolic))
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return maximum(abs, du_ode)
+    end
+
+    # Curved mesh of the domain [-1, 0] x [-0.5, 0.5]
+    function mapping(xi, eta)
+        x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
+        y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
+        return SVector(0.5 * (1 + x) - 1, 0.5 * y)
+    end
+    mesh_p4est = P4estMesh((2, 3), polydeg = 3, mapping = mapping,
+                           initial_refinement_level = 1, periodicity = false)
+    solver_p4est = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    # DGMulti on the domain [-1, 0] x [0, 0.5]
+    solver_dgmulti = DGMulti(polydeg = 3, element_type = Quad(),
+                             approximation_type = Polynomial(),
+                             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+                             volume_integral = VolumeIntegralWeakForm())
+    is_on_boundary = Dict(:left => x -> isapprox(x[1], -1, atol = 1.0e-12),
+                          :right => x -> isapprox(x[1], 0, atol = 1.0e-12),
+                          :bottom => x -> isapprox(x[2], 0, atol = 1.0e-12),
+                          :top => x -> isapprox(x[2], 0.5, atol = 1.0e-12))
+    mesh_dgmulti = DGMultiMesh(solver_dgmulti, (3, 4); coordinates_min = (-1.0, 0.0),
+                               coordinates_max = (0.0, 0.5), is_on_boundary)
+
+    # Neumann BCs prescribing the outward normal flux of `diffusivity * grad(u)`
+    diffusivity = 0.7
+    equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
+    equations_parabolic = LaplaceDiffusion2D(diffusivity, equations)
+    initial_condition_linear(x, t, equations) = SVector(1 + 2 * x[1] + 3 * x[2])
+    neumann(normal_flux) = BoundaryConditionNeumann((x, t, equations) -> SVector(normal_flux))
+    boundary_conditions_neumann = (; x_neg = neumann(-2 * diffusivity),
+                                   x_pos = neumann(2 * diffusivity),
+                                   y_neg = neumann(-3 * diffusivity),
+                                   y_pos = neumann(3 * diffusivity))
+    @test max_abs_rhs_parabolic(mesh_p4est, solver_p4est, equations, equations_parabolic,
+                                initial_condition_linear, boundary_conditions_neumann,
+                                BoundaryConditionDirichlet(initial_condition_linear)) <
+          1.0e-9
+
+    boundary_conditions_neumann = (; left = neumann(-2 * diffusivity),
+                                   right = neumann(2 * diffusivity),
+                                   bottom = neumann(-3 * diffusivity),
+                                   top = neumann(3 * diffusivity))
+    @test max_abs_rhs_parabolic(mesh_dgmulti, solver_dgmulti, equations,
+                                equations_parabolic, initial_condition_linear,
+                                boundary_conditions_neumann,
+                                BoundaryConditionDirichlet(initial_condition_linear)) <
+          1.0e-9
+
+    # Fluid at rest with constant density and linear temperature; adiabatic walls
+    # prescribing the outward normal heat flux `kappa * dT/dn`
+    equations = CompressibleEulerEquations2D(1.4)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = 0.01,
+                                                              Prandtl = 0.72)
+    (; R) = equations_parabolic
+    kappa = 1.4 * 0.01 * R / ((1.4 - 1) * 0.72)
+    temperature(x) = 2 + 0.3 * x[1] - 0.2 * x[2]
+    function initial_condition_rest(x, t, equations)
+        return prim2cons(SVector(1, 0, 0, R * temperature(x)), equations)
+    end
+    function wall(velocity_bc, normal_heat_flux)
+        return BoundaryConditionNavierStokesWall(velocity_bc,
+                                                 Adiabatic((x, t, equations) -> normal_heat_flux))
+    end
+
+    for velocity_bc in (NoSlip((x, t, equations) -> (0.0, 0.0)), Slip())
+        boundary_conditions_parabolic = (; x_neg = wall(velocity_bc, -0.3 * kappa),
+                                         x_pos = wall(velocity_bc, 0.3 * kappa),
+                                         y_neg = wall(velocity_bc, 0.2 * kappa),
+                                         y_pos = wall(velocity_bc, -0.2 * kappa))
+        @test max_abs_rhs_parabolic(mesh_p4est, solver_p4est, equations,
+                                    equations_parabolic, initial_condition_rest,
+                                    boundary_conditions_parabolic,
+                                    boundary_condition_slip_wall) < 1.0e-9
+
+        boundary_conditions_parabolic = (; left = wall(velocity_bc, -0.3 * kappa),
+                                         right = wall(velocity_bc, 0.3 * kappa),
+                                         bottom = wall(velocity_bc, 0.2 * kappa),
+                                         top = wall(velocity_bc, -0.2 * kappa))
+        @test max_abs_rhs_parabolic(mesh_dgmulti, solver_dgmulti, equations,
+                                    equations_parabolic, initial_condition_rest,
+                                    boundary_conditions_parabolic,
+                                    boundary_condition_slip_wall) < 1.0e-9
+    end
+end
+
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" setup=[
     Setup,
     Parabolic2D

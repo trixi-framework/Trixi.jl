@@ -198,6 +198,12 @@ for human readability.
 - `linf_divb` of a 2D `TreeMesh` is now the maximum over all MPI ranks ([#3408]).
 - With MPI, the `SteadyStateCallback` now terminates the simulation only if the steady
   state is reached on all MPI ranks, not on any of them ([#3408]).
+- Fixes a bug in parabolic boundary conditions prescribing a normal flux on `P4estMesh`es:
+  the normal flux of `BoundaryConditionNeumann` and the normal heat flux of `Adiabatic`
+  walls were not scaled by the surface Jacobian. Thus, results with nonzero prescribed
+  normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
+  operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
+  same way; `flux_inner` already includes this scaling ([#3412]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
