@@ -54,6 +54,29 @@ end
     end
 end
 
+@testitem "T8codeMesh2D: coarsen only complete families marked for coarsening" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
+    using Trixi: Trixi, T8codeMesh
+
+    # A single tree refined once, i.e., one family of four elements.
+    # Each element of the family has to be marked for coarsening
+    # (indicator value -1), as on the `P4estMesh`.
+    function adapt_family(indicators)
+        mesh = T8codeMesh((1, 1), polydeg = 1,
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                          initial_refinement_level = 1)
+        difference = Trixi.trixi_t8_adapt!(mesh, indicators)
+        return Trixi.ncells(mesh), difference
+    end
+
+    @test adapt_family([-1, -1, -1, -1]) == (1, [-1, -1, -1, -1])
+    @test adapt_family([-1, 0, 0, 0]) == (4, [0, 0, 0, 0])
+    @test adapt_family([0, -1, -1, -1]) == (4, [0, 0, 0, 0])
+    @test adapt_family([-1, -1, -1, 1]) == (7, [0, 0, 0, 1])
+end
+
 @testitem "T8codeMesh2D: elixir_advection_basic.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -92,8 +115,8 @@ end
 ] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
-                        l2=[0.002019623611753929],
-                        linf=[0.03542375961299987])
+                        l2=[0.0012808538770534917],
+                        linf=[0.017526900166598143])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -264,21 +287,21 @@ end
 end
 
 @testitem "T8codeMesh2D: elixir_mhd_rotor.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
-    # Unlike the test in `test_p4est_2d.jl`, this test keeps `max_level = 5`:
-    # with `max_level = 4`, the first coarsening step on the T8codeMesh yields a
-    # negative pressure and the simulation fails.
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.1451360866789373, 0.4055197518155356, 0.3980240592456563,
+                        l2=[0.38218858272066675, 0.83676833521797, 0.8060902696716481,
                             0.0,
-                            0.35044168421287414, 0.06031061522651706, 0.09966604905806797,
+                            0.9026752400014422, 0.09744229220989381,
+                            0.14801216800861783,
                             0.0,
-                            0.0011300086990822156],
-                        linf=[3.8088140986185888, 7.502030742228754, 4.716197211274913,
+                            0.002711941327345571],
+                        linf=[6.299016221022414, 11.690673974069338,
+                            7.775975420489866,
                             0.0,
-                            8.65393942562945, 1.0814930406412593, 1.8642445102532028,
+                            12.483589537019869, 1.1882829336272624, 1.6966911044356634,
                             0.0,
-                            0.08519750167637169],
-                        tspan=(0.0, 0.01))
+                            0.11132780908480444],
+                        tspan=(0.0, 0.02), max_level=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -287,16 +310,16 @@ end
 @testitem "T8codeMesh2D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.10823279736983638,
-                            0.1158152939803735,
-                            0.11633970342992006,
-                            0.751152651902375
+                            0.11134260363848145,
+                            0.1175235709180422,
+                            0.11829112104640771,
+                            0.7557891142955037
                         ],
                         linf=[
-                            0.5581611332828653,
-                            0.8354026029724041,
-                            0.834485181423738,
-                            3.923553028014343
+                            0.5728647031475103,
+                            0.835313297767029,
+                            0.8266797080712254,
+                            3.979250623054833
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations

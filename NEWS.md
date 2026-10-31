@@ -210,6 +210,11 @@ for human readability.
   normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
   operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
   same way; `flux_inner` already includes this scaling ([#3412]).
+- Fixes a bug in the AMR of `T8codeMesh`es: a family of elements was coarsened if its
+  first element was marked for coarsening, even if other elements of the family were
+  not. Now, a family is coarsened only if all of its elements are marked for coarsening,
+  as for `P4estMesh`es. Thus, results of simulations with AMR on `T8codeMesh`es change
+  and now agree with the corresponding simulations on `P4estMesh`es ([#3421]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of

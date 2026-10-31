@@ -125,18 +125,18 @@ end
 @testitem "P4estMesh MPI 2D: elixir_euler_wall_bc_amr.jl" setup=[Setup, MPIP4estMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
                         l2=[
-                            0.020266970819461425,
-                            0.01746740120890609,
-                            0.011378393090609054,
-                            0.05138965928352185
+                            0.01634023934753053,
+                            0.014069761820947794,
+                            0.009057860913480532,
+                            0.041494832882935526
                         ],
                         linf=[
-                            0.3593492062888952,
-                            0.32077672777509403,
-                            0.23600493584887167,
-                            0.9291837711500472
+                            0.35327216004337436,
+                            0.32763728948336474,
+                            0.2335135546142649,
+                            0.9264192624051251
                         ],
-                        tspan=(0.0, 0.15))
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

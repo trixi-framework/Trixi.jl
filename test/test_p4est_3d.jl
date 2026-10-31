@@ -588,20 +588,20 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_baroclinic_instability.jl"),
                         l2=[
-                            2.3150100301657337e-5,
-                            0.004216843198340655,
-                            0.005814803618195023,
-                            0.0022585708697340713,
-                            4.671572214433824
+                            6.725093801700048e-7,
+                            0.00021710076010951073,
+                            0.0004386796338203878,
+                            0.00020836270267103122,
+                            0.07601887903440395
                         ],
                         linf=[
-                            0.0001470224844724033,
-                            0.2122184225470533,
-                            0.4798143757048139,
-                            0.22182392671385734,
-                            36.19789791930816
+                            1.9107530539574924e-5,
+                            0.02980358831035801,
+                            0.048476331898047564,
+                            0.02200137344113612,
+                            4.848310144356219
                         ],
-                        tspan=(0.0, 1e2), trees_per_cube_face=(4, 2),
+                        tspan=(0.0, 1e2),
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
                         abstol=1.0e-9, reltol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
