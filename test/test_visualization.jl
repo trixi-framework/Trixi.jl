@@ -1470,7 +1470,7 @@ end
     # they are available, so plot data without them has to be assembled manually here.
     pd_cells = Trixi.PlotData2DTriangulated(pd.x, pd.y, pd.data, pd.t, pd.x_face,
                                             pd.y_face, pd.face_data, pd.variable_names,
-                                            false, nothing)
+                                            false, nothing, 1, 2)
     @test_throws ArgumentError Makie.contour(pd_cells["rho"])
     @test_throws ArgumentError Makie.contourf(pd_cells["rho"])
 
