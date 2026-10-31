@@ -87,6 +87,21 @@ values in
 and
 [`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
 
+The GPU tests run on Buildkite (see
+[`.buildkite/pipeline.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.buildkite/pipeline.yml)).
+The GPU packages CUDA.jl, AMDGPU.jl, and Metal.jl are listed only in the `[extras]` of
+`test/Project.toml` so that they do not restrict the versions of other packages in the
+test environment. The script
+[`test/run_gpu_downgrade_tests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/run_gpu_downgrade_tests.jl)
+adds the GPU package required by a job to the test environment. On the oldest Julia
+version supported by Trixi.jl (or if the environment variable `TRIXI_TEST_DOWNGRADE` is set to `true`),
+it also downgrades all packages to the oldest versions
+compatible with the compat bounds, as in the downgrade jobs on GitHub Actions (see
+[`.github/workflows/Downgrade.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/Downgrade.yml)).
+On newer Julia versions, the newest compatible versions are used. To run the GPU tests
+locally, add the GPU package to your test environment, e.g., `Pkg.add("CUDA")` after
+activating it with TestEnv.jl as described above.
+
 
 ## Adding new tests
 We use [TestItems.jl](https://github.com/julia-vscode/TestItems.jl) on top of Julia's
