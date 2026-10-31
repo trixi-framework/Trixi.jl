@@ -165,6 +165,15 @@ for human readability.
   takes the metric terms into account and agrees with the value on a `TreeMesh` for
   Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
   meshes change ([#3360]).
+- Fixes a bug in `flux_godunov` with a `normal_direction` for the
+  `HyperbolicDiffusionEquations2D`: The upwind dissipation of the gradient variables
+  `q1, q2` was applied componentwise instead of to the normal component of their jump.
+  This was wrong for normal directions that are not aligned with the coordinate axes and
+  anti-dissipative for normal directions with negative components. Thus, results of
+  simulations using `flux_godunov` with these equations change, e.g., on
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`, `DGMultiMesh`, or curved
+  `StructuredMesh`es. Results on `TreeMesh`es and Cartesian `StructuredMesh`es are
+  unchanged ([#3406]).
 - `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing

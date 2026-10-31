@@ -2208,6 +2208,43 @@ end
     end
 end
 
+@testitem "Unit: Godunov flux for hyperbolic diffusion 2D with normal_direction" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    using LinearAlgebra: eigen, Diagonal
+    # Compare with the exact upwind flux 0.5 * A_n * (u_ll + u_rr) - 0.5 * |A_n| * [[u]]
+    # of the linear system, where |A_n| = V |Λ| V⁻¹ is computed via an eigendecomposition
+    # of the flux Jacobian A_n.
+    equations = HyperbolicDiffusionEquations2D(nu = 1.3, Lr = 0.7)
+    u_ll = SVector(1.0, 0.3, -0.2)
+    u_rr = SVector(0.5, -0.7, 0.4)
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(-1.0, 0.0),
+        SVector(0.0, -1.0),
+        SVector(0.6, 0.8),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        # The flux is linear, so its Jacobian is given by the fluxes of unit vectors
+        A_n = hcat((flux(SVector(ntuple(i -> i == j ? 1.0 : 0.0, 3)), normal_direction,
+                         equations) for j in 1:3)...)
+        Λ, V = eigen(A_n)
+        abs_A_n = real.(V * Diagonal(abs.(Λ)) / V)
+        f_exact = 0.5 * A_n * (u_ll + u_rr) - 0.5 * abs_A_n * (u_rr - u_ll)
+        @test flux_godunov(u_ll, u_rr, normal_direction, equations) ≈ f_exact
+    end
+
+    for orientation in 1:2
+        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_godunov(u_ll, u_rr, unit_normal, equations) ≈
+              flux_godunov(u_ll, u_rr, orientation, equations)
+        @test flux_godunov(u_ll, u_rr, -unit_normal, equations) ≈
+              -flux_godunov(u_rr, u_ll, orientation, equations)
+    end
+end
+
 @testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
     Setup,
     UnitTests
