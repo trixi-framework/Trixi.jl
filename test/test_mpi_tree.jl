@@ -399,6 +399,77 @@ end
                         rtol=0.001)
 end
 
+@testitem "TreeMesh MPI 2D: elixir_mhd_alfven_wave.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.00011149543672225127,
+                            5.888242524520296e-6,
+                            5.888242524510072e-6,
+                            8.476931432519067e-6,
+                            1.3160738644036652e-6,
+                            1.2542675002588144e-6,
+                            1.2542675002747718e-6,
+                            1.8705223407238346e-6,
+                            4.651717010670585e-7
+                        ],
+                        linf=[
+                            0.00026806333988971254,
+                            1.6278838272418272e-5,
+                            1.627883827305665e-5,
+                            2.7551183488072617e-5,
+                            5.457878055614707e-6,
+                            8.130129322880819e-6,
+                            8.130129322769797e-6,
+                            1.2406302192291552e-5,
+                            2.373765544951732e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh MPI 2D: elixir_mhd_alfven_wave_mortar.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    # Refine the upper half of the domain to get MPI mortars for 2 and 3 MPI ranks
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
+                        refinement_patches=((type = "box",
+                                             coordinates_min = (0.0, 0.5 * sqrt(2.0)),
+                                             coordinates_max = (sqrt(2.0), sqrt(2.0))),),
+                        # Expected errors are exactly the same as in a serial run!
+                        l2=[
+                            1.6786707558867175e-6,
+                            7.164959462053942e-7,
+                            7.081932438687196e-7,
+                            1.0823779092603235e-6,
+                            8.54211716322804e-7,
+                            7.991340679276956e-7,
+                            7.919017392071279e-7,
+                            1.1361442054079598e-6,
+                            3.9639297967084265e-7
+                        ],
+                        linf=[
+                            2.9733402099330064e-5,
+                            9.008923548395331e-6,
+                            8.587065454285225e-6,
+                            1.2054960366242318e-5,
+                            7.867653680326825e-6,
+                            8.938923408141619e-6,
+                            8.920966544256892e-6,
+                            1.2062249465857877e-5,
+                            4.619996814003757e-6
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Make sure that there are MPI interfaces and MPI mortars (on some rank)
+    mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(dg, cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(dg, cache), +, Trixi.mpi_comm()) > 0
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_limiter_liu_zhang.jl" setup=[
     Setup,
     MPITreeMesh2D
