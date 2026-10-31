@@ -31,6 +31,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+        # Explicit `shell: bash` enables `pipefail`, so a failing `gh cache list` fails
+        # the step instead of feeding an empty list into the loop.
+        shell: bash
         run: |
           gh cache list --ref refs/heads/main --key 'julia-depot;' --limit 1000 \
             --json id,key,createdAt \
