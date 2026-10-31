@@ -59,7 +59,9 @@ end
 # `apply_smoothing!` only considers interfaces and mortars whose elements are all
 # local. For MPI-parallel meshes, this function extends the smoothing to MPI interfaces
 # and MPI mortars. It must be called after `apply_smoothing!`, which leaves the
-# blending factors before smoothing in `alpha_tmp`.
+# blending factors before smoothing in `alpha_tmp`. Since each update only increases
+# `alpha[element]` to `0.5 * alpha_tmp[neighbor]` if this is larger, the result does
+# not depend on the order of the updates and is the same as for a serial mesh.
 apply_smoothing_mpi!(mesh, alpha, alpha_tmp, indicator_cache, dg, cache) = nothing
 
 function apply_smoothing_mpi!(mesh::Union{TreeMeshParallel, P4estMeshParallel,
