@@ -190,7 +190,8 @@ end
     isdir(outdir) && rm(outdir, recursive = true)
 
     # The solution is stored as `Float32`, but `cons2prim` returns `Float64` values
-    # since the equations use `Float64`. See #2135
+    # since the equations use `Float64`.
+    # See https://github.com/trixi-framework/Trixi.jl/issues/2135
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_float32.jl"),
                         equations=IdealGlmMhdEquations2D(1.4),
                         tspan=(0.0f0, 0.01f0))
