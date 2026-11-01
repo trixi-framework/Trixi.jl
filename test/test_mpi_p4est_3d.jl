@@ -188,7 +188,6 @@ end
     MPIP4estMesh3D
 ] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
-                        # Expected errors are exactly the same as in the serial test!
                         l2=[
                             0.01374649869395016,
                             0.01993458602992416,
