@@ -79,20 +79,28 @@ end
 # The GPU suites run their items only when the respective backend is `functional()`,
 # so requesting `CUDA`/`AMDGPU`/`Metal` on a machine without that GPU warns and runs
 # nothing instead of erroring.
+# The GPU packages are listed only in the `[extras]` of `test/Project.toml` so that they
+# do not restrict the versions of other packages in the test environment. The GPU CI jobs
+# add the respective package via `test/run_gpu_downgrade_tests.jl`. For
+# `TRIXI_TEST == "all"`, we only use the GPU packages available in the test environment.
+function use_gpu_package(name)
+    return TRIXI_TEST == name ||
+           (TRIXI_TEST == "all" && Base.find_package(name) !== nothing)
+end
 RUN_CUDA = false
-if !IN_WORKER && TRIXI_TEST in ("all", "CUDA")
+if !IN_WORKER && use_gpu_package("CUDA")
     import CUDA
     RUN_CUDA = CUDA.functional()
     RUN_CUDA || @warn "Unable to run CUDA tests on this machine"
 end
 RUN_AMDGPU = false
-if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
+if !IN_WORKER && use_gpu_package("AMDGPU")
     import AMDGPU
     RUN_AMDGPU = AMDGPU.functional()
     RUN_AMDGPU || @warn "Unable to run AMDGPU tests on this machine"
 end
 RUN_METAL = false
-if !IN_WORKER && TRIXI_TEST in ("all", "Metal")
+if !IN_WORKER && use_gpu_package("Metal")
     import Metal
     RUN_METAL = Metal.functional()
     RUN_METAL || @warn "Unable to run Metal tests on this machine"
