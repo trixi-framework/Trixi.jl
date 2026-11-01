@@ -228,7 +228,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
         # This index on the primary side will always run forward but
         # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
+        if NodeIndex.IBackward in secondary_indices
             node_secondary = index_end
             node_secondary_step = -1
         else

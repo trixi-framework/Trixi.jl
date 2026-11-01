@@ -753,7 +753,8 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
 
     # Note that the index of the small sides will always run forward but
     # the index of the large side might need to run backwards for flipped sides.
-    large_node_index = :i_backward in large_indices ? last(index_range) + 1 - node :
+    large_node_index = NodeIndex.IBackward in large_indices ?
+                       last(index_range) + 1 - node :
                        node
 
     # Get index information on the small elements

@@ -384,7 +384,7 @@ function calc_mpi_interface_flux_gradient!(backend::Nothing, surface_flux_values
 
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
-            if :i_backward in local_indices
+            if NodeIndex.IBackward in local_indices
                 surface_node = index_end
                 surface_node_step = -1
             else
@@ -450,7 +450,7 @@ function calc_mpi_interface_flux_divergence!(backend::Nothing, surface_flux_valu
 
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
-            if :i_backward in local_indices
+            if NodeIndex.IBackward in local_indices
                 surface_node = index_end
                 surface_node_step = -1
             else
@@ -578,7 +578,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
             # correct orientation.
             # Note that the index of the small sides will always run forward but
             # the index of the large side might need to run backwards for flipped sides.
-            if :i_backward in large_indices
+            if NodeIndex.IBackward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
                         surface_flux_values[v, index_end + 1 - i,
