@@ -53,8 +53,9 @@ function create_f_threaded(mesh::AbstractMesh{3}, equations,
            f3_L_threaded, f3_R_threaded
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Buffers for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
@@ -68,9 +69,9 @@ function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
 end
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+# and called from `create_cache_hyperbolic`.
+function create_cache_mortar(mesh::TreeMesh{3}, equations,
+                             mortar_l2::LobattoLegendreMortarL2, uEltype)
     A3d = Array{uEltype, 3}
     fstar_primary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
                                                 nnodes(mortar_l2),

@@ -57,7 +57,7 @@ function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any,
                            tspan; output_directory = "out", filename = "averaging.h5")
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     mean_values = initialize_mean_values(mesh, equations, solver, cache)
-    cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
+    cache = create_cache_averaging(mesh, equations, solver, cache)
 
     averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory,
                                            filename)

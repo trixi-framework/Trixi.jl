@@ -22,9 +22,9 @@ end
 
 # Create cache which holds the vorticity for the previous time step. This is needed due to the
 # trapezoidal rule
-function create_cache(::Type{AveragingCallback}, mesh::TreeMesh{2},
-                      equations::AbstractCompressibleEulerEquations{2}, dg::DGSEM,
-                      cache)
+function create_cache_averaging(mesh::TreeMesh{2},
+                                equations::AbstractCompressibleEulerEquations{2},
+                                dg::DGSEM, cache)
     # Cache vorticity from previous time step
     uEltype = eltype(cache.elements)
     vorticity_prev = zeros(uEltype, (nnodes(dg), nnodes(dg), nelements(cache.elements)))

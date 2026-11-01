@@ -10,9 +10,9 @@
 
 # Subcell-based volume integrals use finite volume fluxes on the subcells. The buffers
 # for them are created by `create_cache_subcell_fv`, which dispatches on the mesh type.
-function create_cache(mesh, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DGSEM, cache_containers, uEltype)
+function create_cache_volume_integral(mesh, equations,
+                                      volume_integral::AbstractVolumeIntegralSubcell,
+                                      dg::DGSEM, cache_containers, uEltype)
     return create_cache_subcell_fv(mesh, equations, dg, cache_containers, uEltype)
 end
 
@@ -73,7 +73,7 @@ end
 # in the `cache`. They are written in the volume integral kernel and used for
 # visualization. Thus, they must be sized for the elements of the mesh when the cache
 # is created and after mesh adaptation.
-function resize_volume_integral_cache!(cache, mesh,
+function resize_cache_volume_integral!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
                                        dg, new_size)
     resize!(volume_integral.indicator.cache.alpha, new_size)
