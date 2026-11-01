@@ -66,6 +66,29 @@ end
     end
 end
 
+@testitem "TreeMesh MPI 2D: linf_divb" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    # The maximum 8 of |div B| = |3 x^2 + 2 y + 3 y^2| is attained only at y = 1,
+    # i.e., on some but not all MPI ranks. Polynomial degree 3 differentiates B exactly.
+    equations = IdealGlmMhdEquations2D(1.4)
+    function initial_condition(x, t, equations)
+        B1 = x[1]^3
+        B2 = x[2]^2 * (1 + x[2])
+        prim = SVector(1.0, 0.0, 0.0, 0.0, 1.0, B1, B2, 0.0, 0.0)
+        return prim2cons(prim, equations)
+    end
+    solver = DGSEM(polydeg = 3,
+                   surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                   volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                     flux_nonconservative_powell)))
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
+                    periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    u_ode = compute_coefficients(0.0, semi)
+    u = Trixi.wrap_array(u_ode, semi)
+    @test Trixi.analyze(Val(:linf_divb), nothing, u, 0.0, semi) ≈ 8
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_amr.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the serial test!

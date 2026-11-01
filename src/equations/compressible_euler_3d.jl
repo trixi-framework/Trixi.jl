@@ -22,7 +22,7 @@ The compressible Euler equations
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ ( \rho e_{\text{total}} +p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_2 v_3 \\ ( \rho e_{\text{total}} +p) v_2
 \end{pmatrix}
 +
 \frac{\partial}{\partial z}

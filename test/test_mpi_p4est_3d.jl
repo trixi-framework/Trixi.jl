@@ -34,6 +34,17 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 3D: AnalysisSurfaceIntegral on curved mesh" setup=[
+    Setup,
+    SurfaceIntegralsCurvedMesh3D
+] tags=[:mpi] begin
+    # The boundaries are distributed among the MPI ranks
+    lift, drag, lift_top = surface_integrals_curved_mesh_3d()
+    @test isapprox(lift, 8; atol = 1.0e-5)
+    @test isapprox(drag, 0; atol = 1.0e-5)
+    @test isapprox(lift_top, 12; atol = 1.0e-5)
+end
+
 @testitem "P4estMesh MPI 3D: elixir_advection_amr.jl" setup=[Setup, MPIP4estMesh3D] tags=[
     :mpi,
     :mpi_skip_windows
@@ -324,6 +335,35 @@ end
                             0.048396544302230504,
                             0.1154589758186293
                         ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+# Shock capturing with smoothing of the blending factors across MPI interfaces and
+# MPI mortars
+@testitem "P4estMesh MPI 3D: elixir_euler_weak_blast_wave_amr.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.01374649869395016,
+                            0.01993458602992416,
+                            0.020403214655756098,
+                            0.020408263790073853,
+                            0.14975849029503904
+                        ],
+                        linf=[
+                            0.4411601724293266,
+                            0.668308654218055,
+                            0.7351134068050753,
+                            0.5955002383710662,
+                            3.1811162616598985
+                        ],
+                        tspan=(0.0, 0.025))
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
