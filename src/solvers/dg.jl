@@ -36,8 +36,8 @@ abstract type AbstractVolumeIntegral end
 #                                 cache_containers, uEltype)`
 # - `resize_cache_volume_integral!(cache, mesh, volume_integral, dg, new_size)`
 # - `reinit_cache_volume_integral!(cache, mesh, volume_integral, dg, new_size)`
-# - `get_element_variables!(element_variables, u, mesh, equations,
-#                           volume_integral, dg, cache)`
+# - `get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+#                                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
 #
 # Do not add methods to the functions handling the whole tree
@@ -90,8 +90,9 @@ end
 
 # Add "element variables" of `volume_integral` such as blending factors to the
 # output of the `SaveSolutionCallback`. By default, there are none.
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::AbstractVolumeIntegral, dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::AbstractVolumeIntegral,
+                                                dg, cache)
     return nothing
 end
 
@@ -234,7 +235,7 @@ end
 # Function to define "element variables" for the SaveSolutionCallback. It does
 # nothing by default, but can be specialized for certain mesh types. For instance,
 # parallel meshes output the mpi rank as an "element variable".
-function get_element_variables!(element_variables, mesh, dg, cache)
+function get_element_variables_mesh!(element_variables, mesh, dg, cache)
     return nothing
 end
 
@@ -602,13 +603,14 @@ function volume_integral_children(volume_integral::VolumeIntegralShockCapturingH
             volume_integral.volume_integral_blend_low_order)
 end
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::AbstractVolumeIntegralShockCapturing,
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::AbstractVolumeIntegralShockCapturing,
+                                                dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
-    return get_element_variables!(element_variables, volume_integral.indicator,
-                                  volume_integral)
+    return get_element_variables_indicator!(element_variables,
+                                            volume_integral.indicator,
+                                            volume_integral)
 end
 
 @doc raw"""
@@ -1204,9 +1206,9 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 @inline Base.real(dg::DG) = real(dg.basis)
 
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
-    get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
-                           dg, cache)
-    return get_element_variables!(element_variables, mesh, dg, cache)
+    get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                           dg.volume_integral, dg, cache)
+    return get_element_variables_mesh!(element_variables, mesh, dg, cache)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,

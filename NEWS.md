@@ -20,6 +20,14 @@ for human readability.
   `reinit_cache_volume_integral!`. For `DGMulti`, `create_cache_volume_integral` now
   receives the storage created so far instead of the real type `RealT`, as for the other
   solvers ([#3398]).
+- The methods of `get_element_variables!` for the different components were split
+  into separate functions: `get_element_variables_volume_integral!`,
+  `get_element_variables_mesh!`, `get_element_variables_callback!`,
+  `get_element_variables_controller!`, and `get_element_variables_indicator!`. Only the
+  methods for the semidiscretization and the solver remain `get_element_variables!`.
+  Custom indicators used for AMR must now specialize `get_element_variables_indicator!`
+  instead of `get_element_variables!(element_variables, indicator, ::AMRCallback)`
+  ([#3399]).
 
 
 ## Changes in the v0.17 lifecycle
