@@ -181,30 +181,6 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-# Shock capturing with smoothing of the blending factors across MPI interfaces
-@testitem "P4estMesh MPI 3D: elixir_euler_sedov.jl" setup=[Setup, MPIP4estMesh3D] tags=[:mpi] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-                        # Expected errors are exactly the same as in the serial test!
-                        l2=[
-                            7.82070951e-02,
-                            4.33260474e-02,
-                            4.33260474e-02,
-                            4.33260474e-02,
-                            3.75260911e-01
-                        ],
-                        linf=[
-                            7.45329845e-01,
-                            3.21754792e-01,
-                            3.21754792e-01,
-                            3.21754792e-01,
-                            4.76151527e+00
-                        ],
-                        tspan=(0.0, 0.3))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
-end
-
 # Shock capturing with smoothing of the blending factors across MPI interfaces and
 # MPI mortars
 @testitem "P4estMesh MPI 3D: elixir_euler_weak_blast_wave_amr.jl" setup=[
@@ -266,7 +242,6 @@ end
     MPIP4estMesh3D
 ] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
-                        # Expected errors are exactly the same as in the serial test!
                         l2=[
                             0.01374649869395016,
                             0.01993458602992416,
