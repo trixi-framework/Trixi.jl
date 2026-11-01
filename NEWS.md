@@ -99,6 +99,12 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
+  now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
+  are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
+  `initial_condition_convergence_test` is now an exact solution for all material
+  parameters; previously, it agreed with the solution only at integer times for
+  `c1 = 1` ([#3409]).
 - Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
   `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
   computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).
@@ -210,6 +216,11 @@ for human readability.
   normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
   operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
   same way; `flux_inner` already includes this scaling ([#3412]).
+- The smoothing of the blending factors of the `IndicatorHennemannGassner`
+  (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
+  into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
+  neighboring elements on other MPI ranks were ignored, so that results of MPI-parallel
+  simulations with shock capturing differed from serial ones ([#3416]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
