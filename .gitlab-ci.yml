@@ -1,0 +1,152 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+stages: [prepare, check]
+
+variables:
+  CI_DEPOT_ROOT: /scratch/hpc-prf-cobentx/depot
+  HPC_ACCOUNT: hpc-prf-cobentx
+  CPU_PARTITION: normal
+  GPU_PARTITION: gpu_h100
+  GIT_DEPTH: "1"
+
+default:
+  tags: [otus-slurm]
+  id_tokens:
+    CI_JOB_JWT:
+      aud: https://git.uni-paderborn.de
+  artifacts:
+    when: always
+    paths: [results/]
+    expire_in: 4 weeks
+  before_script:
+    - set -euo pipefail
+    - source hpc/env.sh "$JULIA_VERSION"
+    - export RESULTS="$CI_PROJECT_DIR/results/$CHECK/$JULIA_VERSION"
+    - mkdir -p "$RESULTS"
+    - |
+      if [[ $CHECK == prepare ]]; then
+        export JULIA_PKG_OFFLINE=false
+      else
+        export JULIA_PKG_OFFLINE=true
+        sacct -X -j "$SLURM_JOB_ID" --format=JobID,Submit,Start,State --noheader
+      fi
+      project="$CI_PROJECT_DIR/run_hpc/$JULIA_VERSION/test"
+      julia_args=(--startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes "--project=$project")
+
+.prepare:
+  stage: prepare
+  tags: [otus-shell]
+  timeout: 4 hours
+  resource_group: prepare-$JULIA_VERSION
+  variables:
+    CHECK: prepare
+    JULIA_NUM_THREADS: "8"
+  script:
+    - |
+      mkdir -p "$CI_DEPOT_ROOT/$JULIA_VERSION"
+      exec 8>"$CI_DEPOT_ROOT/$JULIA_VERSION/prepare.lock"
+      flock 8
+      bash hpc/install_libraries.sh 2>&1 | tee "$RESULTS/native.log"
+      julia --startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes --project=hpc hpc/ci/environment.jl prepare 2>&1 | tee "$RESULTS/resolve.log"
+      for backend in polyester kernelabstractions; do
+        julia "${julia_args[@]}" hpc/ci/environment.jl backend "$backend"
+        julia "${julia_args[@]}" hpc/ci/environment.jl precompile 2>&1 | tee "$RESULTS/precompile-$backend.log"
+      done
+      julia "${julia_args[@]}" hpc/ci/environment.jl backend polyester
+      julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/check.log"
+      julia "${julia_args[@]}" hpc/ci/environment.jl freeze
+  artifacts:
+    when: always
+    paths:
+      - results/
+      - run_hpc/$JULIA_VERSION/test/
+      - run_hpc/$JULIA_VERSION/provenance.toml
+    expire_in: 4 weeks
+
+.compute:
+  stage: check
+  timeout: 7 days
+
+.cpu:
+  extends: .compute
+  variables:
+    CHECK: cpu
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 1 -c 4 --mem=32G -t 00:30:00"
+  script:
+    - |
+      julia "${julia_args[@]}" hpc/ci/environment.jl verify
+      julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/serial.log"
+      julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl polyester 2>&1 | tee "$RESULTS/threaded.log"
+      julia "${julia_args[@]}" --threads=1 hpc/ci/environment.jl backend kernelabstractions
+      julia "${julia_args[@]}" --threads=3 hpc/ci/validate.jl kernelabstractions 2>&1 | tee "$RESULTS/kernelabstractions.log"
+      julia "${julia_args[@]}" --threads=1 hpc/ci/environment.jl backend polyester
+
+.mpi:
+  extends: .compute
+  variables:
+    CHECK: mpi
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 3 -c 1 --mem=32G -t 00:30:00"
+  script:
+    - |
+      julia "${julia_args[@]}" hpc/ci/environment.jl verify
+      julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl mpi 2>&1 | tee "$RESULTS/mpi.log"
+
+.gpu:
+  extends: .compute
+  variables:
+    CHECK: gpu
+    OMPI_MCA_opal_cuda_support: "1"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 01:00:00"
+  script:
+    - |
+      julia "${julia_args[@]}" hpc/ci/environment.jl verify
+      julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl cuda 2>&1 | tee "$RESULTS/cuda.log"
+      julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl cuda_mpi 2>&1 | tee "$RESULTS/cuda-mpi.log"
+
+prepare:1.10:
+  extends: .prepare
+  variables:
+    JULIA_VERSION: "1.10"
+
+prepare:1.13:
+  extends: .prepare
+  variables:
+    JULIA_VERSION: "1.13"
+
+cpu:1.10:
+  extends: .cpu
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+cpu:1.13:
+  extends: .cpu
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+mpi:1.10:
+  extends: .mpi
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+mpi:1.13:
+  extends: .mpi
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+gpu:1.10:
+  extends: .gpu
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+gpu:1.13:
+  extends: .gpu
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"

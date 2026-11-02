@@ -41,3 +41,31 @@ source hpc/env.sh 1.13 &&
 
 Repeat validation with `1.10` and its matching environment.
 These focused checks run on the login node, complete suites and GPU execution require CI or allocations submitted by the user.
+
+The [GitLab pipeline](../.gitlab-ci.yml) provides eight small validation jobs across both Julia versions.
+Start it manually from the GitLab pipeline page after the commit reaches the mirror.
+Pipelines run only from the GitLab UI, mirror pushes do not start jobs.
+The Julia programs live in `hpc/ci/`, the YAML defines job resources and script invocations.
+[environment.jl](ci/environment.jl) prepares and verifies artifacts, selects threading backends and precompiles packages in separate Julia processes.
+[validate.jl](ci/validate.jl) runs the CPU, MPI and GPU checks, [mpi.jl](ci/mpi.jl) launches the MPI workers through the configured MPI installation.
+
+| Check | Coverage |
+|---|---|
+| Preparation. | A fresh test environment, native library selection, parallel HDF5 and driverless CUDA precompilation are checked on the shell runner. |
+| CPU. | Existing p4est and t8code advection items run serially and with four Polyester threads, the existing KernelAbstractions advection item runs with three threads. |
+| MPI. | Three single threaded ranks write and read a collective HDF5 dataset and run the existing p4est and t8code MPI advection items. |
+| GPU. | An existing CUDA item runs on one GPU, then two ranks verify distinct device UUIDs, exchange device buffers and run the existing p4est elixir with Float64 GPU storage. |
+
+Preparation resolves dependencies once per pipeline and Julia version and publishes the project, manifest, threading preference and provenance.
+Compute jobs restore the matching artifact and check its pipeline, commit, Julia version, CPU target, native installation marker and file hashes before loading Trixi.
+The persistent depot supplies cached packages and compilation, compute jobs perform no dependency resolution.
+Every selected item must be found, GPU checks require functional CUDA and MPI workers abort collectively on failures.
+
+The pipeline defaults to the configured Otus depot, account and partitions, project variables can override `CI_DEPOT_ROOT`, `HPC_ACCOUNT`, `CPU_PARTITION` and `GPU_PARTITION`.
+Both `otus-shell` and `otus-slurm` runners must be enabled.
+[Jacamar scheduler parameters](https://ecp-ci.gitlab.io/docs/ci-users/ci-batch.html#scheduler-parameters) specify explicit tasks, CPUs, memory and execution time for each compute job.
+The initial limits are thirty minutes for CPU and MPI jobs and one hour for the combined GPU job, cold compilation costs still require measurement.
+The GitLab timeout is seven days to accommodate queue wait, the runner must permit that timeout.
+Logs and prepared environments are retained for four weeks, including artifacts from failed jobs.
+Job logs report Slurm submit and start times, MPI bindings and the CPUs and threads visible to each worker.
+The full test suites, benchmark and GitHub orchestration follow this validation pipeline.
