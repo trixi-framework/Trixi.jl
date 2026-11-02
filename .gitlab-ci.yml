@@ -100,7 +100,7 @@ default:
   variables:
     CHECK: gpu
     OMPI_MCA_opal_cuda_support: "1"
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 01:00:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 00:20:00"
   script:
     - |
       julia "${julia_args[@]}" hpc/ci/environment.jl verify
