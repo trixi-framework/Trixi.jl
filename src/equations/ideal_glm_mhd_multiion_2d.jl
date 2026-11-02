@@ -1416,6 +1416,31 @@ end
     return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::IdealGlmMhdMultiIonEquations2D)
+    # Calculate fast magnetoacoustic wave speeds
+    # left
+    cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+    # right
+    cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+    # Calculate velocities
+    v_ll = zero(eltype(u_ll))
+    v_rr = zero(eltype(u_rr))
+    for k in eachcomponent(equations)
+        rho, rho_v1, rho_v2, _ = get_component(k, u_ll, equations)
+        v_ll = max(v_ll,
+                   abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) /
+                       rho))
+        rho, rho_v1, rho_v2, _ = get_component(k, u_rr, equations)
+        v_rr = max(v_rr,
+                   abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) /
+                       rho))
+    end
+
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations2D)
     v1 = zero(eltype(u))
     v2 = zero(eltype(u))

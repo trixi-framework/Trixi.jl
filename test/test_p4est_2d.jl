@@ -121,16 +121,15 @@ end
                         linf=[Float32(0.01752687079023763)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    @test real(ode.p.solver) == Float32
-    @test eltype(ode.p.cache.elements) == Float32
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test eltype(semi.cache.elements) == Float32
     @test eltype(sol.u[end]) == Float32
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
     # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities).
-    # We need to use `ode.p` instead of `semi` since `semidiscretize` creates a
-    # new semidiscretization with adapted `real_type`. Only this one is updated
-    # by AMR, while `semi` shares the refined mesh but keeps outdated caches.
-    @test_allocations(Trixi.rhs_hyperbolic!, ode.p, sol, 1000)
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_advection_restart.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
@@ -784,18 +783,18 @@ end
 @testitem "P4estMesh2D: elixir_eulermulti_shock.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
                         l2=[
-                            0.09238286359859513,
-                            0.0006429842672568709,
-                            0.22741647050108965,
-                            0.09129657317724366,
-                            0.2714793219290268
+                            0.09392590739498288,
+                            0.000519863005517788,
+                            0.23011748498524512,
+                            0.091956231455822,
+                            0.27181243143352474
                         ],
                         linf=[
-                            0.6949550920191041,
-                            0.027123073012782554,
-                            1.7445063388384803,
-                            1.1616284674760593,
-                            4.340140043930651
+                            0.6833040767968239,
+                            0.021738072256959836,
+                            1.7070169261949442,
+                            1.1396854377361927,
+                            4.370269641899181
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

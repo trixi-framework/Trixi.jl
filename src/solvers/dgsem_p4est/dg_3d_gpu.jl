@@ -5,16 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# The GPU kernel used for `VolumeIntegralFluxDifferencing` is stored in the `cache` so
-# that it can be selected via `trixi_adapt`. Creating it together with the `cache`
-# ensures that it is available for all backends, e.g., the KernelAbstractions.jl
-# CPU backend without calling `trixi_adapt`.
-function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg::DG, cache_containers,
-                      uEltype)
-    return (; flux_differencing_kernel = HalfSweep())
-end
-
 # The half sweep and full sweep kernels have a shared memory within an element,
 # and therefore, they need all nodes of an element in a single workgroup.
 @inline function flux_differencing_workgroupsize_3d(::Union{HalfSweep, FullSweep},
@@ -42,7 +32,8 @@ end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
+    kernel_type = flux_differencing_kernel(backend,
+                                           cache.tuning.flux_differencing_kernel)
     kernel! = flux_differencing_KAkernel!(backend,
                                           flux_differencing_workgroupsize_3d(kernel_type,
                                                                              Val(NNODES))...)
@@ -607,7 +598,8 @@ end
     @unpack contravariant_vectors = cache.elements
     @unpack numerical_flux = volume_integral.volume_flux
     NNODES = nnodes(dg)
-    kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
+    kernel_type = flux_differencing_kernel(backend,
+                                           cache.tuning.flux_differencing_kernel)
 
     # Fallback for FullSweepGlobal when wrapped with FluxTurbo.
     if kernel_type isa FullSweepGlobal

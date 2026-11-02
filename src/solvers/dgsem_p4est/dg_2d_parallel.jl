@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::Union{P4estMeshParallel{2},
                                             T8codeMeshParallel{2}},
                                 equations, surface_integral, dg::DG)
@@ -52,7 +52,7 @@ function prolong2mpiinterfaces!(cache, u,
     return nothing
 end
 
-function calc_mpi_interface_flux!(surface_flux_values,
+function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                                   mesh::Union{P4estMeshParallel{2},
                                               T8codeMeshParallel{2}},
                                   have_nonconservative_terms,
@@ -258,7 +258,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
@@ -336,7 +336,7 @@ function prolong2mpimortars!(cache, u,
     return nothing
 end
 
-function calc_mpi_mortar_flux!(surface_flux_values,
+function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                have_nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,

@@ -8,6 +8,15 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Contour plotting using Makie.jl is now supported for
+  `PlotData2DTriangulated` data ([#3253]).
+- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+  [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
+  on conforming meshes (no mortars, thus also no AMR) are supported.
+  Trixi.jl now re-exports the module `KernelAbstractions`, e.g., to select the GPU of
+  each MPI rank via `KernelAbstractions.device!`.
 - Experimental support for Apple GPUs via Metal.jl, e.g., using
   `trixi_adapt(semi; real_type = Float32, storage_type = MtlArray)` ([#2833]).
   Metal supports only `Float32` (not `Float64`). Because of upstream bugs in Metal.jl,
@@ -21,11 +30,21 @@ for human readability.
   adapted one, e.g., after AMR. The GPU kernel for `VolumeIntegralFluxDifferencing` is
   now part of the `cache` from the construction of the semidiscretization, and the
   warnings about the shared memory and workgroup sizes are only shown for GPU arrays.
+- The new type `Tuning` bundles performance settings of the GPU and KernelAbstractions.jl
+  kernels on a `P4estMesh` or `T8codeMesh`, which can be passed to
+  `trixi_adapt(semi; tuning)`, e.g.,
+  `tuning = Tuning(flux_differencing_kernel = FullSweep())`. The settings are stored as
+  `semi.cache.tuning` for all volume integrals. Settings that are not set explicitly
+  use the defaults of the backend, e.g., `HalfSweep()` on GPUs and `FullSweep()` on the
+  KernelAbstractions.jl CPU backend ([#3370]).
 - The `SummaryCallback` warns if the time type of the time integrator differs from the
   real type of the semidiscretization, e.g., when passing `dt = 1.0` instead of `dt = 1`
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+  i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
+  CPU backend ([#3251]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -75,8 +94,35 @@ for human readability.
   ([#3291]) and nonconforming meshes ([#2894]).
 - `PlotData2D` can now slice three-dimensional `DGMultiMesh` solutions on affine
   tetrahedral elements ([#3296]).
+- For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
+  different from unity is now supported, which then results in a different temperature
+  `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
+  now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
+  are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
+  `initial_condition_convergence_test` is now an exact solution for all material
+  parameters; previously, it agreed with the solution only at integer times for
+  `c1 = 1` ([#3409]).
+- Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
+  `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
+  computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).
+  Normal fluxes prescribed by boundary conditions (e.g., `BoundaryConditionNeumann` and the
+  heat flux of adiabatic `BoundaryConditionNavierStokesWall`s) are now scaled by the face
+  Jacobian. `source_terms_parabolic` are now evaluated at the quadrature points and
+  projected onto the polynomial space, which changes results for `Polynomial()`
+  approximations ([#3407]).
+- A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
+  equations is now always called with the transformed variables (see
+  `gradient_variable_transformation`), i.e., primitive variables with temperature or
+  entropy variables. Previously, the conservative variables were passed when computing
+  the parabolic time step restriction of the `StepsizeCallback` and the viscous stresses
+  in the `AnalysisSurfaceIntegral` ([#3383]).
+- The shear stress coefficients `DragCoefficientShearStress2D` and
+  `LiftCoefficientShearStress2D` now support the `CompressibleNavierStokesDiffusion2D`
+  equations with `gradient_variables = GradientVariablesEntropy()` ([#3387]).
+  Previously, they silently returned wrong values in this case.
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
@@ -110,6 +156,19 @@ for human readability.
   Thus, results of simulations using HLL-type fluxes with these wave speed estimates,
   e.g., `flux_hll` on a `TreeMesh2D` or `FluxHLL(min_max_speed_naive)` on curvilinear
   meshes, change.
+- Fixes a bug in `max_abs_speed_naive` with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D`: The sound speed was not scaled by the
+  length of the `normal_direction`. Moreover, the less diffusive wave speed estimate
+  `max_abs_speed` is now also implemented with a `normal_direction` for the
+  `CompressibleEulerMulticomponentEquations2D` and the `IdealGlmMhdMultiIonEquations2D`,
+  consistent with the versions with an `orientation`. Previously, it fell back to
+  `max_abs_speed_naive`. Thus, results of simulations with these equations on
+  curvilinear meshes (e.g., `StructuredMesh`, `UnstructuredMesh2D`, `P4estMesh`) and
+  the default `flux_lax_friedrichs` change.
+- Fixes a bug in `pressure` of the `IdealGlmMhdMultiIonEquations2D` and
+  `IdealGlmMhdMultiIonEquations3D`: the energy `psi^2 / 2` of the GLM divergence
+  cleaning field was not subtracted, inconsistent with `cons2prim`. Thus, the
+  ion pressures (and quantities derived from them) change if `psi != 0`.
 - Fixes a bug in the boundary flux computation of the GPU/KernelAbstractions.jl backends on
   `P4estMesh`es and `T8codeMesh`es: if a boundary condition type had no boundaries, the
   boundary fluxes of all subsequent boundary condition types were not computed ([#3346]).
@@ -124,11 +183,52 @@ for human readability.
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing
   `real_type` to `semidiscretize`.
+- The storage of nested volume integrals (e.g., a `VolumeIntegralAdaptive` or
+  `VolumeIntegralEntropyCorrection` used as `volume_integral_default` of a
+  `VolumeIntegralShockCapturingHGType`) is now created, resized, and reinitialized in the
+  same way for all nesting levels, both when the semidiscretization is constructed and
+  after mesh adaptation. This fixes the blending factors of a nested
+  `VolumeIntegralEntropyCorrection`, which were not sized when the cache was created.
+  Unsupported combinations with `VolumeIntegralSubcellLimiting` now throw an error when
+  the semidiscretization is constructed. Developers of new volume integrals only implement
+  methods for the volume integral itself (e.g., the internal methods `create_cache`,
+  `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
+  see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- Fixes a bug in the nonconservative surface terms at mortars of `TreeMesh2D`s and
+  `TreeMesh3D`s: The nonconservative fluxes of the small and the large elements were
+  swapped, i.e., each element received the nonconservative term of its neighbor.
+  Thus, results of simulations with nonconservative terms (e.g., ideal GLM-MHD with
+  `flux_nonconservative_powell`) on nonconforming `TreeMesh`es (e.g., with AMR) change
+  ([#3293]).
+- Fixed the pressure coefficients `LiftCoefficientPressure3D` and
+  `DragCoefficientPressure3D` on boundary faces that are not affine, where wrong surface
+  nodes were used. With MPI, these coefficients are now summed over all ranks ([#3408]).
+- The analysis quantities `l2_divb` and `linf_divb` of `DGMulti` solvers now compute
+  the divergence of the magnetic field instead of its product with the Jacobian of the
+  elements, and `l2_divb` is normalized by the volume of the domain as for the DGSEM
+  solvers. `linf_divb` no longer fails with multiple threads ([#3408]).
+- `linf_divb` of a 2D `TreeMesh` is now the maximum over all MPI ranks ([#3408]).
+- With MPI, the `SteadyStateCallback` now terminates the simulation only if the steady
+  state is reached on all MPI ranks, not on any of them ([#3408]).
+- Fixes a bug in parabolic boundary conditions prescribing a normal flux on `P4estMesh`es:
+  the normal flux of `BoundaryConditionNeumann` and the normal heat flux of `Adiabatic`
+  walls were not scaled by the surface Jacobian. Thus, results with nonzero prescribed
+  normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
+  operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
+  same way; `flux_inner` already includes this scaling ([#3412]).
+- The smoothing of the blending factors of the `IndicatorHennemannGassner`
+  (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
+  into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
+  neighboring elements on other MPI ranks were ignored, so that results of MPI-parallel
+  simulations with shock capturing differed from serial ones ([#3416]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of
   `semidiscretize` are deprecated. Use `semi = trixi_adapt(semi; storage_type, real_type,
-  flux_differencing_kernel)` before calling `semidiscretize(semi, tspan)` instead.
+  tuning = Tuning(; flux_differencing_kernel))` before calling `semidiscretize(semi, tspan)`
+  instead.
+- The keyword argument `flux_differencing_kernel` of `trixi_adapt` is deprecated. Use
+  `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead ([#3370]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
