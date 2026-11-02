@@ -76,10 +76,11 @@ function compute_local_divergence!(local_divergence, element, vector_field,
 
     # computes dU_i/dx_i = ∑_j dxhat_j/dx_i * dU_i / dxhat_j
     # dU_i/dx_i is then accumulated into local_divergence.
+    # `md.rstxyzJ` contains the metric terms scaled by the Jacobian `md.J`.
     # TODO: DGMulti. Extend to curved elements.
     for i in eachdim(mesh)
         for j in eachdim(mesh)
-            geometric_scaling = md.rstxyzJ[i, j][1, element]
+            geometric_scaling = md.rstxyzJ[i, j][1, element] / md.J[1, element]
             jth_ref_derivative_matrix = rd.Drst[j]
             mul!(local_divergence, jth_ref_derivative_matrix, vector_field[i],
                  geometric_scaling, one(uEltype))
@@ -101,8 +102,9 @@ function analyze(::Val{:l2_divb}, du, u, t,
 
     uEltype = eltype(B1)
     l2norm_divB = zero(uEltype)
-    local_divB = zeros(uEltype, size(B1, 1))
-    for e in eachelement(mesh, dg, cache)
+    local_divB_threaded = [zeros(uEltype, size(B1, 1)) for _ in 1:Threads.maxthreadid()]
+    @batch reduction=(+, l2norm_divB) for e in eachelement(mesh, dg, cache)
+        local_divB = local_divB_threaded[Threads.threadid()]
         compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
         # TODO: DGMulti. Extend to curved elements.
@@ -111,7 +113,9 @@ function analyze(::Val{:l2_divb}, du, u, t,
         l2norm_divB += local_l2norm_divB
     end
 
-    return sqrt(l2norm_divB)
+    # normalize with the total volume as for the other L2 norms
+    total_volume = sum(md.wJq)
+    return sqrt(l2norm_divB / total_volume)
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
@@ -123,8 +127,9 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     uEltype = eltype(B1)
     linf_divB = zero(uEltype)
-    local_divB = zeros(uEltype, size(B1, 1))
-    @batch reduction=(max, linf_divb) for e in eachelement(mesh, dg, cache)
+    local_divB_threaded = [zeros(uEltype, size(B1, 1)) for _ in 1:Threads.maxthreadid()]
+    @batch reduction=(max, linf_divB) for e in eachelement(mesh, dg, cache)
+        local_divB = local_divB_threaded[Threads.threadid()]
         compute_local_divergence!(local_divB, e, view.(B, :, e), mesh, dg, cache)
 
         # compute maximum norm

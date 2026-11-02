@@ -374,9 +374,11 @@ end
     return nothing
 end
 
+# `u_tmp1` is a temporary buffer only used by the DGSEM methods; it is unused here
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
                          old_u, old_element_id,
-                         adaptor::UniformFiniteVolumeBasis, equations, dg)
+                         adaptor::UniformFiniteVolumeBasis, equations, dg,
+                         u_tmp1)
     @boundscheck begin
         @assert old_element_id >= 1
         @assert size(old_u, 1) == nvariables(equations)
@@ -414,7 +416,8 @@ end
 
 function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
-                           adaptor::UniformFiniteVolumeBasis, equations, dg)
+                           adaptor::UniformFiniteVolumeBasis, equations, dg,
+                           u_tmp1)
     @boundscheck begin
         @assert old_element_id >= 1
         @assert size(old_u, 1) == nvariables(equations)

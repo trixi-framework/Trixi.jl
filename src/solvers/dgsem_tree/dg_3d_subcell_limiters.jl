@@ -51,9 +51,6 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
 
-    # The limiter cache was created with 0 elements
-    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
-
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
             fhat2_L_threaded, fhat2_R_threaded,

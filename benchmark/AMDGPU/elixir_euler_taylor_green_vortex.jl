@@ -48,7 +48,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 100.0)
-ode = semidiscretize(semi, tspan; storage_type = nothing, real_type = nothing)
+semi = trixi_adapt(semi; storage_type = nothing, real_type = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

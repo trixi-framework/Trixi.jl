@@ -14,7 +14,8 @@ function calc_error_norms(func, u, t, analyzer,
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
 
     # Set up data structures
-    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
+    l2_error = zero_return_type(func, SVector{nvariables(equations), eltype(u)},
+                                typeof(equations))
     linf_error = copy(l2_error)
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
@@ -46,24 +47,7 @@ function calc_error_norms(func, u, t, analyzer,
         end
     end
 
-    # Accumulate local results on root process
-    global_l2_error = Vector(l2_error)
-    global_linf_error = Vector(linf_error)
-    MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
-    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        l2_error = convert(typeof(l2_error), global_l2_error)
-        linf_error = convert(typeof(linf_error), global_linf_error)
-        # For L2 error, divide by total volume
-        l2_error = @. sqrt(l2_error / total_volume)
-    else
-        l2_error = convert(typeof(l2_error), NaN * global_l2_error)
-        linf_error = convert(typeof(linf_error), NaN * global_linf_error)
-    end
-
-    return l2_error, linf_error
+    return reduce_error_norms_mpi(l2_error, linf_error, volume)
 end
 
 function integrate_via_indices(func::Func, u,
@@ -74,12 +58,8 @@ function integrate_via_indices(func::Func, u,
     @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
-    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), 1)`
-    # to `func` since `u` might be empty, if the current rank has no elements.
-    # See also https://github.com/trixi-framework/Trixi.jl/issues/1096, and
-    # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
-    integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),
-                               nnodes(dg), 1), 1, 1, 1, 1, equations, dg, args...))
+    integral = zero_return_type(func, typeof(u), Int, Int, Int, Int,
+                                typeof(equations), typeof(dg), map(typeof, args)...)
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
@@ -92,20 +72,6 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
-    total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
-    if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
-    else
-        integral = convert(typeof(integral), NaN * integral)
-        total_volume = volume # non-root processes receive nothing from reduce -> overwrite
-    end
-
-    # Normalize with total volume
-    if normalize
-        integral = integral / total_volume
-    end
-
-    return integral
+    return reduce_integral_and_volume_mpi(integral, volume, normalize)
 end
 end # @muladd

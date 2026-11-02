@@ -14,7 +14,7 @@ is tested by GitHub Actions is controlled by the workflow file
 In Trixi.jl and its related repositories, tests are triggered by
 * each `git push` to `main` and
 * each `git push` to any pull request.
-Besides checking functionality, we also analyse the [Test coverage](@ref) to
+Besides checking functionality, we also analyze the [Test coverage](@ref) to
 ensure that we do not miss important parts during testing.
 
 !!! note "Test and coverage requirements"
@@ -61,6 +61,15 @@ julia> @run_package_tests filter = ti -> occursin("TreeMesh2D Advection: elixir_
 julia> # Run every test tagged `:tree_part1`
        @run_package_tests filter = ti -> :tree_part1 in ti.tags
 ```
+The macro `@run_package_tests` searches for test items in the parent directory of
+the file it is called from. In the REPL, this is the parent directory of the current
+working directory, which is why we change to the `test` directory above. To return
+to the previous working directory automatically afterward, you can also use
+```julia
+julia> cd("path/to/Trixi.jl/test") do
+           @run_package_tests filter = ti -> occursin("elixir_advection_basic.jl", ti.name)
+       end
+```
 
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to reduce
 the waiting time until all tests are finished. Each job runs a subset of the tests,
@@ -92,6 +101,16 @@ Each `@testitem` lists the setup snippets it needs via `setup = [Setup, ...]` an
 job(s) it belongs to via `tags = [...]` (see [Testing setup](@ref) for how `tags`
 correspond to the `TRIXI_TEST` jobs). Please study one of the existing tests and stay
 consistent to the current style when creating new tests.
+
+When adding a numerical flux, dissipation operator, or wave speed estimate with a
+`normal_direction` argument (used on curvilinear meshes), add the corresponding
+equations and fluxes to `normal_direction_test_cases` in
+[`test/test_unit.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_unit.jl).
+The unit tests check that these methods are homogeneous of degree one in
+`normal_direction` and consistent with the `orientation` methods, and they fail if a
+method defined in Trixi.jl is not covered. New callable flux types must also be added to
+the list `numerical_fluxes` in the test item
+"Unit: Numerical fluxes with normal_direction".
 
 Since we want to test as much as possible, we have a lot of tests and
 frequently create new ones. Naturally, this increases the time to wait for all

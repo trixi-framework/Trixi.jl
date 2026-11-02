@@ -36,15 +36,15 @@ not need to be specialized for `Gradient` and `Divergence`.
 but is included as an argument for consistency with the [`ParabolicFormulationLocalDG`](@ref) flux,
 which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
 """
-function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
-                        gradient_or_divergence, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationBassiRebay1)
+@inline function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
+                                gradient_or_divergence, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
 end
 # Version for `P4estMesh`
-function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
-                        gradient_or_divergence, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationBassiRebay1)
+@inline function flux_parabolic(u_ll, u_rr, normal_direction::AbstractVector,
+                                gradient_or_divergence, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationBassiRebay1)
     return 0.5f0 * (u_ll + u_rr)
 end
 
@@ -108,9 +108,9 @@ i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots
 \sigma = \text{sign} (n_i)
 ```
 """
-function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
-                        ::Gradient, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationLocalDG)
+@inline function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
+                                ::Gradient, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationLocalDG)
     # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch",
     # which we set to -1 on the left and +1 on the right in 1D. The sign of the
     # jump term should be opposite that of the sign used in the divergence flux.
@@ -119,9 +119,9 @@ function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
     return u_ll # Use the upwind value for the gradient interface flux
 end
 # Version for `P4estMesh`
-function flux_parabolic(u_ll, u_rr, normal_direction,
-                        ::Gradient, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationLocalDG)
+@inline function flux_parabolic(u_ll, u_rr, normal_direction,
+                                ::Gradient, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationLocalDG)
     # Use "Upwind in dominant direction" for LDG switch
     abs_max_dir = argmax(abs.(normal_direction))
     ldg_switch = sign(normal_direction[abs_max_dir])
@@ -156,15 +156,15 @@ i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots
 \sigma = -\text{sign} (n_i)
 ```
 """
-function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
-                        ::Divergence, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationLocalDG)
+@inline function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
+                                ::Divergence, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end
 # Version for `P4estMesh`
-function flux_parabolic(u_ll, u_rr, normal_direction,
-                        ::Divergence, equations_parabolic,
-                        parabolic_scheme::ParabolicFormulationLocalDG)
+@inline function flux_parabolic(u_ll, u_rr, normal_direction,
+                                ::Divergence, equations_parabolic,
+                                parabolic_scheme::ParabolicFormulationLocalDG)
     # Use "Downwind in dominant direction" for LDG switch
     abs_max_dir = argmax(abs.(normal_direction))
     ldg_switch = -sign(normal_direction[abs_max_dir])

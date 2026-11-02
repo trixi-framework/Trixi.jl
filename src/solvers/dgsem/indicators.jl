@@ -115,9 +115,14 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
                                                    kwargs...)
     @unpack alpha_smooth = indicator_hg
     @unpack alpha, alpha_tmp = indicator_hg.cache
-    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-    #       or just `resize!` whenever we call the relevant methods as we do now?
+    # The blending factors are resized lazily on every call instead of eagerly via
+    # `resize_volume_integral_cache!` since this indicator is also used by AMR
+    # controllers, i.e., outside of any tree of volume integrals. This is safe since
+    # the indicator is evaluated for all elements before the per-element loop of the
+    # volume integral, and `resize!` does nothing if the size does not change.
+    # In contrast, state written inside `volume_integral_kernel!` (e.g., `alpha` of
+    # `IndicatorEntropyCorrection`) must be sized eagerly, since resizing it in a
+    # threaded loop over the elements would be a data race.
     resize!(alpha, nelements(dg, cache))
     if alpha_smooth
         resize!(alpha_tmp, nelements(dg, cache))
@@ -142,6 +147,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
     if alpha_smooth
         apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+        apply_smoothing_mpi!(mesh, alpha, alpha_tmp, indicator_hg.cache, dg, cache)
     end
 
     return alpha

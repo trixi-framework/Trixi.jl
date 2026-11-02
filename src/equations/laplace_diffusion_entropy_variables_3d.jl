@@ -5,8 +5,8 @@ function LaplaceDiffusionEntropyVariables3D(diffusivity, equations_hyperbolic)
                                                                  equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer,
-              equations::LaplaceDiffusionEntropyVariables{3})
+@inline function flux(u, gradients, orientation::Integer,
+                      equations::LaplaceDiffusionEntropyVariables{3})
     dudx, dudy, dudz = gradients
     if orientation == 1
         return equations.diffusivity *

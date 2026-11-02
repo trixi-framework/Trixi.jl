@@ -307,14 +307,14 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
     n_nodes = nnodes(dg.basis)
 
     _normal_vectors_1 = Vector{RealT}(undef, 2 * (n_nodes - 1) * n_nodes * n_elements)
-    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
-                                   (2, n_nodes - 1, n_nodes,
-                                    n_elements))
+    normal_vectors_1 = unsafe_wrap_or_alloc(Array, _normal_vectors_1,
+                                            (2, n_nodes - 1, n_nodes,
+                                             n_elements))
 
     _normal_vectors_2 = Vector{RealT}(undef, 2 * n_nodes * (n_nodes - 1) * n_elements)
-    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
-                                   (2, n_nodes, n_nodes - 1,
-                                    n_elements))
+    normal_vectors_2 = unsafe_wrap_or_alloc(Array, _normal_vectors_2,
+                                            (2, n_nodes, n_nodes - 1,
+                                             n_elements))
 
     calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                    mesh, dg, cache_containers)
@@ -326,6 +326,13 @@ end
 
 # For `TreeMesh`, no subcell normal vectors need to be computed
 resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
+# Non-Cartesian meshes without AMR: the normal vectors are created with the correct
+# size. This is called only when the cache is created, see
+# `create_volume_integral_caches`.
+function resize_normal_vectors!(cache, mesh::Union{StructuredMesh, UnstructuredMesh2D},
+                                capacity)
+    return nothing
+end
 # It suffices to specialize on the non-Cartesian mesh types with AMR only
 function resize_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, capacity)
     resize!(cache.normal_vectors, capacity)

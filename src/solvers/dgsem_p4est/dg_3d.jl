@@ -144,7 +144,9 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(u_interface,
         for i in index_range
             for v in eachvariable(equations)
                 u_interface[1, v, i, j, interface] = u[v,
-                                                       i_primary, j_primary, k_primary,
+                                                       i_primary,
+                                                       j_primary,
+                                                       k_primary,
                                                        primary_element]
             end
             i_primary += i_primary_step_i
@@ -175,7 +177,8 @@ Base.@propagate_inbounds function prolong2interfaces_per_interface!(u_interface,
         for i in index_range
             for v in eachvariable(equations)
                 u_interface[2, v, i, j, interface] = u[v,
-                                                       i_secondary, j_secondary,
+                                                       i_secondary,
+                                                       j_secondary,
                                                        k_secondary,
                                                        secondary_element]
             end
@@ -506,7 +509,10 @@ Base.@propagate_inbounds function prolong2boundaries_per_boundary!(u,
     for j in eachnode(dg)
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                u_boundaries[v, i, j, boundary] = u[v, i_node, j_node, k_node,
+                u_boundaries[v, i, j, boundary] = u[v,
+                                                    i_node,
+                                                    j_node,
+                                                    k_node,
                                                     element]
             end
             i_node += i_node_step_i
@@ -895,7 +901,8 @@ function calc_mortar_flux!(surface_flux_values,
                         # are pointing inwards. This is handled by `get_normal_direction`.
                         normal_direction = get_normal_direction(small_direction,
                                                                 contravariant_vectors,
-                                                                i_small, j_small,
+                                                                i_small,
+                                                                j_small,
                                                                 k_small,
                                                                 element)
 
@@ -972,6 +979,26 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     mortar_index, position_index,
                                                     normal_direction,
                                                     i_node_index, j_node_index)
+    calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
+                      have_nonconservative_terms,
+                      combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                      equations),
+                      equations, surface_integral, dg, cache,
+                      mortar_index, position_index, normal_direction,
+                      i_node_index, j_node_index)
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                                    mesh::Union{P4estMesh{3},
+                                                                T8codeMesh{3}},
+                                                    have_nonconservative_terms::True,
+                                                    combine_conservative_and_nonconservative_fluxes::False,
+                                                    equations,
+                                                    surface_integral, dg::DG, cache,
+                                                    mortar_index, position_index,
+                                                    normal_direction,
+                                                    i_node_index, j_node_index)
     @unpack u = cache.mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
@@ -988,6 +1015,37 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
+
+    # Copy to buffer
+    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
+                   i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
+                   i_node_index, j_node_index, position_index)
+
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                                    mesh::Union{P4estMesh{3},
+                                                                T8codeMesh{3}},
+                                                    have_nonconservative_terms::True,
+                                                    combine_conservative_and_nonconservative_fluxes::True,
+                                                    equations,
+                                                    surface_integral, dg::DG, cache,
+                                                    mortar_index, position_index,
+                                                    normal_direction,
+                                                    i_node_index, j_node_index)
+    @unpack u = cache.mortars
+    @unpack surface_flux = surface_integral
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       i_node_index, j_node_index, mortar_index)
+
+    # The combined flux returns the conservative flux plus 0.5 times the
+    # nonconservative flux for the small (primary) and large (secondary) side
+    flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
+                                                                          normal_direction,
+                                                                          equations)
 
     # Copy to buffer
     set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,

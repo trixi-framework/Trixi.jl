@@ -82,6 +82,9 @@ Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokes
 The field `boundary_value_function` should be a function with signature
 `boundary_value_function(x, t, equations)` and return a scalar value for the
 temperature at point `x` and time `t`.
+The temperature must be consistent with the definition ``T = p / (R \\rho)``
+using the specific gas constant ``R`` of the `equations`, e.g., by computing it
+via [`temperature`](@ref).
 """
 struct Isothermal{F}
     boundary_value_function::F # value of the temperature on the boundary
@@ -96,7 +99,7 @@ The field `boundary_value_normal_flux_function` should be a function with signat
 normal heat flux at point `x` and time `t`.
 """
 struct Adiabatic{F}
-    boundary_value_normal_flux_function::F # scaled heat flux 1/T * kappa * dT/dn
+    boundary_value_normal_flux_function::F # normal heat flux kappa * dT/dn
 end
 
 """
@@ -131,10 +134,25 @@ Wrapper for the dynamic viscosity that calls
 For constant `equations.mu`, i.e., `equations.mu` is of `Real`-type it is returned directly.
 In all other cases, `equations.mu` is assumed to be a function with arguments
 `u` and `equations` and is called with these arguments.
+Note that `u` is assumed to be the "transformed" variables according to [`gradient_variable_transformation`](@ref).
 """
 dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
+
+# Some parts of the code such as the time step computation (`max_diffusivity`)
+# only have access to the conservative variables. Since a state-dependent
+# viscosity `mu(u, equations)` expects the transformed variables, we need to
+# apply the `gradient_variable_transformation` first. This is skipped for a
+# constant viscosity to avoid the cost of the transformation.
+@inline function dynamic_viscosity_conservative(u, equations)
+    return dynamic_viscosity_conservative(u, equations.mu, equations)
+end
+@inline dynamic_viscosity_conservative(u, mu::Real, equations) = mu
+@inline function dynamic_viscosity_conservative(u, mu, equations)
+    u_transformed = gradient_variable_transformation(equations)(u, equations)
+    return dynamic_viscosity(u_transformed, mu, equations)
+end
 
 """
     have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
