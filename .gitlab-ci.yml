@@ -68,6 +68,8 @@ default:
 .compute:
   stage: check
   timeout: 7 days
+  variables:
+    JACAMAR_SCHEDULER_JOB_PREFIX: "trixi-${CHECK}-julia-${JULIA_VERSION}"
 
 .cpu:
   extends: .compute
