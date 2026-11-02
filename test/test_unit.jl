@@ -5127,6 +5127,68 @@ end
                                            refinement_level = 2)
 end
 
+@testitem "Unit: P4estMesh structured connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all corners (and edges in 3D) connecting trees, `p4est_balance` does not
+    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112,
+    # https://github.com/trixi-framework/Trixi.jl/issues/1358, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2289.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_2d(p4est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.level < 5)
+    end
+    refine_corner_2d_c = @cfunction(refine_corner_2d, Cint,
+                                    (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p4est_quadrant_t}))
+
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
+        periodicity in ((false, false), (true, false), (true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+
+        # Same corners as in the connectivity created by `p4est` itself
+        brick = Trixi.p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
+        @test mesh.p4est.connectivity.num_corners[] == unsafe_load(brick).num_corners
+        Trixi.p4est_connectivity_destroy(brick)
+
+        # `balance!` calls `p4est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+    end
+
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2)),
+        periodicity in ((false, false, false), (true, false, true), (true, true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0, 0.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity)
+
+        # Same edges and corners as in the connectivity created by `p4est` itself
+        brick = Trixi.p8est_connectivity_new_brick(trees_per_dimension...,
+                                                   periodicity...)
+        @test mesh.p4est.connectivity.num_edges[] == unsafe_load(brick).num_edges
+        @test mesh.p4est.connectivity.num_corners[] == unsafe_load(brick).num_corners
+        Trixi.p8est_connectivity_destroy(brick)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
