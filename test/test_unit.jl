@@ -5150,17 +5150,41 @@ end
                                     (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
                                      Ptr{Trixi.p8est_quadrant_t}))
 
+    # Check that the trees are ordered lexicographically and connected via their faces
+    # as expected, with zero-based tree and face indices
+    function has_lexicographic_faces(connectivity, trees_per_dimension, periodicity)
+        n_dims = length(trees_per_dimension)
+        n_trees = prod(trees_per_dimension)
+        tree_to_tree = unsafe_wrap(Array, connectivity.tree_to_tree, (2 * n_dims, n_trees))
+        tree_to_face = unsafe_wrap(Array, connectivity.tree_to_face, (2 * n_dims, n_trees))
+        linear_indices = LinearIndices(trees_per_dimension)
+        result = true
+        for cell in CartesianIndices(trees_per_dimension), dim in 1:n_dims, side in 0:1
+            tree = linear_indices[cell]
+            face = 2 * (dim - 1) + side
+            neighbor_index = cell[dim] + 2 * side - 1
+            if 1 <= neighbor_index <= trees_per_dimension[dim] || periodicity[dim]
+                neighbor = Base.setindex(Tuple(cell),
+                                         mod1(neighbor_index, trees_per_dimension[dim]),
+                                         dim)
+                expected = (linear_indices[neighbor...] - 1, xor(face, 1))
+            else
+                expected = (tree - 1, face)
+            end
+            result &= (tree_to_tree[face + 1, tree], tree_to_face[face + 1, tree]) ==
+                      expected
+        end
+        return result
+    end
+
     for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
         periodicity in ((false, false), (true, false), (true, true))
 
         mesh = P4estMesh(trees_per_dimension; polydeg = 1,
                          coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
                          periodicity)
-
-        # Same corners as in the connectivity created by `p4est` itself
-        brick = Trixi.p4est_connectivity_new_brick(trees_per_dimension..., periodicity...)
-        @test mesh.p4est.connectivity.num_corners[] == unsafe_load(brick).num_corners
-        Trixi.p4est_connectivity_destroy(brick)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
 
         # `balance!` calls `p4est_balance` only once
         Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
@@ -5168,19 +5192,14 @@ end
         @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
     end
 
-    for trees_per_dimension in ((1, 1, 1), (2, 1, 2)),
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2), (2, 2, 2)),
         periodicity in ((false, false, false), (true, false, true), (true, true, true))
 
         mesh = P4estMesh(trees_per_dimension; polydeg = 1,
                          coordinates_min = (0.0, 0.0, 0.0),
                          coordinates_max = (1.0, 1.0, 1.0), periodicity)
-
-        # Same edges and corners as in the connectivity created by `p4est` itself
-        brick = Trixi.p8est_connectivity_new_brick(trees_per_dimension...,
-                                                   periodicity...)
-        @test mesh.p4est.connectivity.num_edges[] == unsafe_load(brick).num_edges
-        @test mesh.p4est.connectivity.num_corners[] == unsafe_load(brick).num_corners
-        Trixi.p8est_connectivity_destroy(brick)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
 
         # `balance!` calls `p8est_balance` only once
         Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)

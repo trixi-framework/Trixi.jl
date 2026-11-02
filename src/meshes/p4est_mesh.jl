@@ -1145,141 +1145,17 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
                         p4est_partition_allow_for_coarsening)
 end
 
-# Number of vertices of a structured grid of `n_cells` trees along one dimension that
-# connect trees, i.e., that do not lie on a non-periodic boundary.
-# The vertices on both ends of a periodic dimension are identified with each other.
-n_connectivity_vertices(n_cells, periodic) = periodic ? n_cells : n_cells - 1
-
-# Zero-based index of a vertex along one dimension in the list of vertices connecting
-# trees (see `n_connectivity_vertices`), or -1 if the vertex lies on a non-periodic boundary.
-# `vertex` is the zero-based index of the vertex in `0:n_cells`.
-function connectivity_vertex_index(vertex, n_cells, periodic)
-    if periodic
-        return mod(vertex, n_cells)
-    elseif 0 < vertex < n_cells
-        return vertex - 1
-    else
-        return -1
-    end
-end
-
 # Create a new p4est_connectivity that represents a structured rectangle.
-# Similar to p4est_connectivity_new_brick, but doesn't use Morton order.
-# This order makes `calc_tree_node_coordinates!` below and the calculation
-# of `boundary_names` above easier but is irrelevant otherwise.
+# The connectivity is created by `p4est_connectivity_new_brick`, which also contains
+# all corners connecting trees. This is required for `p4est_balance` to produce
+# a balanced forest, see `balance!`. However, the trees are reordered lexicographically
+# instead of using Morton order, which makes `calc_tree_node_coordinates!` below and the
+# calculation of `boundary_names` above easier but is irrelevant otherwise.
 # 2D version
 function connectivity_structured(n_cells_x, n_cells_y, periodicity)
-    linear_indices = LinearIndices((n_cells_x, n_cells_y))
-
-    # Vertices represent the coordinates of the forest. This is used by `p4est`
-    # to write VTK files.
-    # Trixi.jl doesn't use the coordinates from `p4est`, so the vertices can be empty.
-    n_vertices = 0
-    n_trees = n_cells_x * n_cells_y
-    vertices = C_NULL
-    tree_to_vertex = C_NULL
-
-    tree_to_tree = Array{p4est_topidx_t, 2}(undef, 4, n_trees)
-    tree_to_face = Array{Int8, 2}(undef, 4, n_trees)
-
-    for cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
-        tree = linear_indices[cell_x, cell_y]
-
-        # Subtract 1 because `p4est` uses zero-based indexing
-        # Negative x-direction
-        if cell_x > 1
-            tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y] - 1
-            tree_to_face[1, tree] = 1
-        elseif periodicity[1]
-            tree_to_tree[1, tree] = linear_indices[n_cells_x, cell_y] - 1
-            tree_to_face[1, tree] = 1
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[1, tree] = tree - 1
-            tree_to_face[1, tree] = 0
-        end
-
-        # Positive x-direction
-        if cell_x < n_cells_x
-            tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y] - 1
-            tree_to_face[2, tree] = 0
-        elseif periodicity[1]
-            tree_to_tree[2, tree] = linear_indices[1, cell_y] - 1
-            tree_to_face[2, tree] = 0
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[2, tree] = tree - 1
-            tree_to_face[2, tree] = 1
-        end
-
-        # Negative y-direction
-        if cell_y > 1
-            tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1] - 1
-            tree_to_face[3, tree] = 3
-        elseif periodicity[2]
-            tree_to_tree[3, tree] = linear_indices[cell_x, n_cells_y] - 1
-            tree_to_face[3, tree] = 3
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[3, tree] = tree - 1
-            tree_to_face[3, tree] = 2
-        end
-
-        # Positive y-direction
-        if cell_y < n_cells_y
-            tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1] - 1
-            tree_to_face[4, tree] = 2
-        elseif periodicity[2]
-            tree_to_tree[4, tree] = linear_indices[cell_x, 1] - 1
-            tree_to_face[4, tree] = 2
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[4, tree] = tree - 1
-            tree_to_face[4, tree] = 3
-        end
-    end
-
-    # Although Trixi.jl only uses face connectivity, the connectivity must be complete,
-    # i.e., also contain all corners connecting trees. Otherwise, `p4est_balance` does not
-    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112.
-    # As in `p4est_connectivity_new_brick`, all vertices of the tree grid that do not lie
-    # on a non-periodic boundary are stored as corners, each connecting four tree corners
-    # (which belong to the same tree if there is only one tree in a periodic direction).
-    n_corners_per_dimension = (n_connectivity_vertices(n_cells_x, periodicity[1]),
-                               n_connectivity_vertices(n_cells_y, periodicity[2]))
-    n_corners = prod(n_corners_per_dimension)
-    corner_indices = LinearIndices(n_corners_per_dimension)
-
-    tree_to_corner = Array{p4est_topidx_t, 2}(undef, 4, n_trees)
-    ctt_offset = collect(p4est_topidx_t, 0:4:(4 * n_corners))
-    corner_to_tree = Vector{p4est_topidx_t}(undef, 4 * n_corners)
-    corner_to_corner = Vector{Int8}(undef, 4 * n_corners)
-
-    for cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
-        tree = linear_indices[cell_x, cell_y]
-
-        # Zero-based corner numbering of `p4est`: bit 0 (bit 1) of `corner` is set
-        # if the corner lies in positive x-direction (y-direction)
-        for corner in 0:3
-            vertex_x = connectivity_vertex_index(cell_x - 1 + (corner & 1),
-                                                 n_cells_x, periodicity[1])
-            vertex_y = connectivity_vertex_index(cell_y - 1 + (corner >> 1),
-                                                 n_cells_y, periodicity[2])
-            if vertex_x < 0 || vertex_y < 0
-                # Corner on a non-periodic boundary, not stored
-                tree_to_corner[corner + 1, tree] = -1
-            else
-                corner_id = corner_indices[vertex_x + 1, vertex_y + 1] - 1
-                tree_to_corner[corner + 1, tree] = corner_id
-                # The trees meeting at a corner do so with distinct corner numbers
-                position = 4 * corner_id + (3 - corner) + 1
-                corner_to_tree[position] = tree - 1
-                corner_to_corner[position] = corner
-            end
-        end
-    end
-
-    connectivity = p4est_connectivity_new_copy(n_vertices, n_trees, n_corners,
-                                               vertices, tree_to_vertex,
-                                               tree_to_tree, tree_to_face,
-                                               tree_to_corner, ctt_offset,
-                                               corner_to_tree, corner_to_corner)
+    connectivity = p4est_connectivity_new_brick(n_cells_x, n_cells_y,
+                                                periodicity[1], periodicity[2])
+    permute_trees_lexicographically!(connectivity, (n_cells_x, n_cells_y))
 
     @assert p4est_connectivity_is_valid(connectivity) == 1
 
@@ -1288,208 +1164,47 @@ end
 
 # 3D version
 function connectivity_structured(n_cells_x, n_cells_y, n_cells_z, periodicity)
-    linear_indices = LinearIndices((n_cells_x, n_cells_y, n_cells_z))
-
-    # Vertices represent the coordinates of the forest. This is used by `p4est`
-    # to write VTK files.
-    # Trixi.jl doesn't use the coordinates from `p4est`, so the vertices can be empty.
-    n_vertices = 0
-    n_trees = n_cells_x * n_cells_y * n_cells_z
-    vertices = C_NULL
-    tree_to_vertex = C_NULL
-
-    tree_to_tree = Array{p4est_topidx_t, 2}(undef, 6, n_trees)
-    tree_to_face = Array{Int8, 2}(undef, 6, n_trees)
-
-    for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
-        tree = linear_indices[cell_x, cell_y, cell_z]
-
-        # Subtract 1 because `p4est` uses zero-based indexing
-        # Negative x-direction
-        if cell_x > 1
-            tree_to_tree[1, tree] = linear_indices[cell_x - 1, cell_y, cell_z] - 1
-            tree_to_face[1, tree] = 1
-        elseif periodicity[1]
-            tree_to_tree[1, tree] = linear_indices[n_cells_x, cell_y, cell_z] - 1
-            tree_to_face[1, tree] = 1
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[1, tree] = tree - 1
-            tree_to_face[1, tree] = 0
-        end
-
-        # Positive x-direction
-        if cell_x < n_cells_x
-            tree_to_tree[2, tree] = linear_indices[cell_x + 1, cell_y, cell_z] - 1
-            tree_to_face[2, tree] = 0
-        elseif periodicity[1]
-            tree_to_tree[2, tree] = linear_indices[1, cell_y, cell_z] - 1
-            tree_to_face[2, tree] = 0
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[2, tree] = tree - 1
-            tree_to_face[2, tree] = 1
-        end
-
-        # Negative y-direction
-        if cell_y > 1
-            tree_to_tree[3, tree] = linear_indices[cell_x, cell_y - 1, cell_z] - 1
-            tree_to_face[3, tree] = 3
-        elseif periodicity[2]
-            tree_to_tree[3, tree] = linear_indices[cell_x, n_cells_y, cell_z] - 1
-            tree_to_face[3, tree] = 3
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[3, tree] = tree - 1
-            tree_to_face[3, tree] = 2
-        end
-
-        # Positive y-direction
-        if cell_y < n_cells_y
-            tree_to_tree[4, tree] = linear_indices[cell_x, cell_y + 1, cell_z] - 1
-            tree_to_face[4, tree] = 2
-        elseif periodicity[2]
-            tree_to_tree[4, tree] = linear_indices[cell_x, 1, cell_z] - 1
-            tree_to_face[4, tree] = 2
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[4, tree] = tree - 1
-            tree_to_face[4, tree] = 3
-        end
-
-        # Negative z-direction
-        if cell_z > 1
-            tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, cell_z - 1] - 1
-            tree_to_face[5, tree] = 5
-        elseif periodicity[3]
-            tree_to_tree[5, tree] = linear_indices[cell_x, cell_y, n_cells_z] - 1
-            tree_to_face[5, tree] = 5
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[5, tree] = tree - 1
-            tree_to_face[5, tree] = 4
-        end
-
-        # Positive z-direction
-        if cell_z < n_cells_z
-            tree_to_tree[6, tree] = linear_indices[cell_x, cell_y, cell_z + 1] - 1
-            tree_to_face[6, tree] = 4
-        elseif periodicity[3]
-            tree_to_tree[6, tree] = linear_indices[cell_x, cell_y, 1] - 1
-            tree_to_face[6, tree] = 4
-        else # Non-periodic boundary, tree and face point to themselves (zero-based indexing)
-            tree_to_tree[6, tree] = tree - 1
-            tree_to_face[6, tree] = 5
-        end
-    end
-
-    # Although Trixi.jl only uses face connectivity, the connectivity must be complete,
-    # i.e., also contain all edges and corners connecting trees. Otherwise, `p8est_balance`
-    # does not always produce a balanced forest,
-    # see https://github.com/cburstedde/p4est/issues/112.
-    # As in `p8est_connectivity_new_brick`, all edges and vertices of the tree grid that
-    # do not lie on a non-periodic boundary are stored as edges and corners, connecting
-    # four tree edges and eight tree corners, respectively. All edges have the same
-    # orientation.
-    n_cells = (n_cells_x, n_cells_y, n_cells_z)
-    n_vertices_per_dimension = (n_connectivity_vertices(n_cells_x, periodicity[1]),
-                                n_connectivity_vertices(n_cells_y, periodicity[2]),
-                                n_connectivity_vertices(n_cells_z, periodicity[3]))
-
-    # Edges parallel to the coordinate axis `direction` (1 => x, 2 => y, 3 => z) are indexed
-    # by the zero-based cell index in this direction and the zero-based vertex indices
-    # in the other two directions. They are numbered consecutively, first all edges
-    # parallel to the x-axis, then to the y-axis, and then to the z-axis.
-    edge_indices = ntuple(3) do direction
-        return LinearIndices(ntuple(i -> i == direction ? n_cells[i] :
-                                         n_vertices_per_dimension[i], 3))
-    end
-    edge_offsets = (0, length(edge_indices[1]),
-                    length(edge_indices[1]) + length(edge_indices[2]))
-    n_edges = sum(length, edge_indices)
-
-    tree_to_edge = Array{p4est_topidx_t, 2}(undef, 12, n_trees)
-    ett_offset = collect(p4est_topidx_t, 0:4:(4 * n_edges))
-    edge_to_tree = Vector{p4est_topidx_t}(undef, 4 * n_edges)
-    edge_to_edge = Vector{Int8}(undef, 4 * n_edges)
-
-    corner_indices = LinearIndices(n_vertices_per_dimension)
-    n_corners = length(corner_indices)
-
-    tree_to_corner = Array{p4est_topidx_t, 2}(undef, 8, n_trees)
-    ctt_offset = collect(p4est_topidx_t, 0:8:(8 * n_corners))
-    corner_to_tree = Vector{p4est_topidx_t}(undef, 8 * n_corners)
-    corner_to_corner = Vector{Int8}(undef, 8 * n_corners)
-
-    for cell_z in 1:n_cells_z, cell_y in 1:n_cells_y, cell_x in 1:n_cells_x
-        tree = linear_indices[cell_x, cell_y, cell_z]
-        cell = (cell_x, cell_y, cell_z)
-
-        # Zero-based edge numbering of `p4est`: edges 0-3 are parallel to the x-axis,
-        # 4-7 to the y-axis, and 8-11 to the z-axis. For edge `4 * (direction - 1) + j`,
-        # bit 0 (bit 1) of `j` is set if the edge lies in positive direction of the
-        # first (second) of the two other coordinate axes.
-        for edge in 0:11
-            direction = div(edge, 4) + 1
-            j = edge % 4
-            dir1, dir2 = direction == 1 ? (2, 3) : (direction == 2 ? (1, 3) : (1, 2))
-            vertex_dir1 = connectivity_vertex_index(cell[dir1] - 1 + (j & 1),
-                                                    n_cells[dir1], periodicity[dir1])
-            vertex_dir2 = connectivity_vertex_index(cell[dir2] - 1 + (j >> 1),
-                                                    n_cells[dir2], periodicity[dir2])
-            if vertex_dir1 < 0 || vertex_dir2 < 0
-                # Edge on a non-periodic boundary, not stored
-                tree_to_edge[edge + 1, tree] = -1
-            else
-                index = ntuple(3) do i
-                    if i == direction
-                        return cell[i]
-                    elseif i == dir1
-                        return vertex_dir1 + 1
-                    else
-                        return vertex_dir2 + 1
-                    end
-                end
-                # Zero-based edge index
-                edge_id = edge_offsets[direction] +
-                          (edge_indices[direction][index...] - 1)
-                tree_to_edge[edge + 1, tree] = edge_id
-                # The trees meeting at an edge do so with distinct values of `j`
-                position = 4 * edge_id + (3 - j) + 1
-                edge_to_tree[position] = tree - 1
-                edge_to_edge[position] = edge
-            end
-        end
-
-        # Zero-based corner numbering of `p4est`: bit 0 (bit 1, bit 2) of `corner` is set
-        # if the corner lies in positive x-direction (y-direction, z-direction)
-        for corner in 0:7
-            vertex_x = connectivity_vertex_index(cell_x - 1 + (corner & 1),
-                                                 n_cells_x, periodicity[1])
-            vertex_y = connectivity_vertex_index(cell_y - 1 + ((corner >> 1) & 1),
-                                                 n_cells_y, periodicity[2])
-            vertex_z = connectivity_vertex_index(cell_z - 1 + (corner >> 2),
-                                                 n_cells_z, periodicity[3])
-            if vertex_x < 0 || vertex_y < 0 || vertex_z < 0
-                # Corner on a non-periodic boundary, not stored
-                tree_to_corner[corner + 1, tree] = -1
-            else
-                corner_id = corner_indices[vertex_x + 1, vertex_y + 1, vertex_z + 1] - 1
-                tree_to_corner[corner + 1, tree] = corner_id
-                # The trees meeting at a corner do so with distinct corner numbers
-                position = 8 * corner_id + (7 - corner) + 1
-                corner_to_tree[position] = tree - 1
-                corner_to_corner[position] = corner
-            end
-        end
-    end
-
-    connectivity = p8est_connectivity_new_copy(n_vertices, n_trees, n_edges, n_corners,
-                                               vertices, tree_to_vertex,
-                                               tree_to_tree, tree_to_face,
-                                               tree_to_edge, ett_offset,
-                                               edge_to_tree, edge_to_edge,
-                                               tree_to_corner, ctt_offset,
-                                               corner_to_tree, corner_to_corner)
+    connectivity = p8est_connectivity_new_brick(n_cells_x, n_cells_y, n_cells_z,
+                                                periodicity[1], periodicity[2],
+                                                periodicity[3])
+    permute_trees_lexicographically!(connectivity, (n_cells_x, n_cells_y, n_cells_z))
 
     @assert p8est_connectivity_is_valid(connectivity) == 1
 
     return connectivity
+end
+
+# Renumber the trees of a connectivity created by `p4est_connectivity_new_brick`
+# (`p8est_connectivity_new_brick`) with `n_cells` trees per dimension such that they are
+# ordered lexicographically, i.e., like `LinearIndices(n_cells)`.
+function permute_trees_lexicographically!(connectivity, n_cells)
+    connectivity_pw = PointerWrapper(connectivity)
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
+    tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
+                                 (2^length(n_cells), n_trees))
+    linear_indices = LinearIndices(n_cells)
+
+    # The vertices of the brick have the integer coordinates of the tree grid,
+    # and the first vertex of each tree is its corner with the smallest coordinates
+    permutation = Vector{Csize_t}(undef, n_trees)
+    for tree in 1:n_trees
+        vertex = tree_to_vertex[1, tree] + 1
+        cell = ntuple(i -> round(Int, vertices[i, vertex]) + 1, length(n_cells))
+        # Map from current to new tree indices, zero-based
+        permutation[tree] = linear_indices[cell...] - 1
+    end
+
+    GC.@preserve permutation begin
+        # Create an `sc_array` view of `permutation` without copying it
+        permutation_sc = sc_array_new_data(pointer(permutation), sizeof(Csize_t),
+                                           n_trees)
+        permute_trees_p4est!(connectivity, permutation_sc)
+        sc_array_destroy(permutation_sc)
+    end
+
+    return nothing
 end
 
 function connectivity_cubed_sphere(trees_per_face_dimension, layers)

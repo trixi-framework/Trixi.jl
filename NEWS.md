@@ -134,7 +134,7 @@ for human readability.
   with debug builds of `p4est`. Thus, `balance!` for 2D `P4estMesh`es now calls
   `p4est_balance` only once instead of twice. Custom 2D connectivities passed to a
   `P4estMesh` must be complete in the sense of `p4est` as well, i.e., contain all corners
-  connecting trees, to be balanced correctly.
+  connecting trees, to be balanced correctly ([#3427]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
