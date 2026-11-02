@@ -1655,6 +1655,13 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R)
+
     resize!(_surface_flux_values_high_order, n_variables * n_nodes * 2 * 2 * capacity)
     fluxes.surface_flux_values_high_order = unsafe_wrap(Array,
                                                         pointer(_surface_flux_values_high_order),
@@ -1662,13 +1669,6 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                          capacity))
 
     return nothing
-end
-
-function reset_antidiffusive_fluxes!(fluxes::ContainerAntidiffusiveFlux2D)
-    return reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
-                                       fluxes.antidiffusive_flux1_R,
-                                       fluxes.antidiffusive_flux2_L,
-                                       fluxes.antidiffusive_flux2_R)
 end
 
 function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
@@ -1701,9 +1701,7 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     # re-initialize interfaces container
     @unpack interfaces = cache
@@ -1720,7 +1718,7 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
     init_mortars!(mortars, elements, mesh)
 
-    precompute_n_mortars_per_nodes!(volume_integral, dg, cache, mesh)
+    precompute_n_mortars_per_nodes!(dg.volume_integral, dg, cache, mesh)
 
     if mpi_isparallel() # currently only implemented for 2D
         # re-initialize mpi_interfaces container

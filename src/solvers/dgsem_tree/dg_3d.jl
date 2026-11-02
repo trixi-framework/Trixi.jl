@@ -53,23 +53,18 @@ function create_f_threaded(mesh::AbstractMesh{3}, equations,
            f3_L_threaded, f3_R_threaded
 end
 
-function create_cache(mesh::TreeMesh{3},
-                      equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
+                                 dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded,
     fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
-    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
-                                                           volume_integral, dg,
-                                                           cache_containers, uEltype)
-
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            fstar3_L_threaded, fstar3_R_threaded,
-            cache_subcell_limiting...)
+            fstar3_L_threaded, fstar3_R_threaded)
 end
 
 # The methods below are specialized on the mortar type
@@ -1170,89 +1165,11 @@ function calc_mortar_flux!(surface_flux_values,
             # central fluxes/SATs) explains why we need the factor 0.5.
             # Alternatively, you can also follow the argumentation of Bohm et al. 2018
             # ("nonconservative diamond flux")
+            # As for interfaces, the first argument of the nonconservative flux is the
+            # state of the element receiving the flux. The primary fluxes are copied to
+            # the small elements and the secondary fluxes are projected to the large
+            # element, see `mortar_fluxes_to_elements!`.
             if large_sides[mortar] == 1 # -> small elements on right side
-                for j in eachnode(dg), i in eachnode(dg)
-                    # Pull the left and right solutions
-                    u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
-                                                                             equations,
-                                                                             dg,
-                                                                             i, j,
-                                                                             mortar)
-                    u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
-                                                                               equations,
-                                                                               dg,
-                                                                               i, j,
-                                                                               mortar)
-                    u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
-                                                                             equations,
-                                                                             dg,
-                                                                             i, j,
-                                                                             mortar)
-                    u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
-                                                                               equations,
-                                                                               dg,
-                                                                               i, j,
-                                                                               mortar)
-                    # Call pointwise nonconservative term
-                    noncons_primary_upper_left = nonconservative_flux(u_upper_left_ll,
-                                                                      u_upper_left_rr,
-                                                                      orientation,
-                                                                      equations)
-                    noncons_primary_upper_right = nonconservative_flux(u_upper_right_ll,
-                                                                       u_upper_right_rr,
-                                                                       orientation,
-                                                                       equations)
-                    noncons_primary_lower_left = nonconservative_flux(u_lower_left_ll,
-                                                                      u_lower_left_rr,
-                                                                      orientation,
-                                                                      equations)
-                    noncons_primary_lower_right = nonconservative_flux(u_lower_right_ll,
-                                                                       u_lower_right_rr,
-                                                                       orientation,
-                                                                       equations)
-                    noncons_secondary_upper_left = nonconservative_flux(u_upper_left_rr,
-                                                                        u_upper_left_ll,
-                                                                        orientation,
-                                                                        equations)
-                    noncons_secondary_upper_right = nonconservative_flux(u_upper_right_rr,
-                                                                         u_upper_right_ll,
-                                                                         orientation,
-                                                                         equations)
-                    noncons_secondary_lower_left = nonconservative_flux(u_lower_left_rr,
-                                                                        u_lower_left_ll,
-                                                                        orientation,
-                                                                        equations)
-                    noncons_secondary_lower_right = nonconservative_flux(u_lower_right_rr,
-                                                                         u_lower_right_ll,
-                                                                         orientation,
-                                                                         equations)
-                    # Add to primary and secondary temporary storage
-                    multiply_add_to_node_vars!(fstar_primary_upper_left, 0.5f0,
-                                               noncons_primary_upper_left,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_primary_upper_right, 0.5f0,
-                                               noncons_primary_upper_right,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_primary_lower_left, 0.5f0,
-                                               noncons_primary_lower_left,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_primary_lower_right, 0.5f0,
-                                               noncons_primary_lower_right,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_secondary_upper_left, 0.5f0,
-                                               noncons_secondary_upper_left,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_secondary_upper_right, 0.5f0,
-                                               noncons_secondary_upper_right,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_secondary_lower_left, 0.5f0,
-                                               noncons_secondary_lower_left,
-                                               equations, dg, i, j)
-                    multiply_add_to_node_vars!(fstar_secondary_lower_right, 0.5f0,
-                                               noncons_secondary_lower_right,
-                                               equations, dg, i, j)
-                end
-            else # large_sides[mortar] == 2 -> small elements on the left
                 for j in eachnode(dg), i in eachnode(dg)
                     # Pull the left and right solutions
                     u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
@@ -1306,6 +1223,88 @@ function calc_mortar_flux!(surface_flux_values,
                                                                         equations)
                     noncons_secondary_lower_right = nonconservative_flux(u_lower_right_ll,
                                                                          u_lower_right_rr,
+                                                                         orientation,
+                                                                         equations)
+                    # Add to primary and secondary temporary storage
+                    multiply_add_to_node_vars!(fstar_primary_upper_left, 0.5f0,
+                                               noncons_primary_upper_left,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_primary_upper_right, 0.5f0,
+                                               noncons_primary_upper_right,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_primary_lower_left, 0.5f0,
+                                               noncons_primary_lower_left,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_primary_lower_right, 0.5f0,
+                                               noncons_primary_lower_right,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_secondary_upper_left, 0.5f0,
+                                               noncons_secondary_upper_left,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_secondary_upper_right, 0.5f0,
+                                               noncons_secondary_upper_right,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_secondary_lower_left, 0.5f0,
+                                               noncons_secondary_lower_left,
+                                               equations, dg, i, j)
+                    multiply_add_to_node_vars!(fstar_secondary_lower_right, 0.5f0,
+                                               noncons_secondary_lower_right,
+                                               equations, dg, i, j)
+                end
+            else # large_sides[mortar] == 2 -> small elements on the left
+                for j in eachnode(dg), i in eachnode(dg)
+                    # Pull the left and right solutions
+                    u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
+                                                                             equations,
+                                                                             dg,
+                                                                             i, j,
+                                                                             mortar)
+                    u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
+                                                                               equations,
+                                                                               dg,
+                                                                               i, j,
+                                                                               mortar)
+                    u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
+                                                                             equations,
+                                                                             dg,
+                                                                             i, j,
+                                                                             mortar)
+                    u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
+                                                                               equations,
+                                                                               dg,
+                                                                               i, j,
+                                                                               mortar)
+                    # Call pointwise nonconservative term
+                    noncons_primary_upper_left = nonconservative_flux(u_upper_left_ll,
+                                                                      u_upper_left_rr,
+                                                                      orientation,
+                                                                      equations)
+                    noncons_primary_upper_right = nonconservative_flux(u_upper_right_ll,
+                                                                       u_upper_right_rr,
+                                                                       orientation,
+                                                                       equations)
+                    noncons_primary_lower_left = nonconservative_flux(u_lower_left_ll,
+                                                                      u_lower_left_rr,
+                                                                      orientation,
+                                                                      equations)
+                    noncons_primary_lower_right = nonconservative_flux(u_lower_right_ll,
+                                                                       u_lower_right_rr,
+                                                                       orientation,
+                                                                       equations)
+                    noncons_secondary_upper_left = nonconservative_flux(u_upper_left_rr,
+                                                                        u_upper_left_ll,
+                                                                        orientation,
+                                                                        equations)
+                    noncons_secondary_upper_right = nonconservative_flux(u_upper_right_rr,
+                                                                         u_upper_right_ll,
+                                                                         orientation,
+                                                                         equations)
+                    noncons_secondary_lower_left = nonconservative_flux(u_lower_left_rr,
+                                                                        u_lower_left_ll,
+                                                                        orientation,
+                                                                        equations)
+                    noncons_secondary_lower_right = nonconservative_flux(u_lower_right_rr,
+                                                                         u_lower_right_ll,
                                                                          orientation,
                                                                          equations)
                     # Add to primary and secondary temporary storage

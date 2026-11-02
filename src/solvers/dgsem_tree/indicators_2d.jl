@@ -20,7 +20,10 @@ function create_cache(::Type{IndicatorHennemannGassner},
     modal_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     modal_tmp1_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+    alpha_mpi_buffers = create_alpha_mpi_buffers(uEltype)
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
+            alpha_mpi_buffers)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -107,11 +110,20 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
 
+    # Explicit bounds check, which allows us to assume inbounds access below.
+    # The neighbor ids are element ids taken from the mesh connectivity.
+    @boundscheck begin
+        check_axes(alpha, (eachelement(dg, cache),))
+        check_axes(alpha_tmp, (eachelement(dg, cache),))
+    end
+
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    @unpack neighbor_ids = cache.interfaces
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(2), eachinterface(dg, cache)))
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
@@ -119,11 +131,13 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
     end
 
     # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
+    @unpack neighbor_ids = cache.mortars
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(3), eachmortar(dg, cache)))
+    @inbounds for mortar in eachmortar(dg, cache)
         # Get neighboring element ids
-        lower = cache.mortars.neighbor_ids[1, mortar]
-        upper = cache.mortars.neighbor_ids[2, mortar]
-        large = cache.mortars.neighbor_ids[3, mortar]
+        lower = neighbor_ids[1, mortar]
+        upper = neighbor_ids[2, mortar]
+        large = neighbor_ids[3, mortar]
 
         # Apply smoothing
         alpha[lower] = max(alpha_tmp[lower], 0.5f0 * alpha_tmp[large], alpha[lower])

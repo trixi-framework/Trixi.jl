@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
+function prolong2mpiinterfaces!(backend::Nothing, cache, flux_parabolic::Tuple,
                                 mesh::P4estMeshParallel{3},
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -96,7 +96,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
     return nothing
 end
 
-function calc_mpi_interface_flux_gradient!(surface_flux_values,
+function calc_mpi_interface_flux_gradient!(backend::Nothing, surface_flux_values,
                                            mesh::P4estMeshParallel{3},
                                            equations_parabolic,
                                            dg::DG, parabolic_scheme, cache)
@@ -163,7 +163,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
     return nothing
 end
 
-function calc_mpi_interface_flux_divergence!(surface_flux_values,
+function calc_mpi_interface_flux_divergence!(backend::Nothing, surface_flux_values,
                                              mesh::P4estMeshParallel{3},
                                              equations_parabolic,
                                              dg::DG, parabolic_scheme, cache)
@@ -238,7 +238,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
     return nothing
 end
 
-function calc_mpi_mortar_flux_gradient!(surface_flux_values,
+function calc_mpi_mortar_flux_gradient!(backend::Nothing, surface_flux_values,
                                         mesh::P4estMeshParallel{3},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
@@ -376,7 +376,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements_gradient!(surfac
     return nothing
 end
 
-function prolong2mpimortars_divergence!(cache, flux_parabolic,
+function prolong2mpimortars_divergence!(backend::Nothing, cache, flux_parabolic,
                                         mesh::P4estMeshParallel{3},
                                         equations_parabolic,
                                         mortar_l2::LobattoLegendreMortarL2,
@@ -546,7 +546,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
     return nothing
 end
 
-function calc_mpi_mortar_flux_divergence!(surface_flux_values,
+function calc_mpi_mortar_flux_divergence!(backend::Nothing, surface_flux_values,
                                           mesh::P4estMeshParallel{3},
                                           equations_parabolic,
                                           mortar_l2::LobattoLegendreMortarL2,
