@@ -29,7 +29,8 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
@@ -69,20 +70,16 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
            f2_L_threaded, f2_R_threaded
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
+                                 dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
-    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
-                                                           volume_integral, dg,
-                                                           cache_containers, uEltype)
-
     return (; fstar1_L_threaded, fstar1_R_threaded,
-            fstar2_L_threaded, fstar2_R_threaded,
-            cache_subcell_limiting...)
+            fstar2_L_threaded, fstar2_R_threaded)
 end
 
 # The methods below are specialized on the mortar type
@@ -1174,6 +1171,10 @@ function calc_mortar_flux!(surface_flux_values,
             # central fluxes/SATs) explains why we need the factor 0.5.
             # Alternatively, you can also follow the argumentation of Bohm et al. 2018
             # ("nonconservative diamond flux")
+            # As for interfaces, the first argument of the nonconservative flux is the
+            # state of the element receiving the flux. The primary fluxes are copied to
+            # the small elements and the secondary fluxes are projected to the large
+            # element, see `mortar_fluxes_to_elements!`.
             if large_sides[mortar] == 1 # -> small elements on right side
                 for i in eachnode(dg)
                     # Pull the left and right solutions
@@ -1184,16 +1185,16 @@ function calc_mortar_flux!(surface_flux_values,
                                                                    equations, dg,
                                                                    i, mortar)
                     # Call pointwise nonconservative term
-                    noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
+                    noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
                                                                  orientation, equations)
-                    noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
+                    noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
                                                                  orientation, equations)
-                    noncons_secondary_upper = nonconservative_flux(u_upper_rr,
-                                                                   u_upper_ll,
+                    noncons_secondary_upper = nonconservative_flux(u_upper_ll,
+                                                                   u_upper_rr,
                                                                    orientation,
                                                                    equations)
-                    noncons_secondary_lower = nonconservative_flux(u_lower_rr,
-                                                                   u_lower_ll,
+                    noncons_secondary_lower = nonconservative_flux(u_lower_ll,
+                                                                   u_lower_rr,
                                                                    orientation,
                                                                    equations)
                     # Add to primary and secondary temporary storage
@@ -1220,16 +1221,16 @@ function calc_mortar_flux!(surface_flux_values,
                                                                    equations, dg,
                                                                    i, mortar)
                     # Call pointwise nonconservative term
-                    noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
+                    noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
                                                                  orientation, equations)
-                    noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
+                    noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
                                                                  orientation, equations)
-                    noncons_secondary_upper = nonconservative_flux(u_upper_ll,
-                                                                   u_upper_rr,
+                    noncons_secondary_upper = nonconservative_flux(u_upper_rr,
+                                                                   u_upper_ll,
                                                                    orientation,
                                                                    equations)
-                    noncons_secondary_lower = nonconservative_flux(u_lower_ll,
-                                                                   u_lower_rr,
+                    noncons_secondary_lower = nonconservative_flux(u_lower_rr,
+                                                                   u_lower_ll,
                                                                    orientation,
                                                                    equations)
                     # Add to primary and secondary temporary storage

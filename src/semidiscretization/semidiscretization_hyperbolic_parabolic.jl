@@ -155,13 +155,15 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, solver;
-                                                 solver_parabolic, source_terms,
-                                                 source_terms_parabolic,
-                                                 boundary_conditions = (boundary_conditions,
-                                                                        boundary_conditions_parabolic),
-                                                 uEltype)
+    semi_new = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     solver_parabolic, source_terms,
+                                                     source_terms_parabolic,
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions_parabolic),
+                                                     uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)

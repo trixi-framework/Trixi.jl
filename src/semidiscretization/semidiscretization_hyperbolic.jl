@@ -93,8 +93,9 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    return SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                        source_terms, boundary_conditions, uEltype)
+    semi_new = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            source_terms, boundary_conditions, uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 # general fallback

@@ -18,10 +18,15 @@ the keyword arguments of [`trixi_adapt`](@ref), which adapts a semidiscretizatio
 - `real_type`: the floating-point element type. GPU workflows typically benefit from
   setting this to `Float32`. Defaults to `nothing`, which keeps the current real type
   (usually `Float64`).
-- `flux_differencing_kernel`: the GPU kernel used for
-  [`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default),
-  [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). Defaults to `nothing`, which
-  keeps the current kernel.
+- `tuning`: performance settings of the GPU kernels as a [`Tuning`](@ref). They select
+  between different implementations of the same discretization, which are equivalent in
+  exact arithmetic but can differ in performance, in the resources required on a GPU,
+  and in their results at the level of floating-point round-off errors. For example,
+  `tuning = Tuning(flux_differencing_kernel = FullSweep())` selects the GPU kernel used
+  for [`VolumeIntegralFluxDifferencing`](@ref), one of [`HalfSweep()`](@ref) (default on
+  GPUs), [`FullSweep()`](@ref), or [`FullSweepGlobal()`](@ref). Settings that are
+  `nothing` keep their current value, and settings that were never set use the defaults
+  of the backend. Defaults to `nothing`, which keeps all current settings.
 
 All arguments can be used independently. A typical GPU setup looks like:
 

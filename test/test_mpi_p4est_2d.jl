@@ -172,6 +172,28 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+# Shock capturing with smoothing of the blending factors across many MPI interfaces
+# due to the scattered element ordering of the mesh
+@testitem "P4estMesh MPI 2D: elixir_euler_NACA6412airfoil_mach2.jl" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.19107654776276498, 0.3545913719444839,
+                            0.18492730895077583, 0.817927213517244
+                        ],
+                        linf=[
+                            2.5397624311491946, 2.7075156425517917, 2.200980534211764,
+                            9.031153939238115
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh MPI 2D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[
     Setup,
     MPIP4estMesh2D
