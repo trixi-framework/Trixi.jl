@@ -46,8 +46,8 @@ try
         @assert Threads.nthreads() == (mode == "polyester" ? 4 : 3)
         @assert Trixi._PREFERENCE_THREADING == Symbol(mode)
         names = if mode == "polyester"
-            ("P4estMesh2D: elixir_advection_basic.jl",
-             "T8codeMesh2D: elixir_advection_basic.jl")
+            ("Threaded P4estMesh: elixir_advection_basic.jl",
+             "Threaded T8codeMesh: elixir_advection_basic.jl")
         else
             ("KernelAbstractions CPU 2D: elixir_advection_basic.jl",)
         end
