@@ -20,7 +20,11 @@ case "$otus_julia_minor" in
     *) echo 'Expected Julia version 1.10 or 1.13 on Otus.' >&2; return 1 ;;
 esac
 
-export TMPDIR="$otus_root/run_hpc/$otus_julia_minor/tmp"
+if [[ -n ${SLURM_JOB_ID:-} ]]; then
+    export TMPDIR=${TMPDIR:-/tmp}
+else
+    export TMPDIR="$otus_root/run_hpc/$otus_julia_minor/tmp"
+fi
 export TMP="$TMPDIR" TEMP="$TMPDIR"
 mkdir -p -- "$TMPDIR" || return
 otus_julia_threads=${JULIA_NUM_THREADS:-${SLURM_CPUS_PER_TASK:-8}}

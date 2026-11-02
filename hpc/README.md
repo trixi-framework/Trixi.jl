@@ -17,6 +17,7 @@ source hpc/env.sh 1.13 &&
 Cluster preferences must be on the load path before dependency resolution or package loading.
 Pass `-C "$JULIA_CPU_TARGET"` to Julia so runtime compilation matches package compilation.
 CPU targets are fixed for each Julia version.
+Login node temporary files stay in the checkout, compute jobs preserve the allocation's `TMPDIR` or use `/tmp`.
 `CMAKE_BUILD_PARALLEL_LEVEL`, `JULIA_NUM_PRECOMPILE_TASKS`, `JULIA_NUM_THREADS` and `OPENBLAS_NUM_THREADS` control concurrency.
 
 [install_libraries.sh](install_libraries.sh) builds the pinned [CMake recipe](libraries/CMakeLists.txt) under a shared lock and publishes a completion marker after checking the installed libraries.
