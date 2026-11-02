@@ -137,6 +137,9 @@ for human readability.
   objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
   supported for non-`isbits` element types anymore.
   `isbits` element types such as `Float64` are not affected ([#3306]).
+- Fixed memory errors and crashes of the `AnalysisCallback` when the solution has a
+  non-`isbits` element type (e.g., `Measurement` from Measurements.jl or `BigFloat`)
+  ([#3417]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
