@@ -123,6 +123,9 @@ for human readability.
   `LiftCoefficientShearStress2D` now support the `CompressibleNavierStokesDiffusion2D`
   equations with `gradient_variables = GradientVariablesEntropy()` ([#3387]).
   Previously, they silently returned wrong values in this case.
+- Fixed crashes of the `AnalysisCallback` in MPI-parallel simulations on `P4estMesh`es
+  and `T8codeMesh`es if an MPI rank has no elements, e.g., after coarsening with AMR
+  ([#3418]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
@@ -134,6 +137,9 @@ for human readability.
   objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
   supported for non-`isbits` element types anymore.
   `isbits` element types such as `Float64` are not affected ([#3306]).
+- Fixed memory errors and crashes of the `AnalysisCallback` when the solution has a
+  non-`isbits` element type (e.g., `Measurement` from Measurements.jl or `BigFloat`)
+  ([#3417]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
