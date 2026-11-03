@@ -540,6 +540,26 @@ function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
                                           _normal_vectors_3)
 end
 
+# Check whether the arrays in `normal_vectors` have the axes we assume in the inner
+# loops of Trixi.jl.
+function check_axes(normal_vectors::NormalVectorContainer3D, equations, solver::DG,
+                    cache)
+    subcell_interface_axes = Base.OneTo(nnodes(solver) - 1)
+    check_axes(normal_vectors.normal_vectors_1,
+               (Base.OneTo(3),
+                subcell_interface_axes, eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(normal_vectors.normal_vectors_2,
+               (Base.OneTo(3),
+                eachnode(solver), subcell_interface_axes, eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(normal_vectors.normal_vectors_3,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver), subcell_interface_axes,
+                eachelement(solver, cache)))
+    return nothing
+end
+
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
 function Base.resize!(normal_vectors::NormalVectorContainer3D, capacity)
     @unpack n_nodes, _normal_vectors_1, _normal_vectors_2, _normal_vectors_3 = normal_vectors
