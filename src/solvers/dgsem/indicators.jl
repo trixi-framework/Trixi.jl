@@ -147,6 +147,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
     if alpha_smooth
         apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+        apply_smoothing_mpi!(mesh, alpha, alpha_tmp, indicator_hg.cache, dg, cache)
     end
 
     return alpha

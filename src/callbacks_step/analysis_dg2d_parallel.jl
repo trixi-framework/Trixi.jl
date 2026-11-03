@@ -106,7 +106,8 @@ function calc_error_norms(func, u, t, analyzer,
     end
 
     # Set up data structures
-    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
+    l2_error = zero_return_type(func, SVector{nvariables(equations), eltype(u)},
+                                typeof(equations))
     linf_error = copy(l2_error)
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
@@ -227,12 +228,8 @@ function integrate_via_indices(func::Func, backend::Nothing, u,
     @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
-    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), 1)`
-    # to `func` since `u` might be empty, if the current rank has no elements.
-    # See also https://github.com/trixi-framework/Trixi.jl/issues/1096, and
-    # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
-    integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),
-                               1), 1, 1, 1, equations, dg, args...))
+    integral = zero_return_type(func, typeof(u), Int, Int, Int, typeof(equations),
+                                typeof(dg), map(typeof, args)...)
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
@@ -262,8 +259,8 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
-                                     typeof(dg), map(typeof, args)...))
+    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, typeof(equations),
+                                 typeof(dg), map(typeof, args)...)
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (integral0, volume0)
 
