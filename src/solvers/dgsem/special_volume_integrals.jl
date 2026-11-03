@@ -24,6 +24,19 @@ function check_axes_volume_integral(mesh, equations,
     return check_axes_subcell_fv(mesh, equations, dg, cache)
 end
 
+# The reconstruction accesses `sc_interface_coords[node_index - 1]` for the interior
+# subcell interfaces, i.e., for the nodes `2:nnodes(dg)`. The coordinates are computed
+# from the `basis` passed to the constructor, which must have as many nodes as the
+# basis of the solver `dg`.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                                    dg::DGSEM, cache)
+    check_axes_subcell_fv(mesh, equations, dg, cache)
+    check_axes(volume_integral.sc_interface_coords, (Base.OneTo(nnodes(dg) - 1),))
+
+    return nothing
+end
+
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.

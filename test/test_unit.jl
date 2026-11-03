@@ -6300,6 +6300,24 @@ end
                                                                    equations,
                                                                    volume_integral_wrong_alpha,
                                                                    dg, cache)
+
+        # The subcell interface coordinates of the second-order finite volume method
+        # must be computed from a basis with as many nodes as the basis of the solver
+        @test Trixi.polydeg(dg) == 3
+        for basis_ in (LobattoLegendreBasis(2), LobattoLegendreBasis(5))
+            volume_integral_wrong_basis = VolumeIntegralShockCapturingRRG(basis_,
+                                                                          indicator)
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u,
+                                                                       mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_wrong_basis,
+                                                                       dg, cache)
+        end
+        volume_integral_rrg = VolumeIntegralShockCapturingRRG(dg.basis, indicator)
+        @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
+                                          equations, volume_integral_rrg,
+                                          dg, cache) === nothing
     end
 end
 
