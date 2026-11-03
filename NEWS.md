@@ -140,7 +140,7 @@ for human readability.
 - The `p4est` connectivity of `P4estMeshCubedSphere` is now computed by
   `p8est_connectivity_complete` and thus also contains all edges and corners connecting
   trees. Previously, the mesh could violate the 2:1 balance after local refinement
-  ([#XXXX]).
+  ([#3429]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
