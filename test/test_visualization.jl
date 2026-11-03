@@ -4,6 +4,8 @@
     # interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
     # Makie-based visualization.
     using CairoMakie
+    # Render displayed figures without opening an image viewer for each of them
+    CairoMakie.activate!(visible = false)
 
     EXAMPLES_DIR = examples_dir()
 end
@@ -733,13 +735,20 @@ end
                 _, ax, _ = plot_function(pd_slice["rho"])
                 @test string(ax.xlabel[]) == xlabel
                 @test string(ax.ylabel[]) == ylabel
-
-                # `slice` and `point` are passed to `PlotData2D`, `colormap` to Makie
-                _, axes_sol = plot_function(sol; slice, point, colormap = :viridis)
-                @test string(first(axes_sol).xlabel[]) == xlabel
-                @test string(first(axes_sol).ylabel[]) == ylabel
             end
         end
+
+        # `slice` and `point` are passed to `PlotData2D`, `colormap` to Makie
+        for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+            _, axes_sol = plot_function(sol; slice = :xz, point, colormap = :viridis)
+            @test string(first(axes_sol).xlabel[]) == "\$x\$"
+            @test string(first(axes_sol).ylabel[]) == "\$z\$"
+        end
+
+        # Makie attributes such as `colorrange` are passed to the mesh of the heatmap
+        _, axes_sol = Makie.plot(sol; slice = :xz, point, colorrange = (0.0, 1.0))
+        heatmap_mesh = only(only(first(axes_sol).scene.plots).plots)
+        @test heatmap_mesh.colorrange[] == [0.0, 1.0]
     end
 
     @testset "Slice planes" begin
@@ -918,6 +927,10 @@ end
             @test string(first(axes_sol).xlabel[]) == "\$x\$"
             @test string(first(axes_sol).ylabel[]) == "\$z\$"
         end
+
+        # Makie attributes such as `colorrange` are passed to the heatmap
+        _, axes_sol = Makie.plot(sol; kwargs..., colorrange = (0.0, 1.0))
+        @test first(first(axes_sol).scene.plots).colorrange[] == [0.0, 1.0]
     end
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
@@ -1251,9 +1264,12 @@ end
     @trixi_test_nowarn Makie.plot(sol)
 
     # Makie does not accept the keywords of `PlotData1D`, so this call fails unless they
-    # are passed to `PlotData1D`. `plot_mesh` is passed to Makie.
-    @trixi_test_nowarn Makie.plot(sol, nvisnodes = 3, reinterpolate = false,
-                                  plot_mesh = true)
+    # are passed to `PlotData1D`. `plot_mesh` and `linewidth` are passed to Makie.
+    _, axes_sol = @trixi_test_nowarn Makie.plot(sol, nvisnodes = 3, reinterpolate = false,
+                                                variable_names = ["u"], plot_mesh = true,
+                                                linewidth = 3)
+    @test first(axes_sol).title[] == "u"
+    @test first(first(axes_sol).scene.plots).linewidth[] == 3
 
     # PlotMesh overlay
     Makie.plot(pd["scalar"])
@@ -1417,6 +1433,9 @@ end
     pd = @inferred PlotData2D(sol)
     @trixi_test_nowarn Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    # Attributes of `Makie.Mesh` are accepted, others are rejected
+    @trixi_test_nowarn Makie.plot(pd, colorrange = (0.0, 1.0), highclip = :red)
+    @test_throws Makie.InvalidAttributeError Makie.plot(pd["rho"], levels = 5)
     # plot_mesh = true
     @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
 

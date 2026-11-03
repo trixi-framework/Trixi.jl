@@ -551,7 +551,8 @@ The solution can also be plotted directly with `plot(sol)`, which passes the key
 arguments `solution_variables`, `nvisnodes`, and `reinterpolate` to [`PlotData1D`](@ref),
 e.g., `plot(sol, nvisnodes = 10, plot_mesh = true)`. Not all meshes support all of these
 keyword arguments; for example, `nvisnodes` and `reinterpolate` are not available for the
-[`DGMultiMesh`](@ref).
+[`DGMultiMesh`](@ref). All other keyword arguments, e.g., `linewidth`, are forwarded to the
+underlying Makie plot.
 
 ### 2D visualization
 
