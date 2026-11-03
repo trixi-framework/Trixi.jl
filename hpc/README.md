@@ -43,31 +43,30 @@ Repeat validation with `1.10` and its matching environment.
 These focused checks run on the login node, complete suites and GPU execution require CI or allocations submitted by the user.
 
 The [GitLab pipeline](../.gitlab-ci.yml) provides eight small validation jobs across both Julia versions.
-Start it manually from the GitLab pipeline page after the commit reaches the mirror.
-Pipelines run only from the GitLab UI, mirror pushes do not start jobs.
-The Julia programs live in `hpc/ci/`, the YAML defines job resources and script invocations.
-[environment.jl](ci/environment.jl) prepares and verifies artifacts, selects threading backends and precompiles packages in separate Julia processes.
-[validate.jl](ci/validate.jl) runs the CPU, MPI and GPU checks, [mpi.jl](ci/mpi.jl) launches the MPI workers through the configured MPI installation.
+Start pipelines manually from the GitLab UI after the commit reaches the mirror.
+The YAML defines resources and invokes [environment.jl](ci/environment.jl) for preparation and artifact verification, [validate.jl](ci/validate.jl) for checks and [mpi.jl](ci/mpi.jl) for MPI launching.
 
 | Check | Coverage |
 |---|---|
-| Preparation. | A fresh test environment, native library selection, parallel HDF5 and driverless CUDA precompilation are checked on the shell runner. |
-| CPU. | The p4est and t8code advection items run serially and with four Polyester threads, the KernelAbstractions advection item runs with three threads. |
-| MPI. | Three single threaded ranks write and read a collective HDF5 dataset and run the existing p4est and t8code MPI advection items. |
-| GPU. | An existing CUDA item runs on one GPU, then two ranks verify distinct device UUIDs, exchange device buffers and run the existing p4est elixir with Float64 GPU storage. |
+| Preparation | Resolve the environment, verify native libraries and parallel HDF5, precompile both threading backends and CUDA without a driver. |
+| CPU | Run p4est and t8code advection serially and with four Polyester threads, run KernelAbstractions advection with three threads. |
+| MPI | Run one rank per node on two nodes, collective HDF5 I/O and the existing p4est and t8code MPI advection items. |
+| GPU | Run the existing CUDA item, then verify distinct GPUs, device buffer exchange and a distributed p4est solve with Float64 GPU storage. |
 
 Preparation resolves dependencies once per pipeline and Julia version and publishes the project, manifest, threading preference and provenance.
 Compute jobs restore the matching artifact and check its pipeline, commit, Julia version, CPU target, native installation marker and file hashes before loading Trixi.
-The persistent depot supplies cached packages and compilation, compute jobs perform no dependency resolution.
+The persistent depot caches packages and compilation, compute jobs perform no dependency resolution.
 Every selected item must be found, GPU checks require functional CUDA and MPI workers abort collectively on failures.
 Serial RHS allocation checks use a 1,000 byte budget, threaded checks allow 5,000 bytes for thread scheduling overhead.
 
 The pipeline defaults to the configured Otus depot, account and partitions, project variables can override `CI_DEPOT_ROOT`, `HPC_ACCOUNT`, `CPU_PARTITION` and `GPU_PARTITION`.
 Both `otus-shell` and `otus-slurm` runners must be enabled.
+Slurm jobs use the [express QoS](https://upb-pc2.atlassian.net/wiki/spaces/PC2DOK/pages/1902070).
 [Jacamar scheduler parameters](https://ecp-ci.gitlab.io/docs/ci-users/ci-batch.html#scheduler-parameters) specify explicit tasks, CPUs, memory and execution time for each compute job.
-The initial limits are thirty minutes for CPU and MPI jobs and twenty minutes for the combined GPU job, cold compilation costs still require measurement.
+Slurm limits are thirty minutes for CPU and MPI jobs and twenty minutes for GPU jobs.
 The GitLab timeout is seven days to accommodate queue wait, the runner must permit that timeout.
 Logs and prepared environments are retained for four weeks, including artifacts from failed jobs.
-Job logs report Slurm submit and start times, MPI bindings and the CPUs and threads visible to each worker.
+Job logs report the temporary directory and filesystem, Slurm submit and start times, MPI bindings and the node, CPUs and threads visible to each worker.
+CPU MPI jobs log the UCX transport selection, CPU binding checks compare ranks within each node.
 `JACAMAR_SCHEDULER_JOB_PREFIX` identifies Trixi, the check and Julia version in Slurm job names.
-The full test suites, benchmark and GitHub orchestration follow this validation pipeline.
+The full test suites and benchmark follow this validation pipeline.

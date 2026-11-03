@@ -28,7 +28,7 @@ function affinity()
         append!(cpus, first(limits):last(limits))
     end
     @assert length(cpus) >= Threads.nthreads()
-    println("Rank $(MPI.Comm_rank(MPI.COMM_WORLD)), threads $(Threads.nthreads()), CPUs $line.")
+    println("Rank $(MPI.Comm_rank(MPI.COMM_WORLD)), node $(MPI.Get_processor_name()), threads $(Threads.nthreads()), CPUs $line.")
     return cpus
 end
 
@@ -62,12 +62,15 @@ try
         comm = MPI.COMM_WORLD
         rank = MPI.Comm_rank(comm)
         nranks = MPI.Comm_size(comm)
-        @assert nranks == (mode == "mpi" ? 3 : 2)
+        @assert nranks == 2
         @assert Threads.nthreads() == (mode == "mpi" ? 1 : 4)
-        highest_cpu = MPI.Allreduce(maximum(cpus), max, comm)
+        local_comm = MPI.Comm_split_type(comm, MPI.COMM_TYPE_SHARED, rank)
+        local_ranks = MPI.Comm_size(local_comm)
+        @assert local_ranks == (mode == "mpi" ? 1 : 2)
+        highest_cpu = MPI.Allreduce(maximum(cpus), max, local_comm)
         mask = zeros(Int, highest_cpu + 1)
         mask[cpus .+ 1] .= 1
-        masks = reshape(MPI.Allgather(mask, comm), :, nranks)
+        masks = reshape(MPI.Allgather(mask, local_comm), :, local_ranks)
         @assert all(sum(masks; dims = 2) .<= 1)
         if mode == "mpi"
             @assert Trixi.HDF5.has_parallel()
@@ -89,8 +92,6 @@ try
                        "T8codeMesh MPI 2D: elixir_advection_basic.jl"))
         else
             @assert MPI.Allreduce(Int(CUDA.functional()), min, comm) == 1
-            local_comm = MPI.Comm_split_type(comm, MPI.COMM_TYPE_SHARED, rank)
-            @assert MPI.Comm_size(local_comm) == 2
             Trixi.KernelAbstractions.device!(CUDABackend(),
                                              MPI.Comm_rank(local_comm) + 1)
             uuid = collect(codeunits(string(CUDA.uuid(CUDA.device()))))

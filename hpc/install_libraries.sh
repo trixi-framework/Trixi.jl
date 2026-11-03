@@ -43,6 +43,7 @@ if [[ -e "$native_prefix" ]]; then
     for library in "${libraries[@]}"; do
         test -s "$native_prefix/$library"
     done
+    printf 'Reusing native libraries at %s.\n' "$native_prefix"
     exit 0
 fi
 
