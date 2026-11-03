@@ -549,7 +549,9 @@ plot(pd["scalar"], plot_mesh = true)
 
 The solution can also be plotted directly with `plot(sol)`, which passes the keyword
 arguments `solution_variables`, `nvisnodes`, and `reinterpolate` to [`PlotData1D`](@ref),
-e.g., `plot(sol, nvisnodes = 10, plot_mesh = true)`.
+e.g., `plot(sol, nvisnodes = 10, plot_mesh = true)`. Not all meshes support all of these
+keyword arguments; for example, `nvisnodes` and `reinterpolate` are not available for the
+[`DGMultiMesh`](@ref).
 
 ### 2D visualization
 

@@ -14,7 +14,7 @@ for human readability.
   keyword arguments of `PlotData2D` such as `slice` and `point` to `PlotData2D`.
   Similarly, `Makie.plot` of 1D solutions passes `nvisnodes` and `reinterpolate` to
   `PlotData1D`. Plots of slices of 3D `DGMultiMesh` solutions now show the correct
-  axis labels.
+  axis labels ([#3405]).
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
