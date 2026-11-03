@@ -215,6 +215,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                dg::DGSEM, cache)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
 
+    # Calculate a-priori stabilization indicator
+    alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
+                                                        dg, cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
@@ -222,15 +226,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+        check_axes(alpha, (eachelement(dg, cache),))
     end
-
-    # Calculate a-priori stabilization indicator
-    alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
-                                                        dg, cache)
-
-    # The indicator resizes `alpha` to the number of elements, so it can only be
-    # checked after the indicator has been evaluated.
-    @boundscheck check_axes(alpha, (eachelement(dg, cache),))
 
     # These tolerances for "active" shock capturing alpha values are copied
     # from the `calc_volume_integral!` implementation for
@@ -269,6 +266,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     @unpack (indicator, volume_integral_default,
     volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
 
+    # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
+    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
+                                                               dg, cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
@@ -276,15 +277,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+        check_axes(alpha, (eachelement(dg, cache),))
     end
-
-    # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
-    alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
-                                                               dg, cache)
-
-    # The indicator resizes `alpha` to the number of elements, so it can only be
-    # checked after the indicator has been evaluated.
-    @boundscheck check_axes(alpha, (eachelement(dg, cache),))
 
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5

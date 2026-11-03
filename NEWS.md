@@ -90,7 +90,7 @@ for human readability.
     `VolumeIntegralPureLGLFiniteVolumeO2` and the shock-capturing volume integrals
     `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
     `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
-    supporting them
+    supporting them ([#3428])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to

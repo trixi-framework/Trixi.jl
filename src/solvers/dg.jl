@@ -42,8 +42,8 @@ abstract type AbstractVolumeIntegral end
 #
 # Do not add methods to the functions handling the whole tree
 # (`create_volume_integral_caches`, `resize_volume_integral_caches!`,
-# `reinitialize_volume_integral_caches!`, `check_axes_volume_integrals`); they call
-# the methods above for every node.
+# `reinitialize_volume_integral_caches!`, `check_axes_volume_integrals`);
+# they call the methods above for every node.
 ###############################################################################
 
 # Return a tuple of the volume integrals contained in the composite `volume_integral`,
