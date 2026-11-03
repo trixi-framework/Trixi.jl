@@ -44,5 +44,8 @@ export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
 export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-4}
 export OPAL_PREFIX="$EBROOTOPENMPI"
 export OMPI_MCA_opal_cuda_support="$otus_mpi_cuda_support"
+export OMPI_MCA_pml=ucx
+# UCX reads the cache setting before MPI.jl initializes.
+export UCX_MEMTYPE_CACHE=no
 export UCX_ERROR_SIGNALS=${UCX_ERROR_SIGNALS-}
 export JULIA_CUDA_MEMORY_POOL=${JULIA_CUDA_MEMORY_POOL:-none}

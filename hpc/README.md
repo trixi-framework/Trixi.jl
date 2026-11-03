@@ -1,8 +1,8 @@
 # HPC setup
 
-The Otus configuration supports Julia 1.10 and 1.13 with system OpenMPI, parallel HDF5 and local CUDA 12.8.
-The environment script and [preferences project](Project.toml) define one fixed toolchain and must be updated together.
-The [system MPI documentation](../docs/src/parallelization.md) explains the library requirements.
+The Otus setup supports Julia 1.10 and 1.13 with system OpenMPI, parallel HDF5 and local CUDA 12.8.
+[env.sh](env.sh) and the [preferences project](Project.toml) define one fixed toolchain and must be updated together.
+See the [system MPI documentation](../docs/src/parallelization.md) for library requirements.
 
 Set `CI_DEPOT_ROOT` to an absolute shared depot directory.
 Load the environment and install the pinned native libraries from Bash.
@@ -13,25 +13,24 @@ source hpc/env.sh 1.13 &&
     bash hpc/install_libraries.sh
 ```
 
-[env.sh](env.sh) loads the Otus modules and sets explicit Julia depot and load paths that exclude the user depot.
-Cluster preferences must be on the load path before dependency resolution or package loading.
+[env.sh](env.sh) loads the modules and sets Julia depot and load paths that exclude the user depot and expose cluster preferences before resolution and package loading.
 Pass `-C "$JULIA_CPU_TARGET"` to Julia so runtime compilation matches package compilation.
-CPU targets are fixed for each Julia version.
+OpenMPI selects UCX for CPU and GPU communication.
+`UCX_MEMTYPE_CACHE=no` disables cached pointer classification and must be set before Julia starts, following the [MPI.jl compatibility guidance](https://juliaparallel.org/MPI.jl/stable/knownissues/#Memory-cache).
 Login node temporary files stay in the checkout, compute jobs preserve the allocation's `TMPDIR` or use `/tmp`.
 `CMAKE_BUILD_PARALLEL_LEVEL`, `JULIA_NUM_PRECOMPILE_TASKS`, `JULIA_NUM_THREADS` and `OPENBLAS_NUM_THREADS` control concurrency.
 
-[install_libraries.sh](install_libraries.sh) builds the pinned [CMake recipe](libraries/CMakeLists.txt) under a shared lock and publishes a completion marker after checking the installed libraries.
+[install_libraries.sh](install_libraries.sh) builds the pinned [CMake recipe](libraries/CMakeLists.txt) under a shared lock and publishes its marker after checking the installed libraries.
 The separate p4est 2.8 build preserves library versions distinct from t8code's dependencies.
 CMake is invoked directly because loading its module would override Julia's libcurl.
 Both Julia versions share `/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2`.
-An incompatible installation is rejected, native updates require a new versioned path in the installer and preferences.
-The installer computes its fingerprint from the native recipe, OpenMPI, zlib and CMake paths.
+The installation fingerprint covers the native recipe and OpenMPI, zlib and CMake paths, incompatible installations are rejected.
+Native updates require a new versioned path in the installer and preferences.
 Use `bash hpc/install_libraries.sh --print-fingerprint` to record it without modifying the installation.
 
 [check_environment.jl](check_environment.jl) verifies effective preferences, loaded native libraries, parallel HDF5 and driverless CUDA precompilation.
-It runs only the existing basic p4est and t8code advection items, which generate their own meshes.
-Use an existing test environment that develops this checkout and contains the dependencies from `test/Project.toml`.
-For an environment at `run_hpc/1.13/test`, run the following command from the repository root.
+It runs the existing basic p4est and t8code advection items, which generate their own meshes.
+Use a test environment that develops this checkout and contains `test/Project.toml` dependencies, for example `run_hpc/1.13/test`.
 
 ```bash
 export CI_DEPOT_ROOT=/scratch/hpc-prf-cobentx/depot
