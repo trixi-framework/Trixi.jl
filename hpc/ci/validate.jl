@@ -106,8 +106,9 @@ try
                                          "elixir_advection_basic.jl"),
                                 l2=[8.311947673061856e-6], linf=[6.627000273229378e-5],
                                 real_type=Float64, storage_type=CuArray)
-            @assert ode.u0 isa CuArray{Float64}
-            @assert mesh isa Trixi.P4estMeshParallel{2}
+            # The elixir creates global bindings in Main that require the latest world.
+            @assert (@invokelatest Main.ode).u0 isa CuArray{Float64}
+            @assert (@invokelatest Main.mesh) isa Trixi.P4estMeshParallel{2}
         end
         MPI.Barrier(comm)
     else
