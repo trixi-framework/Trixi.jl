@@ -1269,8 +1269,11 @@ function connectivity_cubed_sphere(trees_per_face_dimension, layers)
     # does not always produce a balanced forest,
     # see https://github.com/cburstedde/p4est/issues/112.
     # Thus, we only define the vertices of all trees and let `p8est_connectivity_complete`
-    # compute the connectivity of faces, edges, and corners from them. Since there is no
-    # periodicity, the vertices determine the connectivity uniquely.
+    # compute the connectivity of faces, edges, and corners from them. This works since
+    # two trees are connected via a face (edge, corner) exactly if they share the vertices
+    # of this face (edge, corner), also across the edges of the cube. In contrast, this
+    # does not work, e.g., for periodic boundaries of a brick, where the trees connected
+    # across the boundary do not share vertices.
     # The vertex with the zero-based index `vertex_x` (`vertex_y`, `vertex_z`) in the
     # first (second, third) local dimension of a face is identified by its integer
     # coordinates on the surface of the cube [-n_cells_x, n_cells_x]^3 and its layer,
