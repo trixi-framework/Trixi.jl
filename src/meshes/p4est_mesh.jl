@@ -1186,12 +1186,19 @@ function permute_trees_lexicographically!(connectivity, n_cells)
                                  (2^length(n_cells), n_trees))
     linear_indices = LinearIndices(n_cells)
 
-    # The vertices of the brick have the integer coordinates of the tree grid,
-    # and the first vertex of each tree is its corner with the smallest coordinates
+    # `p4est` stores the vertices as `double`s, three coordinates per vertex (the third is
+    # zero in 2D). In general, they are arbitrary physical coordinates that embed the
+    # forest in R^3, e.g., for VTK output, and are not used for the topology.
+    # `p4est_connectivity_new_brick` (`p8est_connectivity_new_brick`) places the vertices
+    # at the integer points of the tree grid, i.e., in `[0, n_cells[i]]` in direction i,
+    # also for periodic directions. The first vertex of each tree is its corner with the
+    # smallest coordinates, so its coordinates plus one are the Cartesian index of the
+    # tree. The coordinates are small integers and therefore exact in floating point.
+    # They need to be converted to `Int` only because they are stored as `double`s.
     permutation = Vector{Csize_t}(undef, n_trees)
     for tree in 1:n_trees
         vertex = tree_to_vertex[1, tree] + 1
-        cell = ntuple(i -> round(Int, vertices[i, vertex]) + 1, length(n_cells))
+        cell = ntuple(i -> Int(vertices[i, vertex]) + 1, length(n_cells))
         # Map from current to new tree indices, zero-based
         permutation[tree] = linear_indices[cell...] - 1
     end
