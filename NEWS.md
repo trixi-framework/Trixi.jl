@@ -137,6 +137,10 @@ for human readability.
   Trixi.jl, are still balanced twice. Custom connectivities passed to a `P4estMesh` must be
   complete in the sense of `p4est`, i.e., contain all corners (and edges in 3D) connecting
   trees, to be balanced correctly ([#3427]).
+- The `p4est` connectivity of `P4estMeshCubedSphere` is now computed by
+  `p8est_connectivity_complete` and thus also contains all edges and corners connecting
+  trees. Previously, the mesh could violate the 2:1 balance after local refinement
+  ([#XXXX]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
