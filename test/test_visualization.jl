@@ -669,6 +669,9 @@ end
                         tspan=(0.0, 0.0),
                         approximation_type=Polynomial())
     @test PlotData1D(sol) isa PlotData1D
+    pd = PlotData1D(sol)
+    @test pd.orientation_x == 1
+    @test Plots.plot(pd["rho"])[1][:xaxis][:guide] == "\$x\$"
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)

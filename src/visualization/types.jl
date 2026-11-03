@@ -1079,7 +1079,7 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
     variable_names_ = digest_variable_names(solution_variables_, equations,
                                             variable_names)
 
-    orientation_x = 0 # Set 'orientation' to zero on default.
+    orientation_x = 1
 
     if u isa StructArray
         # Convert conserved variables to the given `solution_variables` and set up
