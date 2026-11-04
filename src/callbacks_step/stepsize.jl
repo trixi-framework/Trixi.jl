@@ -224,6 +224,8 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                dg,
                                cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux_node_vars = get_aux_node_vars_array(cache)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
@@ -235,6 +237,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
+                                     aux_node_vars,
                                      element)
     end
 

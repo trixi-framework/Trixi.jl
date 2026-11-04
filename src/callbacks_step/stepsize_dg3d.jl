@@ -97,7 +97,7 @@ end
                                                              T8codeMesh{3}}},
                                               constant_speed::False, equations, dg,
                                               contravariant_vectors, inverse_jacobian,
-                                              element, aux_node_vars = nothing)
+                                              aux_node_vars, element)
     max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -181,7 +181,7 @@ end
                                                              T8codeMesh{3}}},
                                               constant_speed::True, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element, aux_node_vars = nothing)
+                                              aux_node_vars, element)
     max_scaled_speed = zero(eltype(u))
     max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
