@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    LinearVariableScalarAdvectionEquation3D()
+    LinearScalarAdvectionEquation3DAuxVars()
 
 The linear scalar advection equation
 ```math
@@ -24,27 +24,27 @@ Currently, auxiliary variables are only supported for
 without AMR and MPI. The progress is tracked in
 https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
-struct LinearVariableScalarAdvectionEquation3D <:
+struct LinearScalarAdvectionEquation3DAuxVars <:
        AbstractLinearScalarAdvectionEquation{3} end
 
-@inline nauxvariables(::LinearVariableScalarAdvectionEquation3D) = 3
+@inline nauxvariables(::LinearScalarAdvectionEquation3DAuxVars) = 3
 
 # Together with our specialization of `Adapt.adapt_structure`, this allows to adapt the
 # floating point type of semidiscretizations. Since the advection velocity is stored as
 # auxiliary variables, the equations do not store any data depending on the real type.
-function Base.similar(equations::LinearVariableScalarAdvectionEquation3D, ::Type)
+function Base.similar(equations::LinearScalarAdvectionEquation3DAuxVars, ::Type)
     return equations
 end
 
-varnames(::typeof(cons2cons), ::LinearVariableScalarAdvectionEquation3D) = ("scalar",)
-varnames(::typeof(cons2prim), ::LinearVariableScalarAdvectionEquation3D) = ("scalar",)
-varnames(::typeof(cons2aux), ::LinearVariableScalarAdvectionEquation3D) = ("a1", "a2",
-                                                                           "a3")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3DAuxVars) = ("scalar",)
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3DAuxVars) = ("scalar",)
+varnames(::typeof(cons2aux), ::LinearScalarAdvectionEquation3DAuxVars) = ("a1", "a2",
+                                                                          "a3")
 
 # Calculate 1D flux for a single point using the advection velocity from the auxiliary
 # variables
 @inline function flux(u, aux, orientation::Integer,
-                      equations::LinearVariableScalarAdvectionEquation3D)
+                      equations::LinearScalarAdvectionEquation3DAuxVars)
     a = aux[orientation]
     return a * u
 end
@@ -52,14 +52,14 @@ end
 # Calculate 1D flux for a single point in the normal direction using the advection velocity
 # from the auxiliary variables
 @inline function flux(u, aux, normal_direction::AbstractVector,
-                      equations::LinearVariableScalarAdvectionEquation3D)
+                      equations::LinearScalarAdvectionEquation3DAuxVars)
     # Advection velocity in the (not necessarily normalized) normal direction
     a = dot(aux, normal_direction)
     return a * u
 end
 
 """
-    have_constant_speed(::LinearVariableScalarAdvectionEquation3D)
+    have_constant_speed(::LinearScalarAdvectionEquation3DAuxVars)
 
 Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
 Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
@@ -68,26 +68,26 @@ The characteristic speeds are given by the advection velocity, which varies in s
 # Returns
 - `False()`
 """
-@inline have_constant_speed(::LinearVariableScalarAdvectionEquation3D) = False()
+@inline have_constant_speed(::LinearScalarAdvectionEquation3DAuxVars) = False()
 
 # Maximum wave speeds in each direction for the CFL condition
 @inline function max_abs_speeds(u, aux,
-                                equations::LinearVariableScalarAdvectionEquation3D)
+                                equations::LinearScalarAdvectionEquation3DAuxVars)
     return abs(aux[1]), abs(aux[2]), abs(aux[3])
 end
 
 @inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                               equations::LinearVariableScalarAdvectionEquation3D)
+                               equations::LinearScalarAdvectionEquation3DAuxVars)
     return max(abs(aux_ll[orientation]), abs(aux_rr[orientation]))
 end
 
 @inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
                                normal_direction::AbstractVector,
-                               equations::LinearVariableScalarAdvectionEquation3D)
+                               equations::LinearScalarAdvectionEquation3DAuxVars)
     return max(abs(dot(aux_ll, normal_direction)), abs(dot(aux_rr, normal_direction)))
 end
 
 # Convert conservative variables to primitive and entropy variables
-@inline cons2prim(u, ::LinearVariableScalarAdvectionEquation3D) = u
-@inline cons2entropy(u, ::LinearVariableScalarAdvectionEquation3D) = u
+@inline cons2prim(u, ::LinearScalarAdvectionEquation3DAuxVars) = u
+@inline cons2entropy(u, ::LinearScalarAdvectionEquation3DAuxVars) = u
 end # @muladd

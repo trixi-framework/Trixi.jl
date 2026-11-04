@@ -2999,11 +2999,11 @@ end
     end
 end
 
-@testitem "Type stability: Linear variable scalar advection 3D" setup=[
+@testitem "Type stability: Linear scalar advection 3D with auxiliary variables" setup=[
     Setup,
     TypeStability
 ] tags=[:misc_part1] begin
-    equations = @inferred LinearVariableScalarAdvectionEquation3D()
+    equations = @inferred LinearScalarAdvectionEquation3DAuxVars()
     for RealT in (Float32, Float64)
         u = u_ll = u_rr = SVector(one(RealT))
         aux = aux_ll = aux_rr = SVector(one(RealT), RealT(0.5), -RealT(0.5))

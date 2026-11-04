@@ -15,7 +15,7 @@ for human readability.
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
   they are supported for conforming `P4estMesh{3}`es without AMR. The new equation
-  `LinearVariableScalarAdvectionEquation3D` uses them for a spatially varying advection
+  `LinearScalarAdvectionEquation3DAuxVars` uses them for a spatially varying advection
   velocity.
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).

@@ -6166,7 +6166,7 @@ end
 
 @testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Whether auxiliary variables are used is a fixed property of the equations
-    equations = LinearVariableScalarAdvectionEquation3D()
+    equations = LinearScalarAdvectionEquation3DAuxVars()
     equations_global = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
     @test nauxvariables(equations) == 3
     @test eachauxvariable(equations) == Base.OneTo(3)
@@ -6271,11 +6271,11 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for LinearVariableScalarAdvectionEquation3D" setup=[
+@testitem "Unit: Consistency check for LinearScalarAdvectionEquation3DAuxVars" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = LinearVariableScalarAdvectionEquation3D()
+    equations = LinearScalarAdvectionEquation3DAuxVars()
 
     # Different states and auxiliary variables on both sides
     u_ll = SVector(0.4)

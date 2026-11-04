@@ -697,7 +697,7 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
-include("linear_variable_scalar_advection_3d.jl")
+include("linear_scalar_advection_3d_aux_vars.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:

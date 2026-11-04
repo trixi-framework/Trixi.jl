@@ -4,22 +4,22 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation with a spatially varying velocity
 
-equations = LinearVariableScalarAdvectionEquation3D()
+equations = LinearScalarAdvectionEquation3DAuxVars()
 
 # Divergence-free shear flow in x-direction, prescribed at every node of the mesh. The
-# auxiliary variables of `LinearVariableScalarAdvectionEquation3D` are the components
+# auxiliary variables of `LinearScalarAdvectionEquation3DAuxVars` are the components
 # `(a1, a2, a3)` of the advection velocity.
 function velocity_shear(x)
     a1 = 1 + 0.5f0 * sinpi(x[2]) * cospi(x[3])
     return SVector(a1, zero(a1), zero(a1))
 end
 
-aux_field(x, equations::LinearVariableScalarAdvectionEquation3D) = velocity_shear(x)
+aux_field(x, equations::LinearScalarAdvectionEquation3DAuxVars) = velocity_shear(x)
 
 # Since the velocity in x-direction does not depend on x, the exact solution is given by
 # shifting the initial condition along the x-direction with the local velocity.
 function initial_condition_sheared_wave(x, t,
-                                        equations::LinearVariableScalarAdvectionEquation3D)
+                                        equations::LinearScalarAdvectionEquation3DAuxVars)
     a1 = velocity_shear(x)[1]
     return SVector(1 + 0.5f0 * sinpi(x[1] - a1 * t + x[2] + x[3]))
 end
