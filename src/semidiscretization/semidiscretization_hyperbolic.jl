@@ -51,7 +51,8 @@ single boundary condition that gets applied to all boundaries.
 `aux_field` is a function `aux_field(x, equations)` returning the auxiliary variables at
 the node coordinates `x`. It is required for equations using auxiliary variables and must
 not be passed otherwise, see [`n_aux_node_vars`](@ref). The auxiliary variables are
-evaluated once.
+evaluated once. Currently, auxiliary variables are only supported with [`DGSEM`](@ref) on
+a [`P4estMesh`](@ref) in 3D, without AMR and MPI.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,

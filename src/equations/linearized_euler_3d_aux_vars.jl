@@ -17,6 +17,11 @@ variables
 are not constant. Instead, they are stored as auxiliary variables at every node, see
 [`n_aux_node_vars`](@ref). Their values are given by the function `aux_field` that
 has to be passed to [`SemidiscretizationHyperbolic`](@ref).
+
+Currently, auxiliary variables are only supported for
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
+without AMR and MPI. The progress is tracked in
+https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 struct LinearizedEulerEquations3DAuxVars <: AbstractLinearizedEulerEquations{3, 5} end
 
