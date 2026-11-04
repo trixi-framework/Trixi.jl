@@ -7,9 +7,10 @@
 
 # The MPI send buffer is filled in `prolong2mpiinterfaces!`, and the kernels have
 # finished when this is called, see `rhs_hyperbolic!`.
-# This function is dimension-agnostic and also used in 3D.
+# This function is dimension-agnostic and used in both 2D and 3D.
 function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
-                         mesh::Union{P4estMeshParallel, T8codeMeshParallel},
+                         mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3},
+                                     T8codeMeshParallel{2}, T8codeMeshParallel{3}},
                          equations, dg, cache)
     # TODO GPU: MPI mortars are not yet implemented
     @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
@@ -25,9 +26,10 @@ end
 
 # The received data is not unpacked but read directly from the MPI receive buffer
 # by `calc_mpi_interface_flux!`. Thus, we can wait for all data at once.
-# This function is dimension-agnostic and also used in 3D.
+# This function is dimension-agnostic and used in both 2D and 3D.
 function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
-                             mesh::Union{P4estMeshParallel, T8codeMeshParallel},
+                             mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3},
+                                         T8codeMeshParallel{2}, T8codeMeshParallel{3}},
                              equations, dg, cache)
     MPI.Waitall(mpi_cache.mpi_recv_requests)
 

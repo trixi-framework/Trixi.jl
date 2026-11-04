@@ -130,7 +130,7 @@ end
                         linf=[0.026527551737137167])
 end
 
-@testitem "KernelAbstractions MPI CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+@testitem "KernelAbstractions MPI CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl" setup=[
     Setup,
     KernelAbstractionsMPIExamples
 ] tags=[:kernelabstractions_mpi] begin
