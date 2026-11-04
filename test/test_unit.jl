@@ -6166,26 +6166,23 @@ end
 
 @testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Whether auxiliary variables are used is a fixed property of the equations
-    equations = LinearizedEulerEquations3DAuxVars()
-    equations_global = LinearizedEulerEquations3D(v_mean_global = (0.5, -0.3, 0.2),
-                                                  c_mean_global = 1.1,
-                                                  rho_mean_global = 0.9)
-    @test nauxvariables(equations) == 5
-    @test eachauxvariable(equations) == Base.OneTo(5)
+    equations = LinearVariableScalarAdvectionEquation3D()
+    equations_global = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
+    @test nauxvariables(equations) == 3
+    @test eachauxvariable(equations) == Base.OneTo(3)
     @test nauxvariables(equations_global) == 0
     @test isempty(eachauxvariable(equations_global))
-    @test Trixi.varnames(cons2aux, equations) ==
-          ("rho_mean", "v1_mean", "v2_mean", "v3_mean", "c_mean")
-    @test cons2aux(SVector(1.0, 2.0, 3.0, 4.0, 5.0), SVector(0.1, 0.2), equations) ==
-          SVector(0.1, 0.2)
+    @test Trixi.varnames(cons2aux, equations) == ("a1", "a2", "a3")
+    @test cons2aux(SVector(1.0), SVector(0.1, 0.2, 0.3), equations) ==
+          SVector(0.1, 0.2, 0.3)
 
     mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
                      coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
     solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
-    initial_condition(x, t, equations) = zero(SVector{5, Float64})
+    initial_condition(x, t, equations) = SVector(sinpi(x[1] + x[2] + x[3]))
     # The auxiliary variables have to be continuous across the periodic boundaries
     aux_field(x, equations) = SVector(1.0 + 0.1 * sinpi(x[1]), 0.5 * sinpi(x[2]),
-                                      -0.3 * cospi(x[3]), 0.2, 1.1)
+                                      -0.3 * cospi(x[3]))
 
     @timed_testset "aux_field required for equations with auxiliary variables" begin
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
@@ -6204,7 +6201,7 @@ end
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
         (; aux_node_vars, aux_surface_node_vars) = semi.cache.aux_vars
-        @test size(aux_node_vars) == (5, 3, 3, 3, 8)
+        @test size(aux_node_vars) == (3, 3, 3, 3, 8)
         @test !any(isnan, aux_node_vars)
         @test !any(isnan, aux_surface_node_vars)
         # The auxiliary variables are evaluated at the node coordinates
@@ -6274,17 +6271,17 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for LinearizedEulerEquations3DAuxVars" setup=[
+@testitem "Unit: Consistency check for LinearVariableScalarAdvectionEquation3D" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = LinearizedEulerEquations3DAuxVars()
+    equations = LinearVariableScalarAdvectionEquation3D()
 
     # Different states and auxiliary variables on both sides
-    u_ll = SVector(0.1, -0.2, 0.3, 0.05, 0.4)
-    u_rr = SVector(-0.2, 0.1, 0.25, -0.1, 0.3)
-    aux_ll = SVector(0.9, 0.5, -0.3, 0.2, 1.1)
-    aux_rr = SVector(1.2, -0.4, 0.1, 0.6, 0.8)
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3, 0.2)
+    aux_rr = SVector(-0.4, 0.1, 0.6)
     normal_direction = SVector(-1.2, 0.3, 0.7)
     unit_normals = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
                     SVector(0.0, 0.0, 1.0))
@@ -6333,13 +6330,8 @@ end
         end
     end
 
-    @timed_testset "Constant mean flow agrees with LinearizedEulerEquations3D" begin
-        rho_mean, v1_mean, v2_mean, v3_mean, c_mean = aux_ll
-        equations_global = LinearizedEulerEquations3D(v_mean_global = (v1_mean,
-                                                                       v2_mean,
-                                                                       v3_mean),
-                                                      c_mean_global = c_mean,
-                                                      rho_mean_global = rho_mean)
+    @timed_testset "Constant velocity agrees with LinearScalarAdvectionEquation3D" begin
+        equations_global = LinearScalarAdvectionEquation3D(aux_ll...)
         for orientation in 1:3
             @test flux(u_ll, aux_ll, orientation, equations) ≈
                   flux(u_ll, orientation, equations_global)

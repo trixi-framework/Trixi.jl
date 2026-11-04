@@ -697,6 +697,7 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("linear_variable_scalar_advection_3d.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
@@ -843,7 +844,6 @@ abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
 include("linearized_euler_1d.jl")
 include("linearized_euler_2d.jl")
 include("linearized_euler_3d.jl")
-include("linearized_euler_3d_aux_vars.jl")
 
 abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end

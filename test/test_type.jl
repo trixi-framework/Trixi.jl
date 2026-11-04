@@ -2999,16 +2999,14 @@ end
     end
 end
 
-@testitem "Type stability: Linearized Euler 3D with auxiliary variables" setup=[
+@testitem "Type stability: Linear variable scalar advection 3D" setup=[
     Setup,
     TypeStability
 ] tags=[:misc_part1] begin
-    equations = @inferred LinearizedEulerEquations3DAuxVars()
+    equations = @inferred LinearVariableScalarAdvectionEquation3D()
     for RealT in (Float32, Float64)
-        u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT), one(RealT),
-                                  one(RealT))
-        aux = aux_ll = aux_rr = SVector(one(RealT), RealT(0.5), zero(RealT), zero(RealT),
-                                        one(RealT))
+        u = u_ll = u_rr = SVector(one(RealT))
+        aux = aux_ll = aux_rr = SVector(one(RealT), RealT(0.5), -RealT(0.5))
         orientations = [1, 2, 3]
         normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
 
