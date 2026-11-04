@@ -3029,7 +3029,6 @@ end
 
         @test eltype(@inferred cons2prim(u, equations)) == RealT
         @test eltype(@inferred cons2entropy(u, equations)) == RealT
-        @test eltype(@inferred cons2aux(u, aux, equations)) == RealT
     end
 
     adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations)

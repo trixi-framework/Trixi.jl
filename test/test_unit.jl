@@ -6167,14 +6167,13 @@ end
 @testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Whether auxiliary variables are used is a fixed property of the equations
     equations = LinearScalarAdvectionEquation3DAuxVars()
-    equations_global = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
+    equations_no_aux = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
     @test nauxvariables(equations) == 3
     @test eachauxvariable(equations) == Base.OneTo(3)
-    @test nauxvariables(equations_global) == 0
-    @test isempty(eachauxvariable(equations_global))
-    @test Trixi.varnames(cons2aux, equations) == ("a1", "a2", "a3")
-    @test cons2aux(SVector(1.0), SVector(0.1, 0.2, 0.3), equations) ==
-          SVector(0.1, 0.2, 0.3)
+    @test nauxvariables(equations_no_aux) == 0
+    @test isempty(eachauxvariable(equations_no_aux))
+    @test Trixi.auxvarnames(equations) == ("a1", "a2", "a3")
+    @test Trixi.auxvarnames(equations_no_aux) == ()
 
     mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
                      coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
@@ -6252,21 +6251,21 @@ end
     end
 
     @timed_testset "No auxiliary variables for equations without them" begin
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_global,
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_no_aux,
                                                                 initial_condition,
                                                                 solver;
                                                                 boundary_conditions = boundary_condition_periodic,
                                                                 aux_field)
 
-        semi = SemidiscretizationHyperbolic(mesh, equations_global, initial_condition,
+        semi = SemidiscretizationHyperbolic(mesh, equations_no_aux, initial_condition,
                                             solver;
                                             boundary_conditions = boundary_condition_periodic)
         @test !haskey(semi.cache, :aux_vars)
         @test Trixi.get_aux_node_vars_array(semi.cache) === nothing
         @test Trixi.get_aux_surface_node_vars_array(semi.cache) === nothing
-        @test Trixi.get_aux_node_vars(nothing, equations_global, solver, 1, 1, 1, 1) ===
+        @test Trixi.get_aux_node_vars(nothing, equations_no_aux, solver, 1, 1, 1, 1) ===
               ()
-        @test Trixi.get_aux_surface_node_vars(nothing, equations_global, typeof(solver),
+        @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),
                                               1, 1, 1) === ()
     end
 end
@@ -6331,22 +6330,22 @@ end
     end
 
     @timed_testset "Constant velocity agrees with LinearScalarAdvectionEquation3D" begin
-        equations_global = LinearScalarAdvectionEquation3D(aux_ll...)
+        equations_constant = LinearScalarAdvectionEquation3D(aux_ll...)
         for orientation in 1:3
             @test flux(u_ll, aux_ll, orientation, equations) ≈
-                  flux(u_ll, orientation, equations_global)
+                  flux(u_ll, orientation, equations_constant)
             @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, orientation, equations) ≈
-                  max_abs_speed_naive(u_ll, u_rr, orientation, equations_global)
+                  max_abs_speed_naive(u_ll, u_rr, orientation, equations_constant)
         end
         @test flux(u_ll, aux_ll, normal_direction, equations) ≈
-              flux(u_ll, normal_direction, equations_global)
+              flux(u_ll, normal_direction, equations_constant)
         @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, normal_direction, equations) ≈
-              max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_global)
+              max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_constant)
         @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_ll, normal_direction,
                                   equations) ≈
-              flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_global)
+              flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_constant)
         @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
-                  Trixi.max_abs_speeds(equations_global))
+                  Trixi.max_abs_speeds(equations_constant))
     end
 end
 

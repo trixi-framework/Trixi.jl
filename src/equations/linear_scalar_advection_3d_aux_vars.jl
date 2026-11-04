@@ -33,8 +33,7 @@ end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3DAuxVars) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3DAuxVars) = ("scalar",)
-varnames(::typeof(cons2aux), ::LinearScalarAdvectionEquation3DAuxVars) = ("a1", "a2",
-                                                                          "a3")
+auxvarnames(::LinearScalarAdvectionEquation3DAuxVars) = ("a1", "a2", "a3")
 
 # Calculate 1D flux for a single point using the advection velocity from the auxiliary
 # variables

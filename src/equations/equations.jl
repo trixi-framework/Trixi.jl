@@ -86,7 +86,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
             for variable in eachauxvariable(equations)
                 summary_line(increment_indent(io),
                              "variable " * string(variable),
-                             varnames(cons2aux, equations)[variable])
+                             auxvarnames(equations)[variable])
             end
         end
         summary_footer(io)
@@ -437,11 +437,13 @@ In particular, not the auxiliary variables themselves are returned.
 @inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(nauxvariables(equations))
 
 """
-    cons2aux(u, aux, equations)
+    auxvarnames(equations)
 
-Return the auxiliary variables `aux`, see [`nauxvariables`](@ref).
+Return the names of the auxiliary variables of `equations` as a tuple of strings, see
+[`nauxvariables`](@ref). The default names are `"aux1"`, `"aux2"`, etc.
 """
-@inline cons2aux(u, aux, ::AbstractEquations) = aux
+auxvarnames(equations::AbstractEquations) = ntuple(v -> "aux" * string(v),
+                                                   Val(nauxvariables(equations)))
 
 """
     default_analysis_errors(equations)
