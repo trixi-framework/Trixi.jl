@@ -357,9 +357,12 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
     return surface_index1, surface_index2
 end
-# Auxiliary variables at the interface nodes, cf. `prolong2interfaces!`
-function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations, solver,
-                                     cache)
+
+# Auxiliary variables at the interface nodes, cf. `prolong2interfaces!`.
+# MPI is not supported yet since the auxiliary variables are not stored at MPI interfaces
+# and MPI mortars, so parallel meshes use the fallback throwing an error.
+function init_aux_surface_node_vars!(aux_vars, mesh::P4estMeshSerial{3}, equations,
+                                     solver, cache)
     @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(solver)
