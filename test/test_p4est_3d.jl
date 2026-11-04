@@ -941,8 +941,12 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_advection_variable_velocity.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_variable_velocity.jl"),
+@testitem "P4estMesh3D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
                         l2=[0.00519048662880307],
                         linf=[0.026769982125784075])
     # Ensure that we do not have excessive memory allocations
@@ -950,12 +954,12 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_advection_variable_velocity_nonconforming.jl" setup=[
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_variable_velocity_nonconforming.jl"),
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         l2=[0.010805591331708874],
                         linf=[0.08537612269394645])
     # Ensure that we do not have excessive memory allocations
@@ -963,14 +967,14 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_advection_variable_velocity_nonconforming.jl (flux differencing)" setup=[
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl (flux differencing)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
     # The central flux of the linear equation results in the same discretization as the
     # weak form volume integral (up to round-off errors)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_variable_velocity_nonconforming.jl"),
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
                         l2=[0.010805591331708858],
@@ -980,12 +984,12 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_advection_variable_velocity_nonconservative.jl" setup=[
+@testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_variable_velocity_nonconservative.jl"),
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
                         l2=[0.0023484814479120862],
                         linf=[0.02091570013800048])
     # Ensure that we do not have excessive memory allocations

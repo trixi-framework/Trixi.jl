@@ -203,7 +203,7 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
                                cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -225,7 +225,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))

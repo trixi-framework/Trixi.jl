@@ -203,7 +203,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
     # `nothing` if the equations do not have auxiliary variables
-    aux_interface = get_aux_interface(cache)
+    aux_interface = get_aux_interface_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -563,7 +563,7 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
         check_axes(boundaries, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux(get_aux(cache), equations, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -640,7 +640,7 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Auxiliary variables inside the domain. There are no separate auxiliary variables
     # on the outside of the boundary.
-    aux_inner = get_aux_node_vars(get_aux(cache), equations, dg,
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, k_index, element_index)
 
     flux_ = boundary_condition(u_inner, aux_inner...,
@@ -712,7 +712,7 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Auxiliary variables inside the domain. There are no separate auxiliary variables
     # on the outside of the boundary.
-    aux_inner = get_aux_node_vars(get_aux(cache), equations, dg,
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, k_index, element_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
@@ -765,7 +765,7 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Auxiliary variables inside the domain. There are no separate auxiliary variables
     # on the outside of the boundary.
-    aux_inner = get_aux_node_vars(get_aux(cache), equations, dg,
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, k_index, element_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
@@ -906,7 +906,7 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin

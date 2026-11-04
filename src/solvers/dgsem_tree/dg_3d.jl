@@ -1574,7 +1574,7 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Source,
     @unpack node_coordinates = cache.elements
 
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin

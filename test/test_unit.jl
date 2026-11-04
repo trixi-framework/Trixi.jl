@@ -6261,8 +6261,8 @@ end
                                             solver;
                                             boundary_conditions = boundary_condition_periodic)
         @test !haskey(semi.cache, :aux_vars)
-        @test Trixi.get_aux(semi.cache) === nothing
-        @test Trixi.get_aux_interface(semi.cache) === nothing
+        @test Trixi.get_aux_vars(semi.cache) === nothing
+        @test Trixi.get_aux_interface_vars(semi.cache) === nothing
         @test Trixi.get_aux_node_vars(nothing, equations_no_aux, solver, 1, 1, 1, 1) ===
               ()
         @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),

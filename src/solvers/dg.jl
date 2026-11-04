@@ -1481,15 +1481,15 @@ Base.@propagate_inbounds function set_aux_node_vars!(aux, aux_node, equations,
     return nothing
 end
 
-# Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
-# container is only created for equations with auxiliary variables, see
-# `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is a
-# `NamedTuple`, the check is resolved at compile time.
-@inline function get_aux(cache)
+# Accessors for the arrays of auxiliary variables stored in the `aux_vars` container of
+# the `cache`. The `aux_vars` container is only created for equations with auxiliary
+# variables, see `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is
+# a `NamedTuple`, the check is resolved at compile time.
+@inline function get_aux_vars(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux : nothing
 end
 
-@inline function get_aux_interface(cache)
+@inline function get_aux_interface_vars(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_interface :
            nothing
 end

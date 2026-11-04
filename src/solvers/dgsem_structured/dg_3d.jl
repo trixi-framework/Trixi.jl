@@ -43,7 +43,7 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -107,7 +107,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     # Calculate volume integral in one element
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -225,7 +225,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     @unpack contravariant_vectors = cache.elements
     symmetric_flux, nonconservative_flux = volume_flux
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     # Apply the symmetric flux as usual
     flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
@@ -329,7 +329,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux(cache)
+    aux = get_aux_vars(cache)
 
     # Calculate volume integral in one element
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
