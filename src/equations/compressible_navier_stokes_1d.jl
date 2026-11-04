@@ -69,9 +69,10 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-q = -\kappa \frac{\partial}{\partial x} \left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}} \frac{\partial}{\partial x} \left(\frac{p}{\rho}\right)
+q = -\kappa \frac{\partial}{\partial x} \left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}} \frac{\partial}{\partial x} \left(\frac{p}{\rho}\right).
 ```
-which is the form implemented below in the [`flux`](@ref) function.
+However, the [`flux`](@ref) function uses the first of these expressions,
+i.e., both the thermal conductivity ``\kappa`` and the temperature ``T`` include ``R``.
 
 In one spatial dimensions we require gradients for two quantities, e.g.,
 primitive quantities
@@ -199,8 +200,9 @@ end
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
-    # Note, the gas constant cancels under this formulation, so it is not present
-    # in the implementation
+    # Note, the gas constant R cancels mathematically in this formulation. However,
+    # it is included in both `kappa_over_mu` and the temperature gradient since the
+    # gradient variables and boundary conditions use the temperature T = p / (R rho).
     q1 = equations.kappa_over_mu * dTdx
 
     # In the simplest cases, the user passed in `mu` or `mu()`
@@ -222,8 +224,10 @@ end
     max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion1D)
 
 # Returns
-- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
-where `max_visc_cond = max(1, gamma_over_Pr)` is computed in the constructor.
+- `mu / u[1] * equations_parabolic.max_visc_cond` for the conservative variables `u`,
+where `mu` is the [`dynamic_viscosity`](@ref) evaluated for the transformed variables
+(see [`gradient_variable_transformation`](@ref)),
+and `max_visc_cond = max(1, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -250,7 +254,7 @@ and thus the largest absolute eigenvalue is
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
-    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+    return dynamic_viscosity_conservative(u, equations_parabolic) / u[1] *
            equations_parabolic.max_visc_cond
 end
 
