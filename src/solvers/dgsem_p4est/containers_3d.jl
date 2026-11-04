@@ -363,7 +363,7 @@ end
 # and MPI mortars, so parallel meshes use the fallback throwing an error.
 function init_aux_surface_node_vars!(aux_vars, mesh::P4estMeshSerial{3}, equations,
                                      solver, cache)
-    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack aux, aux_interface = aux_vars
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(solver)
 
@@ -389,11 +389,11 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMeshSerial{3}, equatio
         for j in eachnode(solver)
             for i in eachnode(solver)
                 for v in eachauxvariable(equations)
-                    aux_surface_node_vars[1, v, i, j, interface] = aux_node_vars[v,
-                                                                                 i_primary,
-                                                                                 j_primary,
-                                                                                 k_primary,
-                                                                                 primary_element]
+                    aux_interface[1, v, i, j, interface] = aux[v,
+                                                               i_primary,
+                                                               j_primary,
+                                                               k_primary,
+                                                               primary_element]
                 end
                 i_primary += i_primary_step_i
                 j_primary += j_primary_step_i
@@ -421,11 +421,11 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMeshSerial{3}, equatio
         for j in eachnode(solver)
             for i in eachnode(solver)
                 for v in eachauxvariable(equations)
-                    aux_surface_node_vars[2, v, i, j, interface] = aux_node_vars[v,
-                                                                                 i_secondary,
-                                                                                 j_secondary,
-                                                                                 k_secondary,
-                                                                                 secondary_element]
+                    aux_interface[2, v, i, j, interface] = aux[v,
+                                                               i_secondary,
+                                                               j_secondary,
+                                                               k_secondary,
+                                                               secondary_element]
                 end
                 i_secondary += i_secondary_step_i
                 j_secondary += j_secondary_step_i

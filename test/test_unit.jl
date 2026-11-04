@@ -6199,17 +6199,17 @@ end
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
-        (; aux_node_vars, aux_surface_node_vars) = semi.cache.aux_vars
-        @test size(aux_node_vars) == (3, 3, 3, 3, 8)
-        @test !any(isnan, aux_node_vars)
-        @test !any(isnan, aux_surface_node_vars)
+        (; aux, aux_interface) = semi.cache.aux_vars
+        @test size(aux) == (3, 3, 3, 3, 8)
+        @test !any(isnan, aux)
+        @test !any(isnan, aux_interface)
         # The auxiliary variables are evaluated at the node coordinates
         node_coordinates = semi.cache.elements.node_coordinates
-        @test all(aux_node_vars[:, i, j, k, element] ≈
+        @test all(aux[:, i, j, k, element] ≈
                   aux_field(node_coordinates[:, i, j, k, element], equations)
                   for i in 1:3, j in 1:3, k in 1:3, element in 1:8)
         # The auxiliary variables are continuous, so both sides of an interface agree
-        @test aux_surface_node_vars[1, :, :, :, :] ≈ aux_surface_node_vars[2, :, :, :, :]
+        @test aux_interface[1, :, :, :, :] ≈ aux_interface[2, :, :, :, :]
         @test_nowarn show(devnull, MIME"text/plain"(), semi)
         @test_nowarn show(devnull, MIME"text/plain"(), equations)
     end
@@ -6222,9 +6222,9 @@ end
 
         # `remake` keeps the auxiliary variables by default
         semi_remade = Trixi.remake(semi)
-        @test semi_remade.cache.aux_vars.aux_node_vars == semi.cache.aux_vars.aux_node_vars
-        @test semi_remade.cache.aux_vars.aux_surface_node_vars ==
-              semi.cache.aux_vars.aux_surface_node_vars
+        @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
+        @test semi_remade.cache.aux_vars.aux_interface ==
+              semi.cache.aux_vars.aux_interface
 
         # `remake` is used to compute Jacobians via automatic differentiation
         @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
@@ -6237,11 +6237,11 @@ end
 
         # The auxiliary variables are adapted together with the semidiscretization
         semi32 = trixi_adapt(semi; real_type = Float32)
-        (; aux_node_vars, aux_surface_node_vars) = semi32.cache.aux_vars
-        @test aux_node_vars isa Array{Float32, 5}
-        @test aux_surface_node_vars isa Array{Float32, 5}
-        @test aux_node_vars ≈ semi.cache.aux_vars.aux_node_vars
-        @test aux_surface_node_vars ≈ semi.cache.aux_vars.aux_surface_node_vars
+        (; aux, aux_interface) = semi32.cache.aux_vars
+        @test aux isa Array{Float32, 5}
+        @test aux_interface isa Array{Float32, 5}
+        @test aux ≈ semi.cache.aux_vars.aux
+        @test aux_interface ≈ semi.cache.aux_vars.aux_interface
         @test semi32.cache.aux_vars.aux_field === aux_field
         u_ode = compute_coefficients(0.0f0, semi32)
         du_ode = similar(u_ode)
@@ -6261,8 +6261,8 @@ end
                                             solver;
                                             boundary_conditions = boundary_condition_periodic)
         @test !haskey(semi.cache, :aux_vars)
-        @test Trixi.get_aux_node_vars_array(semi.cache) === nothing
-        @test Trixi.get_aux_surface_node_vars_array(semi.cache) === nothing
+        @test Trixi.get_aux(semi.cache) === nothing
+        @test Trixi.get_aux_interface(semi.cache) === nothing
         @test Trixi.get_aux_node_vars(nothing, equations_no_aux, solver, 1, 1, 1, 1) ===
               ()
         @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),

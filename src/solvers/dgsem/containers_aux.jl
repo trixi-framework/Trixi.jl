@@ -9,10 +9,10 @@
 # quadrature nodes, see [`nauxvariables`](@ref). It is stored as `cache.aux_vars` and
 # only created for equations with auxiliary variables.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real,
-                            AuxNodeVars <: AbstractArray{uEltype},
-                            AuxSurfaceNodeVars <: AbstractArray{uEltype}, AuxField}
-    aux_node_vars::AuxNodeVars                # [var, i, j, k, element]
-    aux_surface_node_vars::AuxSurfaceNodeVars # [leftright, var, i, j, interface]
+                            Aux <: AbstractArray{uEltype},
+                            AuxInterface <: AbstractArray{uEltype}, AuxField}
+    aux::Aux                # [var, i, j, k, element]
+    aux_interface::AuxInterface # [leftright, var, i, j, interface]
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
@@ -21,36 +21,36 @@ end
 # Adapt the arrays of the auxiliary variables, e.g., to another real type or a GPU,
 # see `trixi_adapt`
 function Adapt.adapt_structure(to, aux_vars::AuxNodeVarsContainer{NDIMS}) where {NDIMS}
-    aux_node_vars = adapt(to, aux_vars.aux_node_vars)
-    aux_surface_node_vars = adapt(to, aux_vars.aux_surface_node_vars)
+    aux = adapt(to, aux_vars.aux)
+    aux_interface = adapt(to, aux_vars.aux_interface)
     @unpack aux_field = aux_vars
 
-    return AuxNodeVarsContainer{NDIMS, eltype(aux_node_vars), typeof(aux_node_vars),
-                                typeof(aux_surface_node_vars),
-                                typeof(aux_field)}(aux_node_vars,
-                                                   aux_surface_node_vars, aux_field)
+    return AuxNodeVarsContainer{NDIMS, eltype(aux), typeof(aux),
+                                typeof(aux_interface),
+                                typeof(aux_field)}(aux,
+                                                   aux_interface, aux_field)
 end
 
 # Check whether the arrays of auxiliary variables have the axes we assume in the inner
 # loops of Trixi.jl, cf. `check_axes`. Nothing is checked without auxiliary variables.
-@inline check_axes_aux_node_vars(::Nothing, equations, solver, cache) = nothing
+@inline check_axes_aux(::Nothing, equations, solver, cache) = nothing
 
-@inline function check_axes_aux_node_vars(aux_node_vars, equations, solver, cache)
+@inline function check_axes_aux(aux, equations, solver, cache)
     # [var, i, j, k, element]
-    node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_node_vars) - 2))
-    return check_axes(aux_node_vars,
+    node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux) - 2))
+    return check_axes(aux,
                       (eachauxvariable(equations), node_axes...,
                        eachelement(solver, cache)))
 end
 
-@inline check_axes_aux_surface_node_vars(::Nothing, equations, solver, cache) = nothing
+@inline check_axes_aux_interface(::Nothing, equations, solver, cache) = nothing
 
-@inline function check_axes_aux_surface_node_vars(aux_surface_node_vars, equations,
-                                                  solver, cache)
+@inline function check_axes_aux_interface(aux_interface, equations,
+                                          solver, cache)
     # [leftright, var, i, j, interface]
     surface_node_axes = ntuple(_ -> eachnode(solver),
-                               Val(ndims(aux_surface_node_vars) - 3))
-    return check_axes(aux_surface_node_vars,
+                               Val(ndims(aux_interface) - 3))
+    return check_axes(aux_interface,
                       (Base.OneTo(2), eachauxvariable(equations), surface_node_axes...,
                        eachinterface(solver, cache)))
 end
@@ -66,18 +66,18 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     check_aux_field(aux_field, mesh, equations, solver, cache)
 
     # Volume nodes of the elements
-    aux_node_vars = fill(nan_uEltype,
-                         (n_aux, ntuple(_ -> n_nodes, NDIMS)...,
-                          nelements(cache.elements)))
+    aux = fill(nan_uEltype,
+               (n_aux, ntuple(_ -> n_nodes, NDIMS)...,
+                nelements(cache.elements)))
     # Surface nodes on both sides of the interfaces
-    aux_surface_node_vars = fill(nan_uEltype,
-                                 (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                  ninterfaces(cache.interfaces)))
+    aux_interface = fill(nan_uEltype,
+                         (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
+                          ninterfaces(cache.interfaces)))
 
-    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, typeof(aux_node_vars),
-                                    typeof(aux_surface_node_vars),
-                                    typeof(aux_field)}(aux_node_vars,
-                                                       aux_surface_node_vars,
+    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, typeof(aux),
+                                    typeof(aux_interface),
+                                    typeof(aux_field)}(aux,
+                                                       aux_interface,
                                                        aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
@@ -110,7 +110,7 @@ end
 # Evaluate the auxiliary variables at the volume nodes. This works for every mesh type
 # providing `cache.elements.node_coordinates`.
 function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
-    @unpack aux_node_vars, aux_field = aux_vars
+    @unpack aux, aux_field = aux_vars
     @unpack node_coordinates = cache.elements
 
     # All combinations of node indices, independent of the number of dimensions
@@ -120,7 +120,7 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
         for node_index in node_indices
             x_local = get_node_coords(node_coordinates, equations, solver,
                                       node_index, element)
-            set_aux_node_vars!(aux_node_vars, aux_field(x_local, equations),
+            set_aux_node_vars!(aux, aux_field(x_local, equations),
                                equations, solver, node_index, element)
         end
     end

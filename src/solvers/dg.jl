@@ -1409,12 +1409,12 @@ end
 # `flux(u_node, 1, equations)`.
 @inline get_aux_node_vars(::Nothing, equations, ::DG, indices...) = ()
 
-Base.@propagate_inbounds function get_aux_node_vars(aux_node_vars, equations, ::DG,
+Base.@propagate_inbounds function get_aux_node_vars(aux, equations, ::DG,
                                                     indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(aux_node_vars, eachauxvariable(equations), indices...)
+    @boundscheck checkbounds(aux, eachauxvariable(equations), indices...)
     # Assume inbounds access now
-    return (SVector(ntuple(@inline(v->@inbounds aux_node_vars[v, indices...]),
+    return (SVector(ntuple(@inline(v->@inbounds aux[v, indices...]),
                            Val(nauxvariables(equations)))),)
 end
 
@@ -1451,16 +1451,16 @@ end
 # Return the auxiliary variables on both sides of a given surface node index.
 @inline get_aux_surface_node_vars(::Nothing, equations, ::Type{<:DG}, indices...) = ()
 
-Base.@propagate_inbounds function get_aux_surface_node_vars(aux_surface_node_vars,
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
                                                             equations, ::Type{<:DG},
                                                             indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(aux_surface_node_vars, 1:2, eachauxvariable(equations),
+    @boundscheck checkbounds(aux_interface, 1:2, eachauxvariable(equations),
                              indices...)
     # Assume inbounds access now
-    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[1, v, indices...]),
+    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_interface[1, v, indices...]),
                             Val(nauxvariables(equations))))
-    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[2, v, indices...]),
+    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_interface[2, v, indices...]),
                             Val(nauxvariables(equations))))
     return aux_ll, aux_rr
 end
@@ -1473,10 +1473,10 @@ Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::D
     return nothing
 end
 
-Base.@propagate_inbounds function set_aux_node_vars!(aux_node_vars, aux_node, equations,
+Base.@propagate_inbounds function set_aux_node_vars!(aux, aux_node, equations,
                                                      solver::DG, indices...)
     for v in eachauxvariable(equations)
-        aux_node_vars[v, indices...] = aux_node[v]
+        aux[v, indices...] = aux_node[v]
     end
     return nothing
 end
@@ -1485,12 +1485,12 @@ end
 # container is only created for equations with auxiliary variables, see
 # [`nauxvariables`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
 # `NamedTuple`, the check is resolved at compile time.
-@inline function get_aux_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing
+@inline function get_aux(cache)
+    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux : nothing
 end
 
-@inline function get_aux_surface_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_surface_node_vars :
+@inline function get_aux_interface(cache)
+    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_interface :
            nothing
 end
 
