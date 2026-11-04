@@ -18,11 +18,6 @@ in three space dimensions with a spatially varying advection velocity
 Instead, it is stored as auxiliary variables at every node, see
 [`nauxvariables`](@ref). Its values are given by the function `aux_field` that has to be
 passed to [`SemidiscretizationHyperbolic`](@ref).
-
-Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR and MPI. The progress is tracked in
-https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 struct LinearScalarAdvectionEquation3DAuxVars <:
        AbstractLinearScalarAdvectionEquation{3} end
