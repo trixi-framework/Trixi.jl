@@ -11,7 +11,7 @@ equations = LinearizedEulerEquations3DAuxVars()
 # `(rho_mean, v1_mean, v2_mean, v3_mean, c_mean)`.
 function aux_field(x, equations::LinearizedEulerEquations3DAuxVars)
     v1_mean = 0.5f0 * sinpi(x[2])
-    return SVector(1.0f0, v1_mean, 0.0f0, 0.0f0, 1.0f0)
+    return SVector(1, v1_mean, 0, 0, 1)
 end
 
 # A Gaussian pressure pulse at rest
