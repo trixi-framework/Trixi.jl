@@ -137,8 +137,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1 = volume_flux(u_node, u_node_ii, aux_node...,
-                                     aux_node_ii..., Ja1_avg, equations)
+            fluxtilde1 = volume_flux(u_node, u_node_ii,
+                                     aux_node..., aux_node_ii...,
+                                     Ja1_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
