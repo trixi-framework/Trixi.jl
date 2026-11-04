@@ -2337,7 +2337,19 @@ end
 # the connectivity is complete, i.e., contains all corners (and edges in 3D) connecting
 # trees, see https://github.com/cburstedde/p4est/issues/112.
 function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)
-    return p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
+    p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
+
+    # Connectivities containing only face connections are incomplete, e.g., those from
+    # restart files written by older versions of Trixi.jl. For these, a second call to
+    # `p4est_balance` was sufficient to obtain a balanced forest in all cases we observed
+    # (but this is not guaranteed), so we keep it as a cheap fallback. For complete
+    # connectivities that do not need any corners (e.g., a single tree), the second call
+    # does not change the forest.
+    if mesh.p4est.connectivity.num_corners[] == 0
+        p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
+    end
+
+    return nothing
 end
 
 function balance!(mesh::P4estMesh{3}, init_fn = C_NULL)

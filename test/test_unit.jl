@@ -5186,7 +5186,19 @@ end
         @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
                                       periodicity)
 
-        # `balance!` calls `p4est_balance` only once
+        # A single call to `p4est_balance` is sufficient. Call it directly since
+        # `balance!` calls it twice for connectivities without corners.
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.p4est_balance(mesh.p4est, Trixi.P4EST_CONNECT_FACE, C_NULL)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+
+        # Remove all corners to obtain a connectivity containing only face connections,
+        # e.g., as created by older versions of Trixi.jl, for which `balance!` calls
+        # `p4est_balance` twice
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        Trixi.p4est_connectivity_reduce(mesh.p4est.connectivity)
         Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
         Trixi.balance!(mesh)
         @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
