@@ -12,11 +12,12 @@ for human readability.
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
   keyword arguments of `PlotData2D` such as `slice` and `point` to `PlotData2D`.
-  Similarly, `Makie.plot` of 1D solutions passes `nvisnodes` and `reinterpolate` to
-  `PlotData1D`. All other keyword arguments of `Makie.plot` of solutions and
-  `PlotData1D`/`PlotData2D` objects, e.g., `colorrange`, are passed to Makie, and
-  `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of 3D
-  `DGMultiMesh` solutions now show the correct axis labels ([#3405]).
+  Similarly, `Makie.plot` of 1D solutions passes `nvisnodes`, `reinterpolate`, and
+  `variable_names` to `PlotData1D`. All other keyword arguments of `Makie.plot` of
+  solutions and `PlotData1D`/`PlotData2D` objects, e.g., `colorrange`, are passed to
+  Makie, and `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of
+  3D `DGMultiMesh` solutions and plots of 1D `DGMultiMesh` solutions now show the
+  correct axis labels ([#3405]).
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
