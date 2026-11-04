@@ -6166,7 +6166,7 @@ end
 
 @testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Whether auxiliary variables are used is a fixed property of the equations
-    equations = LinearScalarAdvectionEquation3DAuxVars()
+    equations = ConservativeLinearScalarAdvectionEquation3D()
     equations_no_aux = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
     @test nauxvariables(equations) == 3
     @test eachauxvariable(equations) == Base.OneTo(3)
@@ -6180,10 +6180,10 @@ end
     solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
     initial_condition(x, t, equations) = SVector(sinpi(x[1] + x[2] + x[3]))
     # The auxiliary variables have to be continuous across the periodic boundaries
-    aux_field(x, equations) = SVector(1.0 + 0.1 * sinpi(x[1]), 0.5 * sinpi(x[2]),
-                                      -0.3 * cospi(x[3]))
+    aux_field(x, equations) = SVector(1 + 0.125f0 * sinpi(x[1]), 0.5f0 * sinpi(x[2]),
+                                      -0.25f0 * cospi(x[3]))
 
-    @timed_testset "aux_field required for equations with auxiliary variables" begin
+    @timed_testset "Equations with auxiliary variables require aux_field" begin
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
                                                                 initial_condition,
                                                                 solver;
@@ -6193,8 +6193,8 @@ end
                                                                 initial_condition,
                                                                 solver;
                                                                 boundary_conditions = boundary_condition_periodic,
-                                                                aux_field = (x, equations) -> SVector(1.0,
-                                                                                                      2.0))
+                                                                aux_field = (x, equations) -> SVector(1,
+                                                                                                      2))
 
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic,
@@ -6214,7 +6214,7 @@ end
         @test_nowarn show(devnull, MIME"text/plain"(), equations)
     end
 
-    @timed_testset "remake and automatic differentiation" begin
+    @timed_testset "Remake and automatic differentiation" begin
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
@@ -6270,11 +6270,11 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for LinearScalarAdvectionEquation3DAuxVars" setup=[
+@testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation3D" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = LinearScalarAdvectionEquation3DAuxVars()
+    equations = ConservativeLinearScalarAdvectionEquation3D()
 
     # Different states and auxiliary variables on both sides
     u_ll = SVector(0.4)
@@ -6346,6 +6346,113 @@ end
               flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_constant)
         @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
                   Trixi.max_abs_speeds(equations_constant))
+    end
+end
+
+@testitem "Unit: Consistency check for NonconservativeLinearScalarAdvectionEquation3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = NonconservativeLinearScalarAdvectionEquation3D()
+    @test Trixi.have_nonconservative_terms(equations) == Trixi.True()
+    @test nauxvariables(equations) == 3
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3, 0.2)
+    aux_rr = SVector(-0.4, 0.1, 0.6)
+    normal_direction = SVector(-1.2, 0.3, 0.7)
+    unit_normals = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                    SVector(0.0, 0.0, 1.0))
+
+    @timed_testset "Vanishing physical flux" begin
+        for orientation in 1:3
+            @test flux(u_ll, aux_ll, orientation, equations) == zero(u_ll)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) == zero(u_ll)
+    end
+
+    @timed_testset "Consistency of the nonconservative flux" begin
+        # For equal states, the central nonconservative flux is twice the advection
+        # velocity in normal direction times the state, since it is scaled by 0.5 in
+        # Trixi.jl
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            @test flux_nonconservative_central(u, u, aux, aux, normal_direction,
+                                               equations) ≈
+                  2 * dot(aux, normal_direction) * u
+        end
+        # Only the auxiliary variables of the element receiving the flux are used
+        @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                           equations) ≈
+              dot(aux_ll, normal_direction) * (u_ll + u_rr)
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:3
+            unit_normal = unit_normals[orientation]
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                               equations) ≈
+                  flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                               equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               factor * normal_direction, equations) ≈
+                  factor * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant velocity agrees with the conservative form" begin
+        # For a constant advection velocity, the nonconservative discretization with
+        # central fluxes and local Lax-Friedrichs dissipation is the same as the
+        # conservative one (up to round-off errors)
+        mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+        aux_field(x, equations) = SVector(0.75f0, -0.5f0, 0.25f0)
+        function initial_condition(x, t, equations)
+            return SVector(1 + 0.5f0 * sinpi(x[1] + 2 * x[2] - x[3]))
+        end
+        boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
+        solver_nonconservative = DGSEM(polydeg = 3,
+                                       surface_flux = (flux_lax_friedrichs,
+                                                       flux_nonconservative_central),
+                                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                                         flux_nonconservative_central)))
+        semi_nonconservative = SemidiscretizationHyperbolic(mesh, equations,
+                                                            initial_condition,
+                                                            solver_nonconservative;
+                                                            boundary_conditions,
+                                                            aux_field)
+
+        solver_conservative = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+        semi_conservative = SemidiscretizationHyperbolic(mesh,
+                                                         ConservativeLinearScalarAdvectionEquation3D(),
+                                                         initial_condition,
+                                                         solver_conservative;
+                                                         boundary_conditions,
+                                                         aux_field)
+
+        u_ode = compute_coefficients(0.0, semi_nonconservative)
+        du_ode_nonconservative = similar(u_ode)
+        du_ode_conservative = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
+        Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
+        @test du_ode_nonconservative ≈ du_ode_conservative
     end
 end
 

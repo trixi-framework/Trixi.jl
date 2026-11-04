@@ -244,11 +244,37 @@ end
     # Get the external value of the solution.
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    # Calculate boundary flux
-    flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides.
+    flux = surface_flux_function(u_inner, u_boundary,
+                                 aux_inner, aux_inner,
                                  normal_direction, equations)
 
     return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables and
+# nonconservative terms passing a tuple of surface flux functions
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides.
+    flux = surface_flux_function(u_inner, u_boundary,
+                                 aux_inner, aux_inner,
+                                 normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
+                                                 aux_inner, aux_inner,
+                                                 normal_direction, equations)
+
+    return flux, noncons_flux
 end
 
 # Dirichlet-type boundary condition for equations with non-conservative terms for use with UnstructuredMesh2D
@@ -699,7 +725,7 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
-include("linear_scalar_advection_3d_aux_vars.jl")
+include("linear_scalar_advection_3d_variable_velocity.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:

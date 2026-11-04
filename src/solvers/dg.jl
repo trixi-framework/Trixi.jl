@@ -1483,7 +1483,7 @@ end
 
 # Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
 # container is only created for equations with auxiliary variables, see
-# [`nauxvariables`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
+# `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is a
 # `NamedTuple`, the check is resolved at compile time.
 @inline function get_aux(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux : nothing

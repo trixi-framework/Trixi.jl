@@ -5,10 +5,10 @@ using Trixi
 # semidiscretization of the linear advection equation with a spatially varying velocity
 # on a statically refined, non-periodic mesh using a manufactured solution
 
-equations = LinearScalarAdvectionEquation3DAuxVars()
+equations = ConservativeLinearScalarAdvectionEquation3D()
 
 # Advection velocity with non-vanishing divergence, prescribed at every node of the mesh.
-# The auxiliary variables of `LinearScalarAdvectionEquation3DAuxVars` are the components
+# The auxiliary variables of `ConservativeLinearScalarAdvectionEquation3D` are the components
 # `(a1, a2, a3)` of the advection velocity.
 function velocity_variable(x)
     a1 = 1 + 0.5f0 * sinpi(x[2])
@@ -22,10 +22,10 @@ function divergence_velocity_variable(x)
     return -0.25f0 * convert(eltype(x), pi) * sinpi(x[3])
 end
 
-aux_field(x, equations::LinearScalarAdvectionEquation3DAuxVars) = velocity_variable(x)
+aux_field(x, equations::ConservativeLinearScalarAdvectionEquation3D) = velocity_variable(x)
 
 function initial_condition_manufactured(x, t,
-                                        equations::LinearScalarAdvectionEquation3DAuxVars)
+                                        equations::ConservativeLinearScalarAdvectionEquation3D)
     return SVector(1 + 0.5f0 * sinpi(x[1] + x[2] + x[3] - t))
 end
 
@@ -33,7 +33,7 @@ end
 #   ∂ₜu + ∇⋅(a u) = ∂ₜu + a⋅∇u + (∇⋅a) u = s.
 # The advection velocity `a` is taken from the auxiliary variables.
 function source_terms_manufactured(u, aux, x, t,
-                                   equations::LinearScalarAdvectionEquation3DAuxVars)
+                                   equations::ConservativeLinearScalarAdvectionEquation3D)
     RealT = eltype(x)
     a1, a2, a3 = aux
     u_exact = initial_condition_manufactured(x, t, equations)[1]

@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Container for the values of the auxiliary variables at the volume and surface
-# quadrature nodes, see [`nauxvariables`](@ref). It is stored as `cache.aux_vars` and
+# quadrature nodes, see `nauxvariables`. It is stored as `cache.aux_vars` and
 # only created for equations with auxiliary variables.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real,
                             Aux <: AbstractArray{uEltype},

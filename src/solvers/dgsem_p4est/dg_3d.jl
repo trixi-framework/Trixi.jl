@@ -1007,8 +1007,9 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
-    flux = surface_flux(u_ll, u_rr, aux_node..., aux_node..., normal_direction,
-                        equations)
+    flux = surface_flux(u_ll, u_rr,
+                        aux_node..., aux_node...,
+                        normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux, equations, dg,
@@ -1057,15 +1058,18 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                        i_node_index, j_node_index, mortar_index)
 
     # Compute conservative flux
-    flux = surface_flux(u_ll, u_rr, aux_node..., aux_node..., normal_direction,
-                        equations)
+    flux = surface_flux(u_ll, u_rr,
+                        aux_node..., aux_node...,
+                        normal_direction, equations)
 
     # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node..., aux_node...,
+    noncons_primary = nonconservative_flux(u_ll, u_rr,
+                                           aux_node..., aux_node...,
                                            normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, aux_node..., aux_node...,
+    noncons_secondary = nonconservative_flux(u_rr, u_ll,
+                                             aux_node..., aux_node...,
                                              normal_direction, equations)
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
