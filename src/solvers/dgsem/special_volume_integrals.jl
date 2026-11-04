@@ -21,7 +21,9 @@ end
 function check_axes_volume_integral(mesh, equations,
                                     volume_integral::AbstractVolumeIntegralSubcell,
                                     dg::DGSEM, cache)
-    return check_axes_subcell_fv(mesh, equations, dg, cache)
+    check_axes_subcell_fv(mesh, equations, dg, cache)
+
+    return nothing
 end
 
 # The reconstruction accesses `sc_interface_coords[node_index - 1]` for the interior
