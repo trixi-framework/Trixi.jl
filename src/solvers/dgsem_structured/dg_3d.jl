@@ -159,8 +159,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node...,
-                                     aux_node_jj..., Ja2_avg, equations)
+            fluxtilde2 = volume_flux(u_node, u_node_jj,
+                                     aux_node..., aux_node_jj...,
+                                     Ja2_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
@@ -180,8 +181,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node...,
-                                     aux_node_kk..., Ja3_avg, equations)
+            fluxtilde3 = volume_flux(u_node, u_node_kk,
+                                     aux_node..., aux_node_kk...,
+                                     Ja3_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3,
@@ -259,8 +261,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1 = nonconservative_flux(u_node, u_node_ii, aux_node...,
-                                              aux_node_ii..., Ja1_avg, equations)
+            fluxtilde1 = nonconservative_flux(u_node, u_node_ii,
+                                              aux_node..., aux_node_ii...,
+                                              Ja1_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[i, ii] * fluxtilde1
         end
@@ -278,8 +281,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2 = nonconservative_flux(u_node, u_node_jj, aux_node...,
-                                              aux_node_jj..., Ja2_avg, equations)
+            fluxtilde2 = nonconservative_flux(u_node, u_node_jj,
+                                              aux_node..., aux_node_jj...,
+                                              Ja2_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[j, jj] * fluxtilde2
         end
@@ -297,8 +301,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3 = nonconservative_flux(u_node, u_node_kk, aux_node...,
-                                              aux_node_kk..., Ja3_avg, equations)
+            fluxtilde3 = nonconservative_flux(u_node, u_node_kk,
+                                              aux_node..., aux_node_kk...,
+                                              Ja3_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[k, kk] * fluxtilde3
         end

@@ -417,8 +417,8 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
     flux_ = surface_flux(u_ll, u_rr, aux..., normal_direction, equations)
 
     # Compute both nonconservative fluxes
-    noncons_primary = nonconservative_flux(u_ll, u_rr, aux..., normal_direction,
-                                           equations)
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux...,
+                                           normal_direction, equations)
     noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux)...,
                                              normal_direction, equations)
 
@@ -467,8 +467,8 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                     primary_i_node_index, primary_j_node_index,
                                     interface_index)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux..., normal_direction,
-                                         equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux...,
+                                         normal_direction, equations)
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
@@ -643,7 +643,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     aux_inner = get_aux_node_vars(get_aux_node_vars_array(cache), equations, dg,
                                   i_index, j_index, k_index, element_index)
 
-    flux_ = boundary_condition(u_inner, aux_inner..., normal_direction, x, t,
+    flux_ = boundary_condition(u_inner, aux_inner...,
+                               normal_direction, x, t,
                                surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
@@ -716,8 +717,9 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux, noncons_flux = boundary_condition(u_inner, aux_inner..., normal_direction,
-                                            x, t, surface_flux, equations)
+    flux, noncons_flux = boundary_condition(u_inner, aux_inner...,
+                                            normal_direction, x, t,
+                                            surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -768,7 +770,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, aux_inner..., normal_direction, x, t,
+    flux = boundary_condition(u_inner, aux_inner...,
+                              normal_direction, x, t,
                               surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
