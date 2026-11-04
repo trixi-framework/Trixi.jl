@@ -1415,7 +1415,7 @@ Base.@propagate_inbounds function get_aux_node_vars(aux_node_vars, equations, ::
     @boundscheck checkbounds(aux_node_vars, eachauxvariable(equations), indices...)
     # Assume inbounds access now
     return (SVector(ntuple(@inline(v->@inbounds aux_node_vars[v, indices...]),
-                           Val(n_aux_node_vars(equations)))),)
+                           Val(nauxvariables(equations)))),)
 end
 
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
@@ -1459,9 +1459,9 @@ Base.@propagate_inbounds function get_aux_surface_node_vars(aux_surface_node_var
                              indices...)
     # Assume inbounds access now
     aux_ll = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[1, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
+                            Val(nauxvariables(equations))))
     aux_rr = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[2, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
+                            Val(nauxvariables(equations))))
     return aux_ll, aux_rr
 end
 
@@ -1483,7 +1483,7 @@ end
 
 # Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
 # container is only created for equations with auxiliary variables, see
-# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
+# [`nauxvariables`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
 # `NamedTuple`, the check is resolved at compile time.
 @inline function get_aux_node_vars_array(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing

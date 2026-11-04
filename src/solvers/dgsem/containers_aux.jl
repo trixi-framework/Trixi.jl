@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Container for the values of the auxiliary variables at the volume and surface
-# quadrature nodes, see [`n_aux_node_vars`](@ref). It is stored as `cache.aux_vars` and
+# quadrature nodes, see [`nauxvariables`](@ref). It is stored as `cache.aux_vars` and
 # only created for equations with auxiliary variables.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
     aux_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, k, element]
@@ -43,7 +43,7 @@ end
 # Create and initialize the container of auxiliary variables
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     NDIMS = ndims(mesh)
-    n_aux = n_aux_node_vars(equations)
+    n_aux = nauxvariables(equations)
     n_nodes = nnodes(solver)
     uEltype = eltype(cache.elements)
     nan_uEltype = convert(uEltype, NaN)
@@ -82,10 +82,10 @@ function check_aux_field(aux_field, mesh, equations, solver, cache)
     x_local = get_node_coords(cache.elements.node_coordinates, equations, solver,
                               ntuple(_ -> 1, ndims(mesh))..., 1)
     n_returned = length(aux_field(x_local, equations))
-    if n_returned != n_aux_node_vars(equations)
+    if n_returned != nauxvariables(equations)
         throw(ArgumentError("`aux_field` returned $n_returned values but " *
                             "`$(nameof(typeof(equations)))` has " *
-                            "$(n_aux_node_vars(equations)) auxiliary variables"))
+                            "$(nauxvariables(equations)) auxiliary variables"))
     end
 
     return nothing

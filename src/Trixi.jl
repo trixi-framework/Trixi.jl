@@ -296,7 +296,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2thermo, thermo2cons, cons2prim_temperature,
        cons2aux
-export n_aux_node_vars, eachauxvariable
+export nauxvariables, eachauxvariable
 export density, pressure, density_pressure, velocity,
        temperature, temperature_given_Vp,
        global_mean_vars,

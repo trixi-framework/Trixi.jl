@@ -10,7 +10,7 @@ for human readability.
 #### Added
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
-  variables is a fixed property of their type given by `n_aux_node_vars(equations)`;
+  variables is a fixed property of their type given by `nauxvariables(equations)`;
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,

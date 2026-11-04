@@ -15,7 +15,7 @@ variables
 (\bar{\rho}, \bar{v}_1, \bar{v}_2, \bar{v}_3, \bar{c})
 ```
 are not constant. Instead, they are stored as auxiliary variables at every node, see
-[`n_aux_node_vars`](@ref). Their values are given by the function `aux_field` that
+[`nauxvariables`](@ref). Their values are given by the function `aux_field` that
 has to be passed to [`SemidiscretizationHyperbolic`](@ref).
 
 Currently, auxiliary variables are only supported for
@@ -25,7 +25,7 @@ https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 struct LinearizedEulerEquations3DAuxVars <: AbstractLinearizedEulerEquations{3, 5} end
 
-@inline n_aux_node_vars(::LinearizedEulerEquations3DAuxVars) = 5
+@inline nauxvariables(::LinearizedEulerEquations3DAuxVars) = 5
 
 # Together with our specialization of `Adapt.adapt_structure`, this allows to adapt the
 # floating point type of semidiscretizations. Since all mean flow variables are stored as

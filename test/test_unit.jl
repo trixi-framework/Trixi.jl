@@ -6170,9 +6170,9 @@ end
     equations_global = LinearizedEulerEquations3D(v_mean_global = (0.5, -0.3, 0.2),
                                                   c_mean_global = 1.1,
                                                   rho_mean_global = 0.9)
-    @test n_aux_node_vars(equations) == 5
+    @test nauxvariables(equations) == 5
     @test eachauxvariable(equations) == Base.OneTo(5)
-    @test n_aux_node_vars(equations_global) == 0
+    @test nauxvariables(equations_global) == 0
     @test isempty(eachauxvariable(equations_global))
     @test Trixi.varnames(cons2aux, equations) ==
           ("rho_mean", "v1_mean", "v2_mean", "v3_mean", "c_mean")
