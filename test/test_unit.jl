@@ -6320,6 +6320,8 @@ end
         @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
                   Trixi.max_abs_speeds(equations_global))
     end
+end
+
 @testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The fallback `@turbo` used when LoopVectorization.jl is disabled
     # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
