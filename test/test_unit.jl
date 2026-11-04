@@ -700,6 +700,146 @@ end
     @test isnothing(display(c3d))
 end
 
+@testitem "Unit: TreeMesh nonconservative mortar fluxes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # On the same Cartesian, nonconforming mesh, the DGSEM discretizations on
+    # `TreeMesh` and `P4estMesh` coincide. We compare their right-hand sides for
+    # element-wise discontinuous data such that the nonconservative surface terms
+    # at the mortars do not vanish. Since the domain is periodic and only the
+    # element at the origin is refined, there are mortars with the large element
+    # on the left and on the right side in each coordinate direction.
+    function max_rhs_difference(mesh_tree, mesh_p4est, equations, solver, func)
+        results = map((mesh_tree, mesh_p4est)) do mesh
+            semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                initial_condition_constant, solver;
+                                                boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi)
+            u = Trixi.wrap_array(u_ode, semi)
+            (; node_coordinates) = semi.cache.elements
+            ndims_ = ndims(mesh)
+            node_indices = CartesianIndices(ntuple(_ -> Trixi.nnodes(solver), ndims_))
+            for element in Trixi.eachelement(solver, semi.cache)
+                # The element center is used to make the data discontinuous
+                x_center = SVector(ntuple(d -> sum(node_coordinates[d, Tuple(I)...,
+                                                                    element]
+                                                   for I in node_indices) /
+                                               length(node_indices), ndims_))
+                for I in node_indices
+                    x = SVector(ntuple(d -> node_coordinates[d, Tuple(I)..., element],
+                                       ndims_))
+                    u[:, Tuple(I)..., element] .= func(x, x_center, equations)
+                end
+            end
+            du_ode = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+            return copy(Trixi.wrap_array_native(du_ode, semi)), copy(node_coordinates)
+        end
+        (du_tree, x_tree), (du_p4est, x_p4est) = results
+        @test size(du_tree) == size(du_p4est)
+        @test all(isfinite, du_tree)
+        @test all(isfinite, du_p4est)
+
+        # The element ordering differs, so we match elements by their node coordinates
+        max_difference = zero(eltype(du_tree))
+        for element_tree in axes(du_tree, ndims(du_tree))
+            x_element = selectdim(x_tree, ndims(x_tree), element_tree)
+            element_p4est = findfirst(axes(du_p4est, ndims(du_p4est))) do element
+                return isapprox(selectdim(x_p4est, ndims(x_p4est), element), x_element)
+            end
+            @test !isnothing(element_p4est)
+            max_difference = max(max_difference,
+                                 maximum(abs,
+                                         selectdim(du_tree, ndims(du_tree),
+                                                   element_tree) -
+                                         selectdim(du_p4est, ndims(du_p4est),
+                                                   element_p4est)))
+        end
+        return max_difference, maximum(abs, du_tree)
+    end
+
+    @testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations2D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2]) + h, 0.1 + h, -0.2, 0.1,
+                           1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h, 0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0), (2.0, 2.0), initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0),
+                               coordinates_max = (2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p4est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p4est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+
+    @testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations3D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2] - 2 * x_center[3])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2] - x[3]) + h, 0.1 + h, -0.2,
+                           0.1 - h, 1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h,
+                           0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0, 0.0), (2.0, 2.0, 2.0),
+                             initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0, 0.0),
+                               coordinates_max = (2.0, 2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p8est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.z == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p8est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+end
+
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     capacity = 42
     n_variables = 9
@@ -792,6 +932,53 @@ end
     @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
                                       nu = 1.0) isa
           LatticeBoltzmannEquations3D
+end
+
+@testitem "Unit: Linearized Euler constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Mixed argument types are promoted
+    equations = @inferred LinearizedEulerEquations1D(1, 2.0f0, 3.0)
+    @test equations isa LinearizedEulerEquations1D{Float64}
+    @test (equations.v_mean_global, equations.c_mean_global,
+           equations.rho_mean_global) == (1.0, 2.0, 3.0)
+    @test @inferred(LinearizedEulerEquations1D(1, 2, 3.0f0)) isa
+          LinearizedEulerEquations1D{Float32}
+    @test @inferred(LinearizedEulerEquations1D{Float32}(1, 2.0, 3)) isa
+          LinearizedEulerEquations1D{Float32}
+    equations = @inferred LinearizedEulerEquations2D((1, 2.0f0), 3, 4.0)
+    @test equations isa LinearizedEulerEquations2D{Float64}
+    @test equations.v_mean_global == SVector(1.0, 2.0)
+    @test @inferred(LinearizedEulerEquations2D(SVector(1.0f0, 2.0f0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    @test @inferred(LinearizedEulerEquations2D{Float32}((1, 2.0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    equations = @inferred LinearizedEulerEquations3D(v_mean_global = (1, 2, 3.0f0),
+                                                     c_mean_global = 4,
+                                                     rho_mean_global = 5)
+    @test equations isa LinearizedEulerEquations3D{Float32}
+    @test equations.v_mean_global == SVector(1.0f0, 2.0f0, 3.0f0)
+    @test @inferred(LinearizedEulerEquations3D(SVector(1, 2, 3), 4.0, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+    @test @inferred(LinearizedEulerEquations3D{Float64}((1, 2, 3.0f0), 4, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+
+    # Invalid mean values are rejected by all constructors
+    msg_c = "c_mean_global must be positive"
+    msg_rho = "rho_mean_global must be positive"
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, -1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0, 1.0, -1.0f0)
+    @test_throws msg_c LinearizedEulerEquations1D{Float64}(0.0, -1.0, 1.0)
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, 0.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, 0.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, NaN)
+    @test_throws msg_c LinearizedEulerEquations2D(SVector(0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations2D((0.0, 0.0), 1.0, -1)
+    @test_throws msg_c LinearizedEulerEquations2D((0.0, 0.0), 0, 1)
+    @test_throws msg_c LinearizedEulerEquations3D(SVector(0.0, 0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations3D((0, 0, 0), 1, 0)
+    @test_throws msg_rho LinearizedEulerEquations3D(v_mean_global = (0.0, 0.0, 0.0),
+                                                    c_mean_global = 1.0,
+                                                    rho_mean_global = -1.0)
 end
 
 @testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -2268,6 +2455,39 @@ end
 
     @test flux_hll(u, u, orientation, equations) ≈
           flux(u, orientation, equations)
+end
+
+@testitem "Unit: Entropy and exact solution of LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = LinearElasticityEquations1D(rho = 2.0, mu = 1.0, lambda = 3.0)
+    orientation = 1
+
+    u = SVector(1.42, 2.666)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test entropy(u, equations) ≈ energy_total(u, equations)
+
+    # The entropy flux of a linear system is `w' * f(u) / 2` with the entropy
+    # variables `w`. Conservation of the entropy requires that its derivative
+    # with respect to `u` equals `w' * f'(u)`.
+    entropy_flux(u) = 0.5 * dot(cons2entropy(u, equations), flux(u, orientation, equations))
+    flux_jacobian = ForwardDiff.jacobian(u -> flux(u, orientation, equations), u)
+    @test ForwardDiff.gradient(entropy_flux, u) ≈
+          flux_jacobian' * cons2entropy(u, equations)
+
+    # `initial_condition_convergence_test` is an exact solution: u_t + f(u)_x = 0
+    for (x, t) in ((0.1, 0.0), (0.37, 0.3), (0.8, 1.7))
+        u_t = ForwardDiff.derivative(t -> initial_condition_convergence_test(SVector(x), t,
+                                                                             equations),
+                                     t)
+        f_x = ForwardDiff.derivative(x -> flux(initial_condition_convergence_test(SVector(x),
+                                                                                  t,
+                                                                                  equations),
+                                               orientation, equations), x)
+        @test isapprox(u_t + f_x, zero(u_t); atol = 100 * eps())
+    end
 end
 
 @testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
@@ -6100,4 +6320,33 @@ end
         @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
                   Trixi.max_abs_speeds(equations_global))
     end
+@testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The fallback `@turbo` used when LoopVectorization.jl is disabled
+    # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
+    # to every loop level.
+    MockTurbo = Module()
+    Base.include(MockTurbo, joinpath(pkgdir(Trixi), "src", "auxiliary", "mock_turbo.jl"))
+    Core.eval(MockTurbo,
+              quote
+                  function f!(c, a, b)
+                      @turbo for j in axes(c, 2)
+                          for i in axes(c, 1)
+                              c[i, j] = a[i, j] + b[i, j]
+                          end
+                      end
+                      return c
+                  end
+              end)
+
+    a = [1.0 2.0; 3.0 4.0]
+    b = [5.0 6.0; 7.0 8.0]
+    c = zeros(2, 2)
+    @test MockTurbo.f!(c, a, b) == [6.0 8.0; 10.0 12.0]
+
+    code = only(code_lowered(MockTurbo.f!,
+                             (Matrix{Float64}, Matrix{Float64},
+                              Matrix{Float64}))).code
+    loopinfos = filter(x -> Meta.isexpr(x, :loopinfo), code)
+    @test length(loopinfos) == 2
+    @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
 end

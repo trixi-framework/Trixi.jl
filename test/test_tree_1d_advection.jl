@@ -159,3 +159,22 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
+
+@testitem "elixir_advection_uncertainty.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
+    using Measurements: Measurements, ±
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_uncertainty.jl"),
+                        l2=[0.0012576893000440965 ± 0.017581020765034417],
+                        linf=[0.004425204509676317 ± 0.0633672486044246])
+    # Elements of type `Measurement` store heap-allocated derivatives. Trigger a full
+    # garbage collection to detect references to freed objects in long-lived buffers,
+    # which crash the garbage collector.
+    GC.gc()
+    # The uncertainty is the norm of its components with respect to the independent
+    # variables, which are computed from the stored derivatives
+    @test all(sol.u[end]) do x
+        components = values(Measurements.uncertainty_components(x))
+        return sqrt(sum(abs2, components)) ≈ Measurements.uncertainty(x)
+    end
+    # Operations with `Measurement`s allocate
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 100_000)
+end
