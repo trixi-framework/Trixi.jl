@@ -17,7 +17,7 @@ end
 # A Gaussian pressure pulse at rest
 function initial_condition_gauss_pulse(x, t, equations::LinearizedEulerEquations3DAuxVars)
     p_prime = exp(-16 * (x[1]^2 + x[2]^2 + x[3]^2))
-    return SVector(0.0f0, 0.0f0, 0.0f0, 0.0f0, p_prime)
+    return SVector(0, 0, 0, 0, p_prime)
 end
 
 initial_condition = initial_condition_gauss_pulse
