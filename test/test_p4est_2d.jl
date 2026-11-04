@@ -648,16 +648,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_double_mach_amr_sc_subcell.jl"),
                         l2=[
-                            0.06289339540101183,
-                            0.5421519072330474,
-                            0.3114419292558535,
-                            5.306499576083992
+                            0.06271302966285255,
+                            0.5407756955207393,
+                            0.3106668060406049,
+                            5.294575402913204
                         ],
                         linf=[
-                            5.690884417685837,
-                            50.68444621864269,
-                            29.22096334230634,
-                            500.04492472618546
+                            5.698367428688572,
+                            51.15963932568652,
+                            29.39850032797133,
+                            504.99453727191934
                         ],
                         tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
@@ -683,16 +683,16 @@ end
                         bar_states=true,
                         cfl=0.9,
                         l2=[
-                            0.06261739182893931,
-                            0.5398278683515394,
-                            0.30999821485305196,
-                            5.284818723009197
+                            0.06245129073049684,
+                            0.5384256820081852,
+                            0.30929598115795415,
+                            5.2719822326212284
                         ],
                         linf=[
-                            5.662553281798864,
-                            50.24451107992874,
-                            29.569661258501437,
-                            494.3203773083385
+                            5.667889243229501,
+                            50.38179234178468,
+                            29.91013326368365,
+                            495.1613261328342
                         ],
                         tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
@@ -1172,16 +1172,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
                         l2=[
-                            0.0988935599979386,
-                            0.10529464485396613,
-                            0.10529464485396613,
-                            0.5688315703006421
+                            0.0991558673455626,
+                            0.10539254959118191,
+                            0.10539254959118213,
+                            0.5692107524015582
                         ],
                         linf=[
-                            0.9547061321574484,
-                            1.4094593143934477,
-                            1.4094593143934475,
-                            3.8133803037614875
+                            0.9626407805450317,
+                            1.409309142670554,
+                            1.4093091426705529,
+                            3.8134410690466587
                         ],
                         tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
@@ -1204,22 +1204,28 @@ end
 ] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on Intel Xeon
+                        # and AMD EPYC 9V45 runners, the errors differ by up to 2e-5
+                        # (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
                         max_iterations_newton=30,
                         cfl=0.3,
                         l2=[
-                            0.06854579247353931,
-                            0.08998652177478894,
-                            0.08998486797554825,
-                            0.5040838678301455
+                            0.06986102432706319,
+                            0.09054088231895804,
+                            0.09054158303163416,
+                            0.5062932460491812
                         ],
                         linf=[
-                            0.43844788792190603,
-                            0.7992649163347019,
-                            0.7992651932006969,
-                            3.232041812728437
+                            0.46430240096246966,
+                            0.8203069121237986,
+                            0.8204324732010924,
+                            3.2419575114427657
                         ],
                         tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
@@ -1242,6 +1248,12 @@ end
 ] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on Intel Xeon
+                        # and AMD EPYC 9V45 runners, the errors differ by up to 2e-6
+                        # (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
@@ -1249,16 +1261,16 @@ end
                         bar_states=true,
                         cfl=0.9,
                         l2=[
-                            0.08144992785672446,
-                            0.0947821466784851,
-                            0.09478214310034423,
-                            0.5244870178697475
+                            0.0833361268095218,
+                            0.09575139875339413,
+                            0.09575137388632227,
+                            0.5279883499374922
                         ],
                         linf=[
-                            0.6350367599720317,
-                            0.968786612469102,
-                            0.9687866196500469,
-                            3.3193352490900905
+                            0.6682978832621844,
+                            1.0009226024742235,
+                            1.0009228241095895,
+                            3.4342485467720723
                         ],
                         tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
@@ -1299,17 +1311,22 @@ end
 ] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on some Intel
+                        # Xeon runners, the errors differ by up to 6e-5 (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
                         l2=[
-                            0.011536966458079449,
-                            0.02106871675161098,
-                            0.02165055922196923,
-                            0.11258105254602813
+                            0.011979472953030729,
+                            0.021268892312137622,
+                            0.021937761773994775,
+                            0.11157325671297444
                         ],
                         linf=[
-                            0.27782210873325697,
-                            0.48076837680523316,
-                            0.4480382392952317,
-                            2.2351436607061914
+                            0.29470369984798617,
+                            0.4912766110018895,
+                            0.48139169748785204,
+                            2.230880166174059
                         ])
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))

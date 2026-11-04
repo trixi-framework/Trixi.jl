@@ -1636,6 +1636,11 @@ end
     TreeMesh2DEuler
 ] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on AMD EPYC
+                        # 9V45/9V74 runners, the errors differ by up to 6e-4 (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
                         l2=[
                             1.4495527230353995,
                             1150.5752420649815,
