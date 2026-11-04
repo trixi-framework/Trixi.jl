@@ -1494,6 +1494,12 @@ end
            nothing
 end
 
+# Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
+# `remake` a semidiscretization, or `nothing` without auxiliary variables.
+@inline function get_aux_field(cache)
+    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_field : nothing
+end
+
 Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,
                                                     indices...)
     for v in eachvariable(equations)

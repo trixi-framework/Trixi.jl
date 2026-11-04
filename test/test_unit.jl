@@ -6218,6 +6218,42 @@ end
         @test_nowarn show(devnull, MIME"text/plain"(), equations)
     end
 
+    @timed_testset "remake and automatic differentiation" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        @test Trixi.get_aux_field(semi.cache) === aux_field
+
+        # `remake` keeps the auxiliary variables by default
+        semi_remade = Trixi.remake(semi)
+        @test semi_remade.cache.aux_vars.aux_node_vars == semi.cache.aux_vars.aux_node_vars
+        @test semi_remade.cache.aux_vars.aux_surface_node_vars ==
+              semi.cache.aux_vars.aux_surface_node_vars
+
+        # `remake` is used to compute Jacobians via automatic differentiation
+        @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
+    end
+
+    @timed_testset "trixi_adapt" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+
+        # The auxiliary variables are adapted together with the semidiscretization
+        semi32 = trixi_adapt(semi; real_type = Float32)
+        (; aux_node_vars, aux_surface_node_vars) = semi32.cache.aux_vars
+        @test aux_node_vars isa Array{Float32, 5}
+        @test aux_surface_node_vars isa Array{Float32, 5}
+        @test aux_node_vars ≈ semi.cache.aux_vars.aux_node_vars
+        @test aux_surface_node_vars ≈ semi.cache.aux_vars.aux_surface_node_vars
+        @test semi32.cache.aux_vars.aux_field === aux_field
+        u_ode = compute_coefficients(0.0f0, semi32)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi32, 0.0f0)
+        @test eltype(du_ode) == Float32
+        @test all(isfinite, du_ode)
+    end
+
     @timed_testset "No auxiliary variables for equations without them" begin
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_global,
                                                                 initial_condition,
