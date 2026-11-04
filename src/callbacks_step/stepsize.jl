@@ -211,7 +211,8 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
                                                   equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
-                                                  element, aux_node_vars)
+                                                  aux_node_vars,
+                                                  element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
