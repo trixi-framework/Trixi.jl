@@ -2,7 +2,9 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation with a spatially varying velocity
+# semidiscretization of the conservative linear advection equation
+#   ∂ₜ u + ∇·(a u) = 0
+# with a spatially varying velocity `a`
 # on a statically refined, non-periodic mesh using a manufactured solution
 
 equations = ConservativeLinearScalarAdvectionEquation3D()

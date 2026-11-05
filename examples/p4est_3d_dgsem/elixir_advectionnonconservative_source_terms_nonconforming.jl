@@ -2,9 +2,10 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation in nonconservative form with a
-# spatially varying velocity on a statically refined, non-periodic mesh using a
-# manufactured solution
+# semidiscretization of the nonconservative linear advection equation
+#   ∂ₜ u + a·∇ u = 0
+# with a spatially varying velocity `a`
+# on a statically refined, non-periodic mesh using a manufactured solution
 
 equations = NonconservativeLinearScalarAdvectionEquation3D()
 

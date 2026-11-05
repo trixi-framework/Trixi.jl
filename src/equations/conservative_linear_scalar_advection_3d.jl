@@ -56,15 +56,11 @@ end
 end
 
 """
-    have_constant_speed(::ConservativeLinearScalarAdvectionEquation3D)
-
-Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
-Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
-The characteristic speeds are given by the advection velocity, which varies in space.
-
-# Returns
-- `False()`
-"""
+# TODO: Right now, this is somewhat confusing. The speeds are indeed constant
+#       in time, but not constant in space. This trait is used, e.g., to make
+#       the calculation of the time step size for CFL-based step size control
+#       more efficient. We could compute the step size factor only once and
+#       adapt it when the mesh changes during AMR.
 @inline have_constant_speed(::ConservativeLinearScalarAdvectionEquation3D) = False()
 
 # Maximum wave speeds in each direction for the CFL condition
