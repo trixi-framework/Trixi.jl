@@ -6606,6 +6606,9 @@ end
         Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
         Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
         @test du_ode_nonconservative ≈ du_ode_conservative
+    end
+end
+
 @testitem "Unit: check_axes of the storage of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Check the storage of all volume integrals in the tree with root `dg.volume_integral`
     # for correct and wrongly sized subcell finite volume buffers
