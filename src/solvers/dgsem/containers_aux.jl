@@ -10,9 +10,11 @@
 # only created for equations with auxiliary variables.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real,
                             Aux <: AbstractArray{uEltype},
-                            AuxInterface <: AbstractArray{uEltype}, AuxField}
-    aux::Aux                # [var, i, j, k, element]
-    aux_interface::AuxInterface # [leftright, var, i, j, interface]
+                            AuxInterface <: AbstractArray{uEltype},
+                            AuxMortar <: AbstractArray{uEltype}, AuxField}
+    aux::Aux                     # [var, i, j, k, element]
+    aux_interface::AuxInterface  # [leftright, var, i, j, interface]
+    aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar]
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
@@ -23,12 +25,13 @@ end
 function Adapt.adapt_structure(to, aux_vars::AuxNodeVarsContainer{NDIMS}) where {NDIMS}
     aux = adapt(to, aux_vars.aux)
     aux_interface = adapt(to, aux_vars.aux_interface)
+    aux_mortar = adapt(to, aux_vars.aux_mortar)
     @unpack aux_field = aux_vars
 
     return AuxNodeVarsContainer{NDIMS, eltype(aux), typeof(aux),
-                                typeof(aux_interface),
-                                typeof(aux_field)}(aux,
-                                                   aux_interface, aux_field)
+                                typeof(aux_interface), typeof(aux_mortar),
+                                typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                                   aux_field)
 end
 
 # Check whether the arrays of auxiliary variables have the axes we assume in the inner
@@ -55,6 +58,17 @@ end
                        eachinterface(solver, cache)))
 end
 
+@inline check_axes_aux_mortar(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mortar(aux_mortar, equations, solver, cache)
+    # [leftright, var, position, i, j, mortar]
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mortar) - 4))
+    return check_axes(aux_mortar,
+                      (Base.OneTo(2), eachauxvariable(equations),
+                       Base.OneTo(2^length(surface_node_axes)), surface_node_axes...,
+                       eachmortar(solver, cache)))
+end
+
 # Create and initialize the container of auxiliary variables
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     NDIMS = ndims(mesh)
@@ -73,11 +87,14 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     aux_interface = fill(nan_uEltype,
                          (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
                           ninterfaces(cache.interfaces)))
+    # Surface nodes of the small elements on both sides of the mortars
+    aux_mortar = fill(nan_uEltype,
+                      (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
+                       nmortars(cache.mortars)))
 
     aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, typeof(aux),
-                                    typeof(aux_interface),
-                                    typeof(aux_field)}(aux,
-                                                       aux_interface,
+                                    typeof(aux_interface), typeof(aux_mortar),
+                                    typeof(aux_field)}(aux, aux_interface, aux_mortar,
                                                        aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
@@ -128,9 +145,9 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
     return nothing
 end
 
-# Filling the interface values requires information about the coupling of the elements
-# and is thus implemented for each mesh type separately, currently only for serial
-# `P4estMesh{3}`es in `dgsem_p4est/containers_3d.jl`.
+# Filling the interface and mortar values requires information about the coupling of the
+# elements and is thus implemented for each mesh type separately, currently only for
+# serial `P4estMesh{3}`es in `dgsem_p4est/containers_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     throw(ArgumentError("auxiliary variables are not implemented for $(typeof(mesh)) " *
                         "with $(typeof(solver))"))

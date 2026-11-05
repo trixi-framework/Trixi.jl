@@ -960,8 +960,8 @@ end
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
-                        l2=[0.010805591331708874],
-                        linf=[0.08537612269394645])
+                        l2=[0.01080549145175204],
+                        linf=[0.08535203150832649])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -977,8 +977,8 @@ end
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
-                        l2=[0.010805591331708858],
-                        linf=[0.08537612269394579])
+                        l2=[0.010805491451752015],
+                        linf=[0.08535203150832515])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -990,7 +990,7 @@ end
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
-                        l2=[0.0023484814479120862],
+                        l2=[0.0023544877254049017],
                         linf=[0.02091570013800048])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

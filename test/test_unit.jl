@@ -6225,6 +6225,7 @@ end
         @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
         @test semi_remade.cache.aux_vars.aux_interface ==
               semi.cache.aux_vars.aux_interface
+        @test semi_remade.cache.aux_vars.aux_mortar == semi.cache.aux_vars.aux_mortar
 
         # `remake` is used to compute Jacobians via automatic differentiation
         @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
@@ -6237,9 +6238,10 @@ end
 
         # The auxiliary variables are adapted together with the semidiscretization
         semi32 = trixi_adapt(semi; real_type = Float32)
-        (; aux, aux_interface) = semi32.cache.aux_vars
+        (; aux, aux_interface, aux_mortar) = semi32.cache.aux_vars
         @test aux isa Array{Float32, 5}
         @test aux_interface isa Array{Float32, 5}
+        @test aux_mortar isa Array{Float32, 6}
         @test aux ≈ semi.cache.aux_vars.aux
         @test aux_interface ≈ semi.cache.aux_vars.aux_interface
         @test semi32.cache.aux_vars.aux_field === aux_field
@@ -6263,11 +6265,36 @@ end
         @test !haskey(semi.cache, :aux_vars)
         @test Trixi.get_aux_vars(semi.cache) === nothing
         @test Trixi.get_aux_interface_vars(semi.cache) === nothing
+        @test Trixi.get_aux_mortar_vars(semi.cache) === nothing
         @test Trixi.get_aux_node_vars(nothing, equations_no_aux, solver, 1, 1, 1, 1) ===
               ()
         @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),
                                               1, 1, 1) === ()
     end
+end
+
+@testitem "Unit: Auxiliary variables at mortars" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # We only need the statically refined mesh of the elixir. Thus, we do not run the
+    # simulation by replacing `sol = solve(...)` with `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_3d_dgsem",
+                           "elixir_advectionconservative_source_terms_nonconforming.jl");
+                  sol = nothing)
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+    aux_mortar = semi.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    # The auxiliary variables of the large elements are interpolated to the surface nodes
+    # of the small elements. In general, they differ from the values of the small elements.
+    @test !(aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :])
+
+    # Both sides agree if the auxiliary variables are polynomials of degree `polydeg`
+    aux_field_polynomial(x, equations) = SVector(1 + x[1]^3, x[2] * x[3], -x[1]^2 * x[3])
+    semi_polynomial = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                   solver; boundary_conditions,
+                                                   aux_field = aux_field_polynomial)
+    aux_mortar = semi_polynomial.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    @test aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :]
 end
 
 @testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation3D" setup=[

@@ -906,14 +906,14 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
     # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux_vars(cache)
+    aux_mortar = get_aux_mortar_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux(aux, equations, dg, cache)
+        check_axes_aux_mortar(aux_mortar, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -951,10 +951,11 @@ function calc_mortar_flux!(surface_flux_values,
                                                                 k_small,
                                                                 element)
 
-                        # The auxiliary variables are continuous, so the values of the
-                        # small element are used on both sides of the mortar
-                        aux_node = get_aux_node_vars(aux, equations, dg,
-                                                     i_small, j_small, k_small, element)
+                        # Auxiliary variables on the small (primary) and the large
+                        # (secondary) side, cf. `init_aux_mortar_node_vars!`
+                        aux_node = get_aux_surface_node_vars(aux_mortar, equations,
+                                                             typeof(dg), position, i, j,
+                                                             mortar)
 
                         calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                                           have_nonconservative_terms, equations,
@@ -1007,9 +1008,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
-    flux = surface_flux(u_ll, u_rr,
-                        aux_node..., aux_node...,
-                        normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux, equations, dg,
@@ -1058,18 +1057,14 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                        i_node_index, j_node_index, mortar_index)
 
     # Compute conservative flux
-    flux = surface_flux(u_ll, u_rr,
-                        aux_node..., aux_node...,
-                        normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    noncons_primary = nonconservative_flux(u_ll, u_rr,
-                                           aux_node..., aux_node...,
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
                                            normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll,
-                                             aux_node..., aux_node...,
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
                                              normal_direction, equations)
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
@@ -1102,7 +1097,6 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     # The combined flux returns the conservative flux plus 0.5 times the
     # nonconservative flux for the small (primary) and large (secondary) side
     flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
-                                                                          aux_node...,
                                                                           aux_node...,
                                                                           normal_direction,
                                                                           equations)

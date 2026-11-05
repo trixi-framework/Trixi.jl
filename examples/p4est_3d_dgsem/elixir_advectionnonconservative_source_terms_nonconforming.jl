@@ -62,9 +62,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  initial_refinement_level = 2,
                  periodicity = false)
 
-# Refine the bottom left quadrant of each tree to level 3 to create mortars. The auxiliary
-# variables are continuous, so the values of the small elements are used on both sides of
-# the mortars.
+# Refine the bottom left quadrant of each tree to level 3 to create mortars
 function refine_fn(p8est, which_tree, quadrant)
     quadrant_obj = unsafe_load(quadrant)
     if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&

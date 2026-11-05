@@ -1494,6 +1494,10 @@ end
            nothing
 end
 
+@inline function get_aux_mortar_vars(cache)
+    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
+end
+
 # Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
 # `remake` a semidiscretization, or `nothing` without auxiliary variables.
 @inline function get_aux_field(cache)
