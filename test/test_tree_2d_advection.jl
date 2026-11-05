@@ -114,16 +114,22 @@ end
     @test linf_actual == linf_expected
 end
 
-@trixi_testset "elixir_advection_restart_polydeg_lower.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_restart_polydeg_lower.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_restart_polydeg_lower.jl"),
                         l2=[0.00017439412748604995], linf=[0.0004655222114398061])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_mortar.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_mortar.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[0.0015188466707237375],
