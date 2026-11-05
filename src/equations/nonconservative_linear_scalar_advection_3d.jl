@@ -73,6 +73,8 @@ it results in a standard local Lax-Friedrichs flux.
     # Advection velocity of the element receiving the flux in the (not necessarily
     # normalized) normal direction
     a_ll = dot(aux_ll, normal_direction)
+    # For flux differencing using nonconservative terms, we return the nonconservative
+    # flux scaled by 2. This cancels with a factor of 0.5 in the arithmetic average of {u}.
     return a_ll * (u_ll + u_rr)
 end
 
@@ -80,6 +82,8 @@ end
                                               orientation::Integer,
                                               equations::NonconservativeLinearScalarAdvectionEquation3D)
     a_ll = aux_ll[orientation]
+    # For flux differencing using nonconservative terms, we return the nonconservative
+    # flux scaled by 2. This cancels with a factor of 0.5 in the arithmetic average of {u}.
     return a_ll * (u_ll + u_rr)
 end
 
