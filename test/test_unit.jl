@@ -5142,6 +5142,99 @@ end
                                            refinement_level = 2)
 end
 
+@testitem "Unit: P4estMesh structured connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all corners (and edges in 3D) connecting trees, `p4est_balance` does not
+    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112,
+    # https://github.com/trixi-framework/Trixi.jl/issues/1358, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2289.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_2d(p4est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.level < 5)
+    end
+    refine_corner_2d_c = @cfunction(refine_corner_2d, Cint,
+                                    (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p4est_quadrant_t}))
+
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    # Check that the trees are ordered lexicographically and connected via their faces
+    # as expected, with zero-based tree and face indices
+    function has_lexicographic_faces(connectivity, trees_per_dimension, periodicity)
+        n_dims = length(trees_per_dimension)
+        n_trees = prod(trees_per_dimension)
+        tree_to_tree = unsafe_wrap(Array, connectivity.tree_to_tree, (2 * n_dims, n_trees))
+        tree_to_face = unsafe_wrap(Array, connectivity.tree_to_face, (2 * n_dims, n_trees))
+        linear_indices = LinearIndices(trees_per_dimension)
+        result = true
+        for cell in CartesianIndices(trees_per_dimension), dim in 1:n_dims, side in 0:1
+            tree = linear_indices[cell]
+            face = 2 * (dim - 1) + side
+            neighbor_index = cell[dim] + 2 * side - 1
+            if 1 <= neighbor_index <= trees_per_dimension[dim] || periodicity[dim]
+                neighbor = Base.setindex(Tuple(cell),
+                                         mod1(neighbor_index, trees_per_dimension[dim]),
+                                         dim)
+                expected = (linear_indices[neighbor...] - 1, xor(face, 1))
+            else
+                expected = (tree - 1, face)
+            end
+            result &= (tree_to_tree[face + 1, tree], tree_to_face[face + 1, tree]) ==
+                      expected
+        end
+        return result
+    end
+
+    for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
+        periodicity in ((false, false), (true, false), (true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # A single call to `p4est_balance` is sufficient. Call it directly since
+        # `balance!` calls it twice for connectivities without corners.
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.p4est_balance(mesh.p4est, Trixi.P4EST_CONNECT_FACE, C_NULL)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+
+        # Remove all corners to obtain a connectivity containing only face connections,
+        # e.g., as created by older versions of Trixi.jl, for which `balance!` calls
+        # `p4est_balance` twice
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        Trixi.p4est_connectivity_reduce(mesh.p4est.connectivity)
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+    end
+
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2), (2, 2, 2)),
+        periodicity in ((false, false, false), (true, false, true), (true, true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0, 0.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
