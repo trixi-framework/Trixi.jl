@@ -403,6 +403,21 @@ end
 end
 
 @testitem "Unit: L2 projection" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    @testset "polynomial_l2projection_matrix" begin
+        nodes_high = Trixi.gauss_lobatto_nodes_weights(6)[1]
+        nodes_low = Trixi.gauss_lobatto_nodes_weights(4)[1]
+        projection = Trixi.polynomial_l2projection_matrix(nodes_high, nodes_low,
+                                                          Val(:gauss))
+
+        @test projection * ones(length(nodes_high)) ≈ ones(length(nodes_low))
+
+        # The diagonal GLL mass is exact for these test polynomials and the
+        # Gauss quadrature exactly integrates the projection right-hand side.
+        for degree in 0:(length(nodes_low) - 2)
+            @test projection * (nodes_high .^ degree) ≈ nodes_low .^ degree
+        end
+    end
+
     @testset "calc_reverse_upper for LGL" begin
         @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)),
                        [[0.25, 0.25] [0.0, 0.5]])
