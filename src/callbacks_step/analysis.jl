@@ -162,7 +162,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     if semi.solver isa DGSEM # Avoid errors with DGMulti and FDSBP
         if length(analyzer.nodes) != 2 * polydeg(semi.solver.basis) + 1
             @warn "AnalysisCallback has not the standard number of analysis nodes for this solver.
-            This might lead to unexpected results. 
+            This might lead to unexpected results.
             You might want to reinitialize the `AnalysiCallback` for the actually simulated semidiscretization."
         end
     end

@@ -47,7 +47,7 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
-# Load solution variables from restart file and 
+# Load solution variables from restart file and
 # convert them to a different polynomial degree.
 # Version for non-MPI-parallel run
 function convert_restart_file_polydeg!(u, file, polydeg_file,

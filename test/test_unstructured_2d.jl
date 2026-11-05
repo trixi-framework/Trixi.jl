@@ -133,8 +133,8 @@ end
                                                                 surface_flux = flux_lax_friedrichs),
                                                           source_terms = source_terms,
                                                           boundary_conditions = boundary_conditions),
-                        # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the 
-                        # semidiscretization. This, however, leads in the test environment to a confusing error 
+                        # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the
+                        # semidiscretization. This, however, leads in the test environment to a confusing error
                         # report, as the error report from the simulation is different from the one from the test environment.
                         # Thus, we do not exchange the `AnalysisCallback` here.
                         l2=[

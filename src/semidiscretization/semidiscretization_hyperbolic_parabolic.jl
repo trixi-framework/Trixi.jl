@@ -348,7 +348,7 @@ The initial condition etc. is taken from the `restart_file`.
 The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
-- `interpolate_high2low` applies only to the case when a simulation is restarted with a 
+- `interpolate_high2low` applies only to the case when a simulation is restarted with a
   lower polynomial degree than the one used in the original simulation.
   In that case, the solution is either interpolated (default) from the higher-degree polynomial
   to the lower-degree polynomial.
