@@ -23,7 +23,8 @@ flux [`flux_nonconservative_central`](@ref), e.g., using
 and `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
 
 See also [`ConservativeLinearScalarAdvectionEquation3D`](@ref) for the conservative form.
-For a divergence-free advection velocity, both forms are equivalent.
+For a divergence-free advection velocity, both PDE forms are equivalent
+(but their discretizations are not necessarily equivalent).
 """
 struct NonconservativeLinearScalarAdvectionEquation3D <:
        AbstractLinearScalarAdvectionEquation{3} end
@@ -65,8 +66,6 @@ The use of this term together with [`flux_central`](@ref) with
 [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard" (weak-form) DGSEM
 discretization. Together with `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`,
 it results in a standard local Lax-Friedrichs flux.
-The flux is multiplied by 2 since nonconservative fluxes are always multiplied by 0.5
-whenever they are used in Trixi.jl.
 """
 @inline function flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
                                               normal_direction::AbstractVector,
@@ -84,16 +83,11 @@ end
     return a_ll * (u_ll + u_rr)
 end
 
-"""
-    have_constant_speed(::NonconservativeLinearScalarAdvectionEquation3D)
-
-Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
-Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
-The characteristic speeds are given by the advection velocity, which varies in space.
-
-# Returns
-- `False()`
-"""
+# TODO: Right now, this is somewhat confusing. The speeds are indeed constant
+#       in time, but not constant in space. This trait is used, e.g., to make
+#       the calculation of the time step size for CFL-based step size control
+#       more efficient. We could compute the step size factor only once and
+#       adapt it when the mesh changes during AMR.
 @inline have_constant_speed(::NonconservativeLinearScalarAdvectionEquation3D) = False()
 
 # Maximum wave speeds in each direction for the CFL condition
