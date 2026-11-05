@@ -122,7 +122,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_restart.jl (Interpolation 8 -> 9)" begin
+@testitem "UnstructuredMesh2D: elixir_euler_restart.jl (Interpolation 8 -> 9)" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
                         semi=SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition,
@@ -148,10 +148,10 @@ end
                         ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl" begin
+@testitem "UnstructuredMesh2D: elixir_euler_ec.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.06594600495903137,
