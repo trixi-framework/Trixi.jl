@@ -50,8 +50,10 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 positivity_variables_nonlinear = [pressure],
+                                bar_states = true,
                                 # Default parameter is not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 30)
+
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -86,11 +88,15 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-stepsize_callback = StepsizeCallback(cfl = 0.4)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
+
+limiting_analysis_callback = LimitingAnalysisCallback(output_directory = "out",
+                                                      interval = 1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback,
+                        limiting_analysis_callback,
                         save_solution)
 ###############################################################################
 # run the simulation
