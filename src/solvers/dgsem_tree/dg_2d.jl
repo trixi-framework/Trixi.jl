@@ -86,7 +86,8 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
                       mortar_l2::Union{LobattoLegendreMortarL2,
-                                       UniformFiniteVolumeBasis}, uEltype)
+                                       UniformFiniteVolumeBasis,
+                                       LobattoLegendreMortarIDP}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -124,7 +125,8 @@ function rhs_hyperbolic!(backend::Nothing,
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
+                              dg.volume_integral, dg, cache,
+                              t, boundary_conditions)
     end
 
     # Prolong solution to interfaces
@@ -178,6 +180,17 @@ function rhs_hyperbolic!(backend::Nothing,
     @trixi_timeit timer() "source terms" begin
         calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
+
+    return nothing
+end
+
+@inline function calc_volume_integral!(backend, du, u, mesh,
+                                       nonconservative_terms, equations,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       dg, cache, t, boundary_conditions)
+    calc_volume_integral!(backend, du, u, mesh,
+                          nonconservative_terms, equations,
+                          volume_integral, dg, cache)
 
     return nothing
 end

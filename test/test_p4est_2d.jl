@@ -416,22 +416,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4573787784168518,
-                            0.28520972760728397,
-                            0.28527281808006966,
-                            1.2881460122982442
+                            0.47190931746377907,
+                            0.2920897887225935,
+                            0.2920467598816456,
+                            1.2907082371577956
                         ],
                         linf=[
-                            1.644411040701827,
-                            1.6743368119653912,
-                            1.6760847977977988,
-                            6.268843623142863
+                            1.7124020321888236,
+                            1.832099426696378,
+                            1.831470954824726,
+                            6.286280900334769
                         ],
                         tspan=(0.0, 0.3))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) <= 3.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -641,6 +641,74 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_euler_double_mach_amr_sc_subcell.jl (low-order bounds)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_double_mach_amr_sc_subcell.jl"),
+                        l2=[
+                            0.06271302966285255,
+                            0.5407756955207393,
+                            0.3106668060406049,
+                            5.294575402913204
+                        ],
+                        linf=[
+                            5.698367428688572,
+                            51.15963932568652,
+                            29.39850032797133,
+                            504.99453727191934
+                        ],
+                        tspan=(0.0, 5.0e-5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    # deviations wrt positivity bounds due to use of smoothness indicator
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_double_mach_amr_sc_subcell.jl (bar state bounds)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_double_mach_amr_sc_subcell.jl"),
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[
+                            0.06245129073049684,
+                            0.5384256820081852,
+                            0.30929598115795415,
+                            5.2719822326212284
+                        ],
+                        linf=[
+                            5.667889243229501,
+                            50.38179234178468,
+                            29.91013326368365,
+                            495.1613261328342
+                        ],
+                        tspan=(0.0, 5.0e-5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    # deviations wrt positivity bounds due to use of smoothness indicator
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
 @testitem "P4estMesh2D: elixir_euler_supersonic_cylinder.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder.jl"),
                         l2=[
@@ -690,16 +758,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
-                            0.11085870166618325,
-                            0.23309905989870722,
-                            0.13505351590735631,
-                            0.7932048824622121
+                            0.11163992541968377,
+                            0.2350631387580329,
+                            0.13564300628421277,
+                            0.7980084592670804
                         ],
                         linf=[
-                            2.9808773737943564,
-                            4.209364526217892,
-                            6.265341002817672,
-                            24.077904874883338
+                            2.989883077745637,
+                            4.207096825195049,
+                            6.2234038811645425,
+                            24.1559851625766
                         ],
                         tspan=(0.0, 0.02),
                         # Results are sensitive to round-off errors, e.g., caused by
@@ -1095,6 +1163,192 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (positivity limiting)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        l2=[
+                            0.0991558673455626,
+                            0.10539254959118191,
+                            0.10539254959118213,
+                            0.5692107524015582
+                        ],
+                        linf=[
+                            0.9626407805450317,
+                            1.409309142670554,
+                            1.4093091426705529,
+                            3.8134410690466587
+                        ],
+                        tspan=(0.0, 0.05))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting, low-order bounds)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on Intel Xeon
+                        # and AMD EPYC 9V45 runners, the errors differ by up to 2e-5
+                        # (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=30,
+                        cfl=0.3,
+                        l2=[
+                            0.06986102432706319,
+                            0.09054088231895804,
+                            0.09054158303163416,
+                            0.5062932460491812
+                        ],
+                        linf=[
+                            0.46430240096246966,
+                            0.8203069121237986,
+                            0.8204324732010924,
+                            3.2419575114427657
+                        ],
+                        tspan=(0.0, 0.05))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-11
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting, bar state bounds)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on Intel Xeon
+                        # and AMD EPYC 9V45 runners, the errors differ by up to 2e-6
+                        # (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=30,
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[
+                            0.0833361268095218,
+                            0.09575139875339413,
+                            0.09575137388632227,
+                            0.5279883499374922
+                        ],
+                        linf=[
+                            0.6682978832621844,
+                            1.0009226024742235,
+                            1.0009228241095895,
+                            3.4342485467720723
+                        ],
+                        tspan=(0.0, 0.05))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (conservation)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        tspan=(0.0, 0.1),
+                        pure_low_order=true)
+    # Check for conservation
+    state_integrals = Trixi.integrate(sol.u[2], semi)
+    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-12)
+    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
+                        # The results depend on the CPU of the CI runner: round-off
+                        # differences between CPUs are amplified by the subcell limiting.
+                        # The reference values are from an AMD EPYC 7763; on some Intel
+                        # Xeon runners, the errors differ by up to 6e-5 (relative).
+                        # See https://github.com/trixi-framework/Trixi.jl/issues/3060.
+                        l2=[
+                            0.011979472953030729,
+                            0.021268892312137622,
+                            0.021937761773994775,
+                            0.11157325671297444
+                        ],
+                        linf=[
+                            0.29470369984798617,
+                            0.4912766110018895,
+                            0.48139169748785204,
+                            2.230880166174059
+                        ])
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that this test actually exercises mortars whose large-element face
+    # is traversed in the opposite direction of the mortar nodes.
+    dg = semi.solver
+    cache = semi.cache
+    flipped_mortars = filter(Trixi.eachmortar(dg, cache)) do mortar
+        :i_backward in cache.mortars.node_indices[2, mortar]
+    end
+    @test !isempty(flipped_mortars)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin

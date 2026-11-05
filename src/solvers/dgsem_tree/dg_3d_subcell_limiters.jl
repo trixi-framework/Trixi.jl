@@ -51,6 +51,14 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
 
+    # `n_mortars_per_node` is stored in the limiter cache, which is resized to the
+    # number of elements in `resize_volume_integral_cache!` only after this function
+    # returns. Resize it here already, since the precomputation needs it. Resizing it
+    # again to the same size afterward keeps the precomputed values.
+    # Not very elegant, but for now okay.
+    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
+    precompute_n_mortars_per_nodes!(volume_integral, dg, cache_containers, mesh)
+
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
             fhat2_L_threaded, fhat2_R_threaded,
@@ -337,5 +345,28 @@ end
     end
 
     return nothing
+end
+
+@inline function calc_lambdas_bar_states!(u, t, mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                          have_nonconservative_terms, equations,
+                                          limiter, dg, cache, boundary_conditions;
+                                          calc_bar_states = true)
+    if limiter.bar_states == false
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
+
+    return nothing
+end
+
+@inline function calc_variable_bounds!(u, mesh::AbstractMesh{3}, nonconservative_terms,
+                                       equations, limiter::SubcellLimiterIDP, dg, cache,
+                                       ::True)
+    if limiter.bar_states == false
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
 end
 end # @muladd

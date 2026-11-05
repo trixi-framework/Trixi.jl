@@ -226,7 +226,8 @@ end
 
 # Check whether the arrays in `mortars` and the thread-local storage used on CPUs
 # have the axes we assume they must have in the inner loops of Trixi.jl.
-function check_axes(mortars::P4estMortarContainer{2}, equations, solver::DG, cache)
+function check_axes(mortars::Union{P4estMortarContainer{2}, P4estIDPMortarContainer{2}},
+                    equations, solver::DG, cache)
     check_axes_mortar_container(mortars, equations, solver, cache)
 
     # Thread-local storage used for the mortar fluxes and projections
@@ -251,6 +252,25 @@ function check_axes_mortar_container(mortars::P4estMortarContainer{2}, equations
                 eachmortar(solver, cache)))
     check_axes(mortars.neighbor_ids, (Base.OneTo(3), eachmortar(solver, cache)))
     check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+    return nothing
+end
+
+# Check only the arrays stored in `mortars`. This is used by the GPU kernels, which
+# do not use the thread-local storage. Its size depends on `Threads.maxthreadid()`,
+# which can grow at runtime, e.g., when CUDA.jl adopts foreign threads.
+function check_axes_mortar_container(mortars::P4estIDPMortarContainer{2}, equations,
+                                     solver::DG, cache)
+    check_axes(mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(2),
+                eachnode(solver),
+                eachmortar(solver, cache)))
+    check_axes(mortars.u_large,
+               (eachvariable(equations), eachnode(solver), eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(3), eachmortar(solver, cache)))
+    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+    check_axes(mortars.limiting_factor, (eachmortar(solver, cache),))
+    check_axes(mortars.limiting_factor_local, (eachmortar(solver, cache),))
     return nothing
 end
 
