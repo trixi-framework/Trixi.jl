@@ -210,10 +210,11 @@ end
 # We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
-function integrate_reference_element(func::Func, u, element,
-                                     ::Type{<:AbstractMesh{2}}, equations, dg::DGSEM,
-                                     cache,
-                                     args...) where {Func}
+Base.@propagate_inbounds function integrate_reference_element(func::Func, u, element,
+                                                              ::Type{<:AbstractMesh{2}},
+                                                              equations, dg::DGSEM,
+                                                              cache,
+                                                              args...) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
@@ -229,22 +230,30 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du, u, element,
-                                          MeshT::Type{<:AbstractMesh{2}},
-                                          equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
-                                       du) do u, i, j, element, equations, dg, du
+Base.@propagate_inbounds function entropy_change_reference_element(du, u, element,
+                                                                   MeshT::Type{<:AbstractMesh{2}},
+                                                                   equations, dg::DGSEM,
+                                                                   cache, args...)
+    # Not a `do` block since `Base.@propagate_inbounds` cannot be applied to it
+    Base.@propagate_inbounds function integrand(u, i, j, element, equations, dg, du)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
 
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
+
+    return integrate_reference_element(integrand, u, element, MeshT, equations, dg,
+                                       cache, du)
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral_reference_element(func::Func, u, element,
-                                            ::Type{<:TreeMesh{2}}, equations, dg::DGSEM,
-                                            cache, args...) where {Func}
+Base.@propagate_inbounds function surface_integral_reference_element(func::Func, u,
+                                                                     element,
+                                                                     ::Type{<:TreeMesh{2}},
+                                                                     equations,
+                                                                     dg::DGSEM,
+                                                                     cache,
+                                                                     args...) where {Func}
     @unpack weights = dg.basis
 
     u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
@@ -271,14 +280,17 @@ end
 # calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
 # Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
 # thus no +- flips are needed here.
-function surface_integral_reference_element(func::Func, u, element,
-                                            ::Type{<:Union{StructuredMesh{2},
-                                                           StructuredMeshView{2},
-                                                           UnstructuredMesh2D,
-                                                           P4estMesh{2},
-                                                           T8codeMesh{2}}},
-                                            equations, dg::DGSEM,
-                                            cache, args...) where {Func}
+Base.@propagate_inbounds function surface_integral_reference_element(func::Func, u,
+                                                                     element,
+                                                                     ::Type{<:Union{StructuredMesh{2},
+                                                                                    StructuredMeshView{2},
+                                                                                    UnstructuredMesh2D,
+                                                                                    P4estMesh{2},
+                                                                                    T8codeMesh{2}}},
+                                                                     equations,
+                                                                     dg::DGSEM,
+                                                                     cache,
+                                                                     args...) where {Func}
     @unpack contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 

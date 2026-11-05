@@ -99,6 +99,9 @@ for human readability.
     `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
     `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
     supporting them ([#3428])
+  - the volume integrals `VolumeIntegralAdaptive` with `IndicatorEntropyChange`,
+    `IndicatorEntropyCorrection`, and `IndicatorEntropyCorrectionShockCapturingCombined`
+    on all mesh types supporting them ([#3430])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
@@ -112,6 +115,12 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- The thread-local buffers of `VolumeIntegralAdaptive` with `IndicatorEntropyCorrection`
+  or `IndicatorEntropyCorrectionShockCapturingCombined` are now stored in the `cache` of
+  the semidiscretization instead of the cache of `IndicatorEntropyCorrection`, and their
+  size is determined by the number of spatial dimensions of the mesh instead of the
+  equations. Such a volume integral can no longer be nested in the
+  `volume_integral_stabilized` of another one; this throws an `ArgumentError` ([#3430]).
 - `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
   now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
   are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.

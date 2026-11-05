@@ -6445,6 +6445,122 @@ end
                                           equations, volume_integral_rrg,
                                           dg, cache) === nothing
     end
+
+    # The entropy correction volume integrals store the result of their default volume
+    # integral in thread-local buffers in the `cache`, which are shaped like `du` of a
+    # single element, and check them together with their blending factors
+    @testset "Entropy correction composites" begin
+        (; volume_integral) = solver
+        (; indicator, volume_integral_blend_low_order) = volume_integral
+        volume_integral_wf = VolumeIntegralWeakForm()
+        function create_semi(volume_integral_)
+            return SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                DGSEM(basis, surface_flux,
+                                                      volume_integral_);
+                                                boundary_conditions = boundary_condition_periodic)
+        end
+        function allocated_check_axes(mesh, equations, volume_integral, dg, cache)
+            return @allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                volume_integral,
+                                                                dg, cache)
+        end
+
+        indicator_ec = IndicatorEntropyCorrection(equations, basis)
+        volume_integral_ec = VolumeIntegralAdaptive(indicator = indicator_ec,
+                                                    volume_integral_default = volume_integral_wf,
+                                                    volume_integral_stabilized = volume_integral_blend_low_order)
+        indicator_combined = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = indicator,
+                                                                              indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                        basis))
+        volume_integral_combined = VolumeIntegralAdaptive(indicator = indicator_combined,
+                                                          volume_integral_default = volume_integral_wf,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+        # The buffers are only used while the stabilized volume integral is computed,
+        # so an entropy correction volume integral can be the default of another one
+        volume_integral_nested = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                               basis),
+                                                        volume_integral_default = volume_integral_ec,
+                                                        volume_integral_stabilized = volume_integral_blend_low_order)
+
+        for volume_integral_ in (volume_integral_ec, volume_integral_combined,
+                                 volume_integral_nested)
+            semi_ = create_semi(volume_integral_)
+            mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+            nonconservative_terms = Trixi.have_nonconservative_terms(equations_)
+            u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi_), semi_)
+            du = zero(u)
+
+            (; volume_integral_values_threaded) = cache_
+            @test length(volume_integral_values_threaded) == Threads.maxthreadid()
+            @test all(==(size(du)[1:(end - 1)]), size.(volume_integral_values_threaded))
+            @test Trixi.check_axes_volume_integrals(mesh_, equations_, volume_integral_,
+                                                    dg_, cache_) === nothing
+            # Measure inside a function since accessing global variables allocates
+            @test allocated_check_axes(mesh_, equations_, volume_integral_,
+                                       dg_, cache_) == 0
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh_,
+                                              nonconservative_terms, equations_,
+                                              volume_integral_, dg_, cache_) === nothing
+
+            # Buffers with the wrong number of spatial dimensions
+            values_wrong = [similar(values, size(values)..., Trixi.nnodes(dg_))
+                            for values in volume_integral_values_threaded]
+            cache_wrong = (; cache_..., volume_integral_values_threaded = values_wrong)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_,
+                                                                             equations_,
+                                                                             volume_integral_,
+                                                                             dg_,
+                                                                             cache_wrong)
+
+            # Too few thread-local buffers
+            cache_wrong = (; cache_...,
+                           volume_integral_values_threaded = volume_integral_values_threaded[1:(end - 1)])
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_,
+                                                                             equations_,
+                                                                             volume_integral_,
+                                                                             dg_,
+                                                                             cache_wrong)
+        end
+
+        # The blending factors are sized for the elements of the mesh
+        semi_ = create_semi(volume_integral_ec)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+        @test length(indicator_ec.cache.alpha) == nelements(dg_, cache_)
+        resize!(indicator_ec.cache.alpha, nelements(dg_, cache_) - 1)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
+                                                                         volume_integral_ec,
+                                                                         dg_, cache_)
+
+        # The blending factors returned by the shock capturing indicator are checked
+        indicator_combined_wrong = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = IndicatorWrongSize(),
+                                                                                    indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                              basis))
+        volume_integral_combined_wrong = VolumeIntegralAdaptive(indicator = indicator_combined_wrong,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_blend_low_order)
+        semi_ = create_semi(volume_integral_combined_wrong)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi_), semi_)
+        @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, zero(u), u,
+                                                                   mesh_,
+                                                                   Trixi.have_nonconservative_terms(equations_),
+                                                                   equations_,
+                                                                   volume_integral_combined_wrong,
+                                                                   dg_, cache_)
+
+        # The buffers are shared via the `cache`, so an entropy correction volume
+        # integral cannot be nested in the stabilized volume integral of another one
+        for indicator_ in (IndicatorEntropyCorrection(equations, basis),
+                           indicator_combined)
+            @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_,
+                                                                          volume_integral_default = volume_integral_wf,
+                                                                          volume_integral_stabilized = volume_integral_ec))
+        end
+        @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                                             basis),
+                                                                      volume_integral_default = volume_integral_wf,
+                                                                      volume_integral_stabilized = volume_integral_combined))
+    end
 end
 
 @testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
