@@ -32,8 +32,8 @@ end
 #   ∂ₜu + a⋅∇u = s.
 # In contrast to the conservative form, the divergence of `a` does not appear.
 # The advection velocity `a` is taken from the auxiliary variables.
-function source_terms_manufactured(u, aux, x, t,
-                                   equations::NonconservativeLinearScalarAdvectionEquation3D)
+@inline function source_terms_manufactured(u, aux, x, t,
+                                           equations::NonconservativeLinearScalarAdvectionEquation3D)
     RealT = eltype(x)
     a1, a2, a3 = aux
     # Derivative of the manufactured solution with respect to each spatial coordinate

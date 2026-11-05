@@ -55,7 +55,6 @@ end
     return a * u
 end
 
-"""
 # TODO: Right now, this is somewhat confusing. The speeds are indeed constant
 #       in time, but not constant in space. This trait is used, e.g., to make
 #       the calculation of the time step size for CFL-based step size control

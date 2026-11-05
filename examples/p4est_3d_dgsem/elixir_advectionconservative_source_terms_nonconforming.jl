@@ -34,8 +34,8 @@ end
 # Source terms for the manufactured solution
 #   ∂ₜu + ∇⋅(a u) = ∂ₜu + a⋅∇u + (∇⋅a) u = s.
 # The advection velocity `a` is taken from the auxiliary variables.
-function source_terms_manufactured(u, aux, x, t,
-                                   equations::ConservativeLinearScalarAdvectionEquation3D)
+@inline function source_terms_manufactured(u, aux, x, t,
+                                           equations::ConservativeLinearScalarAdvectionEquation3D)
     RealT = eltype(x)
     a1, a2, a3 = aux
     u_exact = initial_condition_manufactured(x, t, equations)[1]
