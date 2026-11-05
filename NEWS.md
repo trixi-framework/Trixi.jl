@@ -126,6 +126,17 @@ for human readability.
 - Fixed crashes of the `AnalysisCallback` in MPI-parallel simulations on `P4estMesh`es
   and `T8codeMesh`es if an MPI rank has no elements, e.g., after coarsening with AMR
   ([#3418]).
+- Fixed unbalanced 3D `P4estMesh`es created with `trees_per_dimension`: the `p4est`
+  connectivity now contains all edges and corners connecting trees, as required by
+  `p4est` for 2:1 balancing. Previously, the mesh could violate the 2:1 balance after
+  deep local refinement, which could crash AMR simulations during coarsening. The 2D
+  connectivity now contains all corners connecting trees, which fixes assertion failures
+  with debug builds of `p4est`. Thus, `balance!` for 2D `P4estMesh`es now calls
+  `p4est_balance` only once instead of twice if the connectivity contains corners.
+  Connectivities without corners, e.g., from restart files written by older versions of
+  Trixi.jl, are still balanced twice. Custom connectivities passed to a `P4estMesh` must be
+  complete in the sense of `p4est`, i.e., contain all corners (and edges in 3D) connecting
+  trees, to be balanced correctly ([#3427]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
