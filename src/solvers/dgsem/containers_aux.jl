@@ -8,10 +8,10 @@
 # Container for the values of the auxiliary variables at the volume and surface
 # quadrature nodes, see `nauxvariables`. It is stored as `cache.aux_vars` and
 # only created for equations with auxiliary variables.
-struct AuxNodeVarsContainer{NDIMS, uEltype <: Real,
-                            Aux <: AbstractArray{uEltype},
-                            AuxInterface <: AbstractArray{uEltype},
-                            AuxMortar <: AbstractArray{uEltype}, AuxField}
+struct AuxVarsContainer{NDIMS, uEltype <: Real,
+                        Aux <: AbstractArray{uEltype},
+                        AuxInterface <: AbstractArray{uEltype},
+                        AuxMortar <: AbstractArray{uEltype}, AuxField}
     aux::Aux                     # [var, i, j, k, element]
     aux_interface::AuxInterface  # [leftright, var, i, j, interface]
     aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar]
@@ -22,16 +22,16 @@ end
 
 # Adapt the arrays of the auxiliary variables, e.g., to another real type or a GPU,
 # see `trixi_adapt`
-function Adapt.adapt_structure(to, aux_vars::AuxNodeVarsContainer{NDIMS}) where {NDIMS}
+function Adapt.adapt_structure(to, aux_vars::AuxVarsContainer{NDIMS}) where {NDIMS}
     aux = adapt(to, aux_vars.aux)
     aux_interface = adapt(to, aux_vars.aux_interface)
     aux_mortar = adapt(to, aux_vars.aux_mortar)
     @unpack aux_field = aux_vars
 
-    return AuxNodeVarsContainer{NDIMS, eltype(aux), typeof(aux),
-                                typeof(aux_interface), typeof(aux_mortar),
-                                typeof(aux_field)}(aux, aux_interface, aux_mortar,
-                                                   aux_field)
+    return AuxVarsContainer{NDIMS, eltype(aux), typeof(aux),
+                            typeof(aux_interface), typeof(aux_mortar),
+                            typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                               aux_field)
 end
 
 # Check whether the arrays of auxiliary variables have the axes we assume in the inner
@@ -92,10 +92,10 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                       (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
                        nmortars(cache.mortars)))
 
-    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, typeof(aux),
-                                    typeof(aux_interface), typeof(aux_mortar),
-                                    typeof(aux_field)}(aux, aux_interface, aux_mortar,
-                                                       aux_field)
+    aux_vars = AuxVarsContainer{NDIMS, uEltype, typeof(aux),
+                                typeof(aux_interface), typeof(aux_mortar),
+                                typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                                   aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)

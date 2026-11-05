@@ -824,7 +824,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # Auxiliary variables are evaluated once for a fixed mesh, so adaptation would
     # require re-initializing (and resizing) their container.
-    if hasproperty(cache, :aux_vars)
+    if haskey(cache, :aux_vars)
         throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
     end
 
