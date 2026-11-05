@@ -35,13 +35,15 @@ abstract type AbstractVolumeIntegral end
 # - `create_cache(mesh, equations, volume_integral, dg, cache_containers, uEltype)`
 # - `resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
 # - `reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
+# - `check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)`
 # - `get_element_variables!(element_variables, u, mesh, equations,
 #                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
 #
 # Do not add methods to the functions handling the whole tree
 # (`create_volume_integral_caches`, `resize_volume_integral_caches!`,
-# `reinitialize_volume_integral_caches!`); they call the methods above for every node.
+# `reinitialize_volume_integral_caches!`, `check_axes_volume_integrals`);
+# they call the methods above for every node.
 ###############################################################################
 
 # Return a tuple of the volume integrals contained in the composite `volume_integral`,
@@ -87,6 +89,15 @@ function reinit_volume_integral_cache!(cache, mesh,
     return nothing
 end
 
+# Check whether the storage of `volume_integral` itself, i.e., its entries in the
+# `cache` and its per-instance state, has the axes we assume in the inner loops of
+# Trixi.jl. This allows assuming inbounds access in the kernels of the volume integral.
+# By default, there is nothing to check.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::AbstractVolumeIntegral, dg, cache)
+    return nothing
+end
+
 # Add "element variables" of `volume_integral` such as blending factors to the
 # output of the `SaveSolutionCallback`. By default, there are none.
 function get_element_variables!(element_variables, u, mesh, equations,
@@ -100,7 +111,8 @@ end
 # Apply `f` to `volume_integral` and all volume integrals nested in it.
 # This is used for operations that do not return anything, e.g., resizing
 # and reinitializing the storage after mesh adaptation
-# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`)
+# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`),
+# checking the axes of the storage (`check_axes_volume_integrals`),
 # and checking supported combinations (`check_volume_integral_tree`).
 # Creating the storage uses `_collect_caches_volume_integral` instead,
 # since it returns the caches of all nodes.
@@ -203,6 +215,18 @@ end
 function resize_volume_integral_caches!(cache, mesh, volume_integral, dg, new_size)
     foreach_volume_integral(volume_integral) do volume_integral_
         resize_volume_integral_cache!(cache, mesh, volume_integral_, dg, new_size)
+        return nothing
+    end
+
+    return nothing
+end
+
+# Check the storage of all volume integrals in the tree with root `volume_integral`.
+# This is called in the `@boundscheck` blocks of `calc_volume_integral!`.
+@inline function check_axes_volume_integrals(mesh, equations, volume_integral, dg,
+                                             cache)
+    foreach_volume_integral(volume_integral) do volume_integral_
+        check_axes_volume_integral(mesh, equations, volume_integral_, dg, cache)
         return nothing
     end
 

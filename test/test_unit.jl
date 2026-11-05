@@ -5127,6 +5127,132 @@ end
                                            refinement_level = 2)
 end
 
+@testitem "Unit: P4estMesh structured connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all corners (and edges in 3D) connecting trees, `p4est_balance` does not
+    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112,
+    # https://github.com/trixi-framework/Trixi.jl/issues/1358, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2289.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_2d(p4est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.level < 5)
+    end
+    refine_corner_2d_c = @cfunction(refine_corner_2d, Cint,
+                                    (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p4est_quadrant_t}))
+
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    # Check that the trees are ordered lexicographically and connected via their faces
+    # as expected, with zero-based tree and face indices
+    function has_lexicographic_faces(connectivity, trees_per_dimension, periodicity)
+        n_dims = length(trees_per_dimension)
+        n_trees = prod(trees_per_dimension)
+        tree_to_tree = unsafe_wrap(Array, connectivity.tree_to_tree, (2 * n_dims, n_trees))
+        tree_to_face = unsafe_wrap(Array, connectivity.tree_to_face, (2 * n_dims, n_trees))
+        linear_indices = LinearIndices(trees_per_dimension)
+        result = true
+        for cell in CartesianIndices(trees_per_dimension), dim in 1:n_dims, side in 0:1
+            tree = linear_indices[cell]
+            face = 2 * (dim - 1) + side
+            neighbor_index = cell[dim] + 2 * side - 1
+            if 1 <= neighbor_index <= trees_per_dimension[dim] || periodicity[dim]
+                neighbor = Base.setindex(Tuple(cell),
+                                         mod1(neighbor_index, trees_per_dimension[dim]),
+                                         dim)
+                expected = (linear_indices[neighbor...] - 1, xor(face, 1))
+            else
+                expected = (tree - 1, face)
+            end
+            result &= (tree_to_tree[face + 1, tree], tree_to_face[face + 1, tree]) ==
+                      expected
+        end
+        return result
+    end
+
+    for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
+        periodicity in ((false, false), (true, false), (true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # A single call to `p4est_balance` is sufficient. Call it directly since
+        # `balance!` calls it twice for connectivities without corners.
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.p4est_balance(mesh.p4est, Trixi.P4EST_CONNECT_FACE, C_NULL)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+
+        # Remove all corners to obtain a connectivity containing only face connections,
+        # e.g., as created by older versions of Trixi.jl, for which `balance!` calls
+        # `p4est_balance` twice
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        Trixi.p4est_connectivity_reduce(mesh.p4est.connectivity)
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+    end
+
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2), (2, 2, 2)),
+        periodicity in ((false, false, false), (true, false, true), (true, true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0, 0.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
+@testitem "Unit: P4estMeshCubedSphere connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all edges and corners connecting trees, `p8est_balance` does not always
+    # produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    for (trees_per_face_dimension, layers) in ((1, 2), (2, 1), (3, 2))
+        mesh = P4estMeshCubedSphere(trees_per_face_dimension, layers, 0.5, 0.5;
+                                    polydeg = 1)
+
+        # `p4est` only stores edges and corners connecting trees that are not all
+        # connected via faces. These are the radial edges at the vertices of the cube
+        # surface where four trees meet (all except the 8 corners of the cube), and
+        # all tangential edges and the corners where four trees meet between two layers.
+        n = trees_per_face_dimension
+        @test mesh.p4est.connectivity.num_edges[] ==
+              (6 * n^2 - 6) * layers + 12 * n^2 * (layers - 1)
+        @test mesh.p4est.connectivity.num_corners[] == (6 * n^2 - 6) * (layers - 1)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
@@ -6480,6 +6606,160 @@ end
         Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
         Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
         @test du_ode_nonconservative ≈ du_ode_conservative
+@testitem "Unit: check_axes of the storage of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the storage of all volume integrals in the tree with root `dg.volume_integral`
+    # for correct and wrongly sized subcell finite volume buffers
+    function test_check_axes_volume_integrals(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; volume_integral) = dg
+        @test Trixi.check_axes_volume_integrals(mesh, equations, volume_integral,
+                                                dg, cache) === nothing
+        @test (@allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                            volume_integral,
+                                                            dg, cache)) == 0
+
+        # A composite with `volume_integral` as a child checks the whole tree
+        volume_integral_nested = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                        volume_integral_default = VolumeIntegralWeakForm(),
+                                                        volume_integral_stabilized = volume_integral)
+
+        # Wrong number of subcell interfaces
+        fstar1_L_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f)[3:end]...)
+                          for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = fstar1_L_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral_nested,
+                                                                         dg, cache_wrong)
+        # Volume integrals without storage of their own do not check anything
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               VolumeIntegralWeakForm(),
+                                               dg, cache_wrong) === nothing
+
+        # Too few thread-local buffers
+        cache_wrong = (; cache...,
+                       fstar1_R_threaded = cache.fstar1_R_threaded[1:(end - 1)])
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+
+        # Subcell normal vectors of non-Cartesian meshes for a wrong number of elements
+        if haskey(cache, :normal_vectors)
+            normal_vectors_wrong = deepcopy(cache.normal_vectors)
+            resize!(normal_vectors_wrong, nelements(dg, cache) + 1)
+            cache_wrong = (; cache..., normal_vectors = normal_vectors_wrong)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                             equations,
+                                                                             volume_integral,
+                                                                             dg,
+                                                                             cache_wrong)
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of most elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("StructuredMesh{1}",
+                                 joinpath("structured_1d_dgsem",
+                                          "elixir_euler_shu_osher_nonuniform_fvO2.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_volume_integrals, semi)
+        end
+    end
+
+    # The subcell normal vectors are resized and reinitialized after mesh adaptation
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_blast_wave_amr.jl"); maxiters = 1)
+    @testset "P4estMesh{2} with AMR" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        # The initial mesh has `initial_refinement_level = 1`
+        @test nelements(dg, cache) != 4 * Trixi.ntrees(mesh)
+        test_check_axes_volume_integrals(semi)
+    end
+
+    # The shock-capturing composites check their inputs, the storage of the tree of
+    # volume integrals, and the blending factors returned by the indicator
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_blast_wave.jl"); sol = nothing)
+
+    struct IndicatorWrongSize end
+    function (::IndicatorWrongSize)(u, mesh, equations, dg, cache; kwargs...)
+        return zeros(eltype(u), nelements(dg, cache) - 1)
+    end
+
+    @testset "Shock-capturing composites" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        nonconservative_terms = Trixi.have_nonconservative_terms(equations)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+        du = zero(u)
+        du_wrong = similar(du, size(du)[1:(end - 1)]..., size(du, ndims(du)) - 1)
+
+        (; volume_integral) = dg
+        @test volume_integral isa Trixi.VolumeIntegralShockCapturingHGType
+        (; indicator, volume_integral_default, volume_integral_blend_high_order,
+        volume_integral_blend_low_order) = volume_integral
+        volume_integral_adaptive = VolumeIntegralAdaptive(; indicator,
+                                                          volume_integral_default,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+
+        for volume_integral_ in (volume_integral, volume_integral_adaptive)
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                              nonconservative_terms, equations,
+                                              volume_integral_, dg, cache) === nothing
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du_wrong,
+                                                                       u, mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_,
+                                                                       dg, cache)
+        end
+
+        volume_integral_wrong_alpha = Trixi.VolumeIntegralShockCapturingHGType(IndicatorWrongSize();
+                                                                               volume_integral_default,
+                                                                               volume_integral_blend_high_order,
+                                                                               volume_integral_blend_low_order)
+        @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                                                   nonconservative_terms,
+                                                                   equations,
+                                                                   volume_integral_wrong_alpha,
+                                                                   dg, cache)
+
+        # The subcell interface coordinates of the second-order finite volume method
+        # must be computed from a basis with as many nodes as the basis of the solver
+        @test Trixi.polydeg(dg) == 3
+        for basis_ in (LobattoLegendreBasis(2), LobattoLegendreBasis(5))
+            volume_integral_wrong_basis = VolumeIntegralShockCapturingRRG(basis_,
+                                                                          indicator)
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u,
+                                                                       mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_wrong_basis,
+                                                                       dg, cache)
+        end
+        volume_integral_rrg = VolumeIntegralShockCapturingRRG(dg.basis, indicator)
+        @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
+                                          equations, volume_integral_rrg,
+                                          dg, cache) === nothing
     end
 end
 
