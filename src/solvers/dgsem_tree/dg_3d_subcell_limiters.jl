@@ -5,12 +5,11 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                      equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, cache_containers, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, cache_containers, uEltype)
+function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                       equations,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       dg::DG, cache_containers, uEltype)
+    cache = NamedTuple()
 
     fhat1_L_threaded, fhat1_R_threaded,
     fhat2_L_threaded, fhat2_R_threaded,
@@ -61,12 +60,13 @@ end
 
 # Subcell limiting currently only implemented for certain mesh types
 @inline function volume_integral_kernel!(du, u, element,
-                                         mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                         MeshT::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
                                          nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
-    @unpack volume_flux_dg, volume_flux_fv, limiter = volume_integral
+    @unpack volume_integral_low_order, volume_flux_dg, limiter = volume_integral
+    @unpack volume_flux_fv = volume_integral_low_order
 
     # high-order DG fluxes
     @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded, fhat3_L_threaded, fhat3_R_threaded = cache
@@ -78,7 +78,7 @@ end
     fhat3_L = fhat3_L_threaded[Threads.threadid()]
     fhat3_R = fhat3_R_threaded[Threads.threadid()]
     calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
-                   u, mesh, nonconservative_terms, equations, volume_flux_dg,
+                   u, MeshT, nonconservative_terms, equations, volume_flux_dg,
                    dg, element, cache)
 
     # low-order FV fluxes
@@ -90,14 +90,15 @@ end
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     fstar3_L = fstar3_L_threaded[Threads.threadid()]
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
-                 u, mesh, nonconservative_terms, equations, volume_flux_fv,
+    calcflux_fv!(volume_integral_low_order,
+                 fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
+                 u, MeshT, nonconservative_terms, equations, volume_flux_fv,
                  dg, element, cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
-                            u, mesh, nonconservative_terms, equations, limiter,
+                            u, MeshT, nonconservative_terms, equations, limiter,
                             dg, element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
@@ -120,7 +121,7 @@ end
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
-                                u, mesh::TreeMesh{3},
+                                u, ::Type{<:TreeMesh{3}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
@@ -217,6 +218,28 @@ end
     return nothing
 end
 
+@inline function calcflux_fv!(::VolumeIntegralPureLGLFiniteVolume,
+                              fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
+                              fstar3_R, u, MeshT, have_nonconservative_terms, equations,
+                              volume_flux_fv, dg, element, cache)
+    return calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                        MeshT, have_nonconservative_terms, equations, volume_flux_fv,
+                        dg, element, cache)
+end
+
+@inline function calcflux_fv!(volume_integral_low_order::VolumeIntegralPureLGLFiniteVolumeO2,
+                              fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
+                              fstar3_R, u, MeshT, have_nonconservative_terms, equations,
+                              volume_flux_fv, dg,
+                              element, cache)
+    (; sc_interface_coords, reconstruction_mode, slope_limiter, cons2recon, recon2cons) = volume_integral_low_order
+    return calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
+                          MeshT, have_nonconservative_terms, equations, volume_flux_fv,
+                          dg, element, cache,
+                          sc_interface_coords, reconstruction_mode, slope_limiter,
+                          cons2recon, recon2cons)
+end
+
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R,
                                          fhat2_L, fhat2_R,
@@ -224,7 +247,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                         u, ::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
@@ -275,7 +298,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                         u, ::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes

@@ -1,16 +1,11 @@
-module TestExamples1DLinearElasticity
+@testsnippet TreeMesh1DLinearElasticity begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "Linear Elasticity" begin
-#! format: noindent
-
-@trixi_testset "elixir_linearelasticity_convergence.jl" begin
+@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_convergence.jl" setup=[
+    Setup,
+    TreeMesh1DLinearElasticity
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearelasticity_convergence.jl"),
                         analysis_callback=AnalysisCallback(semi,
@@ -20,21 +15,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
                                                            extra_analysis_integrals = (energy_kinetic,
                                                                                        energy_internal,
                                                                                        entropy)),
-                        l2=[0.0007205516785218745, 0.0008036755866155103],
-                        linf=[0.0011507266875070855, 0.003249818227066381])
+                        l2=[1.1686322878287191e-5, 2.683989522212065e-5],
+                        linf=[2.5820386859359834e-5, 0.00011009510821025081])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_linearelasticity_impact.jl" begin
+@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_impact.jl" setup=[
+    Setup,
+    TreeMesh1DLinearElasticity
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearelasticity_impact.jl"),
                         l2=[0.004334150310828556, 368790.1916121487],
                         linf=[0.01070558926301203, 999999.9958777003])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-end # module

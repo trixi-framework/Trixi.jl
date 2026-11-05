@@ -54,4 +54,3 @@ This is an issue coming from the coordinate interpolation on the nodes.
 As a result, running a simulation in a single system and in two coupled domains
 may result in a difference of the order of the machine precision.
 While this is not an issue for most practical problems, it is best to keep this in mind when comparing test runs.
-

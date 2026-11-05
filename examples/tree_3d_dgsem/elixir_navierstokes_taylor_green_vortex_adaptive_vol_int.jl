@@ -66,7 +66,6 @@ coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 100_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -99,5 +98,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True()); adaptive = true,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded()); adaptive = true,
             ode_default_options()..., callback = callbacks)

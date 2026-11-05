@@ -56,7 +56,7 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 callbacks = CallbackSet(summary_callback, alive_callback,
                         analysis_callback)
@@ -65,5 +65,6 @@ callbacks = CallbackSet(summary_callback, alive_callback,
 # run the simulation
 
 time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

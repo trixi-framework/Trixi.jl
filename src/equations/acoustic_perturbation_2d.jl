@@ -68,6 +68,17 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
                                            rho_mean_global)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::AcousticPerturbationEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return AcousticPerturbationEquations2D(SVector{2, NewRealT}(equations.v_mean_global),
+                                           convert(NewRealT, equations.c_mean_global),
+                                           convert(NewRealT, equations.rho_mean_global))
+end
+
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)
     return ("v1_prime", "v2_prime", "p_prime_scaled",
             "v1_mean", "v2_mean", "c_mean", "rho_mean")
@@ -410,7 +421,7 @@ However, the mean flow variables are part of the solution vector in
 [`AcousticPerturbationEquations2D`](@ref) and only the **global** mean flow variables are constant,
 similar to the [`LinearizedEulerEquations2D`](@ref).
 
-Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via 
+Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via
 [`SemidiscretizationEulerAcoustics`](@ref), the mean field variables are updated
 on the fly, see [`EulerAcousticsCouplingCallback`](@ref).
 

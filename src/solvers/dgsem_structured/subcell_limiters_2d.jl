@@ -5,13 +5,10 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::StructuredMesh{2}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::StructuredMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
-    (; contravariant_vectors) = cache.elements
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -47,10 +44,18 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::StructuredMesh{2},
+                                                equations, dg, cache)
     if isperiodic(mesh)
         return nothing
     end
+    (; contravariant_vectors) = cache.elements
+
     linear_indices = LinearIndices(size(mesh))
     if !isperiodic(mesh, 1)
         # - xi direction
@@ -132,13 +137,12 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                         mesh::StructuredMesh{2})
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
-    (; contravariant_vectors) = cache.elements
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::StructuredMesh{2})
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
+    n_nodes = nnodes(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -146,35 +150,38 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
 
         if left != 0
             for j in eachnode(dg)
-                var_left = variable(get_node_vars(u, equations, dg, nnodes(dg), j,
-                                                  left), equations)
-                var_element = variable(get_node_vars(u, equations, dg, 1, j, element),
-                                       equations)
+                var_left = variable_values[n_nodes, j, left]
+                var_element = variable_values[1, j, element]
 
                 var_minmax[1, j, element] = minmax(var_minmax[1, j, element], var_left)
-                var_minmax[nnodes(dg), j, left] = minmax(var_minmax[nnodes(dg), j,
-                                                                    left], var_element)
+                var_minmax[n_nodes, j, left] = minmax(var_minmax[n_nodes, j, left],
+                                                      var_element)
             end
         end
         if lower != 0
             for i in eachnode(dg)
-                var_lower = variable(get_node_vars(u, equations, dg, i, nnodes(dg),
-                                                   lower), equations)
-                var_element = variable(get_node_vars(u, equations, dg, i, 1, element),
-                                       equations)
+                var_lower = variable_values[i, n_nodes, lower]
+                var_element = variable_values[i, 1, element]
 
                 var_minmax[i, 1, element] = minmax(var_minmax[i, 1, element], var_lower)
-                var_minmax[i, nnodes(dg), lower] = minmax(var_minmax[i, nnodes(dg),
-                                                                     lower],
-                                                          var_element)
+                var_minmax[i, n_nodes, lower] = minmax(var_minmax[i, n_nodes, lower],
+                                                       var_element)
             end
         end
     end
 
-    # Calc bounds at physical boundaries
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::StructuredMesh{2},
+                                                equations, dg, cache)
     if isperiodic(mesh)
         return nothing
     end
+    (; contravariant_vectors) = cache.elements
+
     linear_indices = LinearIndices(size(mesh))
     if !isperiodic(mesh, 1)
         # - xi direction

@@ -93,8 +93,9 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    return SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                        source_terms, boundary_conditions, uEltype)
+    semi_new = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            source_terms, boundary_conditions, uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 # general fallback
@@ -551,6 +552,8 @@ end
 
 @inline Base.real(semi::SemidiscretizationHyperbolic) = real(semi.solver)
 
+storage_type(semi::SemidiscretizationHyperbolic) = storage_type(semi.mesh, semi.cache)
+
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
     @unpack mesh, equations, solver, cache = semi
     return mesh, equations, solver, cache
@@ -575,16 +578,21 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
     return compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(backend,
+                                                                        du, u, t,
+                                                                        mesh, equations,
+                                                                        boundary_conditions,
+                                                                        source_terms,
+                                                                        solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 

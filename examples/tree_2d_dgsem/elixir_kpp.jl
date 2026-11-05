@@ -98,8 +98,7 @@ coordinates_max = (2.0, 2.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                periodicity = true,
-                n_cells_max = 500_000)
+                periodicity = true)
 
 ###############################################################################
 # Create the semi discretization object
@@ -150,4 +149,5 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(); ode_default_options()..., callback = callbacks)
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            ode_default_options()..., callback = callbacks)

@@ -41,6 +41,10 @@ abstract type AbstractMortarL2{RealT <: Real} <: AbstractMortar{RealT} end
 # numerical solutions, e.g. the calculation of errors
 abstract type SolutionAnalyzer{RealT <: Real} end
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
+abstract type AbstractIndicator end
+
 # abstract supertype of grid-transfer methods used for AMR,
 # e.g. refinement and coarsening based on L² projections
 abstract type AdaptorAMR{RealT <: Real} end
@@ -108,6 +112,11 @@ end
 end
 
 # This version can be called by parabolic solvers
+# TODO: revisit if we want more general boundary treatments.
+# This assumes the gradient numerical flux at the boundary is the gradient variable,
+# which is consistent with BR1, LDG.
+# In particular, `inner_flux_or_state` are the gradients at the Gradient stage, i.e., `u_inner`
+# while at Divergence stage, `inner_flux_or_state` are the fluxes at the boundary, i.e., `flux_inner`.
 @inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, other_args...)
     return inner_flux_or_state
 end
@@ -116,6 +125,9 @@ end
     boundary_condition_do_nothing = Trixi.BoundaryConditionDoNothing()
 
 Imposing no boundary condition just evaluates the flux at the inner state.
+This has the effect of extending the domain beyond the boundary with the same solution state as
+in the interior.
+Also applicable to parabolic equations.
 """
 const boundary_condition_do_nothing = BoundaryConditionDoNothing()
 

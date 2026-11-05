@@ -23,6 +23,15 @@ function LinearScalarAdvectionEquation1D(a::Real)
     return LinearScalarAdvectionEquation1D(SVector(a))
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearScalarAdvectionEquation1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearScalarAdvectionEquation1D(SVector{1, NewRealT}(equations.advection_velocity))
+end
+
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 
@@ -139,14 +148,14 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation, 
+    flux_godunov(u_ll, u_rr, orientation,
                  equations::LinearScalarAdvectionEquation1D)
 
 Godunov (upwind) flux for the 1D linear scalar advection equation.
 Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
 """
-function flux_godunov(u_ll, u_rr, orientation::Int,
-                      equation::LinearScalarAdvectionEquation1D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Int,
+                              equation::LinearScalarAdvectionEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -160,8 +169,8 @@ end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.2.5 and especially equation (4.33).
-function flux_engquist_osher(u_ll, u_rr, orientation::Int,
-                             equation::LinearScalarAdvectionEquation1D)
+@inline function flux_engquist_osher(u_ll, u_rr, orientation::Int,
+                                     equation::LinearScalarAdvectionEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 

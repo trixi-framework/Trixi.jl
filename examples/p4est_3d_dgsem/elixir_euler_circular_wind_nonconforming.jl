@@ -2,8 +2,8 @@
 # on a planetary-sized non-conforming mesh
 #
 # Note that this elixir can take several hours to run.
-# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
-# and `check-bounds=no`, this elixirs takes about 20 minutes to run.
+# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further),
+# this elixir takes about 20 minutes to run.
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
@@ -157,6 +157,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

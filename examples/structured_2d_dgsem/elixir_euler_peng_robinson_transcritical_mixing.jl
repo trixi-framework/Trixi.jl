@@ -9,8 +9,8 @@ using Trixi: ForwardDiff
 eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations2D(eos)
 
-# A transcritical mixing layer adapted from "Kinetic-energy- and pressure-equilibrium-preserving 
-# schemes for real-gas turbulence in the transcritical regime" by Bernades, Jofre, Capuano (2023). 
+# A transcritical mixing layer adapted from "Kinetic-energy- and pressure-equilibrium-preserving
+# schemes for real-gas turbulence in the transcritical regime" by Bernades, Jofre, Capuano (2023).
 # <https://doi.org/10.1016/j.jcp.2023.112477>
 function initial_condition_transcritical_mixing(x, t,
                                                 equations::NonIdealCompressibleEulerEquations2D)
@@ -30,8 +30,8 @@ function initial_condition_transcritical_mixing(x, t,
 
     tol = Trixi.eos_newton_tol(eos)
 
-    # invert for V given p, T. Initialize V so that the denominator 
-    # (V - b) in Peng-Robinson is positive. 
+    # invert for V given p, T. Initialize V so that the denominator
+    # (V - b) in Peng-Robinson is positive.
     V = eos.b + tol
     dp = pressure(V, T, eos) - p
     iter = 1
@@ -97,14 +97,17 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 0.25)
 
+save_solution = SaveSolutionCallback(interval = 500,
+                                     solution_variables = cons2thermo)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback)
+                        stepsize_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
-solver = CarpenterKennedy2N54(williamson_condition = false)
+solver = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 sol = solve(ode, solver;
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

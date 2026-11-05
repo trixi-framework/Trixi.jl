@@ -1,16 +1,8 @@
-module TestExamples2DEulerMulticomponent
+@testsnippet TreeMesh2DMHDMulti begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "MHD Multicomponent" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhdmulti_ec.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_ec.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.04300299195675897, 0.042987505670835945,
                             0.025747180552589767, 0.1621856170457937,
@@ -24,10 +16,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                             0.0787460541210726, 0.1574921082421452])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_ec.jl with flux_derigs_etal" setup=[
+    Setup,
+    TreeMesh2DMHDMulti
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.04301155595653799, 0.04299735787276207,
                             0.025745530869947714,
@@ -47,10 +42,10 @@ end
                         surface_flux=(flux_derigs_etal, flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_es.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_es.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_es.jl"),
                         l2=[0.042511527162267, 0.04250603277530184, 0.02385422747993974,
                             0.11555081362726903,
@@ -64,10 +59,13 @@ end
                             0.06186597801911198, 0.12373195603822396])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_convergence.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DMHDMulti
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_convergence.jl"),
                         l2=[0.0003808877028249613, 0.0003808877028249593,
                             0.0005155994511260122, 0.000570394227652563,
@@ -83,26 +81,23 @@ end
                             0.0011421971776940376])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_rotor.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_rotor.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_rotor.jl"),
-                        l2=[0.6574459522153201, 0.6620356383023878, 0.0,
-                            0.6888912144519942,
-                            0.04882939911229928, 0.08366520368549821, 0.0,
-                            0.0021850987869278136,
-                            0.15909935226497424, 0.07954967613248712],
-                        linf=[9.363623690550916, 9.178740037372911, 0.0,
-                            10.611054196904469,
-                            0.6628358023789442, 1.419291349928299, 0.0,
-                            0.0988733910381692,
-                            3.3287658922602334, 1.6643829461301167],
+                        l2=[0.6574575362621581, 0.6626132035159901, 0.0,
+                            0.6906954868570883,
+                            0.04884014216737234, 0.08397539188433158, 0.0,
+                            0.00208714286375045,
+                            0.15907697764185136, 0.07953848882092568],
+                        linf=[9.362648416350368, 9.161088930498483, 0.0,
+                            10.591207195708588,
+                            0.662826308098275, 1.4171912899126395, 0.0,
+                            0.06896634312919042,
+                            3.328776800122818, 1.664388400061409],
                         tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-end # module

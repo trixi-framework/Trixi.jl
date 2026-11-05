@@ -8,7 +8,7 @@
 # Initialize data structures in element container
 function init_elements!(elements,
                         mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                        basis::LobattoLegendreBasis)
+                        basis::AbstractBasisSBP)
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
@@ -29,7 +29,7 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
-                                basis::LobattoLegendreBasis)
+                                basis::AbstractBasisSBP)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
     @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
@@ -41,14 +41,14 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMesh{2, NDIMS_AMBIENT},
                                 nodes::AbstractVector) where {NDIMS_AMBIENT}
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(NDIMS_AMBIENT), static_length(nodes),
-                       static_length(mesh.nodes))
-    matrix1 = StrideArray(undef, real(mesh),
-                          static_length(nodes), static_length(mesh.nodes))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    tmp1 = stride_array_or_array(real(mesh),
+                                 StaticInt(NDIMS_AMBIENT), static_length(nodes),
+                                 static_length(mesh.nodes))
+    matrix1 = stride_array_or_array(real(mesh),
+                                    static_length(nodes), static_length(mesh.nodes))
     matrix2 = similar(matrix1)
     baryweights_in = barycentric_weights(mesh.nodes)
 
@@ -85,6 +85,89 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+# For Gauss-Lobatto-Legendre (GLL) nodes, interface normals are computed on-the-fly
+# during flux evaluation and do not need dedicated storage in the interface container.
+function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
+end
+
+# For Gauss-Legendre (GL) nodes, the interface normals are
+# computed from interpolation of the volume node normals to the surface nodes.
+function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
+                                 basis::GaussLegendreBasis, elements)
+    @unpack neighbor_ids, node_indices, normal_directions = interfaces
+    @unpack contravariant_vectors = elements
+    @unpack boundary_interpolation = basis
+    index_range = eachnode(basis)
+
+    for interface in axes(neighbor_ids, 2)
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+        primary_direction = indices2direction(primary_indices)
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_range)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_range)
+
+        # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+
+        if i_primary_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[1])
+            for i in index_range
+                normal_1 = zero(eltype(normal_directions))
+                normal_2 = zero(eltype(normal_directions))
+                for ii in index_range
+                    factor = boundary_interpolation[ii, side]
+                    # Retrieve normal directions at element/volume nodes
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            ii, j_primary,
+                                                            primary_element)
+                    normal_1 = normal_1 + normal_direction[1] * factor
+                    normal_2 = normal_2 + normal_direction[2] * factor
+                end
+                normal_directions[1, i, interface] = normal_1
+                normal_directions[2, i, interface] = normal_2
+                j_primary += j_primary_step # incrementing j_primary suffices (i_primary_step = 0)
+            end
+        else # j_primary_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[2])
+            for i in index_range
+                normal_1 = zero(eltype(normal_directions))
+                normal_2 = zero(eltype(normal_directions))
+                for jj in index_range
+                    factor = boundary_interpolation[jj, side]
+                    # Retrieve normal directions at element/volume nodes
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            i_primary, jj,
+                                                            primary_element)
+                    normal_1 = normal_1 + normal_direction[1] * factor
+                    normal_2 = normal_2 + normal_direction[2] * factor
+                end
+                normal_directions[1, i, interface] = normal_1
+                normal_directions[2, i, interface] = normal_2
+                i_primary += i_primary_step # incrementing i_primary suffices (j_primary_step = 0)
+            end
+        end
+    end
+
+    return nothing
 end
 
 # Initialize node_indices of interface container
@@ -139,6 +222,36 @@ end
     end
 
     return boundaries
+end
+
+# Check whether the arrays in `mortars` and the thread-local storage used on CPUs
+# have the axes we assume they must have in the inner loops of Trixi.jl.
+function check_axes(mortars::P4estMortarContainer{2}, equations, solver::DG, cache)
+    check_axes_mortar_container(mortars, equations, solver, cache)
+
+    # Thread-local storage used for the mortar fluxes and projections
+    buffer_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
+# Check only the arrays stored in `mortars`. This is used by the GPU kernels, which
+# do not use the thread-local storage. Its size depends on `Threads.maxthreadid()`,
+# which can grow at runtime, e.g., when CUDA.jl adopts foreign threads.
+function check_axes_mortar_container(mortars::P4estMortarContainer{2}, equations,
+                                     solver::DG, cache)
+    check_axes(mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(2),
+                eachnode(solver),
+                eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(3), eachmortar(solver, cache)))
+    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+    return nothing
 end
 
 # Initialize node_indices of mortar container

@@ -1,21 +1,12 @@
-module TestPerformanceSpecializations3D
+@testsnippet PerfSpec3D begin
+    EXAMPLES_DIR = examples_dir()
+    using Trixi: @muladd
+end
 
-using Test
-using Trixi
-using Trixi: @muladd
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "Performance specializations 3D" begin
-#! format: noindent
-
-@timed_testset "TreeMesh3D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 3D: TreeMesh3D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -33,7 +24,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
         # Call the optimized default version
         du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
@@ -43,10 +34,10 @@ isdir(outdir) && rm(outdir, recursive = true)
         # `semi.solver.volume_integral.volume_flux`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
+               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
                      typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, semi.mesh,
+               du, u, 1, typeof(semi.mesh),
                have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, :, 1]
@@ -55,7 +46,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
-@timed_testset "TreeMesh3D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 3D: TreeMesh3D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -72,7 +66,7 @@ end
 
         # Call the optimized default version
         du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
@@ -82,10 +76,10 @@ end
         # `semi.solver.volume_integral.volume_flux`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
+               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
                      typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, semi.mesh,
+               du, u, 1, typeof(semi.mesh),
                have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, :, 1]
@@ -94,7 +88,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -112,7 +109,7 @@ end
 
         # Call the optimized default version
         du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
@@ -122,10 +119,10 @@ end
         # `semi.solver.volume_integral.volume_flux`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
+               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
                      typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, semi.mesh,
+               du, u, 1, typeof(semi.mesh),
                have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, :, 1]
@@ -134,7 +131,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -151,7 +151,7 @@ end
 
         # Call the optimized default version
         du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
@@ -161,10 +161,10 @@ end
         # `semi.solver.volume_integral.volume_flux`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
+               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
                      typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, semi.mesh,
+               du, u, 1, typeof(semi.mesh),
                have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, :, 1]
@@ -173,7 +173,170 @@ end
     end
 end
 
-@timed_testset "P4estMesh3D, combine_conservative_and_nonconservative_fluxes" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, FluxTurbo(flux_ranocha)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
+                  cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
+                  volume_flux = FluxTurbo(flux_ranocha),
+                  surface_flux = flux_ranocha)
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        # Call the optimized version
+        du .= 0
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        semi.solver.volume_integral.volume_flux,
+                                        semi.solver, semi.cache, true)
+        du_specialized = copy(du[:, :, :, :, 1])
+
+        # Call the plain version
+        du .= 0
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        flux_ranocha, semi.solver, semi.cache, true)
+        du_baseline = du[:, :, :, :, 1]
+
+        @test du_specialized ≈ du_baseline
+    end
+end
+
+@testitem "Performance specializations 3D: StructuredMesh3D, FluxTurbo(flux_shima_etal)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
+                  cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
+                  volume_flux = FluxTurbo(flux_shima_etal),
+                  surface_flux = flux_shima_etal)
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        # Call the optimized version
+        du .= 0
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        semi.solver.volume_integral.volume_flux,
+                                        semi.solver, semi.cache, true)
+        du_specialized = copy(du[:, :, :, :, 1])
+
+        # Call the plain version
+        du .= 0
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        flux_shima_etal, semi.solver, semi.cache, true)
+        du_baseline = du[:, :, :, :, 1]
+
+        @test du_specialized ≈ du_baseline
+    end
+end
+
+# Test fallback method for mesh and type that are not supported
+@testitem "Performance specializations 3D: TreeMesh1D, fallback call FluxTurbo(flux_chandrashekar)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_chandrashekar),
+                  RealT = BigFloat)
+    u_ode = copy(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_chandrashekar)),
+                  RealT = BigFloat)
+    u_ode_specialized = copy(sol.u[end])
+
+    @test u_ode_specialized ≈ u_ode
+end
+
+@testitem "Performance specializations 3D: P4estMesh3D, FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_mhd_alfven_wave_nonperiodic.jl"),
+                  volume_flux = FluxTurbo(flux_hindenlang_gassner,
+                                          flux_nonconservative_powell))
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        # Call the optimized version
+        du .= 0
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        semi.solver.volume_integral.volume_flux,
+                                        semi.solver, semi.cache, true)
+        du_specialized = copy(du[:, :, :, :, 1])
+
+        # Call the plain version
+        du .= 0
+        symmetric_flux = flux_hindenlang_gassner
+        nonconservative_flux = flux_nonconservative_powell
+        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                        have_nonconservative_terms, semi.equations,
+                                        (; symmetric_flux,
+                                         nonconservative_flux), semi.solver,
+                                        semi.cache, true)
+        du_baseline = du[:, :, :, :, 1]
+
+        @test du_specialized ≈ du_baseline
+    end
+end
+
+# Test nonconservative system fallback method for mesh and type that are not supported
+@testitem "Performance specializations 3D: TreeMesh2D, fallback call FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                           "elixir_mhd_ec.jl"))
+    u_ode = copy(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                           "elixir_mhd_ec.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_hindenlang_gassner,
+                                                                             flux_nonconservative_powell)))
+    u_ode_specialized = copy(sol.u[end])
+
+    @test u_ode_specialized ≈ u_ode
+end
+
+@testitem "Performance specializations 3D: P4estMesh3D, combine_conservative_and_nonconservative_fluxes" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_mhd_alfven_wave_nonperiodic.jl"),
@@ -372,9 +535,3 @@ end
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end #module

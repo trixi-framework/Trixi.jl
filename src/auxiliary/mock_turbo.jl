@@ -1,4 +1,4 @@
-# Copies some of the LoopVectorization functionality, 
+# Copies some of the LoopVectorization functionality,
 # but solely using Julia base functionality. It is equivalent to `@simd`
 # at every loop level
 macro turbo(exprs...)
@@ -24,7 +24,14 @@ macro turbo(exprs...)
             # `Expr(:loopinfo)` corresponds to https://llvm.org/docs/LangRef.html#llvm-loop with two additional nodes
             # `julia.simdloop` & `julia.ivdep`
             # x-ref: https://github.com/JuliaLang/julia/pull/31376
-            push!(expr.args, Expr(:loopinfo, Symbol("julia.simdloop")))
+            # The `loopinfo` must be the last statement of the loop body (as in `@simd`).
+            # Additional arguments of the `for` expression itself are silently ignored
+            # by lowering.
+            loop_body = expr.args[2]
+            if !Meta.isexpr(loop_body, :block)
+                loop_body = expr.args[2] = Expr(:block, loop_body)
+            end
+            push!(loop_body.args, Expr(:loopinfo, Symbol("julia.simdloop")))
         end
     end
     insert_loopinfo!(body)

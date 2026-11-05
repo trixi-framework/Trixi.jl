@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -27,8 +28,10 @@ function create_cache(::Type{IndicatorHennemannGassner},
                                   nnodes(basis), nnodes(basis), nnodes(basis))
                               for _ in 1:Threads.maxthreadid()]
 
+    alpha_mpi_buffers = create_alpha_mpi_buffers(uEltype)
+
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,
-            modal_tmp1_threaded, modal_tmp2_threaded)
+            modal_tmp1_threaded, modal_tmp2_threaded, alpha_mpi_buffers)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -129,11 +132,20 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
 
+    # Explicit bounds check, which allows us to assume inbounds access below.
+    # The neighbor ids are element ids taken from the mesh connectivity.
+    @boundscheck begin
+        check_axes(alpha, (eachelement(dg, cache),))
+        check_axes(alpha_tmp, (eachelement(dg, cache),))
+    end
+
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    @unpack neighbor_ids = cache.interfaces
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(2), eachinterface(dg, cache)))
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
@@ -141,13 +153,15 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     end
 
     # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
+    @unpack neighbor_ids = cache.mortars
+    @boundscheck check_axes(neighbor_ids, (Base.OneTo(5), eachmortar(dg, cache)))
+    @inbounds for mortar in eachmortar(dg, cache)
         # Get neighboring element ids
-        lower_left = cache.mortars.neighbor_ids[1, mortar]
-        lower_right = cache.mortars.neighbor_ids[2, mortar]
-        upper_left = cache.mortars.neighbor_ids[3, mortar]
-        upper_right = cache.mortars.neighbor_ids[4, mortar]
-        large = cache.mortars.neighbor_ids[5, mortar]
+        lower_left = neighbor_ids[1, mortar]
+        lower_right = neighbor_ids[2, mortar]
+        upper_left = neighbor_ids[3, mortar]
+        upper_right = neighbor_ids[4, mortar]
+        large = neighbor_ids[5, mortar]
 
         # Apply smoothing
         alpha[lower_left] = max(alpha_tmp[lower_left], 0.5f0 * alpha_tmp[large],
@@ -172,7 +186,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -253,6 +268,29 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
         alpha[element] = maximum(indicator)
     end
 
+    return alpha
+end
+
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_nodal = get_node_vars(u, equations, dg, i, j, k, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, k, element)
+            estimate = max(estimate,
+                           indicator_function(u_nodal, x_nodal, t))
+        end
+        alpha[element] = estimate
+    end
     return alpha
 end
 end # @muladd

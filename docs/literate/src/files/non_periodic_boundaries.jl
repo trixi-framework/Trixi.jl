@@ -72,7 +72,6 @@ coordinates_max = (2.0,)
 # corresponding direction.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations,

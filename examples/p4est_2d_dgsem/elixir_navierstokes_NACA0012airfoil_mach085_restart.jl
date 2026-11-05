@@ -83,6 +83,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 
 ###############################################################################
 
-sol = solve(ode, SSPRK54(thread = Trixi.True());
+sol = solve(ode, SSPRK54(thread = Trixi.Threaded());
             dt = dt_restart,
             ode_default_options()..., callback = callbacks);

@@ -16,7 +16,7 @@ tspan = (0.0, T_end)
 """
     initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
 
-The classical isentropic vortex test case as presented in 
+The classical isentropic vortex test case as presented in
 https://spectrum.library.concordia.ca/id/eprint/985444/1/Paired-explicit-Runge-Kutta-schemes-for-stiff-sy_2019_Journal-of-Computation.pdf
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
@@ -31,7 +31,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     S = 13.5
     # Radius of vortex
     R = 1.5
-    # Free-stream Mach 
+    # Free-stream Mach
     M = 0.4
     # base flow
     v1 = 1.0
@@ -57,7 +57,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-# Volume flux stabilizes the simulation - in contrast to standard DGSEM with 
+# Volume flux stabilizes the simulation - in contrast to standard DGSEM with
 # `surface_flux = flux_ranocha` only (which crashes).
 # To turn this into a convergence test, use a flux with some dissipation, e.g.
 # `flux_lax_friedrichs` or `flux_hll`.
@@ -68,7 +68,7 @@ coordinates_min = (-EdgeLength / 2, -EdgeLength / 2)
 coordinates_max = (EdgeLength / 2, EdgeLength / 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)

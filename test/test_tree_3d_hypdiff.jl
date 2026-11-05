@@ -1,16 +1,11 @@
-module TestExamples3DHypDiff
+@testsnippet TreeMesh3DHypDiff begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
-
-@testset "Hyperbolic diffusion" begin
-#! format: noindent
-
-@trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
+@testitem "TreeMesh3D HypDiff: elixir_hypdiff_lax_friedrichs.jl" setup=[
+    Setup,
+    TreeMesh3DHypDiff
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
                         l2=[
                             0.001530331609036682,
@@ -27,14 +22,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
                         initial_refinement_level=2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom 
-    # integrator which are not *recorded* for the methods from 
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_godunov)" begin
+@testitem "TreeMesh3D HypDiff: elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_godunov)" setup=[
+    Setup,
+    TreeMesh3DHypDiff
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
                         l2=[
                             0.0015377731806850128,
@@ -51,14 +49,17 @@ end
                         initial_refinement_level=2, surface_flux=flux_godunov)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom 
-    # integrator which are not *recorded* for the methods from 
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
+@testitem "TreeMesh3D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh3DHypDiff
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[
                             0.00022868320512754316,
@@ -74,12 +75,9 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom 
-    # integrator which are not *recorded* for the methods from 
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
-end
-
-end # module

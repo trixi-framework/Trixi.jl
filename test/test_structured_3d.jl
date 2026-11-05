@@ -1,59 +1,53 @@
-module TestExamples3DStructured
+@testsnippet StructuredMesh3D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "structured_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "structured_3d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "StructuredMesh3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "StructuredMesh3D: elixir_advection_basic.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_free_stream.jl" begin
+@testitem "StructuredMesh3D: elixir_advection_free_stream.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_free_stream.jl"),
                         l2=[1.2908196366970896e-14],
                         linf=[1.0262901639634947e-12],
                         atol=8e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_nonperiodic_curved.jl" begin
+@testitem "StructuredMesh3D: elixir_advection_nonperiodic_curved.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonperiodic_curved.jl"),
                         l2=[0.0004483892474201268],
                         linf=[0.009201820593762955])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_restart.jl" begin
+@testitem "StructuredMesh3D: elixir_advection_restart.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.0025903889347585777],
                         linf=[0.018407576968841655])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_source_terms.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[
@@ -72,10 +66,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_free_stream.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
                             2.8815700334367128e-15,
@@ -93,7 +87,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -101,9 +95,12 @@ end
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-@trixi_testset "elixir_euler_free_stream.jl with FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive))" begin
+@testitem "StructuredMesh3D: elixir_euler_free_stream.jl with FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive))" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         surface_flux=FluxRotated(FluxLaxFriedrichs(max_abs_speed_naive)),
                         l2=[
@@ -122,10 +119,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_curved.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_source_terms_nonperiodic_curved.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_curved.jl"),
                         l2=[
@@ -144,10 +144,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_adaptive_vol_int.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_source_terms_adaptive_vol_int.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_adaptive_vol_int.jl"),
                         l2=[
@@ -166,10 +169,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_source_terms_nonperiodic_fvO2.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
                         l2=[
@@ -188,10 +194,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_ec.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.011367083018614027,
@@ -210,10 +216,10 @@ end
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov.jl" begin
+@testitem "StructuredMesh3D: elixir_euler_sedov.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
                             5.30310390e-02,
@@ -232,43 +238,43 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec.jl" begin
+@testitem "StructuredMesh3D: elixir_mhd_ec.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
-                        l2=[0.009082353008355219, 0.007128360330314966,
-                            0.0069703300260751545, 0.006898850266164216,
-                            0.033020091335659474, 0.003203389281512797,
-                            0.0030774985678369746, 0.00307400076520122,
-                            4.192572922118587e-5],
-                        linf=[0.28839460197220435, 0.25956437090703427,
-                            0.26143649456148177, 0.24617277684934058,
-                            1.1370439348603143, 0.12780410700666367,
-                            0.13347392283166903,
-                            0.145756208548534,
-                            0.0021181795153149053],
+                        l2=[0.009082686863634625, 0.007127253247814603,
+                            0.006969252837723283, 0.0068981421428559175,
+                            0.03299141065201546, 0.0032090380835872174,
+                            0.003073657491990538, 0.0030775450911821214,
+                            0.00016399139349350833],
+                        linf=[0.28822490352996655, 0.25936033575115947,
+                            0.2613686580019892, 0.24609839138134065,
+                            1.131964694567725, 0.1259190764818081,
+                            0.13403361588095375,
+                            0.14751044288572324,
+                            0.007122681079015943],
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl" begin
+@testitem "StructuredMesh3D: elixir_mhd_alfven_wave.jl" setup=[Setup, StructuredMesh3D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[0.003015390232128414, 0.0014538563096541798,
-                            0.000912478356719486, 0.0017715065044433436,
-                            0.0013017575272262197, 0.0014545437537522726,
-                            0.0013322897333898482, 0.0016493009787844212,
-                            0.0013747547738038235],
-                        linf=[0.027577067632765795, 0.027912829563483885,
-                            0.01282206030593043, 0.03911437990598213,
-                            0.021962225923304324, 0.03169774571258743,
-                            0.021591564663781426, 0.034028148178115364,
-                            0.020084593242858988])
+                        l2=[0.0029696257394729152, 0.0012622216030528468,
+                            0.0008671267653445159, 0.001564357917158349,
+                            0.001113546942959469, 0.001018538178276083,
+                            0.0007016185553470859, 0.001503673511544824,
+                            0.0004870160708328902],
+                        linf=[0.028141458589278634, 0.0181627267215195,
+                            0.012201308039418393, 0.03144969126150016,
+                            0.015648797337592057, 0.01768874352408012,
+                            0.008920488167988183, 0.027122186873299793,
+                            0.007736308004186873])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -276,47 +282,47 @@ end
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-@trixi_testset "elixir_mhd_alfven_wave.jl with FluxLaxFriedrichs(max_abs_speed_naive)" begin
+@testitem "StructuredMesh3D: elixir_mhd_alfven_wave.jl with FluxLaxFriedrichs(max_abs_speed_naive)" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[0.0030477691235949685, 0.00145609137038748,
-                            0.0009092809766088607, 0.0017949926915475929,
-                            0.0012981612165627713, 0.0014525841626158234,
-                            0.0013275465154956557, 0.0016728767532610933,
-                            0.0013751925705271012],
-                        linf=[0.02778552932540901, 0.027511633996169835,
-                            0.012637649797178449, 0.03920805095546112,
-                            0.02126543791857216, 0.031563506812970266,
-                            0.02116105422516923, 0.03419432640106229,
-                            0.020324891223351533],
+                        l2=[0.0029910047917099066, 0.001265048291892031,
+                            0.0008658699687391328, 0.001589544836512516,
+                            0.0011070545379741697, 0.0010191783277482412,
+                            0.0006972098973368367, 0.0015265352357127868,
+                            0.0004854003243287278],
+                        linf=[0.028004484929964435, 0.01821369996766581,
+                            0.012254504590014356, 0.03164394520483074,
+                            0.01549053812453538, 0.017693782416169923,
+                            0.008736916755356594, 0.027560376655571046,
+                            0.007704016295357286],
                         surface_flux=(FluxLaxFriedrichs(max_abs_speed_naive),
                                       flux_nonconservative_powell))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
+@testitem "StructuredMesh3D: elixir_mhd_ec_shockcapturing.jl" setup=[
+    Setup,
+    StructuredMesh3D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
-                        l2=[0.009352631216098996, 0.008058649096024162,
-                            0.00802704129788766, 0.008071417834885589,
-                            0.03490914976431044, 0.003930194255268652,
-                            0.003921907459117296, 0.003906321239858786,
-                            4.1971260184918575e-5],
-                        linf=[0.307491045404509, 0.26790087991041506,
-                            0.2712430701672931, 0.2654540237991884,
-                            0.9620943261873176, 0.181632512204141,
-                            0.15995711137712265, 0.1791807940466812,
-                            0.015138421396338456],
+                        l2=[0.009350667580083096, 0.008057221618232135,
+                            0.00802601147264494, 0.008071669939895765,
+                            0.03494353248740231, 0.003929251134703461,
+                            0.003924057092861661, 0.00390790726383187,
+                            0.0002585910825656062],
+                        linf=[0.30715472775434094, 0.2678401862912938,
+                            0.27397404386819235, 0.2639774339612127,
+                            0.9841410014301148, 0.18629819425753347,
+                            0.15396669659676487, 0.17480399289034199,
+                            0.0308043062713562],
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end # module

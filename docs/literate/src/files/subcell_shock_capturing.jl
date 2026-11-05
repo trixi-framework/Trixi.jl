@@ -170,6 +170,17 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
+# Alternatively, you can also pass a pre-defined low-order volume integral to the subcell limiting volume integral:
+volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg = volume_flux,
+                                                volume_integral_low_order = volume_integral_low_order)
+# This also allows to use a second-order FV scheme with
+# ```julia
+# volume_integral_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+#                                                                 reconstruction_mode = reconstruction_O2_inner,
+#                                                                 volume_flux_fv = surface_flux)
+# ```
 
 # Then, the volume integral is passed to `solver` as it is done for the standard flux-differencing
 # DG scheme or the element-wise limiting.
@@ -179,7 +190,6 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -198,7 +208,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 
@@ -216,7 +227,7 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 # SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
 # routine.
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
 
 # ## Visualization
@@ -226,7 +237,8 @@ using Plots
 plot(sol)
 
 # To get an additional look at the amount of limiting that is used, you can use the visualization
-# approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
+# approach using the [`SaveSolutionCallback`](@ref) by passing `(:limiting_coefficient,)` as
+# `extra_node_variables`, [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
 #-

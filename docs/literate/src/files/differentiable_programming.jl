@@ -25,7 +25,7 @@ using Trixi, LinearAlgebra, Plots
 equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -75,7 +75,7 @@ condition_number = cond(V)
 equations = CompressibleEulerEquations1D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -178,7 +178,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
@@ -197,7 +197,7 @@ J = ForwardDiff.jacobian((du_ode, γ) -> begin
                              equations_inner = CompressibleEulerEquations2D(first(γ))
                              semi_inner = Trixi.remake(semi, equations = equations_inner,
                                                        uEltype = eltype(γ))
-                             Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
+                             Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_inner, 0.0)
                          end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
 
 round.(extrema(J), sigdigits = 2)
@@ -229,7 +229,7 @@ using Trixi, OrdinaryDiffEqLowOrderRK, ForwardDiff, Plots
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4, periodicity = true)
+                    periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
@@ -280,7 +280,7 @@ second_derivative = round(ForwardDiff.derivative(k -> Trixi.ForwardDiff.derivati
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4, periodicity = true)
+                    periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
@@ -310,7 +310,7 @@ round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits = 2)
 
 # The first step in this example creates some basic ingredients of our simulation.
 equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
                 periodicity = true)
 solver = DGSEM(3, flux_lax_friedrichs);
 
@@ -365,7 +365,7 @@ using Trixi, OrdinaryDiffEqLowOrderRK, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
-mesh = TreeMesh((-1.0,), (1.0,), n_cells_max = 10^5, initial_refinement_level = 5,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 5,
                 periodicity = true)
 
 solver = DGSEM(3)
@@ -402,7 +402,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -439,7 +439,7 @@ using Trixi
 advection_velocity = 1.0
 equation = LinearScalarAdvectionEquation1D(advection_velocity)
 
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4,
                 periodicity = true)
 
 # We define the basic floating point type used for the actual simulation
@@ -465,14 +465,14 @@ semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
                                              boundary_conditions = boundary_condition_periodic,
                                              uEltype = jac_eltype) # Supply sparsity detection datatype here
 
-tspan = (0.0, 1.0) # Re-used later in `rhs!` evaluation
+tspan = (0.0, 1.0) # Re-used later in `rhs_hyperbolic!` evaluation
 ode_jac_type = semidiscretize(semi_jac_type, tspan)
 u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
 # Wrap the RHS for sparsity detection to match the expected signature `f!(du, u)` required by
 # [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
-rhs_wrapped! = (du, u) -> Trixi.rhs!(du, u, semi_jac_type, tspan[1])
+rhs_wrapped! = (du, u) -> Trixi.rhs_hyperbolic!(du, u, semi_jac_type, tspan[1])
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 
 # Optionally, we can also compute the coloring vector to reduce Jacobian evaluations
@@ -530,7 +530,7 @@ equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
 
 solver = DGSEM(3, flux_lax_friedrichs)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,

@@ -19,6 +19,11 @@ Here, we just list some important aspects you should consider when developing Tr
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-views)).
 - Functions are essentially for free, since they are usually automatically inlined where it makes sense (using `@inline` can be used as an additional hint to the compiler)
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#Break-functions-into-multiple-definitions)).
+- Use `@inbounds` to avoid bounds checking in performance-critical loops and propagate it
+  to the functions called therein using `Base.@propagate_inbounds`, after verifying the
+  indices once in an explicit `@boundscheck` block; `Base.@propagate_inbounds`
+  also `@inline`s the function
+  ([further details](@ref enabling-bounds-checking)).
 - Function barriers can improve performance due to type stability
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#kernel-functions)).
 - Look for type instabilities using `@code_warntype`.
@@ -37,7 +42,15 @@ For example, the following steps were used to benchmark the changes introduced i
 [PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
 
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
-2. Start `julia --threads=1 --check-bounds=no`.
+2. Start `julia --threads=1`.
+   Back then, Julia was started with the additional flag `--check-bounds=no` to
+   disable bounds checking globally. Nowadays, this flag should not be used anymore,
+   since it can make the code significantly slower for Julia versions before v1.13,
+   see [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
+   [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+   Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
+   to make it fast by default, as described in the list above and in more detail
+   in the section on [enabling bounds checking](@ref enabling-bounds-checking).
 3. Execute the following code in the REPL to benchmark the `rhs!` call at the final state.
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
@@ -122,16 +135,11 @@ To benchmark the changes made in a PR, please proceed as follows:
 This will take some hours to complete and requires at least 8 GiB of RAM. When everything is finished, some
 output files will be created in the `benchmark` directory of Trixi.jl.
 
-!!! warning
-    Please note that the benchmark scripts use `--check-bounds=no` at the moment.
-    Thus, they will not work in any useful way for Julia v1.10 (and newer?), see
-    [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
-
 You can also run a standard set of benchmarks manually via
 ```julia
 julia> using PkgBenchmark, Trixi
 
-julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`))
+julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`))
 
 julia> export_markdown(pkgdir(Trixi, "benchmark", "single_benchmark.md"), results)
 ```
@@ -140,8 +148,18 @@ This will save a markdown file with a summary of the benchmark results similar t
 Note that this will take quite some time. Additional options are described in the
 [docs of PkgBenchmark.jl](https://juliaci.github.io/PkgBenchmark.jl/stable).
 A particularly useful option is to specify a `BenchmarkConfig` including Julia
-command line options affecting the performance such as disabling bounds-checking
-and setting the number of threads.
+command line options affecting the performance such as the number of threads.
+
+!!! warning "Do not disable bounds checking globally"
+    Do not start Julia with `--check-bounds=no` for benchmarking or production runs.
+    For Julia versions before v1.13, this can make the code significantly
+    slower instead of faster, see
+    [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
+    [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+    Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
+    to make it fast by default, see the section on
+    [enabling bounds checking](@ref enabling-bounds-checking).
+    Thus, disabling bounds checking globally is not necessary to obtain good performance.
 
 A useful feature when developing Trixi.jl is to compare the performance of Trixi.jl's
 current state vs. the `main` branch. This can be achieved by executing
@@ -149,8 +167,8 @@ current state vs. the `main` branch. This can be achieved by executing
 julia> using PkgBenchmark, Trixi
 
 julia> results = judge(Trixi,
-             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`), # target
-             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`, id="main") # baseline
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`), # target
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --threads=1`, id="main") # baseline
        )
 
 julia> export_markdown(pkgdir(Trixi, "benchmark", "results.md"), results)
@@ -187,14 +205,14 @@ A prime example of such a case is pretty printing of `struct`s in the Julia REPL
 
 As a rule of thumb:
 - Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
-  in computing `Trixi.rhs!`.
+  in computing a right-hand-side (RHS) function.
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
 
 
 ## [Performance metrics of the `AnalysisCallback`](@id performance-metrics)
 The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
 evaluate the serial and parallel performance of Trixi.jl. They represent
-measured run times that are normalized by the number of `rhs!` evaluations and
+measured run times that are normalized by the number of RHS evaluations and
 the number of degrees of freedom of the problem setup. The normalization ensures that we can
 compare different measurements for each type of indicator independent of the number of
 time steps or mesh size. All indicators have in common that they are still in units of
@@ -237,34 +255,34 @@ want to be measured (such as I/O callbacks, visualization etc.).
     changing repeatedly. The only way to do this at the moment is by setting the
     analysis interval to the same value as the AMR interval.
 
-### Local, `rhs!`-only indicator
-The *local, `rhs!`-only indicator* is computed as
+### Local RHS-only indicator
+The *local RHS-only indicator* is computed as
 ```math
-\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}} \cdot n_{\text{threads}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/RHS} = \frac{t_\text{RHS} \cdot n_{\text{threads}}}{n_\text{DOFs,local} \cdot n_\text{calls,RHS}},
 ```
-where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`, ``n_{\text{threads}}`` is
-the number of threads, ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
-current MPI rank; if doing a serial run, you can just think of this as *the*
-number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated. Note that for this indicator, we measure *only*
-the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
+where ``t_\text{RHS}`` is the accumulated time spent in the RHS evaluation,
+``n_{\text{threads}}`` is the number of threads, ``n_\text{DOFs,local}`` is the *local* number
+of DOFs (i.e., on the current MPI rank; if doing a serial run, you can just think of this as
+*the* number of DOFs), and ``n_\text{calls,RHS}`` is the number of times the RHS has been
+evaluated. Note that for this indicator, we measure *only* the time spent in the RHS evaluation,
+i.e., by definition all computations outside of the RHS evaluation - specifically
 all other callbacks and the time integration method - are not taken into account.
 
-The local, `rhs!`-only indicator is usually most useful if you do serial
+The local RHS-only indicator is usually most useful if you do serial
 measurements and are interested in the performance of the implementation of your
 core numerical methods (e.g., when doing performance tuning).
 
 ### Performance index (PID)
 The *performance index* (PID) is computed as
 ```math
-\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI} \cdot n_{\text{threads}}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI} \cdot n_{\text{threads}}}{n_\text{DOFs,global} \cdot n_\text{calls,RHS}},
 ```
 where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`, ``n_{\text{threads}}``
 is the number of threads, ``n_\text{ranks,MPI}`` is the number of MPI ranks used,
 ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
-number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
+number of DOFs), and ``n_\text{calls,RHS}`` is the number of times the RHS has been evaluated
+since the last call to the `AnalysisCallback`.
 The PID measures everything except the time spent in the `AnalysisCallback` itself -
 specifically, all other callbacks and the time integration method itself are included.
 
@@ -279,10 +297,10 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
 !!! note "Initialization overhead in measurements"
     When using one of the integration schemes from OrdinaryDiffEq.jl, their implementation
     will initialize some OrdinaryDiffEq.jl-specific information during the first
-    time step. Among other things, one additional call to `rhs!` is performed.
+    time step. Among other things, one additional RHS evaluation is performed.
     Therefore, make sure that for performance measurements using the PID either the
-    number of timesteps or the workload per `rhs!` call is large enough to make
-    the initialization overhead negligible. Note that the extra call to `rhs!`
+    number of timesteps or the workload per RHS evaluation is large enough to make
+    the initialization overhead negligible. Note that the extra RHS evaluation
     is properly accounted for in both the number of calls and the measured time,
     so you do not need to worry about it being expensive. If you want a perfect
     timing result, you need to set the analysis interval such that the

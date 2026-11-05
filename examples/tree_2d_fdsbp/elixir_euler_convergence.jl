@@ -26,7 +26,6 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -60,5 +59,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(); abstol = 1.0e-9, reltol = 1.0e-9,
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            abstol = 1.0e-9, reltol = 1.0e-9,
             ode_default_options()..., callback = callbacks)

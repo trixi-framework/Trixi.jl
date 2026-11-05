@@ -23,7 +23,6 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -72,8 +71,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-alg = CarpenterKennedy2N54(williamson_condition = false)
+alg = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 sol = solve(ode, alg;
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks,
             ode_default_options()...);

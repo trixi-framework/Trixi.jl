@@ -98,7 +98,7 @@ function (alive_callback::AliveCallback)(integrator)
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 end # @muladd

@@ -20,10 +20,10 @@ function initial_condition_jeans_instability(x, t,
                                              equations::CompressibleEulerEquations2D)
     # Jeans gravitational instability test case
     # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
-    # OBS! this uses cgs (centimeter, gram, second) units
+    # Note: this uses cgs (centimeter, gram, second) units
     # periodic boundaries
     # domain size [0,L]^2 depends on the wave number chosen for the perturbation
-    # OBS! Be very careful here L must be chosen such that problem is periodic
+    # Note: Be very careful here L must be chosen such that problem is periodic
     # typical final time is T = 5
     # gamma = 5/3
     dens0 = 1.5e7 # g/cm^3
@@ -71,7 +71,7 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000, periodicity = true)
+                periodicity = true)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
                                           solver_euler;
@@ -143,7 +143,7 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
                                                             equations_gravity, u_gravity
         u_euler_local = get_node_vars(u_euler, equations_euler, dg, i, j, element)
         u_gravity_local = get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
-        # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
+        # Note: subtraction is specific to Jeans instability test where rho0 = 1.5e7
         # For formula of potential energy see
         # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
         return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
@@ -165,7 +165,7 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

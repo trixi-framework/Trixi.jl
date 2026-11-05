@@ -1,21 +1,10 @@
-module TestPaperSelfgravitatingGasDynamics
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-EXAMPLES_DIR = joinpath(examples_dir(), "paper_self_gravitating_gas_dynamics")
+@testsnippet PaperSelfGravity begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "paper_self_gravitating_gas_dynamics")
+end
 
 # Numerical examples from the Euler-gravity paper
-@testset "paper_self_gravitating_gas_dynamics" begin
-#! format: noindent
 
-@trixi_testset "elixir_euler_convergence.jl" begin
+@testitem "Paper SelfGravity: elixir_euler_convergence.jl" setup=[Setup, PaperSelfGravity] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             0.0001740977055972079,
@@ -31,10 +20,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "paper_self_gravitating_gas_dynamics")
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence.jl with polydeg=4" begin
+@testitem "Paper SelfGravity: elixir_euler_convergence.jl with polydeg=4" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             1.7187201161597772e-5,
@@ -51,10 +43,10 @@ end
                         polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_hypdiff_convergence.jl" begin
+@testitem "Paper SelfGravity: elixir_hypdiff_convergence.jl" setup=[Setup, PaperSelfGravity] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_convergence.jl"),
                         l2=[
                             0.003154024896093942,
@@ -68,10 +60,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_hypdiff_convergence.jl with polydeg=4" begin
+@testitem "Paper SelfGravity: elixir_hypdiff_convergence.jl with polydeg=4" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_convergence.jl"),
                         l2=[
                             0.0002511283012128458,
@@ -86,10 +81,13 @@ end
                         polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_convergence.jl" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             0.00024871265138964204,
@@ -106,10 +104,13 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_convergence.jl with polydeg=4" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with polydeg=4" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             1.9537712148648045e-5,
@@ -126,10 +127,13 @@ end
                         tspan=(0.0, 0.1), polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_convergence.jl with 1st order RK3S*" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with 1st order RK3S*" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             0.00024871265138959434,
@@ -147,10 +151,13 @@ end
                         timestep_gravity=Trixi.timestep_gravity_erk51_3Sstar!)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_convergence.jl with 3rd order RK3S*" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with 3rd order RK3S*" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             0.0002487126513894034,
@@ -168,10 +175,13 @@ end
                         timestep_gravity=Trixi.timestep_gravity_erk53_3Sstar!)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_jeans_instability.jl" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_jeans_instability.jl" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulergravity_jeans_instability.jl"),
                         l2=[
@@ -190,10 +200,13 @@ end
                         atol=4.0e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_jeans_instability.jl with RK3S*" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_jeans_instability.jl with RK3S*" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulergravity_jeans_instability.jl"),
                         l2=[
@@ -218,10 +231,10 @@ end
                                                           timestep_gravity = timestep_gravity_erk52_3Sstar!))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "Printing" begin
+@testitem "Paper SelfGravity: Printing" setup=[Setup, PaperSelfGravity] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulergravity_jeans_instability.jl"),
                         tspan=(0.0, 1.0e-5),
@@ -239,10 +252,13 @@ end
     show(stdout, equations_euler)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_sedov_blast_wave.jl" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_sedov_blast_wave.jl" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulergravity_sedov_blast_wave.jl"),
                         l2=[
@@ -260,10 +276,13 @@ end
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_eulergravity_sedov_blast_wave.jl with ref-level=8 and no AMR" begin
+@testitem "Paper SelfGravity: elixir_eulergravity_sedov_blast_wave.jl with ref-level=8 and no AMR" setup=[
+    Setup,
+    PaperSelfGravity
+] tags=[:paper_self_gravitating_gas_dynamics] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulergravity_sedov_blast_wave.jl"),
                         l2=[
@@ -282,11 +301,5 @@ end
                         amr_callback=TrivialCallback())
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end #module
