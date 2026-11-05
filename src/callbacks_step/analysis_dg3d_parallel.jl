@@ -98,7 +98,7 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
     integral0 = zero_return_type(func, typeof(u), Int, Int, Int, Int,
                                  typeof(equations), typeof(dg),
-                                 map(typeof, args)...))
+                                 map(typeof, args)...)
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (integral0, volume0)
 
