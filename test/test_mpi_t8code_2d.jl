@@ -102,7 +102,7 @@ end
     MPIT8codeMesh2D
 ] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                "elixir_advection_restart_polydeg_higher.jl"),
+                                 "elixir_advection_restart_polydeg_higher.jl"),
                         l2=[0.0004035489510898178],
                         linf=[0.0054955091397658196],)
 

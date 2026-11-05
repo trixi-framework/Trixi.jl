@@ -122,7 +122,10 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "UnstructuredMesh2D: elixir_euler_restart.jl (Interpolation 8 -> 9)" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
+@testitem "UnstructuredMesh2D: elixir_euler_restart.jl (Interpolation 8 -> 9)" setup=[
+    Setup,
+    UnstructuredMesh2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
                         semi=SemidiscretizationHyperbolic(mesh, equations,
                                                           initial_condition,
