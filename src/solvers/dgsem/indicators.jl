@@ -433,17 +433,21 @@ end
 
 # this method is used when the indicator is constructed as for
 # shock-capturing volume integrals.
-# The thread-local buffers for the element-wise volume integrals depend on the mesh
-# and are thus created by `create_cache` for `VolumeIntegralEntropyCorrection`
-# in `dgsem/special_volume_integrals.jl`.
 function create_cache(::Type{IndicatorEntropyCorrection},
-                      equations::AbstractEquations, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{NDIMS, NVARS},
+                      basis::LobattoLegendreBasis) where {NDIMS, NVARS}
     uEltype = real(basis)
+    AT = Array{uEltype, NDIMS + 1}
+
+    # container for elementwise volume integrals
+    volume_integral_values_threaded = AT[AT(undef, NVARS,
+                                            ntuple(_ -> nnodes(basis), NDIMS)...)
+                                         for _ in 1:Threads.maxthreadid()]
 
     # stores the blending coefficients
     alpha = Vector{uEltype}()
 
-    return (; alpha)
+    return (; alpha, volume_integral_values_threaded)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrection)

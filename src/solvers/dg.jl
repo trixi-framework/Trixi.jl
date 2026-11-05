@@ -988,12 +988,6 @@ end
 # Furthermore, `VolumeIntegralSubcellLimiting` does not create the buffers for the
 # subcell finite volume fluxes itself but uses the ones created for its child
 # `volume_integral_low_order`, which must thus be a subcell-based volume integral.
-#
-# Volume integrals using the thread-local buffers `volume_integral_values_threaded`
-# (`uses_volume_integral_values_threaded`) store intermediate results there while
-# computing their `volume_integral_stabilized`. Since the buffers are shared via the
-# `cache`, no such volume integral may be nested in the `volume_integral_stabilized`
-# of another one.
 function check_volume_integral_tree(volume_integral)
     # We want to count how many `VolumeIntegralSubcellLimiting` are in the tree of
     # volume integrals. Since `foreach_volume_integral` does not return a value, we
@@ -1028,30 +1022,8 @@ function check_volume_integral_tree(volume_integral)
                             "with an `IndicatorHennemannGassner`."))
     end
 
-    foreach_volume_integral(volume_integral) do volume_integral_
-        if uses_volume_integral_values_threaded(volume_integral_)
-            foreach_volume_integral(volume_integral_.volume_integral_stabilized) do nested
-                if uses_volume_integral_values_threaded(nested)
-                    throw(ArgumentError("A `VolumeIntegralAdaptive` with an " *
-                                        "`IndicatorEntropyCorrection` or " *
-                                        "`IndicatorEntropyCorrectionShockCapturingCombined` " *
-                                        "cannot be nested in the " *
-                                        "`volume_integral_stabilized` of another one."))
-                end
-                return nothing
-            end
-        end
-        return nothing
-    end
-
     return nothing
 end
-
-# Whether `volume_integral` uses the thread-local buffers
-# `volume_integral_values_threaded`, see `check_volume_integral_tree`. The methods for
-# the entropy correction volume integrals are defined in
-# `dgsem/special_volume_integrals.jl`.
-uses_volume_integral_values_threaded(volume_integral) = false
 
 # Whether the stage callbacks of subcell limiting can be used with the root
 # `volume_integral` of the solver, see `check_volume_integral_tree`. The method for

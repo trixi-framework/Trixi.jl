@@ -115,7 +115,7 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack scaling = indicator
     @unpack alpha = indicator.cache
-    du_element_threaded = cache.volume_integral_values_threaded
+    du_element_threaded = indicator.cache.volume_integral_values_threaded
 
     # run default volume integral
     volume_integral_kernel!(du, u, element, MeshT,
@@ -320,7 +320,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
     (; scaling) = indicator_entropy_correction
-    du_element_threaded = cache.volume_integral_values_threaded
+    du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     # Note that we also reuse the `alpha_shock_capturing` array to store the indicator values for visualization.
