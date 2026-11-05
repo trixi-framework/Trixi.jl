@@ -86,6 +86,11 @@ for human readability.
     `P4estMesh2D` ([#3289])
   - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
     `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
+  - the subcell finite volume methods `VolumeIntegralPureLGLFiniteVolume` and
+    `VolumeIntegralPureLGLFiniteVolumeO2` and the shock-capturing volume integrals
+    `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
+    `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
+    supporting them ([#3428])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to

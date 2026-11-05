@@ -324,6 +324,22 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
                                           _normal_vectors_1, _normal_vectors_2)
 end
 
+# Check whether the arrays in `normal_vectors` have the axes we assume in the inner
+# loops of Trixi.jl.
+function check_axes(normal_vectors::NormalVectorContainer2D, equations, solver::DG,
+                    cache)
+    subcell_interface_axes = Base.OneTo(nnodes(solver) - 1)
+    check_axes(normal_vectors.normal_vectors_1,
+               (Base.OneTo(2),
+                subcell_interface_axes, eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(normal_vectors.normal_vectors_2,
+               (Base.OneTo(2),
+                eachnode(solver), subcell_interface_axes,
+                eachelement(solver, cache)))
+    return nothing
+end
+
 # For `TreeMesh`, no subcell normal vectors need to be computed
 resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
 # Non-Cartesian meshes without AMR: the normal vectors are created with the correct

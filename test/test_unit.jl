@@ -6290,6 +6290,163 @@ end
                                                             boundary_conditions = boundary_condition_periodic)
 end
 
+@testitem "Unit: check_axes of the storage of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the storage of all volume integrals in the tree with root `dg.volume_integral`
+    # for correct and wrongly sized subcell finite volume buffers
+    function test_check_axes_volume_integrals(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; volume_integral) = dg
+        @test Trixi.check_axes_volume_integrals(mesh, equations, volume_integral,
+                                                dg, cache) === nothing
+        @test (@allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                            volume_integral,
+                                                            dg, cache)) == 0
+
+        # A composite with `volume_integral` as a child checks the whole tree
+        volume_integral_nested = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                        volume_integral_default = VolumeIntegralWeakForm(),
+                                                        volume_integral_stabilized = volume_integral)
+
+        # Wrong number of subcell interfaces
+        fstar1_L_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f)[3:end]...)
+                          for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = fstar1_L_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral_nested,
+                                                                         dg, cache_wrong)
+        # Volume integrals without storage of their own do not check anything
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               VolumeIntegralWeakForm(),
+                                               dg, cache_wrong) === nothing
+
+        # Too few thread-local buffers
+        cache_wrong = (; cache...,
+                       fstar1_R_threaded = cache.fstar1_R_threaded[1:(end - 1)])
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+
+        # Subcell normal vectors of non-Cartesian meshes for a wrong number of elements
+        if haskey(cache, :normal_vectors)
+            normal_vectors_wrong = deepcopy(cache.normal_vectors)
+            resize!(normal_vectors_wrong, nelements(dg, cache) + 1)
+            cache_wrong = (; cache..., normal_vectors = normal_vectors_wrong)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                             equations,
+                                                                             volume_integral,
+                                                                             dg,
+                                                                             cache_wrong)
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of most elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("StructuredMesh{1}",
+                                 joinpath("structured_1d_dgsem",
+                                          "elixir_euler_shu_osher_nonuniform_fvO2.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_volume_integrals, semi)
+        end
+    end
+
+    # The subcell normal vectors are resized and reinitialized after mesh adaptation
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_blast_wave_amr.jl"); maxiters = 1)
+    @testset "P4estMesh{2} with AMR" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        # The initial mesh has `initial_refinement_level = 1`
+        @test nelements(dg, cache) != 4 * Trixi.ntrees(mesh)
+        test_check_axes_volume_integrals(semi)
+    end
+
+    # The shock-capturing composites check their inputs, the storage of the tree of
+    # volume integrals, and the blending factors returned by the indicator
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_blast_wave.jl"); sol = nothing)
+
+    struct IndicatorWrongSize end
+    function (::IndicatorWrongSize)(u, mesh, equations, dg, cache; kwargs...)
+        return zeros(eltype(u), nelements(dg, cache) - 1)
+    end
+
+    @testset "Shock-capturing composites" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        nonconservative_terms = Trixi.have_nonconservative_terms(equations)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+        du = zero(u)
+        du_wrong = similar(du, size(du)[1:(end - 1)]..., size(du, ndims(du)) - 1)
+
+        (; volume_integral) = dg
+        @test volume_integral isa Trixi.VolumeIntegralShockCapturingHGType
+        (; indicator, volume_integral_default, volume_integral_blend_high_order,
+        volume_integral_blend_low_order) = volume_integral
+        volume_integral_adaptive = VolumeIntegralAdaptive(; indicator,
+                                                          volume_integral_default,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+
+        for volume_integral_ in (volume_integral, volume_integral_adaptive)
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                              nonconservative_terms, equations,
+                                              volume_integral_, dg, cache) === nothing
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du_wrong,
+                                                                       u, mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_,
+                                                                       dg, cache)
+        end
+
+        volume_integral_wrong_alpha = Trixi.VolumeIntegralShockCapturingHGType(IndicatorWrongSize();
+                                                                               volume_integral_default,
+                                                                               volume_integral_blend_high_order,
+                                                                               volume_integral_blend_low_order)
+        @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                                                   nonconservative_terms,
+                                                                   equations,
+                                                                   volume_integral_wrong_alpha,
+                                                                   dg, cache)
+
+        # The subcell interface coordinates of the second-order finite volume method
+        # must be computed from a basis with as many nodes as the basis of the solver
+        @test Trixi.polydeg(dg) == 3
+        for basis_ in (LobattoLegendreBasis(2), LobattoLegendreBasis(5))
+            volume_integral_wrong_basis = VolumeIntegralShockCapturingRRG(basis_,
+                                                                          indicator)
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u,
+                                                                       mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_wrong_basis,
+                                                                       dg, cache)
+        end
+        volume_integral_rrg = VolumeIntegralShockCapturingRRG(dg.basis, indicator)
+        @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
+                                          equations, volume_integral_rrg,
+                                          dg, cache) === nothing
+    end
+end
+
 @testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The fallback `@turbo` used when LoopVectorization.jl is disabled
     # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
