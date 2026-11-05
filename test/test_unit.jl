@@ -5220,6 +5220,39 @@ end
     end
 end
 
+@testitem "Unit: P4estMeshCubedSphere connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all edges and corners connecting trees, `p8est_balance` does not always
+    # produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    for (trees_per_face_dimension, layers) in ((1, 2), (2, 1), (3, 2))
+        mesh = P4estMeshCubedSphere(trees_per_face_dimension, layers, 0.5, 0.5;
+                                    polydeg = 1)
+
+        # `p4est` only stores edges and corners connecting trees that are not all
+        # connected via faces. These are the radial edges at the vertices of the cube
+        # surface where four trees meet (all except the 8 corners of the cube), and
+        # all tangential edges and the corners where four trees meet between two layers.
+        n = trees_per_face_dimension
+        @test mesh.p4est.connectivity.num_edges[] ==
+              (6 * n^2 - 6) * layers + 12 * n^2 * (layers - 1)
+        @test mesh.p4est.connectivity.num_corners[] == (6 * n^2 - 6) * (layers - 1)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
