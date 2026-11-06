@@ -435,13 +435,6 @@ auxiliary variables.
 
 Equations using auxiliary variables specialize this function and take them as an
 additional argument in [`flux`](@ref) and in the numerical fluxes, e.g.,
-```julia
-nauxvariables(::MyEquations) = 2
-
-flux(u, aux, normal_direction, equations::MyEquations) = ...
-flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
-```
-The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
 be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref).
 For equations without auxiliary variables, no `aux_field` must be passed.

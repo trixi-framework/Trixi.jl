@@ -117,7 +117,7 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
                 solver = semi.solver,
                 source_terms = semi.source_terms,
                 boundary_conditions = semi.boundary_conditions,
-                aux_field = get_aux_field(semi.cache))
+                aux_field = nauxvariables(equations) > 0 ? get_aux_field(semi.cache): nothing)
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
