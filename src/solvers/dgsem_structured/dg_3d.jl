@@ -22,6 +22,20 @@ function create_cache_subcell_fv(mesh::Union{StructuredMesh{3},
             normal_vectors)
 end
 
+# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# assume in the inner loops of Trixi.jl.
+function check_axes_subcell_fv(mesh::Union{StructuredMesh{3},
+                                           P4estMesh{3}, T8codeMesh{3}},
+                               equations, dg::DG, cache)
+    check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
+                          cache.fstar2_L_threaded, cache.fstar2_R_threaded,
+                          cache.fstar3_L_threaded, cache.fstar3_R_threaded,
+                          mesh, equations, dg)
+    check_axes(cache.normal_vectors, equations, dg, cache)
+
+    return nothing
+end
+
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -383,12 +397,15 @@ end
 # Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                              fstar3_L, fstar3_R, u,
-                              ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                             T8codeMesh{3}}},
-                              have_nonconservative_terms::False,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               fstar3_L, fstar3_R,
+                                               u,
+                                               ::Type{<:Union{StructuredMesh{3},
+                                                              P4estMesh{3},
+                                                              T8codeMesh{3}}},
+                                               have_nonconservative_terms::False,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
@@ -444,12 +461,15 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                              fstar3_L, fstar3_R, u,
-                              ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                             T8codeMesh{3}}},
-                              have_nonconservative_terms::True,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               fstar3_L, fstar3_R,
+                                               u,
+                                               ::Type{<:Union{StructuredMesh{3},
+                                                              P4estMesh{3},
+                                                              T8codeMesh{3}}},
+                                               have_nonconservative_terms::True,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
@@ -540,14 +560,18 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                fstar3_L, fstar3_R, u,
-                                ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                               T8codeMesh{3}}},
-                                have_nonconservative_terms::False, equations,
-                                volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter,
-                                cons2recon, recon2cons)
+Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                                 fstar3_L, fstar3_R,
+                                                 u,
+                                                 ::Type{<:Union{StructuredMesh{3},
+                                                                P4estMesh{3},
+                                                                T8codeMesh{3}}},
+                                                 have_nonconservative_terms::False,
+                                                 equations, volume_flux_fv, dg::DGSEM,
+                                                 element, cache,
+                                                 sc_interface_coords,
+                                                 reconstruction_mode,
+                                                 slope_limiter, cons2recon, recon2cons)
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)

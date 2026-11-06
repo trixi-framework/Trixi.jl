@@ -687,6 +687,21 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
+
+# Return a zero of the inferred return type of `func` for arguments of the types
+# `argtypes`. This is used to initialize local results, e.g., of integrals, without
+# evaluating `func`. This is required if the data is stored on a GPU or if the current
+# MPI rank has no elements so that the solution and other arrays are empty.
+# The inferred type must be concrete to match the type of the actual results.
+# See https://github.com/trixi-framework/Trixi.jl/issues/1096 and
+# https://github.com/trixi-framework/Trixi.jl/issues/1973.
+function zero_return_type(func::Func, argtypes...) where {Func}
+    T = Base.promote_op(func, argtypes...)
+    if !isconcretetype(T)
+        error("The inferred return type `$T` of `$func` is not concrete.")
+    end
+    return zero(T)
+end
 end # @muladd
 
 # specialized implementations specific to some solvers
