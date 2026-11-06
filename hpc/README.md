@@ -43,7 +43,8 @@ Repeat validation with `1.10` and its matching environment.
 These focused checks run on the login node, complete suites and GPU execution require CI or allocations submitted by the user.
 
 The [GitLab pipeline](../.gitlab-ci.yml) provides eight small validation jobs across both Julia versions.
-Start pipelines manually from the GitLab UI after the commit reaches the mirror.
+Pipelines start from the GitLab UI, the [GitHub workflow](../.github/workflows/hpc.yml) or a PR command, mirror pushes do not start jobs.
+GitHub triggers require `EXPECTED_COMMIT_SHA` to match the mirrored commit, a stale or advanced mirror cannot run another revision.
 The YAML defines resources and invokes [environment.jl](ci/environment.jl) for preparation and artifact verification, [validate.jl](ci/validate.jl) for checks and [mpi.jl](ci/mpi.jl) for MPI launching.
 
 | Check | Coverage |
@@ -66,7 +67,32 @@ Slurm jobs use the [express QoS](https://upb-pc2.atlassian.net/wiki/spaces/PC2DO
 Slurm limits are thirty minutes for CPU and MPI jobs and twenty minutes for GPU jobs.
 The GitLab timeout is seven days to accommodate queue wait, the runner must permit that timeout.
 Logs and prepared environments are retained for four weeks, including artifacts from failed jobs.
-Job logs report the temporary directory and filesystem, Slurm submit and start times, MPI bindings and the node, CPUs and threads visible to each worker.
+Job logs report Slurm submit and start times, MPI bindings and the node, CPUs and threads visible to each worker.
 CPU MPI jobs log the UCX transport selection, CPU binding checks compare ranks within each node.
 `JACAMAR_SCHEDULER_JOB_PREFIX` identifies Trixi, the check and Julia version in Slurm job names.
 The full test suites and benchmark follow this validation pipeline.
+
+## GitHub setup
+
+The [caller](../.github/workflows/hpc.yml) and the [command workflow](../.github/workflows/hpc-command.yml) pin `pc2/hpc-cb-workflow` to the same reviewed commit, update both together.
+Follow the [workflow setup](https://github.com/pc2/hpc-cb-workflow#setup) for GitLab mirroring, tokens and GitHub secrets.
+Use GitLab project `pc2-ci/julia/Trixi.jl` on `git.uni-paderborn.de` and set the Actions repository variable `GITLAB_PROJECT_ID` to `10376`.
+
+Start a run from GitHub Actions, HPC, Run workflow on `main`.
+`checks` selects `all` or `cpu`, `mpi` and `gpu` joined by `+`, `julia` selects `all` or `1.10` and `1.13` joined by `+`.
+The workflow checks the values against the caller's patterns and stops before anything reaches GitLab.
+Preparation runs only for the selected Julia versions.
+Monitoring continues automatically after long queue waits, see [monitoring and results](https://github.com/pc2/hpc-cb-workflow#how-it-runs).
+
+Maintainers run reviewed PR commits with a comment on the PR, the command workflow dispatches the caller once per commit.
+
+```text
+/hpc <commit>
+/hpc <commit> <commit> checks=gpu julia=1.13
+```
+
+Commits are named by their full 40 character hash and must belong to the PR, later pushes need another comment.
+Commands and manual runs of PR commits or other branches need repository write access.
+Options apply to all named commits and use the names of the workflow inputs.
+See the [PR command](https://github.com/pc2/hpc-cb-workflow#pr-command) for authorization and replies.
+Pipelines started from the GitLab UI run all jobs unless `HPC_CHECKS` or `HPC_JULIA` are set as pipeline variables.

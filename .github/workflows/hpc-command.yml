@@ -1,0 +1,17 @@
+name: HPC command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: write
+  pull-requests: write
+
+jobs:
+  hpc:
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/hpc')
+    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-command.yml@6fd64e50ceca2e0264d28af0ae4b28606266d44f
+    with:
+      workflow: hpc.yml

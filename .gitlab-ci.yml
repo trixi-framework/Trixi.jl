@@ -1,6 +1,7 @@
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $EXPECTED_COMMIT_SHA == $CI_COMMIT_SHA'
 
 stages: [prepare, check]
 
@@ -10,6 +11,9 @@ variables:
   CPU_PARTITION: normal
   GPU_PARTITION: gpu_h100
   GIT_DEPTH: "1"
+  # Selected checks and Julia versions, single values or joined by +, GitHub triggers override them.
+  HPC_CHECKS: all
+  HPC_JULIA: all
 
 default:
   tags: [otus-slurm]
@@ -110,46 +114,62 @@ default:
 
 prepare:1.10:
   extends: .prepare
+  rules:
+    - if: $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
   variables:
     JULIA_VERSION: "1.10"
 
 prepare:1.13:
   extends: .prepare
+  rules:
+    - if: $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
   variables:
     JULIA_VERSION: "1.13"
 
 cpu:1.10:
   extends: .cpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|cpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
   needs: ["prepare:1.10"]
   variables:
     JULIA_VERSION: "1.10"
 
 cpu:1.13:
   extends: .cpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|cpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
   needs: ["prepare:1.13"]
   variables:
     JULIA_VERSION: "1.13"
 
 mpi:1.10:
   extends: .mpi
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
   needs: ["prepare:1.10"]
   variables:
     JULIA_VERSION: "1.10"
 
 mpi:1.13:
   extends: .mpi
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
   needs: ["prepare:1.13"]
   variables:
     JULIA_VERSION: "1.13"
 
 gpu:1.10:
   extends: .gpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
   needs: ["prepare:1.10"]
   variables:
     JULIA_VERSION: "1.10"
 
 gpu:1.13:
   extends: .gpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
   needs: ["prepare:1.13"]
   variables:
     JULIA_VERSION: "1.13"
