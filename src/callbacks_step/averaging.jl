@@ -75,8 +75,9 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    @trixi_timeit timer() "averaging" initialize_cache!(averaging_callback.cache, u,
-                                                        mesh, equations, solver, cache)
+    @trixi_timeit timer() "averaging" initialize_cache_averaging!(averaging_callback.cache,
+                                                                  u, mesh, equations,
+                                                                  solver, cache)
 
     # avoid re-evaluating possible FSAL stages
     derivative_discontinuity!(integrator, false)

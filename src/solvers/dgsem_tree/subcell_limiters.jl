@@ -142,8 +142,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
-    cache = create_cache_limiter(SubcellLimiterIDP, equations, basis, bound_keys,
-                                 cache_variable_values)
+    cache = create_cache_subcell_limiter(SubcellLimiterIDP, equations, basis,
+                                         bound_keys, cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -225,10 +225,11 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
-                              equations::AbstractEquations{NDIMS},
-                              basis::LobattoLegendreBasis, bound_keys,
-                              cache_variable_values) where {NDIMS}
+function create_cache_subcell_limiter(limiter::Type{SubcellLimiterIDP},
+                                      equations::AbstractEquations{NDIMS},
+                                      basis::LobattoLegendreBasis,
+                                      bound_keys,
+                                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later via `resize_cache_volume_integral!`
     # when the cache of the semidiscretization is created.
@@ -254,7 +255,7 @@ function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global, idp_newton_converged)
 end
 
-function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+function resize_cache_subcell_limiter!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     return nothing

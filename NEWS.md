@@ -12,7 +12,7 @@ for human readability.
   different parts of the storage, which affects packages extending or calling it:
   `create_cache_hyperbolic` (cache of a hyperbolic semidiscretization),
   `create_cache_volume_integral`, `create_cache_mortar`, `create_cache_indicator`,
-  `create_cache_limiter`, `create_cache_controller`, `create_cache_averaging`, and
+  `create_cache_subcell_limiter`, `create_cache_controller`, `create_cache_averaging`, and
   `create_cache_euler_acoustics`. The functions handling the storage of all nested volume
   integrals were renamed to `create_cache_all_volume_integrals`,
   `resize_cache_all_volume_integrals!`, and `reinit_cache_all_volume_integrals!`;
