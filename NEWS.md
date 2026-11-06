@@ -25,6 +25,16 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Contour plotting using Makie.jl is now supported for
+  `PlotData2DTriangulated` data ([#3253]).
+- `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
+  keyword arguments of `PlotData2D` such as `slice` and `point` to `PlotData2D`.
+  Similarly, `Makie.plot` of 1D solutions passes `nvisnodes`, `reinterpolate`, and
+  `variable_names` to `PlotData1D`. All other keyword arguments of `Makie.plot` of
+  solutions and `PlotData1D`/`PlotData2D` objects, e.g., `colorrange`, are passed to
+  Makie, and `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of
+  3D `DGMultiMesh` solutions and plots of 1D `DGMultiMesh` solutions now show the
+  correct axis labels ([#3405]).
 - Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
   ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
@@ -101,6 +111,11 @@ for human readability.
     `P4estMesh2D` ([#3289])
   - the KernelAbstractions.jl kernels of `P4estMesh2D`, `P4estMesh3D`,
     `T8codeMesh2D`, and `T8codeMesh3D` ([#3321])
+  - the subcell finite volume methods `VolumeIntegralPureLGLFiniteVolume` and
+    `VolumeIntegralPureLGLFiniteVolumeO2` and the shock-capturing volume integrals
+    `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
+    `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
+    supporting them ([#3428])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
@@ -114,6 +129,20 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
+  now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
+  are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
+  `initial_condition_convergence_test` is now an exact solution for all material
+  parameters; previously, it agreed with the solution only at integer times for
+  `c1 = 1` ([#3409]).
+- Fixed boundary conditions and source terms of the parabolic terms for `DGMulti` solvers.
+  `BoundaryConditionNeumann` now leaves the solution at the boundary unchanged when
+  computing the gradient (previously, it imposed a homogeneous Dirichlet condition there).
+  Normal fluxes prescribed by boundary conditions (e.g., `BoundaryConditionNeumann` and the
+  heat flux of adiabatic `BoundaryConditionNavierStokesWall`s) are now scaled by the face
+  Jacobian. `source_terms_parabolic` are now evaluated at the quadrature points and
+  projected onto the polynomial space, which changes results for `Polynomial()`
+  approximations ([#3407]).
 - A state-dependent viscosity `mu(u, equations)` of the `CompressibleNavierStokesDiffusion`
   equations is now always called with the transformed variables (see
   `gradient_variable_transformation`), i.e., primitive variables with temperature or
@@ -124,6 +153,20 @@ for human readability.
   `LiftCoefficientShearStress2D` now support the `CompressibleNavierStokesDiffusion2D`
   equations with `gradient_variables = GradientVariablesEntropy()` ([#3387]).
   Previously, they silently returned wrong values in this case.
+- Fixed crashes of the `AnalysisCallback` in MPI-parallel simulations on `P4estMesh`es
+  and `T8codeMesh`es if an MPI rank has no elements, e.g., after coarsening with AMR
+  ([#3418]).
+- Fixed unbalanced 3D `P4estMesh`es created with `trees_per_dimension` or
+  `P4estMeshCubedSphere`: the `p4est` connectivity now contains all edges and corners
+  connecting trees, as required by `p4est` for 2:1 balancing. Previously, the mesh could
+  violate the 2:1 balance after deep local refinement, which could crash AMR simulations
+  during coarsening. The 2D connectivity now contains all corners connecting trees, which
+  fixes assertion failures with debug builds of `p4est`. Thus, `balance!` for 2D
+  `P4estMesh`es now calls `p4est_balance` only once instead of twice if the connectivity
+  contains corners. Connectivities without corners, e.g., from restart files written by
+  older versions of Trixi.jl, are still balanced twice. Custom connectivities passed to a
+  `P4estMesh` must be complete in the sense of `p4est`, i.e., contain all corners (and
+  edges in 3D) connecting trees, to be balanced correctly ([#3427], [#3429]).
 - Fixed reading uninitialized memory when refining and coarsening elements with AMR in 1D
   and 2D. For non-`isbits` element types such as `BigFloat`, this threw an
   `UndefRefError`. The interpolation and projection are now applied dimension by dimension
@@ -135,6 +178,9 @@ for human readability.
   objects alive. On Julia v1.10, AMR (`resize!` of the solution and the containers) is not
   supported for non-`isbits` element types anymore.
   `isbits` element types such as `Float64` are not affected ([#3306]).
+- Fixed memory errors and crashes of the `AnalysisCallback` when the solution has a
+  non-`isbits` element type (e.g., `Measurement` from Measurements.jl or `BigFloat`)
+  ([#3417]).
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
   Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
@@ -180,6 +226,15 @@ for human readability.
   takes the metric terms into account and agrees with the value on a `TreeMesh` for
   Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
   meshes change ([#3360]).
+- Fixes a bug in `flux_godunov` with a `normal_direction` for the
+  `HyperbolicDiffusionEquations2D`: The upwind dissipation of the gradient variables
+  `q1, q2` was applied componentwise instead of to the normal component of their jump.
+  This was wrong for normal directions that are not aligned with the coordinate axes and
+  anti-dissipative for normal directions with negative components. Thus, results of
+  simulations using `flux_godunov` with these equations change, e.g., on
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`, `DGMultiMesh`, or curved
+  `StructuredMesh`es. Results on `TreeMesh`es and Cartesian `StructuredMesh`es are
+  unchanged ([#3406]).
 - `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing
@@ -195,6 +250,33 @@ for human readability.
   methods for the volume integral itself (e.g., the internal methods `create_cache`,
   `resize_volume_integral_cache!`, and `volume_integral_children`), not for nested ones;
   see the description of the interface in `src/solvers/dg.jl` ([#3378]).
+- Fixes a bug in the nonconservative surface terms at mortars of `TreeMesh2D`s and
+  `TreeMesh3D`s: The nonconservative fluxes of the small and the large elements were
+  swapped, i.e., each element received the nonconservative term of its neighbor.
+  Thus, results of simulations with nonconservative terms (e.g., ideal GLM-MHD with
+  `flux_nonconservative_powell`) on nonconforming `TreeMesh`es (e.g., with AMR) change
+  ([#3293]).
+- Fixed the pressure coefficients `LiftCoefficientPressure3D` and
+  `DragCoefficientPressure3D` on boundary faces that are not affine, where wrong surface
+  nodes were used. With MPI, these coefficients are now summed over all ranks ([#3408]).
+- The analysis quantities `l2_divb` and `linf_divb` of `DGMulti` solvers now compute
+  the divergence of the magnetic field instead of its product with the Jacobian of the
+  elements, and `l2_divb` is normalized by the volume of the domain as for the DGSEM
+  solvers. `linf_divb` no longer fails with multiple threads ([#3408]).
+- `linf_divb` of a 2D `TreeMesh` is now the maximum over all MPI ranks ([#3408]).
+- With MPI, the `SteadyStateCallback` now terminates the simulation only if the steady
+  state is reached on all MPI ranks, not on any of them ([#3408]).
+- Fixes a bug in parabolic boundary conditions prescribing a normal flux on `P4estMesh`es:
+  the normal flux of `BoundaryConditionNeumann` and the normal heat flux of `Adiabatic`
+  walls were not scaled by the surface Jacobian. Thus, results with nonzero prescribed
+  normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
+  operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
+  same way; `flux_inner` already includes this scaling ([#3412]).
+- The smoothing of the blending factors of the `IndicatorHennemannGassner`
+  (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
+  into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
+  neighboring elements on other MPI ranks were ignored, so that results of MPI-parallel
+  simulations with shock capturing differed from serial ones ([#3416]).
 
 #### Deprecated
 - The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` of

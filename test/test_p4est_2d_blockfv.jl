@@ -222,4 +222,13 @@ end
     # show must not error
     @trixi_test_nowarn show(stdout, pd)
     println(stdout)
+    @test occursin("point_values = false", sprint(show, pd))
+
+    # The corner groups for contour plots require conforming meshes. Since `BlockFV` does
+    # not support mortars yet, a non-conforming DGSEM mesh is used to test the assertion.
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_advection_nonconforming_flag.jl"))
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+    solver_fv = BlockFV(n_nodes = 2, surface_flux = flux_lax_friedrichs)
+    @test_throws AssertionError Trixi.calc_fv_corner_groups(mesh, solver_fv, semi.cache)
 end

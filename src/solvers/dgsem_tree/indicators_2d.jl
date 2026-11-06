@@ -21,7 +21,10 @@ function create_cache_indicator(::Type{IndicatorHennemannGassner},
     modal_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
     modal_tmp1_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+    alpha_mpi_buffers = create_alpha_mpi_buffers(uEltype)
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded,
+            alpha_mpi_buffers)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl

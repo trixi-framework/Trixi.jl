@@ -700,6 +700,146 @@ end
     @test isnothing(display(c3d))
 end
 
+@testitem "Unit: TreeMesh nonconservative mortar fluxes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # On the same Cartesian, nonconforming mesh, the DGSEM discretizations on
+    # `TreeMesh` and `P4estMesh` coincide. We compare their right-hand sides for
+    # element-wise discontinuous data such that the nonconservative surface terms
+    # at the mortars do not vanish. Since the domain is periodic and only the
+    # element at the origin is refined, there are mortars with the large element
+    # on the left and on the right side in each coordinate direction.
+    function max_rhs_difference(mesh_tree, mesh_p4est, equations, solver, func)
+        results = map((mesh_tree, mesh_p4est)) do mesh
+            semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                initial_condition_constant, solver;
+                                                boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi)
+            u = Trixi.wrap_array(u_ode, semi)
+            (; node_coordinates) = semi.cache.elements
+            ndims_ = ndims(mesh)
+            node_indices = CartesianIndices(ntuple(_ -> Trixi.nnodes(solver), ndims_))
+            for element in Trixi.eachelement(solver, semi.cache)
+                # The element center is used to make the data discontinuous
+                x_center = SVector(ntuple(d -> sum(node_coordinates[d, Tuple(I)...,
+                                                                    element]
+                                                   for I in node_indices) /
+                                               length(node_indices), ndims_))
+                for I in node_indices
+                    x = SVector(ntuple(d -> node_coordinates[d, Tuple(I)..., element],
+                                       ndims_))
+                    u[:, Tuple(I)..., element] .= func(x, x_center, equations)
+                end
+            end
+            du_ode = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+            return copy(Trixi.wrap_array_native(du_ode, semi)), copy(node_coordinates)
+        end
+        (du_tree, x_tree), (du_p4est, x_p4est) = results
+        @test size(du_tree) == size(du_p4est)
+        @test all(isfinite, du_tree)
+        @test all(isfinite, du_p4est)
+
+        # The element ordering differs, so we match elements by their node coordinates
+        max_difference = zero(eltype(du_tree))
+        for element_tree in axes(du_tree, ndims(du_tree))
+            x_element = selectdim(x_tree, ndims(x_tree), element_tree)
+            element_p4est = findfirst(axes(du_p4est, ndims(du_p4est))) do element
+                return isapprox(selectdim(x_p4est, ndims(x_p4est), element), x_element)
+            end
+            @test !isnothing(element_p4est)
+            max_difference = max(max_difference,
+                                 maximum(abs,
+                                         selectdim(du_tree, ndims(du_tree),
+                                                   element_tree) -
+                                         selectdim(du_p4est, ndims(du_p4est),
+                                                   element_p4est)))
+        end
+        return max_difference, maximum(abs, du_tree)
+    end
+
+    @testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations2D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2]) + h, 0.1 + h, -0.2, 0.1,
+                           1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h, 0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0), (2.0, 2.0), initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0),
+                               coordinates_max = (2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p4est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p4est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+
+    @testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations3D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2] - 2 * x_center[3])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2] - x[3]) + h, 0.1 + h, -0.2,
+                           0.1 - h, 1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h,
+                           0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0, 0.0), (2.0, 2.0, 2.0),
+                             initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0, 0.0),
+                               coordinates_max = (2.0, 2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p8est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.z == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p8est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+end
+
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     capacity = 42
     n_variables = 9
@@ -792,6 +932,53 @@ end
     @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
                                       nu = 1.0) isa
           LatticeBoltzmannEquations3D
+end
+
+@testitem "Unit: Linearized Euler constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Mixed argument types are promoted
+    equations = @inferred LinearizedEulerEquations1D(1, 2.0f0, 3.0)
+    @test equations isa LinearizedEulerEquations1D{Float64}
+    @test (equations.v_mean_global, equations.c_mean_global,
+           equations.rho_mean_global) == (1.0, 2.0, 3.0)
+    @test @inferred(LinearizedEulerEquations1D(1, 2, 3.0f0)) isa
+          LinearizedEulerEquations1D{Float32}
+    @test @inferred(LinearizedEulerEquations1D{Float32}(1, 2.0, 3)) isa
+          LinearizedEulerEquations1D{Float32}
+    equations = @inferred LinearizedEulerEquations2D((1, 2.0f0), 3, 4.0)
+    @test equations isa LinearizedEulerEquations2D{Float64}
+    @test equations.v_mean_global == SVector(1.0, 2.0)
+    @test @inferred(LinearizedEulerEquations2D(SVector(1.0f0, 2.0f0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    @test @inferred(LinearizedEulerEquations2D{Float32}((1, 2.0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    equations = @inferred LinearizedEulerEquations3D(v_mean_global = (1, 2, 3.0f0),
+                                                     c_mean_global = 4,
+                                                     rho_mean_global = 5)
+    @test equations isa LinearizedEulerEquations3D{Float32}
+    @test equations.v_mean_global == SVector(1.0f0, 2.0f0, 3.0f0)
+    @test @inferred(LinearizedEulerEquations3D(SVector(1, 2, 3), 4.0, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+    @test @inferred(LinearizedEulerEquations3D{Float64}((1, 2, 3.0f0), 4, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+
+    # Invalid mean values are rejected by all constructors
+    msg_c = "c_mean_global must be positive"
+    msg_rho = "rho_mean_global must be positive"
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, -1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0, 1.0, -1.0f0)
+    @test_throws msg_c LinearizedEulerEquations1D{Float64}(0.0, -1.0, 1.0)
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, 0.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, 0.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, NaN)
+    @test_throws msg_c LinearizedEulerEquations2D(SVector(0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations2D((0.0, 0.0), 1.0, -1)
+    @test_throws msg_c LinearizedEulerEquations2D((0.0, 0.0), 0, 1)
+    @test_throws msg_c LinearizedEulerEquations3D(SVector(0.0, 0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations3D((0, 0, 0), 1, 0)
+    @test_throws msg_rho LinearizedEulerEquations3D(v_mean_global = (0.0, 0.0, 0.0),
+                                                    c_mean_global = 1.0,
+                                                    rho_mean_global = -1.0)
 end
 
 @testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -2208,6 +2395,43 @@ end
     end
 end
 
+@testitem "Unit: Godunov flux for hyperbolic diffusion 2D with normal_direction" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    using LinearAlgebra: eigen, Diagonal
+    # Compare with the exact upwind flux 0.5 * A_n * (u_ll + u_rr) - 0.5 * |A_n| * [[u]]
+    # of the linear system, where |A_n| = V |Λ| V⁻¹ is computed via an eigendecomposition
+    # of the flux Jacobian A_n.
+    equations = HyperbolicDiffusionEquations2D(nu = 1.3, Lr = 0.7)
+    u_ll = SVector(1.0, 0.3, -0.2)
+    u_rr = SVector(0.5, -0.7, 0.4)
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(-1.0, 0.0),
+        SVector(0.0, -1.0),
+        SVector(0.6, 0.8),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        # The flux is linear, so its Jacobian is given by the fluxes of unit vectors
+        A_n = hcat((flux(SVector(ntuple(i -> i == j ? 1.0 : 0.0, 3)), normal_direction,
+                         equations) for j in 1:3)...)
+        Λ, V = eigen(A_n)
+        abs_A_n = real.(V * Diagonal(abs.(Λ)) / V)
+        f_exact = 0.5 * A_n * (u_ll + u_rr) - 0.5 * abs_A_n * (u_rr - u_ll)
+        @test flux_godunov(u_ll, u_rr, normal_direction, equations) ≈ f_exact
+    end
+
+    for orientation in 1:2
+        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_godunov(u_ll, u_rr, unit_normal, equations) ≈
+              flux_godunov(u_ll, u_rr, orientation, equations)
+        @test flux_godunov(u_ll, u_rr, -unit_normal, equations) ≈
+              -flux_godunov(u_rr, u_ll, orientation, equations)
+    end
+end
+
 @testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
     Setup,
     UnitTests
@@ -2268,6 +2492,39 @@ end
 
     @test flux_hll(u, u, orientation, equations) ≈
           flux(u, orientation, equations)
+end
+
+@testitem "Unit: Entropy and exact solution of LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = LinearElasticityEquations1D(rho = 2.0, mu = 1.0, lambda = 3.0)
+    orientation = 1
+
+    u = SVector(1.42, 2.666)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test entropy(u, equations) ≈ energy_total(u, equations)
+
+    # The entropy flux of a linear system is `w' * f(u) / 2` with the entropy
+    # variables `w`. Conservation of the entropy requires that its derivative
+    # with respect to `u` equals `w' * f'(u)`.
+    entropy_flux(u) = 0.5 * dot(cons2entropy(u, equations), flux(u, orientation, equations))
+    flux_jacobian = ForwardDiff.jacobian(u -> flux(u, orientation, equations), u)
+    @test ForwardDiff.gradient(entropy_flux, u) ≈
+          flux_jacobian' * cons2entropy(u, equations)
+
+    # `initial_condition_convergence_test` is an exact solution: u_t + f(u)_x = 0
+    for (x, t) in ((0.1, 0.0), (0.37, 0.3), (0.8, 1.7))
+        u_t = ForwardDiff.derivative(t -> initial_condition_convergence_test(SVector(x), t,
+                                                                             equations),
+                                     t)
+        f_x = ForwardDiff.derivative(x -> flux(initial_condition_convergence_test(SVector(x),
+                                                                                  t,
+                                                                                  equations),
+                                               orientation, equations), x)
+        @test isapprox(u_t + f_x, zero(u_t); atol = 100 * eps())
+    end
 end
 
 @testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
@@ -4907,6 +5164,132 @@ end
                                            refinement_level = 2)
 end
 
+@testitem "Unit: P4estMesh structured connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all corners (and edges in 3D) connecting trees, `p4est_balance` does not
+    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112,
+    # https://github.com/trixi-framework/Trixi.jl/issues/1358, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2289.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_2d(p4est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.level < 5)
+    end
+    refine_corner_2d_c = @cfunction(refine_corner_2d, Cint,
+                                    (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p4est_quadrant_t}))
+
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    # Check that the trees are ordered lexicographically and connected via their faces
+    # as expected, with zero-based tree and face indices
+    function has_lexicographic_faces(connectivity, trees_per_dimension, periodicity)
+        n_dims = length(trees_per_dimension)
+        n_trees = prod(trees_per_dimension)
+        tree_to_tree = unsafe_wrap(Array, connectivity.tree_to_tree, (2 * n_dims, n_trees))
+        tree_to_face = unsafe_wrap(Array, connectivity.tree_to_face, (2 * n_dims, n_trees))
+        linear_indices = LinearIndices(trees_per_dimension)
+        result = true
+        for cell in CartesianIndices(trees_per_dimension), dim in 1:n_dims, side in 0:1
+            tree = linear_indices[cell]
+            face = 2 * (dim - 1) + side
+            neighbor_index = cell[dim] + 2 * side - 1
+            if 1 <= neighbor_index <= trees_per_dimension[dim] || periodicity[dim]
+                neighbor = Base.setindex(Tuple(cell),
+                                         mod1(neighbor_index, trees_per_dimension[dim]),
+                                         dim)
+                expected = (linear_indices[neighbor...] - 1, xor(face, 1))
+            else
+                expected = (tree - 1, face)
+            end
+            result &= (tree_to_tree[face + 1, tree], tree_to_face[face + 1, tree]) ==
+                      expected
+        end
+        return result
+    end
+
+    for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
+        periodicity in ((false, false), (true, false), (true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # A single call to `p4est_balance` is sufficient. Call it directly since
+        # `balance!` calls it twice for connectivities without corners.
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.p4est_balance(mesh.p4est, Trixi.P4EST_CONNECT_FACE, C_NULL)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+
+        # Remove all corners to obtain a connectivity containing only face connections,
+        # e.g., as created by older versions of Trixi.jl, for which `balance!` calls
+        # `p4est_balance` twice
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        Trixi.p4est_connectivity_reduce(mesh.p4est.connectivity)
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+    end
+
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2), (2, 2, 2)),
+        periodicity in ((false, false, false), (true, false, true), (true, true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0, 0.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
+@testitem "Unit: P4estMeshCubedSphere connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all edges and corners connecting trees, `p8est_balance` does not always
+    # produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    for (trees_per_face_dimension, layers) in ((1, 2), (2, 1), (3, 2))
+        mesh = P4estMeshCubedSphere(trees_per_face_dimension, layers, 0.5, 0.5;
+                                    polydeg = 1)
+
+        # `p4est` only stores edges and corners connecting trees that are not all
+        # connected via faces. These are the radial edges at the vertices of the cube
+        # surface where four trees meet (all except the 8 corners of the cube), and
+        # all tangential edges and the corners where four trees meet between two layers.
+        n = trees_per_face_dimension
+        @test mesh.p4est.connectivity.num_edges[] ==
+              (6 * n^2 - 6) * layers + 12 * n^2 * (layers - 1)
+        @test mesh.p4est.connectivity.num_corners[] == (6 * n^2 - 6) * (layers - 1)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
@@ -5943,4 +6326,192 @@ end
                                                             initial_condition_constant,
                                                             solver_1d;
                                                             boundary_conditions = boundary_condition_periodic)
+end
+
+@testitem "Unit: check_axes of the storage of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the storage of all volume integrals in the tree with root `dg.volume_integral`
+    # for correct and wrongly sized subcell finite volume buffers
+    function test_check_axes_volume_integrals(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; volume_integral) = dg
+        @test Trixi.check_axes_volume_integrals(mesh, equations, volume_integral,
+                                                dg, cache) === nothing
+        @test (@allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                            volume_integral,
+                                                            dg, cache)) == 0
+
+        # A composite with `volume_integral` as a child checks the whole tree
+        volume_integral_nested = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                        volume_integral_default = VolumeIntegralWeakForm(),
+                                                        volume_integral_stabilized = volume_integral)
+
+        # Wrong number of subcell interfaces
+        fstar1_L_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f)[3:end]...)
+                          for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = fstar1_L_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral_nested,
+                                                                         dg, cache_wrong)
+        # Volume integrals without storage of their own do not check anything
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               VolumeIntegralWeakForm(),
+                                               dg, cache_wrong) === nothing
+
+        # Too few thread-local buffers
+        cache_wrong = (; cache...,
+                       fstar1_R_threaded = cache.fstar1_R_threaded[1:(end - 1)])
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+
+        # Subcell normal vectors of non-Cartesian meshes for a wrong number of elements
+        if haskey(cache, :normal_vectors)
+            normal_vectors_wrong = deepcopy(cache.normal_vectors)
+            resize!(normal_vectors_wrong, nelements(dg, cache) + 1)
+            cache_wrong = (; cache..., normal_vectors = normal_vectors_wrong)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                             equations,
+                                                                             volume_integral,
+                                                                             dg,
+                                                                             cache_wrong)
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of most elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("StructuredMesh{1}",
+                                 joinpath("structured_1d_dgsem",
+                                          "elixir_euler_shu_osher_nonuniform_fvO2.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_volume_integrals, semi)
+        end
+    end
+
+    # The subcell normal vectors are resized and reinitialized after mesh adaptation
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_blast_wave_amr.jl"); maxiters = 1)
+    @testset "P4estMesh{2} with AMR" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        # The initial mesh has `initial_refinement_level = 1`
+        @test nelements(dg, cache) != 4 * Trixi.ntrees(mesh)
+        test_check_axes_volume_integrals(semi)
+    end
+
+    # The shock-capturing composites check their inputs, the storage of the tree of
+    # volume integrals, and the blending factors returned by the indicator
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_blast_wave.jl"); sol = nothing)
+
+    struct IndicatorWrongSize end
+    function (::IndicatorWrongSize)(u, mesh, equations, dg, cache; kwargs...)
+        return zeros(eltype(u), nelements(dg, cache) - 1)
+    end
+
+    @testset "Shock-capturing composites" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        nonconservative_terms = Trixi.have_nonconservative_terms(equations)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+        du = zero(u)
+        du_wrong = similar(du, size(du)[1:(end - 1)]..., size(du, ndims(du)) - 1)
+
+        (; volume_integral) = dg
+        @test volume_integral isa Trixi.VolumeIntegralShockCapturingHGType
+        (; indicator, volume_integral_default, volume_integral_blend_high_order,
+        volume_integral_blend_low_order) = volume_integral
+        volume_integral_adaptive = VolumeIntegralAdaptive(; indicator,
+                                                          volume_integral_default,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+
+        for volume_integral_ in (volume_integral, volume_integral_adaptive)
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                              nonconservative_terms, equations,
+                                              volume_integral_, dg, cache) === nothing
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du_wrong,
+                                                                       u, mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_,
+                                                                       dg, cache)
+        end
+
+        volume_integral_wrong_alpha = Trixi.VolumeIntegralShockCapturingHGType(IndicatorWrongSize();
+                                                                               volume_integral_default,
+                                                                               volume_integral_blend_high_order,
+                                                                               volume_integral_blend_low_order)
+        @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                                                   nonconservative_terms,
+                                                                   equations,
+                                                                   volume_integral_wrong_alpha,
+                                                                   dg, cache)
+
+        # The subcell interface coordinates of the second-order finite volume method
+        # must be computed from a basis with as many nodes as the basis of the solver
+        @test Trixi.polydeg(dg) == 3
+        for basis_ in (LobattoLegendreBasis(2), LobattoLegendreBasis(5))
+            volume_integral_wrong_basis = VolumeIntegralShockCapturingRRG(basis_,
+                                                                          indicator)
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u,
+                                                                       mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_wrong_basis,
+                                                                       dg, cache)
+        end
+        volume_integral_rrg = VolumeIntegralShockCapturingRRG(dg.basis, indicator)
+        @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
+                                          equations, volume_integral_rrg,
+                                          dg, cache) === nothing
+    end
+end
+
+@testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The fallback `@turbo` used when LoopVectorization.jl is disabled
+    # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
+    # to every loop level.
+    MockTurbo = Module()
+    Base.include(MockTurbo, joinpath(pkgdir(Trixi), "src", "auxiliary", "mock_turbo.jl"))
+    Core.eval(MockTurbo,
+              quote
+                  function f!(c, a, b)
+                      @turbo for j in axes(c, 2)
+                          for i in axes(c, 1)
+                              c[i, j] = a[i, j] + b[i, j]
+                          end
+                      end
+                      return c
+                  end
+              end)
+
+    a = [1.0 2.0; 3.0 4.0]
+    b = [5.0 6.0; 7.0 8.0]
+    c = zeros(2, 2)
+    @test MockTurbo.f!(c, a, b) == [6.0 8.0; 10.0 12.0]
+
+    code = only(code_lowered(MockTurbo.f!,
+                             (Matrix{Float64}, Matrix{Float64},
+                              Matrix{Float64}))).code
+    loopinfos = filter(x -> Meta.isexpr(x, :loopinfo), code)
+    @test length(loopinfos) == 2
+    @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
 end

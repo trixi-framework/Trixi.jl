@@ -567,9 +567,10 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                                     node_indices, names,
                                                     _u)
 
-    if n_boundaries > 0
-        init_boundaries!(boundaries, mesh)
-    end
+    # Call this on all MPI ranks, even if there are no local boundaries, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_boundaries!(boundaries, mesh)
 
     return boundaries
 end
@@ -748,9 +749,10 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
                                                           _neighbor_ids,
                                                           _node_indices)
 
-    if n_mortars > 0
-        init_mortars!(mortars, mesh)
-    end
+    # Call this on all MPI ranks, even if there are no local mortars, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_mortars!(mortars, mesh)
 
     return mortars
 end
