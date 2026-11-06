@@ -296,7 +296,6 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2thermo, thermo2cons, cons2prim_temperature
-export nauxvariables, eachauxvariable
 export density, pressure, density_pressure, velocity,
        temperature, temperature_given_Vp,
        global_mean_vars,
@@ -341,8 +340,8 @@ export reconstruction_O2_inner, reconstruction_O2_full,
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
-export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable,
+export nelements, nnodes, nvariables, nauxvariables,
+       eachelement, eachnode, eachvariable, eachauxvariable,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
