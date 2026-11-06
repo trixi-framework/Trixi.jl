@@ -363,7 +363,6 @@ the interface of numerical fluxes in Trixi.jl.
   [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
 - Hendrik Ranocha (2017)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
-  [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
   [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
 - Chen, Shu (2017)
   Entropy stable high order discontinuous Galerkin methods with suitable
@@ -457,7 +456,7 @@ The amount of blending is determined by the `indicator`, e.g.,
 
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function VolumeIntegralShockCapturingHG(indicator;
                                         volume_flux_dg = flux_central,
@@ -566,7 +565,7 @@ Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, fo
 
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
@@ -740,7 +739,7 @@ mesh (LGL = Legendre-Gauss-Lobatto).
 
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
        AbstractVolumeIntegralPureLGLFiniteVolume

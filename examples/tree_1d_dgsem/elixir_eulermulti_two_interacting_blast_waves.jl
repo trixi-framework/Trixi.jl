@@ -13,7 +13,9 @@ equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4, 1.4),
 A multicomponent two interacting blast wave test taken from
 - T. Plewa & E. Müller (1999)
   The consistent multi-fluid advection method
-  [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
+  Astronomy and Astrophysics 342, 179-191
+  [Bibcode: 1999A&A...342..179P](https://ui.adsabs.harvard.edu/abs/1999A%26A...342..179P)
+  [arXiv: astro-ph/9807241](https://arxiv.org/abs/astro-ph/9807241)
 """
 function initial_condition_two_interacting_blast_waves(x, t,
                                                        equations::CompressibleEulerMulticomponentEquations1D)

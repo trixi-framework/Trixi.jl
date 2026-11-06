@@ -155,7 +155,7 @@ end
 A weak blast wave adapted from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
   A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
@@ -397,7 +397,6 @@ compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
-  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          normal_direction::AbstractVector,
@@ -448,7 +447,6 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
-  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
 
 This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """
@@ -507,7 +505,6 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
-  [arXiv: 2211.14009](https://doi.org/10.48550/arXiv.2211.14009).
 
 This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 """

@@ -104,7 +104,7 @@ Optimal stability polynomials for numerical integration of initial value problem
 For the fourth-order PERK schemes, a specialized optimization routine is required, see
 - D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
  Fourth-Order Paired-Explicit Runge-Kutta Methods
- [DOI:10.48550/arXiv.2408.05470](https://doi.org/10.48550/arXiv.2408.05470)
+ [DOI: 10.1007/s44207-025-00005-4](https://doi.org/10.1007/s44207-025-00005-4)
 =#
 
 # Perform bisection to optimize timestep for stability of the polynomial

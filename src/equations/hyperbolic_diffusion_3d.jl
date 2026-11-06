@@ -10,7 +10,7 @@
 
 The linear hyperbolic diffusion equations in three space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
-The book is freely available at [http://www.cfdbooks.com/](http://www.cfdbooks.com/) and further analysis can be found in
+The book is freely available at [ResearchGate](https://www.researchgate.net/publication/315378648_I_do_like_CFD_VOL1_Governing_Equations_and_Exact_Solutions) and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
 struct HyperbolicDiffusionEquations3D{RealT <: Real} <:
@@ -145,7 +145,7 @@ end
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_harmonic`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,

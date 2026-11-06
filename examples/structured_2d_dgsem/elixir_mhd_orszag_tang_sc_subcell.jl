@@ -54,7 +54,7 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Get the curved quad mesh from a mapping function
-# Mapping as described in https://arxiv.org/abs/2012.12040
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
 function mapping(xi, eta)
     y = 0.5 + 0.5 * eta + 1.0 / 15.0 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 

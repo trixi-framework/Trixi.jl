@@ -39,7 +39,7 @@
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
 # is based on [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
-# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627).
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627).
 # It supports several types of limiting which are enabled by passing parameters individually.
 
 # ### [Global bounds](@id global_bounds)

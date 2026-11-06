@@ -22,7 +22,7 @@ volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D.
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580 but reduced to 2D.
 # This particular mesh is unstructured in the yz-plane, but extruded in x-direction.
 # Apply the warping mapping in the yz-plane to get a curved 2D mesh that is extruded
 # in x-direction to ensure free stream preservation on a non-conforming mesh.

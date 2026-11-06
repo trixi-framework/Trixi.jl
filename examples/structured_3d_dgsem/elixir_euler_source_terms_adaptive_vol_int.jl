@@ -25,7 +25,7 @@ volume_integral = VolumeIntegralAdaptive(indicator = indicator,
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll, volume_integral = volume_integral)
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580 but with less warping.
 function mapping(xi, eta, zeta)
     # Don't transform input variables between -1 and 1 onto [0,3] to obtain curved boundaries
     # xi = 1.5 * xi_ + 1.5
