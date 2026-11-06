@@ -435,13 +435,22 @@ auxiliary variables.
 
 Equations using auxiliary variables specialize this function and take them as an
 additional argument in [`flux`](@ref) and in the numerical fluxes, e.g.,
+```julia
+nauxvariables(::MyEquations) = 2
+
+flux(u, aux, normal_direction, equations::MyEquations) = ...
+flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+```
+Similar patterns are used for source terms etc.
+
+The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
 be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref).
 For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR and MPI. The progress is tracked in
+without AMR, MPI, and GPUs. The progress is tracked in
 https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0

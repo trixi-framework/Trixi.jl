@@ -20,7 +20,7 @@ function velocity_variable(x)
 end
 
 function aux_field(x, equations::NonconservativeLinearScalarAdvectionEquation3D)
-    velocity_variable(x)
+    return velocity_variable(x)
 end
 
 function initial_condition_manufactured(x, t,
