@@ -1608,8 +1608,11 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+# The type parameter `Source` forces Julia to specialize on `source_terms`. Otherwise,
+# Julia v1.10 cannot infer the call of `source_terms` with the splatted auxiliary variables
+# below, which allocates.
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Source,
+                       equations::AbstractEquations{3}, dg::DG, cache) where {Source}
     @unpack node_coordinates = cache.elements
 
     # `nothing` if the equations do not have auxiliary variables
