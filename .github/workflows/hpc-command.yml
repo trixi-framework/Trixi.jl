@@ -12,6 +12,6 @@ permissions:
 jobs:
   hpc:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/hpc')
-    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-command.yml@6fd64e50ceca2e0264d28af0ae4b28606266d44f
+    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-command.yml@58f6bf270de20d78d395877306e627c25f0c53d5
     with:
       workflow: hpc.yml

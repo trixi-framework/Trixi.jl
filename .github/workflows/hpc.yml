@@ -1,25 +1,12 @@
 name: HPC
-run-name: ${{ inputs.context_run_id && format('HPC resume {0}', inputs.context_run_id) || format('HPC {0} {1} checks={2} julia={3}', inputs.pull_request, inputs.source_sha, inputs.checks, inputs.julia) }}
+run-name: >-
+  ${{ inputs.context_run_id && format('HPC resume {0}', inputs.context_run_id)
+  || inputs.pull_request && format('HPC PR {0} {1} checks={2} julia={3}', inputs.pull_request, inputs.source_sha, inputs.checks, inputs.julia)
+  || format('HPC checks={0} julia={1}', inputs.checks || 'all', inputs.julia || 'all') }}
 
 on:
   workflow_dispatch:
     inputs:
-      context_run_id:
-        description: The original GitHub run, leave empty to start jobs.
-        type: string
-        default: ''
-      pull_request:
-        description: An optional open PR containing the selected commit.
-        type: string
-        default: ''
-      source_sha:
-        description: The reviewed PR commit, used with pull_request.
-        type: string
-        default: ''
-      command_comment:
-        description: The PR comment that authorized the run, set by the HPC command.
-        type: string
-        default: ''
       checks:
         description: Checks to run, all or cpu, mpi and gpu joined by +.
         type: string
@@ -28,6 +15,22 @@ on:
         description: Julia versions to run, all or 1.10 and 1.13 joined by +.
         type: string
         default: all
+      pull_request:
+        description: Leave empty, or a PR number to run a reviewed commit of that PR.
+        type: string
+        default: ''
+      source_sha:
+        description: Leave empty, or the full hash of the reviewed PR commit.
+        type: string
+        default: ''
+      context_run_id:
+        description: Leave empty, set by continuation or for a manual resume.
+        type: string
+        default: ''
+      command_comment:
+        description: Leave empty, set by the PR command.
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -39,7 +42,7 @@ permissions:
 
 jobs:
   hpc:
-    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@6fd64e50ceca2e0264d28af0ae4b28606266d44f
+    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@58f6bf270de20d78d395877306e627c25f0c53d5
     with:
       gitlab_hostname: git.uni-paderborn.de
       gitlab_project_id: ${{ vars.GITLAB_PROJECT_ID }}
