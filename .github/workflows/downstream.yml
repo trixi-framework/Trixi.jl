@@ -93,3 +93,6 @@ jobs:
           Pkg.test(coverage=false)
         env:
           TRIXI_TEST: upstream
+          # Print every `@testitem` (with its run time) in the test summary of downstream
+          # packages using TestItemRunner.jl, so per-testitem timings show up in the job logs.
+          TRIXI_TEST_VERBOSE: "true"

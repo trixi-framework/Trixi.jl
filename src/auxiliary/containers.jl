@@ -279,6 +279,9 @@ function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Back
     return nothing
 end
 
+# Wrap `vector` as a multi-dimensional array of type `to` with size `size`. This is used
+# for the containers (initial creation, `resize!`, and `Adapt.adapt`) and for `wrap_array`.
+#
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
@@ -288,11 +291,52 @@ end
 # However, since zero length arrays are not used in calculations,
 # it should be okay if the underlying storage vectors and wrapped arrays
 # are not the same as long as they are properly wrapped when `resize!`d etc.
+#
+# !!! danger "Non-`isbits` element types"
+#     The garbage collector does not know that an array created by `unsafe_wrap` aliases
+#     `vector`. If the elements are heap-allocated objects (e.g., `BigFloat`s or tracers
+#     from SparseConnectivityTracer.jl), storing an object through the wrapped array
+#     triggers the write barrier only for the wrapper, not for `vector`. Thus, `vector`
+#     is not rescanned during an incremental collection, and the stored objects can be
+#     freed while `vector` still refers to them. Hence, we use `reshape` for these
+#     element types, which shares the memory of `vector` in a way the garbage collector
+#     understands. On Julia v1.10, this marks `vector` as shared, so
+#     `resize!(vector, ...)` (e.g., in AMR) throws an error instead.
+#     For `isbits` element types, `vector` must still be `GC.@preserve`d while the
+#     wrapped array is in use.
 function unsafe_wrap_or_alloc(to, vector, size)
     if length(vector) == 0
         return similar(vector, size)
-    else
+    elseif isbitstype(eltype(vector)) ||
+           eltype(vector) === Symbol ||
+           eltype(vector) <: NTuple{N, Symbol} where {N}
+        # `isbitstype`s are safe to use with `unsafe_wrap`. While `Symbol`s
+        # are not `isbitstype`s, they are not freed, so we can also use
+        # `unsafe_wrap` for them.
         return unsafe_wrap(to, pointer(vector), size)
+    else
+        return reshape(vector, size)
+    end
+end
+
+# Allocate an uninitialized `StrideArray` with element type `T` and size `dims` if `T`
+# is an `isbitstype`, and a plain `Array` otherwise.
+#
+# The sizes `dims` can be `StaticInt`s, which makes `StrideArray`s faster and allows
+# them to be allocated on the stack if all sizes are known statically. Plain `Array`s
+# do not support `StaticInt`s, so the sizes are converted to `Int`s for them.
+#
+# !!! danger "Non-`isbits` element types"
+#     A `StrideArray` stores its elements through a pointer, i.e., without triggering
+#     the write barrier of the garbage collector. If the `StrideArray` is old (e.g., a
+#     buffer in a cache) and a newly allocated object (e.g., a `BigFloat` or the
+#     derivatives stored in a `Measurement` from Measurements.jl) is stored in it,
+#     the object can be freed while the `StrideArray` still refers to it.
+function stride_array_or_array(::Type{T}, dims...) where {T}
+    if isbitstype(T)
+        return StrideArray(undef, T, dims...)
+    else
+        return Array{T}(undef, map(Int, dims))
     end
 end
 
@@ -302,6 +346,10 @@ struct TrixiAdaptor{Storage, RealT} end
     trixi_adapt(Storage, RealT, x)
 
 Adapt `x` to the storage type `Storage` and real type `RealT`.
+
+To adapt a semidiscretization, use the method
+`trixi_adapt(semi; storage_type, real_type, tuning)` with keyword
+arguments instead.
 """
 function trixi_adapt(Storage, RealT, x)
     return adapt(TrixiAdaptor{Storage, RealT}(), x)

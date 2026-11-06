@@ -75,6 +75,8 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-4, 1.0e-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false,
+                                 thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

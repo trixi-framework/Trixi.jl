@@ -226,6 +226,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK83();
+sol = solve(ode, SSPRK83(thread = Trixi.Threaded());
             dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

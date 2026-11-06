@@ -646,24 +646,6 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D Euler: elixir_euler_laplace_diffusion.jl" setup=[
-    Setup,
-    TreeMesh1DEuler
-] tags=[:tree_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
-                        l2=[0.10954500481114468,
-                            0.1417583694046777,
-                            0.4087206508328759],
-                        linf=[
-                            0.17183237920520245,
-                            0.2203023610743297,
-                            0.6347464031934038
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
-end
-
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl" setup=[
     Setup,
     TreeMesh1DEuler

@@ -4,10 +4,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear elasticity equations
 
-rho = 3.0 # The material density rho can be any positive integer to ensure periodicity of the solution.
-c1_squared = 1.0 # Required to be one for the initial condition to stay periodic.
-c1 = sqrt(c1_squared)
-equations = LinearElasticityEquations1D(rho, c1_squared, c1)
+# Material parameters with dilatational wave speed c1 = sqrt((lambda + 2 * mu) / rho) = sqrt(2)
+rho = 2.0
+lambda = 2.0
+mu = 1.0
+equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -48,6 +49,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -33,8 +33,8 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer,
-              equations_parabolic::LaplaceDiffusion1D)
+@inline function flux(u, gradients, orientation::Integer,
+                      equations_parabolic::LaplaceDiffusion1D)
     dudx, = gradients # Extract first (and only) component from gradients
     # orientation == 1
     return equations_parabolic.diffusivity * dudx
@@ -83,7 +83,11 @@ end
                                                                 x, t,
                                                                 operator_type::Divergence,
                                                                 equations_parabolic::AbstractLaplaceDiffusion)
-    return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
+    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
+    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
+    # prescribed normal flux must be scaled by `norm(normal)` as well.
+    return (boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic) *
+            norm(normal))
 end
 
 @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,

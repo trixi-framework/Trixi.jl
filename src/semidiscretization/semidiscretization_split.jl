@@ -149,6 +149,10 @@ end
 
 @inline Base.ndims(semi::SemidiscretizationHyperbolicSplit) = ndims(semi.mesh)
 
+@inline function Base.real(semi::SemidiscretizationHyperbolicSplit)
+    return promote_type(real(semi.solver_stiff), real(semi.solver_nonstiff))
+end
+
 # retain dispatch on hyperbolic non-stiff equations only
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicSplit)
     @unpack mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff = semi
@@ -168,6 +172,7 @@ that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai
 The stiff hyperbolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
+The time span is converted to the real type `real(semi)` of the semidiscretization.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
                         reset_threads = true)
@@ -177,6 +182,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
     if reset_threads
         Trixi.Polyester.reset_threads!()
     end
+    tspan = convert_tspan(semi, tspan)
     u0_ode = compute_coefficients(first(tspan), semi)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
