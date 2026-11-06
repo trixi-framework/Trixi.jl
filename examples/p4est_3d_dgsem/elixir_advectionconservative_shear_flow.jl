@@ -2,25 +2,31 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linearized Euler equations with a spatially varying mean flow
+# semidiscretization of the conservative linear advection equation
+#   ∂ₜ u + ∇·(a u) = 0
+# with a spatially varying velocity `a`
 
-equations = LinearizedEulerEquations3DAuxVars()
+equations = ConservativeLinearScalarAdvectionEquation3D()
 
-# Sheared mean flow in x-direction, prescribed at every node of the mesh. The auxiliary
-# variables of `LinearizedEulerEquations3DAuxVars` are
-# `(rho_mean, v1_mean, v2_mean, v3_mean, c_mean)`.
-function aux_field(x, equations::LinearizedEulerEquations3DAuxVars)
-    v1_mean = 0.5f0 * sinpi(x[2])
-    return SVector(1.0f0, v1_mean, 0.0f0, 0.0f0, 1.0f0)
+# Divergence-free shear flow in x-direction, prescribed at every node of the mesh. The
+# auxiliary variables of `ConservativeLinearScalarAdvectionEquation3D` are the components
+# `(a1, a2, a3)` of the advection velocity.
+function velocity_shear(x)
+    a1 = 1 + 0.5f0 * sinpi(x[2]) * cospi(x[3])
+    return SVector(a1, zero(a1), zero(a1))
 end
 
-# A Gaussian pressure pulse at rest
-function initial_condition_gauss_pulse(x, t, equations::LinearizedEulerEquations3DAuxVars)
-    p_prime = exp(-16 * (x[1]^2 + x[2]^2 + x[3]^2))
-    return SVector(0.0f0, 0.0f0, 0.0f0, 0.0f0, p_prime)
+aux_field(x, equations::ConservativeLinearScalarAdvectionEquation3D) = velocity_shear(x)
+
+# Since the velocity in x-direction does not depend on x, the exact solution is given by
+# shifting the initial condition along the x-direction with the local velocity.
+function initial_condition_sheared_wave(x, t,
+                                        equations::ConservativeLinearScalarAdvectionEquation3D)
+    a1 = velocity_shear(x)[1]
+    return SVector(1 + 0.5f0 * sinpi(x[1] - a1 * t + x[2] + x[3]))
 end
 
-initial_condition = initial_condition_gauss_pulse
+initial_condition = initial_condition_sheared_wave
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -35,7 +41,7 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = true)
 
 # The `aux_field` is required since `equations` has auxiliary variables. They are evaluated
-# once at all nodes and stored in the cache.
+# once at all nodes.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic,
                                     aux_field = aux_field)

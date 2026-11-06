@@ -207,9 +207,9 @@ end
                                                               aux_ll, aux_rr,
                                                               orientation_or_normal_direction,
                                                               equations)
-    λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
-                                  orientation_or_normal_direction, equations)
-    return -0.5f0 * λ * (u_rr - u_ll)
+    lambda = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                       orientation_or_normal_direction, equations)
+    return -0.5f0 * lambda * (u_rr - u_ll)
 end
 
 function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)

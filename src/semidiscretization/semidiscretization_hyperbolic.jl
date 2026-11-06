@@ -50,8 +50,8 @@ single boundary condition that gets applied to all boundaries.
 
 `aux_field` is a function `aux_field(x, equations)` returning the auxiliary variables at
 the node coordinates `x`. It is required for equations using auxiliary variables and must
-not be passed otherwise, see [`n_aux_node_vars`](@ref). The auxiliary variables are
-evaluated once and stored in `cache.aux_vars`.
+not be passed otherwise, see [`nauxvariables`](@ref). The auxiliary variables are
+evaluated once when the semidiscretization is created.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
@@ -65,22 +65,22 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
 
     # Whether auxiliary variables are used is a fixed property of the `equations`.
-    # They are only stored for equations with `n_aux_node_vars(equations) > 0`. Otherwise,
+    # They are only stored for equations with `nauxvariables(equations) > 0`. Otherwise,
     # the `aux_vars` field is absent from the `cache`, which keeps every simulation without
     # auxiliary variables completely unaffected.
-    if n_aux_node_vars(equations) > 0
+    if nauxvariables(equations) > 0
         if aux_field === nothing
             throw(ArgumentError("`$(nameof(typeof(equations)))` has " *
-                                "$(n_aux_node_vars(equations)) auxiliary variables, " *
+                                "$(nauxvariables(equations)) auxiliary variables, " *
                                 "so an `aux_field` must be passed, " *
-                                "see `n_aux_node_vars`"))
+                                "see `nauxvariables`"))
         end
         aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
         cache = (; cache..., aux_vars)
     elseif aux_field !== nothing
         throw(ArgumentError("`aux_field` was passed but " *
                             "`$(nameof(typeof(equations)))` does not have any " *
-                            "auxiliary variables, see `n_aux_node_vars`"))
+                            "auxiliary variables, see `nauxvariables`"))
     end
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
@@ -116,12 +116,15 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
                 initial_condition = semi.initial_condition,
                 solver = semi.solver,
                 source_terms = semi.source_terms,
-                boundary_conditions = semi.boundary_conditions)
+                boundary_conditions = semi.boundary_conditions,
+                aux_field = nauxvariables(equations) > 0 ? get_aux_field(semi.cache) :
+                            nothing)
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
     semi_new = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                            source_terms, boundary_conditions, uEltype)
+                                            source_terms, boundary_conditions, uEltype,
+                                            aux_field)
     return copy_tuning(semi_new, semi)
 end
 
@@ -509,7 +512,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
-        if n_aux_node_vars(semi.equations) > 0
+        if nauxvariables(semi.equations) > 0
             summary_line(io, "auxiliary variables", semi.cache.aux_vars.aux_field)
         end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)

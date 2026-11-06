@@ -203,7 +203,7 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
                                cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux_node_vars = get_aux_node_vars_array(cache)
+    aux = get_aux_vars(cache)
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -211,7 +211,8 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
                                                   equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
-                                                  element, aux_node_vars)
+                                                  aux,
+                                                  element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
@@ -224,7 +225,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
-    aux_node_vars = get_aux_node_vars_array(cache)
+    aux = get_aux_vars(cache)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
@@ -236,7 +237,8 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
-                                     element, aux_node_vars)
+                                     aux,
+                                     element)
     end
 
     return max_scaled_speed

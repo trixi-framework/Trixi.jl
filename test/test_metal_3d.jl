@@ -468,28 +468,17 @@ end
     @test all(isfinite, du_ode)
 end
 
-@testitem "Metal 3D: elixir_linearizedeuler_aux_mean_flow.jl Float32 / Metal" setup=[
+@testitem "Metal 3D: elixir_advectionconservative_shear_flow.jl Float32 / Metal" setup=[
     Setup,
     Metal3DExamples
 ] tags=[:Metal, :metal_skip_m1_m2] begin
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_aux_mean_flow.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
                         # Expected errors similar to reference on CPU
-                        l2=[
-                            Float32(0.09376658249717858),
-                            Float32(0.02362059813363448),
-                            Float32(0.027758023173570047),
-                            Float32(0.024365135712989944),
-                            Float32(0.09349650593081046)
-                        ],
-                        linf=[
-                            Float32(1.0905405868983333),
-                            Float32(0.10769970556581673),
-                            Float32(0.14308560598829212),
-                            Float32(0.09750975703490734),
-                            Float32(1.1076522654280505)
-                        ],
+                        l2=[Float32(0.00519048662880307)],
+                        linf=[Float32(0.026769982125784075)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=MtlArray)
@@ -497,7 +486,7 @@ end
     @test semi === ode.p
     @test real(semi.solver) == Float32
     @test ode.u0 isa MtlArray{Float32}
-    @test semi.cache.aux_vars.aux_node_vars isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)

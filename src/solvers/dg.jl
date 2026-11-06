@@ -35,13 +35,15 @@ abstract type AbstractVolumeIntegral end
 # - `create_cache(mesh, equations, volume_integral, dg, cache_containers, uEltype)`
 # - `resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
 # - `reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
+# - `check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)`
 # - `get_element_variables!(element_variables, u, mesh, equations,
 #                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
 #
 # Do not add methods to the functions handling the whole tree
 # (`create_volume_integral_caches`, `resize_volume_integral_caches!`,
-# `reinitialize_volume_integral_caches!`); they call the methods above for every node.
+# `reinitialize_volume_integral_caches!`, `check_axes_volume_integrals`);
+# they call the methods above for every node.
 ###############################################################################
 
 # Return a tuple of the volume integrals contained in the composite `volume_integral`,
@@ -87,6 +89,15 @@ function reinit_volume_integral_cache!(cache, mesh,
     return nothing
 end
 
+# Check whether the storage of `volume_integral` itself, i.e., its entries in the
+# `cache` and its per-instance state, has the axes we assume in the inner loops of
+# Trixi.jl. This allows assuming inbounds access in the kernels of the volume integral.
+# By default, there is nothing to check.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::AbstractVolumeIntegral, dg, cache)
+    return nothing
+end
+
 # Add "element variables" of `volume_integral` such as blending factors to the
 # output of the `SaveSolutionCallback`. By default, there are none.
 function get_element_variables!(element_variables, u, mesh, equations,
@@ -100,7 +111,8 @@ end
 # Apply `f` to `volume_integral` and all volume integrals nested in it.
 # This is used for operations that do not return anything, e.g., resizing
 # and reinitializing the storage after mesh adaptation
-# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`)
+# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`),
+# checking the axes of the storage (`check_axes_volume_integrals`),
 # and checking supported combinations (`check_volume_integral_tree`).
 # Creating the storage uses `_collect_caches_volume_integral` instead,
 # since it returns the caches of all nodes.
@@ -203,6 +215,18 @@ end
 function resize_volume_integral_caches!(cache, mesh, volume_integral, dg, new_size)
     foreach_volume_integral(volume_integral) do volume_integral_
         resize_volume_integral_cache!(cache, mesh, volume_integral_, dg, new_size)
+        return nothing
+    end
+
+    return nothing
+end
+
+# Check the storage of all volume integrals in the tree with root `volume_integral`.
+# This is called in the `@boundscheck` blocks of `calc_volume_integral!`.
+@inline function check_axes_volume_integrals(mesh, equations, volume_integral, dg,
+                                             cache)
+    foreach_volume_integral(volume_integral) do volume_integral_
+        check_axes_volume_integral(mesh, equations, volume_integral_, dg, cache)
         return nothing
     end
 
@@ -1409,13 +1433,13 @@ end
 # `flux(u_node, 1, equations)`.
 @inline get_aux_node_vars(::Nothing, equations, ::DG, indices...) = ()
 
-Base.@propagate_inbounds function get_aux_node_vars(aux_node_vars, equations, ::DG,
+Base.@propagate_inbounds function get_aux_node_vars(aux, equations, ::DG,
                                                     indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(aux_node_vars, eachauxvariable(equations), indices...)
+    @boundscheck checkbounds(aux, eachauxvariable(equations), indices...)
     # Assume inbounds access now
-    return (SVector(ntuple(@inline(v->@inbounds aux_node_vars[v, indices...]),
-                           Val(n_aux_node_vars(equations)))),)
+    return (SVector(ntuple(@inline(v->@inbounds aux[v, indices...]),
+                           Val(nauxvariables(equations)))),)
 end
 
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
@@ -1451,17 +1475,17 @@ end
 # Return the auxiliary variables on both sides of a given surface node index.
 @inline get_aux_surface_node_vars(::Nothing, equations, ::Type{<:DG}, indices...) = ()
 
-Base.@propagate_inbounds function get_aux_surface_node_vars(aux_surface_node_vars,
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
                                                             equations, ::Type{<:DG},
                                                             indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(aux_surface_node_vars, 1:2, eachauxvariable(equations),
+    @boundscheck checkbounds(aux_interface, 1:2, eachauxvariable(equations),
                              indices...)
     # Assume inbounds access now
-    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[1, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
-    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_surface_node_vars[2, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
+    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_interface[1, v, indices...]),
+                            Val(nauxvariables(equations))))
+    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_interface[2, v, indices...]),
+                            Val(nauxvariables(equations))))
     return aux_ll, aux_rr
 end
 
@@ -1473,25 +1497,34 @@ Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::D
     return nothing
 end
 
-Base.@propagate_inbounds function set_aux_node_vars!(aux_node_vars, aux_node, equations,
+Base.@propagate_inbounds function set_aux_node_vars!(aux, aux_node, equations,
                                                      solver::DG, indices...)
     for v in eachauxvariable(equations)
-        aux_node_vars[v, indices...] = aux_node[v]
+        aux[v, indices...] = aux_node[v]
     end
     return nothing
 end
 
-# Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
-# container is only created for equations with auxiliary variables, see
-# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned. Since the `cache` is a
-# `NamedTuple`, the check is resolved at compile time.
-@inline function get_aux_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing
+# Accessors for the arrays of auxiliary variables stored in the `aux_vars` container of
+# the `cache`. The `aux_vars` container is only created for equations with auxiliary
+# variables, see `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is
+# a `NamedTuple`, the check is resolved at compile time.
+@inline function get_aux_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux : nothing
 end
 
-@inline function get_aux_surface_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_surface_node_vars :
-           nothing
+@inline function get_aux_interface_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_interface : nothing
+end
+
+@inline function get_aux_mortar_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
+end
+
+# Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
+# `remake` a semidiscretization, or `nothing` without auxiliary variables.
+@inline function get_aux_field(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_field : nothing
 end
 
 Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,
