@@ -83,8 +83,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # coordinates, nodes on an interface get the same values from both sides. Thus, we choose
 # the velocity based on the center of each element and overwrite the auxiliary variables.
 # Afterwards, the auxiliary variables at the interfaces and mortars have to be updated.
-# Note that `remake` or `trixi_adapt` evaluate `aux_field` again and thus remove the
-# discontinuity.
+# Note that `remake` evaluates `aux_field` again and thus remove the discontinuity.
 (; aux) = semi.cache.aux_vars
 (; node_coordinates) = semi.cache.elements
 for element in eachelement(solver, semi.cache)
