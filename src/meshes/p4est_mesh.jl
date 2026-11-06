@@ -20,6 +20,12 @@ mesh for a two-dimensional surface or shell in three-dimensional space.
 !!! warning "Experimental implementation"
     The use of `NDIMS != NDIMS_AMBIENT` is an experimental feature and may change in future
     releases.
+
+The field `metadata::Dict{Symbol, Any}` stores additional information about the mesh that
+is not used by Trixi.jl itself, e.g., the number of layers of the columns of elements of a
+spherical shell needed by packages building on Trixi.jl. It is saved to and loaded from
+mesh files (and thus restored when restarting a simulation), so its values must be
+supported by HDF5.jl, e.g., numbers, strings, and arrays of them.
 """
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
@@ -37,10 +43,14 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     current_filename::String
     unsaved_changes::Bool
     const p4est_partition_allow_for_coarsening::Bool
+    # Additional information about the mesh that is not used by the discretization, see
+    # the docstring. It is never accessed in performance-critical code.
+    const metadata::Dict{Symbol, Any}
 
     function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                               current_filename, unsaved_changes,
-                              p4est_partition_allow_for_coarsening) where {NDIMS}
+                              p4est_partition_allow_for_coarsening;
+                              metadata = Dict{Symbol, Any}()) where {NDIMS}
         if NDIMS == 2
             @assert p4est isa Ptr{p4est_t}
         elseif NDIMS == 3
@@ -61,6 +71,10 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
+        # Copy the `metadata`, e.g., to allow passing a `NamedTuple` or to avoid sharing it
+        # with another mesh
+        metadata_ = Dict{Symbol, Any}(pairs(metadata))
+
         # To enable the treatment of a manifold of dimension NDIMS embedded within an
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
         # allow them to differ in the general case. This functionality is used for
@@ -77,7 +91,8 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
                                                                                  boundary_names,
                                                                                  current_filename,
                                                                                  unsaved_changes,
-                                                                                 p4est_partition_allow_for_coarsening)
+                                                                                 p4est_partition_allow_for_coarsening,
+                                                                                 metadata_)
 
         # Destroy `p4est` structs when the mesh is garbage collected
         finalizer(destroy_mesh, mesh)

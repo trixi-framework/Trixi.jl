@@ -67,7 +67,7 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
-using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
+using HDF5: HDF5, h5open, attributes, create_dataset, create_group, datatype, dataspace
 # Re-export the module `KernelAbstractions` so that users can, e.g., select a GPU via
 # `KernelAbstractions.device!` without adding KernelAbstractions.jl to their environment
 @reexport using KernelAbstractions: KernelAbstractions

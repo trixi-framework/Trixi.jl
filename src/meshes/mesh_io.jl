@@ -149,12 +149,52 @@ function save_mesh_file(mesh::UnstructuredMesh2D, output_directory)
     return filename
 end
 
+# Check that all values of the `metadata` of a `P4estMesh` can be saved to a mesh file. This
+# is called on all MPI ranks before writing, such that all ranks fail together, and gives
+# an informative error instead of the one of HDF5.jl, e.g., for `Symbol`s.
+function check_mesh_metadata(metadata)
+    for (key, value) in metadata
+        if !(value isa Union{Real, AbstractString,
+                   AbstractArray{<:Union{Real, AbstractString}}})
+            throw(ArgumentError("the metadata `$key` of the mesh is of type " *
+                                "$(typeof(value)), which cannot be saved to a mesh " *
+                                "file; use numbers, strings, or arrays of them"))
+        end
+    end
+    return nothing
+end
+
+# Save the `metadata` of a `P4estMesh`, checked by `check_mesh_metadata`, as attributes of
+# the group "metadata" of the mesh file `file`
+function save_mesh_metadata(file, metadata)
+    group = create_group(file, "metadata")
+    for (key, value) in metadata
+        attributes(group)[String(key)] = value
+    end
+    return nothing
+end
+
+# Load the `metadata` of a `P4estMesh` saved by `save_mesh_metadata`. Mesh files written by
+# older versions of Trixi.jl do not contain any metadata.
+function load_mesh_metadata(file)
+    metadata = Dict{Symbol, Any}()
+    if haskey(file, "metadata")
+        metadata_attributes = attributes(file["metadata"])
+        for key in keys(metadata_attributes)
+            metadata[Symbol(key)] = read(metadata_attributes[key])
+        end
+    end
+    return metadata
+end
+
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructed from
 # these attributes for plotting purposes
 function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
                         mpi_parallel::False)
+    check_mesh_metadata(mesh.metadata)
+
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -184,6 +224,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        save_mesh_metadata(file, mesh.metadata)
         return nothing
     end
 
@@ -191,6 +232,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
 end
 
 function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_parallel::True)
+    check_mesh_metadata(mesh.metadata)
+
     # Create output directory (if it does not exist)
     mpi_isroot() && mkpath(output_directory)
 
@@ -225,6 +268,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.boundary_names .|> String
+        save_mesh_metadata(file, mesh.metadata)
         return nothing
     end
 
@@ -467,11 +511,12 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         mesh.current_filename = mesh_file
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
-        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+        nodes, boundary_names_, metadata = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),
                    read(file["tree_node_coordinates"]),
                    read(file["nodes"]),
-                   read(file["boundary_names"])
+                   read(file["boundary_names"]),
+                   load_mesh_metadata(file)
         end
 
         boundary_names = boundary_names_ .|> Symbol
@@ -483,15 +528,17 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, mesh_file, false, true)
+                                nodes, boundary_names, mesh_file, false, true;
+                                metadata)
     elseif mesh_type == "P4estMeshView"
         p4est_filename, cell_ids, tree_node_coordinates,
-        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+        nodes, boundary_names_, metadata = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),
                    read(attributes(file)["cell_ids"]),
                    read(file["tree_node_coordinates"]),
                    read(file["nodes"]),
-                   read(file["boundary_names"])
+                   read(file["boundary_names"]),
+                   load_mesh_metadata(file)
         end
 
         boundary_names = boundary_names_ .|> Symbol
@@ -507,7 +554,8 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         parent_mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
                                        nodes, boundary_names, mesh_file,
                                        unsaved_changes,
-                                       p4est_partition_allow_for_coarsening)
+                                       p4est_partition_allow_for_coarsening;
+                                       metadata)
 
         mesh = P4estMeshView(parent_mesh, cell_ids)
 
@@ -646,22 +694,23 @@ function load_mesh_parallel(mesh_file::AbstractString; RealT)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()
             p4est_filename, tree_node_coordinates,
-            nodes, boundary_names_ = h5open(mesh_file, "r") do file
+            nodes, boundary_names_, metadata = h5open(mesh_file, "r") do file
                 return read(attributes(file)["p4est_file"]),
                        read(file["tree_node_coordinates"]),
                        read(file["nodes"]),
-                       read(file["boundary_names"])
+                       read(file["boundary_names"]),
+                       load_mesh_metadata(file)
             end
 
             boundary_names = boundary_names_ .|> Symbol
 
             p4est_file = joinpath(dirname(mesh_file), p4est_filename)
 
-            data = (p4est_file, tree_node_coordinates, nodes, boundary_names)
+            data = (p4est_file, tree_node_coordinates, nodes, boundary_names, metadata)
             MPI.bcast(data, mpi_root(), mpi_comm())
         else
             data = MPI.bcast(nothing, mpi_root(), mpi_comm())
-            p4est_file, tree_node_coordinates, nodes, boundary_names = data
+            p4est_file, tree_node_coordinates, nodes, boundary_names, metadata = data
         end
 
         # Prevent Julia crashes when `p4est` can't find the file
@@ -670,7 +719,8 @@ function load_mesh_parallel(mesh_file::AbstractString; RealT)
         p4est = load_p4est(p4est_file, Val(ndims_))
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                                 nodes, boundary_names, mesh_file, false, true)
+                                 nodes, boundary_names, mesh_file, false, true;
+                                 metadata)
 
     elseif mesh_type == "T8codeMesh"
         if mpi_isroot()

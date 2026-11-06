@@ -5368,6 +5368,45 @@ end
     end
 end
 
+@testitem "Unit: P4estMesh metadata in mesh files" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mesh = P4estMesh((2, 2), polydeg = 1, coordinates_min = (0.0, 0.0),
+                     coordinates_max = (1.0, 1.0), periodicity = true)
+    @test isempty(mesh.metadata)
+
+    metadata = Dict{Symbol, Any}(:layers_per_column => 4, :keep_together => true,
+                                 :name => "shell", :radii => [1.0, 2.0])
+    merge!(mesh.metadata, metadata)
+    mktempdir() do dir
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded.metadata == metadata
+        @test loaded.metadata[:keep_together] isa Bool
+
+        # Mesh files of older versions of Trixi.jl do not contain any metadata
+        Trixi.HDF5.h5open(mesh_file, "r+") do file
+            return Trixi.HDF5.delete_object(file, "metadata")
+        end
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test isempty(loaded.metadata)
+    end
+
+    # The metadata of the parent mesh is saved with a `P4estMeshView`
+    mesh_view = P4estMeshView(mesh, collect(1:2))
+    mktempdir() do dir
+        mesh_file = Trixi.save_mesh_file(mesh_view, dir)
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded isa P4estMeshView
+        @test loaded.parent.metadata == metadata
+    end
+
+    # Values that cannot be saved to HDF5 files are rejected before writing
+    mesh.metadata[:symbol] = :not_supported
+    mktempdir() do dir
+        @test_throws ArgumentError Trixi.save_mesh_file(mesh, dir)
+        @test !isfile(joinpath(dir, "mesh.h5"))
+    end
+end
+
 @testitem "Unit: removed TreeMesh capacity keyword is rejected" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     removed_kw = Symbol("n_cells", "_max")
     kwargs = (; initial_refinement_level = 1, removed_kw => 10)

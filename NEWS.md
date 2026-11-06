@@ -8,6 +8,10 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- The new field `metadata::Dict{Symbol, Any}` of the `P4estMesh` stores additional
+  information about the mesh that is not used by Trixi.jl itself, e.g., by packages
+  building on Trixi.jl. It is saved to and loaded from mesh files, so that it is restored
+  when restarting a simulation ([#XXXX]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the

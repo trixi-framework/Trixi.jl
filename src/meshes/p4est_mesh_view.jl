@@ -302,6 +302,8 @@ end
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
 function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
                         timestep = 0)
+    check_mesh_metadata(mesh.parent.metadata)
+
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -325,6 +327,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
         file["boundary_names"] = mesh.parent.boundary_names .|> String
+        save_mesh_metadata(file, mesh.parent.metadata)
         return nothing
     end
 
