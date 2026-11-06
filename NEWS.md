@@ -28,8 +28,9 @@ for human readability.
   Makie, and `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of
   3D `DGMultiMesh` solutions and plots of 1D `DGMultiMesh` solutions now show the
   correct axis labels ([#3405]).
-- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
-  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+- Added multi-GPU support for 2D and 3D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240], [#3364]). A local CUDA/ROCm-aware MPI installation is required.
+  For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
   on conforming meshes (no mortars, thus also no AMR) are supported.
