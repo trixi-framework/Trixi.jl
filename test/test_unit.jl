@@ -6346,7 +6346,7 @@ end
                                             aux_field)
         @test Trixi.get_aux_field(semi.cache) === aux_field
 
-        # `remake` keeps the auxiliary variables by default
+        # `remake` evaluates the same `aux_field` again by default
         semi_remade = Trixi.remake(semi)
         @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
         @test semi_remade.cache.aux_vars.aux_interface ==

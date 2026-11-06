@@ -51,7 +51,7 @@ single boundary condition that gets applied to all boundaries.
 `aux_field` is a function `aux_field(x, equations)` returning the auxiliary variables at
 the node coordinates `x`. It is required for equations using auxiliary variables and must
 not be passed otherwise, see [`nauxvariables`](@ref). The auxiliary variables are
-evaluated once.
+evaluated once when the semidiscretization is created.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,

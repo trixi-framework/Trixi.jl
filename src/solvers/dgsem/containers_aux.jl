@@ -12,9 +12,9 @@ struct AuxVarsContainer{NDIMS, uEltype <: Real,
                         Aux <: AbstractArray{uEltype},
                         AuxInterface <: AbstractArray{uEltype},
                         AuxMortar <: AbstractArray{uEltype}, AuxField}
-    aux::Aux                     # [var, i, j, k, element]
-    aux_interface::AuxInterface  # [leftright, var, i, j, interface]
-    aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar]
+    aux::Aux                     # [var, i, j, k, element] in 3D
+    aux_interface::AuxInterface  # [leftright, var, i, j, interface] in 3D
+    aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar] in 3D
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
@@ -39,7 +39,7 @@ end
 @inline check_axes_aux(::Nothing, equations, solver, cache) = nothing
 
 @inline function check_axes_aux(aux, equations, solver, cache)
-    # [var, i, j, k, element]
+    # [var, i, j, k, element] in 3D
     node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux) - 2))
     return check_axes(aux,
                       (eachauxvariable(equations), node_axes...,
@@ -50,7 +50,7 @@ end
 
 @inline function check_axes_aux_interface(aux_interface, equations,
                                           solver, cache)
-    # [leftright, var, i, j, interface]
+    # [leftright, var, i, j, interface] in 3D
     surface_node_axes = ntuple(_ -> eachnode(solver),
                                Val(ndims(aux_interface) - 3))
     return check_axes(aux_interface,
@@ -61,7 +61,7 @@ end
 @inline check_axes_aux_mortar(::Nothing, equations, solver, cache) = nothing
 
 @inline function check_axes_aux_mortar(aux_mortar, equations, solver, cache)
-    # [leftright, var, position, i, j, mortar]
+    # [leftright, var, position, i, j, mortar] in 3D
     surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mortar) - 4))
     return check_axes(aux_mortar,
                       (Base.OneTo(2), eachauxvariable(equations),
@@ -107,7 +107,7 @@ end
 # equations expect. Without this check, too few values result in a confusing `BoundsError`
 # and too many are silently ignored.
 function check_aux_field(aux_field, mesh, equations, solver, cache)
-    # Nothing to check without elements, e.g., on an empty MPI rank
+    # Nothing to check without elements
     if nelements(cache.elements) == 0
         return nothing
     end
