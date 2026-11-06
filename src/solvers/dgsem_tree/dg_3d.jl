@@ -1608,9 +1608,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function calc_sources!(backend::Nothing, du, u, t, source_terms::Source,
-                       equations::AbstractEquations{3}, dg::DG,
-                       cache) where {Source}
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       equations::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     # `nothing` if the equations do not have auxiliary variables
