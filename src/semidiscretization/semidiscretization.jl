@@ -649,7 +649,10 @@ end
 # `element_variables::Dict{Symbol,Any}` in place. The method for the solver collects them
 # from its components via `get_element_variables_volume_integral!` and
 # `get_element_variables_mesh!`. The `SaveSolutionCallback` additionally calls
-# `get_element_variables_callback!` for each callback.
+# `get_element_variables_callback!` for each callback; the `AMRCallback` forwards this
+# to its controller via `get_element_variables_controller!`. Controllers and
+# shock-capturing volume integrals update their indicators and store the values via
+# `get_element_variables_indicator!`.
 function get_element_variables!(element_variables, u_ode,
                                 semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)

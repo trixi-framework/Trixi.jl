@@ -134,6 +134,7 @@ function uses_amr(cb::DiscreteCallback{Condition, Affect!}) where {Condition,
 end
 uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
+# Output the values of the indicator(s) used by the AMR controller.
 function get_element_variables_callback!(element_variables, u, mesh, equations, solver,
                                          cache, amr_callback::AMRCallback; kwargs...)
     return get_element_variables_controller!(element_variables, u, mesh, equations,
@@ -1046,6 +1047,8 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     end
 end
 
+# Add the values of the indicator(s) used by `controller` to `element_variables`.
+# New controller types used with the `SaveSolutionCallback` must specialize this method.
 function get_element_variables_controller!(element_variables, u, mesh, equations,
                                            solver, cache,
                                            controller::ControllerThreeLevel,
