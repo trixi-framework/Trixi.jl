@@ -353,97 +353,13 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-# Inlined function for interface flux computation for flux + nonconservative terms
-Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
-                                                       MeshT::Type{<:Union{P4estMesh{3},
-                                                                           T8codeMesh{3}}},
-                                                       have_nonconservative_terms::True,
-                                                       equations,
-                                                       surface_integral,
-                                                       SolverT::Type{<:DG},
-                                                       u_interface,
-                                                       aux_interface,
-                                                       interface_index,
-                                                       normal_direction,
-                                                       primary_i_node_index,
-                                                       primary_j_node_index,
-                                                       primary_direction_index,
-                                                       primary_element_index,
-                                                       secondary_i_node_index,
-                                                       secondary_j_node_index,
-                                                       secondary_direction_index,
-                                                       secondary_element_index)
-    calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                         equations),
-                         equations, surface_integral, SolverT,
-                         u_interface, aux_interface,
-                         interface_index, normal_direction,
-                         primary_i_node_index, primary_j_node_index,
-                         primary_direction_index, primary_element_index,
-                         secondary_i_node_index, secondary_j_node_index,
-                         secondary_direction_index, secondary_element_index)
-    return nothing
-end
-
+# Inlined function for interface flux computation for flux + nonconservative terms.
+# The conservative and nonconservative fluxes are combined in `flux_combined`, both for a
+# tuple of fluxes and for numerical fluxes computing the combined fluxes themselves.
 Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                                        ::Type{<:Union{P4estMesh{3},
                                                                       T8codeMesh{3}}},
                                                        have_nonconservative_terms::True,
-                                                       combine_conservative_and_nonconservative_fluxes::False,
-                                                       equations,
-                                                       surface_integral,
-                                                       SolverT::Type{<:DG},
-                                                       u_interface,
-                                                       aux_interface,
-                                                       interface_index,
-                                                       normal_direction,
-                                                       primary_i_node_index,
-                                                       primary_j_node_index,
-                                                       primary_direction_index,
-                                                       primary_element_index,
-                                                       secondary_i_node_index,
-                                                       secondary_j_node_index,
-                                                       secondary_direction_index,
-                                                       secondary_element_index)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
-                                       primary_i_node_index, primary_j_node_index,
-                                       interface_index)
-    aux_node = get_aux_surface_node_vars(aux_interface, equations, SolverT,
-                                         primary_i_node_index, primary_j_node_index,
-                                         interface_index)
-
-    flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
-
-    # Compute both nonconservative fluxes
-    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
-                                           normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
-                                             normal_direction, equations)
-
-    # Store the flux with nonconservative terms on the primary and secondary elements
-    for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
-        surface_flux_values[v, primary_i_node_index, primary_j_node_index,
-        primary_direction_index, primary_element_index] = flux_[v] +
-                                                          0.5f0 * noncons_primary[v]
-        surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
-        secondary_direction_index, secondary_element_index] = -(flux_[v] +
-                                                                0.5f0 *
-                                                                noncons_secondary[v])
-    end
-
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
-                                                       ::Type{<:Union{P4estMesh{3},
-                                                                      T8codeMesh{3}}},
-                                                       have_nonconservative_terms::True,
-                                                       combine_conservative_and_nonconservative_fluxes::True,
                                                        equations,
                                                        surface_integral,
                                                        SolverT::Type{<:DG},
@@ -467,8 +383,11 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                          primary_i_node_index, primary_j_node_index,
                                          interface_index)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
-                                         normal_direction, equations)
+    # Conservative flux plus 0.5 times the nonconservative flux on both sides. The factor
+    # 0.5 is based on the interpretation of global SBP operators coupled discontinuously
+    # via central fluxes/SATs.
+    flux_left, flux_right = flux_combined(surface_flux, u_ll, u_rr, aux_node,
+                                          normal_direction, equations)
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
@@ -656,37 +575,13 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     return nothing
 end
 
-# inlined version of the boundary flux calculation along a physical interface
+# inlined version of the boundary flux calculation along a physical interface for
+# equations with nonconservative terms, see `boundary_flux_combined`
 Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
                                                       boundary_condition,
                                                       mesh::Union{P4estMesh{3},
                                                                   T8codeMesh{3}},
                                                       have_nonconservative_terms::True,
-                                                      equations,
-                                                      surface_integral, dg::DG, cache,
-                                                      i_index, j_index, k_index,
-                                                      i_node_index, j_node_index,
-                                                      direction_index,
-                                                      element_index,
-                                                      boundary_index)
-    calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh,
-                        have_nonconservative_terms,
-                        combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                        equations),
-                        equations,
-                        surface_integral, dg, cache,
-                        i_index, j_index, k_index,
-                        i_node_index, j_node_index,
-                        direction_index, element_index, boundary_index)
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
-                                                      boundary_condition,
-                                                      mesh::Union{P4estMesh{3},
-                                                                  T8codeMesh{3}},
-                                                      have_nonconservative_terms::True,
-                                                      combine_conservative_and_nonconservative_fluxes::False,
                                                       equations,
                                                       surface_integral, dg::DG, cache,
                                                       i_index, j_index, k_index,
@@ -715,64 +610,10 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, k_index, element_index)
 
-    # Call pointwise numerical flux functions for the conservative and nonconservative part
-    # in the normal direction on the boundary
-    flux, noncons_flux = boundary_condition(u_inner, aux_inner...,
-                                            normal_direction, x, t,
-                                            surface_flux, equations)
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
-        surface_flux_values[v, i_node_index, j_node_index,
-        direction_index, element_index] = flux[v] +
-                                          0.5f0 * noncons_flux[v]
-    end
-
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
-                                                      boundary_condition,
-                                                      mesh::Union{P4estMesh{3},
-                                                                  T8codeMesh{3}},
-                                                      have_nonconservative_terms::True,
-                                                      combine_conservative_and_nonconservative_fluxes::True,
-                                                      equations,
-                                                      surface_integral, dg::DG, cache,
-                                                      i_index, j_index, k_index,
-                                                      i_node_index, j_node_index,
-                                                      direction_index,
-                                                      element_index,
-                                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(boundaries.u, equations, dg,
-                            i_node_index, j_node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, k_index, element_index)
-
-    # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, k_index, element_index)
-
-    # Auxiliary variables inside the domain. There are no separate auxiliary variables
-    # on the outside of the boundary.
-    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
-                                  i_index, j_index, k_index, element_index)
-
-    # Call pointwise numerical flux functions for the conservative and nonconservative part
-    # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, aux_inner...,
-                              normal_direction, x, t,
-                              surface_flux, equations)
+    # Conservative flux plus 0.5 times the nonconservative flux in the normal direction
+    # on the boundary
+    flux = boundary_flux_combined(boundary_condition, u_inner, aux_inner,
+                                  normal_direction, x, t, surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -1020,69 +861,11 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
-# with nonconservative terms
+# with nonconservative terms, see `flux_combined`
 Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                                     mesh::Union{P4estMesh{3},
                                                                 T8codeMesh{3}},
                                                     have_nonconservative_terms::True,
-                                                    equations,
-                                                    surface_integral, dg::DG, cache,
-                                                    mortar_index, position_index,
-                                                    normal_direction, aux_node,
-                                                    i_node_index, j_node_index)
-    calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
-                      have_nonconservative_terms,
-                      combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                      equations),
-                      equations, surface_integral, dg, cache,
-                      mortar_index, position_index, normal_direction, aux_node,
-                      i_node_index, j_node_index)
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                                    mesh::Union{P4estMesh{3},
-                                                                T8codeMesh{3}},
-                                                    have_nonconservative_terms::True,
-                                                    combine_conservative_and_nonconservative_fluxes::False,
-                                                    equations,
-                                                    surface_integral, dg::DG, cache,
-                                                    mortar_index, position_index,
-                                                    normal_direction, aux_node,
-                                                    i_node_index, j_node_index)
-    @unpack u = cache.mortars
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
-                                       i_node_index, j_node_index, mortar_index)
-
-    # Compute conservative flux
-    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
-
-    # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
-    # the interpretation of global SBP operators coupled discontinuously via
-    # central fluxes/SATs
-    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
-                                           normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
-                                             normal_direction, equations)
-    flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
-    flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
-
-    # Copy to buffer
-    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                   i_node_index, j_node_index, position_index)
-    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                   i_node_index, j_node_index, position_index)
-
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                                    mesh::Union{P4estMesh{3},
-                                                                T8codeMesh{3}},
-                                                    have_nonconservative_terms::True,
-                                                    combine_conservative_and_nonconservative_fluxes::True,
                                                     equations,
                                                     surface_integral, dg::DG, cache,
                                                     mortar_index, position_index,
@@ -1094,12 +877,13 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
-    # The combined flux returns the conservative flux plus 0.5 times the
-    # nonconservative flux for the small (primary) and large (secondary) side
-    flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
-                                                                          aux_node...,
-                                                                          normal_direction,
-                                                                          equations)
+    # Conservative flux plus 0.5 times the nonconservative flux for the small (primary)
+    # and large (secondary) side
+    flux_plus_noncons_primary, flux_plus_noncons_secondary = flux_combined(surface_flux,
+                                                                           u_ll, u_rr,
+                                                                           aux_node,
+                                                                           normal_direction,
+                                                                           equations)
 
     # Copy to buffer
     set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
