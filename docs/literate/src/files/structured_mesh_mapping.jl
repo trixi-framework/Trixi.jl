@@ -120,8 +120,8 @@ plot!(getmesh(pd))
 # a transformation mapping. Here, we want to present a nice mapping, which is often used to test
 # free-stream preservation. Exact free-stream preservation is a crucial property of any numerical
 # method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580), see p. 18 of the
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580), see p. 16.
+# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580), Section 6.1,
+# Eqs. (90)-(93).
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
@@ -135,7 +135,7 @@ initial_condition = initial_condition_constant
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # We define the transformation mapping with variables in $[-1, 1]$ as described in
-# Rueda-Ramírez et al. (2021), p.18 (reduced to 2D):
+# Rueda-Ramírez et al. (2021), Section 6.1, Eqs. (90)-(93) (reduced to 2D):
 function mapping(xi_, eta_)
     ## Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

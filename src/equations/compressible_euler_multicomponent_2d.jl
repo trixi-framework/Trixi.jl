@@ -222,8 +222,9 @@ end
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMulticomponentEquations2D)
 
 A for multicomponent adapted weak blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
@@ -427,7 +428,7 @@ end
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
 
 Adaption of the entropy conserving two-point flux by
-- Ayoub Gouasmi, Karthik Duraisamy (2020)
+- Ayoub Gouasmi, Karthik Duraisamy, Scott M. Murman (2020)
   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 """
@@ -1075,7 +1076,7 @@ end
 end
 
 # Entropy potential in the requested direction; see, for example,
-# - Ayoub Gouasmi, Karthik Duraisamy (2020)
+# - Ayoub Gouasmi, Karthik Duraisamy, Scott M. Murman (2020)
 #   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
 #   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 @inline function entropy_potential(u, orientation::Int,

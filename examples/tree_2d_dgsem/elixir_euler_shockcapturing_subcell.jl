@@ -9,8 +9,9 @@ equations = CompressibleEulerEquations2D(1.4)
     initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 A medium blast wave (modified to lower density and higher pressure) taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)

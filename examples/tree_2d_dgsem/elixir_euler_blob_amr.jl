@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(gamma)
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 
 The blob test case taken from
-- Agertz et al. (2006)
+- Agertz et al. (2007)
   Fundamental differences between SPH and grid methods
   [DOI: 10.1111/j.1365-2966.2007.12183.x](https://doi.org/10.1111/j.1365-2966.2007.12183.x)
 """

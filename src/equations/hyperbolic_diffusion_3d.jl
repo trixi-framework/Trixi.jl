@@ -9,7 +9,7 @@
     HyperbolicDiffusionEquations3D
 
 The linear hyperbolic diffusion equations in three space dimensions.
-A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
+A description of this system can be found in Sec. 2.5 of the book "I do like CFD, VOL.1".
 The book is freely available at [ResearchGate](https://www.researchgate.net/publication/315378648_I_do_like_CFD_VOL1_Governing_Equations_and_Exact_Solutions) and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
@@ -143,7 +143,7 @@ end
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_harmonic`](@ref).
@@ -253,7 +253,7 @@ end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::HyperbolicDiffusionEquations3D) = u
 
-# Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
+# Convert conservative variables to entropy found in "I do like CFD, VOL.1"
 @inline function cons2entropy(u, equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
     w1 = phi
@@ -271,7 +271,7 @@ end
 
 # Calculate total energy for a conservative state `u`
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations3D)
-    # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
+    # energy function as found in equation (2.5.12) in the book "I do like CFD, VOL.1"
     phi, q1, q2, q3 = u
     return 0.5f0 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2 + q3^2))
 end

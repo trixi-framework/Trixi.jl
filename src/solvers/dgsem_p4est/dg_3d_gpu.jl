@@ -70,8 +70,6 @@ end
 #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
 #   with Non-Conservative Terms
 #   [DOI: 10.1016/j.jcp.2026.115543](https://doi.org/10.1016/j.jcp.2026.115543)
-#   (section and equation numbers refer to the preprint
-#   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684))
 @kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},

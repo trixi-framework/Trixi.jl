@@ -7,7 +7,7 @@ using Trixi
                                                          HyperbolicDiffusionEquations2D})
 
 The classical Jeans instability taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
@@ -19,8 +19,7 @@ in CGS (centimeter, gram, second) units.
 function initial_condition_jeans_instability(x, t,
                                              equations::CompressibleEulerEquations2D)
     # Jeans gravitational instability test case
-    # see Derigs et al. https://doi.org/10.1016/j.jcp.2016.04.048; Sec. 4.6 of the
-    # preprint https://arxiv.org/abs/1605.03572
+    # see Derigs et al. https://doi.org/10.1016/j.jcp.2016.04.048; Sec. 4.6
     # Note: this uses cgs (centimeter, gram, second) units
     # periodic boundaries
     # domain size [0,L]^2 depends on the wave number chosen for the perturbation

@@ -194,7 +194,7 @@ that contains the gradient of the pressure  [`CompressibleEulerEquationsQuasi1D`
 and the nozzle width.
 
 Further details are available in the paper:
-- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
+- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2024)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
   [DOI: 10.1016/j.jcp.2024.112876](https://doi.org/10.1016/j.jcp.2024.112876)
@@ -232,7 +232,7 @@ end
 Conservative (symmetric) part of the entropy conservative flux for quasi 1D compressible Euler equations split form.
 This flux is a generalization of [`flux_ranocha`](@ref) for [`CompressibleEulerEquations1D`](@ref).
 Further details are available in the paper:
-- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
+- Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2024)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
   [DOI: 10.1016/j.jcp.2024.112876](https://doi.org/10.1016/j.jcp.2024.112876)
