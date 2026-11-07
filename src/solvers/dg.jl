@@ -1521,6 +1521,14 @@ end
     return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
 end
 
+@inline function get_aux_mpi_interface_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_interface : nothing
+end
+
+@inline function get_aux_mpi_mortar_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_mortar : nothing
+end
+
 # Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
 # `remake` a semidiscretization, or `nothing` without auxiliary variables.
 @inline function get_aux_field(cache)

@@ -11,10 +11,16 @@
 struct AuxVarsContainer{NDIMS, uEltype <: Real,
                         Aux <: AbstractArray{uEltype},
                         AuxInterface <: AbstractArray{uEltype},
-                        AuxMortar <: AbstractArray{uEltype}, AuxField}
+                        AuxMortar <: AbstractArray{uEltype},
+                        AuxMPIInterface <: AbstractArray{uEltype},
+                        AuxMPIMortar <: AbstractArray{uEltype}, AuxField}
     aux::Aux                     # [var, i, j, k, element] in 3D
     aux_interface::AuxInterface  # [leftright, var, i, j, interface] in 3D
     aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar] in 3D
+    # Same as `aux_interface` and `aux_mortar` for the MPI interfaces and MPI mortars of
+    # parallel meshes. For serial meshes, there are no MPI interfaces and MPI mortars.
+    aux_mpi_interface::AuxMPIInterface # [leftright, var, i, j, mpi_interface] in 3D
+    aux_mpi_mortar::AuxMPIMortar       # [leftright, var, position, i, j, mpi_mortar] in 3D
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
@@ -26,11 +32,15 @@ function Adapt.adapt_structure(to, aux_vars::AuxVarsContainer{NDIMS}) where {NDI
     aux = adapt(to, aux_vars.aux)
     aux_interface = adapt(to, aux_vars.aux_interface)
     aux_mortar = adapt(to, aux_vars.aux_mortar)
+    aux_mpi_interface = adapt(to, aux_vars.aux_mpi_interface)
+    aux_mpi_mortar = adapt(to, aux_vars.aux_mpi_mortar)
     @unpack aux_field = aux_vars
 
     return AuxVarsContainer{NDIMS, eltype(aux), typeof(aux),
                             typeof(aux_interface), typeof(aux_mortar),
+                            typeof(aux_mpi_interface), typeof(aux_mpi_mortar),
                             typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                               aux_mpi_interface, aux_mpi_mortar,
                                                aux_field)
 end
 
@@ -69,6 +79,35 @@ end
                        eachmortar(solver, cache)))
 end
 
+@inline check_axes_aux_mpi_interface(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_interface(aux_mpi_interface, equations, solver,
+                                              cache)
+    # [leftright, var, i, j, mpi_interface] in 3D
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_interface) - 3))
+    return check_axes(aux_mpi_interface,
+                      (Base.OneTo(2), eachauxvariable(equations), surface_node_axes...,
+                       eachmpiinterface(solver, cache)))
+end
+
+@inline check_axes_aux_mpi_mortar(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_mortar(aux_mpi_mortar, equations, solver, cache)
+    # [leftright, var, position, i, j, mpi_mortar] in 3D
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_mortar) - 4))
+    return check_axes(aux_mpi_mortar,
+                      (Base.OneTo(2), eachauxvariable(equations),
+                       Base.OneTo(2^length(surface_node_axes)), surface_node_axes...,
+                       eachmpimortar(solver, cache)))
+end
+
+# Number of MPI interfaces and MPI mortars, which only exist for parallel meshes
+@inline function nmpiinterfaces_aux(cache)
+    return haskey(cache, :mpi_interfaces) ? nmpiinterfaces(cache.mpi_interfaces) : 0
+end
+@inline nmpimortars_aux(cache) = haskey(cache, :mpi_mortars) ?
+                                 nmpimortars(cache.mpi_mortars) : 0
+
 # Create and initialize the container of auxiliary variables
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     NDIMS = ndims(mesh)
@@ -91,10 +130,19 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     aux_mortar = fill(nan_uEltype,
                       (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
                        nmortars(cache.mortars)))
+    # Same for the MPI interfaces and MPI mortars, which are empty for serial meshes
+    aux_mpi_interface = fill(nan_uEltype,
+                             (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
+                              nmpiinterfaces_aux(cache)))
+    aux_mpi_mortar = fill(nan_uEltype,
+                          (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
+                           nmpimortars_aux(cache)))
 
     aux_vars = AuxVarsContainer{NDIMS, uEltype, typeof(aux),
                                 typeof(aux_interface), typeof(aux_mortar),
+                                typeof(aux_mpi_interface), typeof(aux_mpi_mortar),
                                 typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                                   aux_mpi_interface, aux_mpi_mortar,
                                                    aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
