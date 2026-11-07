@@ -55,7 +55,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 

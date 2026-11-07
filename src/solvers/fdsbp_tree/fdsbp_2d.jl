@@ -6,9 +6,10 @@
 #! format: noindent
 
 # 2D caches
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
-                      volume_integral::VolumeIntegralStrongForm,
-                      dg, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::Union{TreeMesh{2}, UnstructuredMesh2D},
+                                      equations,
+                                      volume_integral::VolumeIntegralStrongForm,
+                                      dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
@@ -17,9 +18,10 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
     return (; f_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
-                      volume_integral::VolumeIntegralUpwind,
-                      dg, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::Union{TreeMesh{2}, UnstructuredMesh2D},
+                                      equations,
+                                      volume_integral::VolumeIntegralUpwind,
+                                      dg, cache_containers, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])
@@ -38,9 +40,10 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
     return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::FDSBP, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::Union{TreeMesh{2}, UnstructuredMesh2D},
+                                      equations,
+                                      volume_integral::VolumeIntegralFluxDifferencing,
+                                      dg::FDSBP, cache_containers, uEltype)
     if !(typeof(dg.surface_integral) <: SurfaceIntegralWeakForm)
         throw(ArgumentError("Invalid surface integral type: $(dg.surface_integral). Please use SurfaceIntegralWeakForm(surface_flux)."))
     end
