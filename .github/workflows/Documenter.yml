@@ -32,13 +32,50 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Parts of the Julia depot to cache, excluding lock files. Restoring and saving
+      # must use the same list since it is part of the cache version.
+      JULIA_DEPOT_CACHE_PATHS: |
+        ~/.julia/artifacts
+        ~/.julia/packages
+        ~/.julia/registries
+        ~/.julia/compiled
+        ~/.julia/scratchspaces
+        ~/.julia/logs
+        !~/.julia/artifacts/*.pid
+        !~/.julia/artifacts/*.pidfile
+        !~/.julia/compiled/v*.*/*.pid
+        !~/.julia/compiled/v*.*/*.pidfile
+        !~/.julia/compiled/v*.*/*/*.pid
+        !~/.julia/compiled/v*.*/*/*.pidfile
+        !~/.julia/packages/*/*.pid
+        !~/.julia/packages/*/*.pidfile
+        !~/.julia/registries/*/.pid
+        !~/.julia/registries/*/.pidfile
+        !~/.julia/logs/*.pid
+        !~/.julia/logs/*.pidfile
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: '1.10'
           show-versioninfo: true
-      - uses: julia-actions/cache@v3
+      # Caches of the Julia depot are saved only from runs on `main` (see the save step
+      # below). Pull requests restore them but do not save their own, since entries saved
+      # from pull requests fill the repository cache storage and get the entries of `main`
+      # evicted. The workflow `CacheCleanup.yml` deletes all but the newest entry per key
+      # prefix.
+      - name: Restore Julia depot cache
+        id: julia-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: julia-depot;workflow=Documentation;os=${{ runner.os }};arch=${{ runner.arch }};julia=1.10;run_id=${{ github.run_id }};run_attempt=${{ github.run_attempt }}
+          restore-keys: |
+            julia-depot;workflow=Documentation;os=${{ runner.os }};arch=${{ runner.arch }};julia=1.10;
+      - name: Update cached registries
+        if: steps.julia-cache.outputs.cache-matched-key != ''
+        run: julia --color=yes -e 'import Pkg; Pkg.Registry.update()'
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
@@ -51,3 +88,9 @@ jobs:
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY_V2 }} # For authentication with SSH deploy key
           GKSwstype: 100 # To make GitHub Action work, disable showing a plot window with the GR backend of the Plots package
         run: julia --project=docs --color=yes docs/make.jl
+      - name: Save Julia depot cache
+        if: ${{ !cancelled() && steps.julia-cache.outcome == 'success' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: ${{ steps.julia-cache.outputs.cache-primary-key }}
