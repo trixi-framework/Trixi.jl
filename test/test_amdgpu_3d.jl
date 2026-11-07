@@ -267,6 +267,186 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "AMDGPU 3D: elixir_advection_nonconforming.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[0.00253595715323843],
+                        linf=Float32[0.016486952252155795],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test eltype(semi.equations.advection_velocity) == Float32
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonconforming_unstructured_curved.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[4.070355207909268e-5,
+                                   4.4993257426833716e-5,
+                                   5.10588457841744e-5,
+                                   5.102840924036687e-5,
+                                   0.00019986264001630542],
+                        linf=Float32[0.0016987332417202072,
+                                     0.003622956808262634,
+                                     0.002029576258317789,
+                                     0.0024206977281964193,
+                                     0.008526972236273522],
+                        tspan=(0.0, 0.01),
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> :i_backward in indices || :j_backward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl nonconforming Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    using Trixi
+    # Create a non-conforming mesh by refining the bottom left front octant of each tree
+    # to level 4 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
+    # periodicity to match the boundary conditions of the elixir used below
+    mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 1,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0),
+                                   periodicity = false)
+    function refine_fn(p8est, which_tree, quadrant)
+        quadrant_obj = unsafe_load(quadrant)
+        if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
+           quadrant_obj.level < 3
+            # return true (refine)
+            return Cint(1)
+        else
+            # return false (don't refine)
+            return Cint(0)
+        end
+    end
+    refine_fn_c = @cfunction(refine_fn, Cint,
+                             (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                              Ptr{Trixi.p8est_quadrant_t}))
+    Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        # Reference errors computed with KernelAbstractions CPU backend with `Float64`
+                        l2=Float32[0.001656350469788179,
+                                   0.005878912164586573,
+                                   0.0030351693310068915,
+                                   0.006415910708712904,
+                                   0.006315360797389399,
+                                   0.006235810541664033,
+                                   0.002844337960841682,
+                                   0.006547611570440981,
+                                   0.0033770756724939297],
+                        linf=Float32[0.011726707425792626,
+                                     0.043758334597288714,
+                                     0.018828037099486855,
+                                     0.044739187284319026,
+                                     0.047655270947795536,
+                                     0.04068120133668496,
+                                     0.02570557246571159,
+                                     0.04804236486857274,
+                                     0.024268494473398607],
+                        RealT_for_test_tolerances=Float32,
+                        mesh=mesh_nonconforming,
+                        tspan=(0.0, 0.25),
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    # Make sure that the mortar kernels are used with the combined conservative
+    # and nonconservative fluxes
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.combine_conservative_and_nonconservative_fluxes(semi.solver.surface_integral.surface_flux,
+                                                                semi.equations) ==
+          Trixi.True()
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
     Setup,
     AMDGPU3DExamples

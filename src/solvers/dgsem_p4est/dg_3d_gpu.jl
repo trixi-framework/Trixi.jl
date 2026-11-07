@@ -1670,6 +1670,400 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
     return nothing
 end
 
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                          equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
+    end
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+
+    index_range = eachnode(dg)
+    nvars = nvariables(equations)
+
+    kernel! = prolong2mortars_KAkernel!(backend)
+    kernel!(cache.mortars.u, u, typeof(mesh),
+            neighbor_ids, node_indices,
+            mortar_l2.forward_lower, mortar_l2.forward_upper,
+            index_range, Val(nvars),
+            ndrange = (nnodes(dg), nnodes(dg), nmortars(dg, cache)))
+
+    return nothing
+end
+
+@kernel inbounds=true function prolong2mortars_KAkernel!(mortars_u, u,
+                                                         MeshT::Type{<:Union{P4estMesh{3},
+                                                                             T8codeMesh{3}}},
+                                                         neighbor_ids,
+                                                         node_indices,
+                                                         forward_lower,
+                                                         forward_upper,
+                                                         index_range,
+                                                         val_vars::Val{nvars}) where {nvars}
+    i, j, mortar = @index(Global, NTuple)
+
+    prolong2mortars_per_node!(mortars_u, u, MeshT, neighbor_ids, node_indices,
+                              forward_lower, forward_upper, i, j, mortar, index_range,
+                              val_vars)
+end
+
+Base.@propagate_inbounds function prolong2mortars_per_node!(mortars_u, u,
+                                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                                T8codeMesh{3}}},
+                                                            neighbor_ids,
+                                                            node_indices,
+                                                            forward_lower,
+                                                            forward_upper,
+                                                            i, j, mortar, index_range,
+                                                            ::Val{nvars}) where {nvars}
+    n = length(index_range)
+
+    # Copy solution data from the small elements using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
+    small_indices = node_indices[1, mortar]
+
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
+
+    i_small = delayed_index_3d(i_small_start, i_small_step_i, i_small_step_j, i, j, n)
+    j_small = delayed_index_3d(j_small_start, j_small_step_i, j_small_step_j, i, j, n)
+    k_small = delayed_index_3d(k_small_start, k_small_step_i, k_small_step_j, i, j, n)
+
+    for position in 1:4
+        element = neighbor_ids[position, mortar]
+        for v in 1:nvars
+            mortars_u[1, v, position, i, j, mortar] = u[v, i_small, j_small, k_small,
+                                                        element]
+        end
+    end
+
+    # Interpolate large element face data to small face locations
+    # In contrast to the CPU version, we do not buffer the data
+    large_indices = node_indices[2, mortar]
+    element = neighbor_ids[5, mortar]
+
+    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                           index_range)
+    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                           index_range)
+    k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                           index_range)
+
+    # This is what the four multiply_dimensionwise! calls do in the CPU version.
+    # The positions of the small elements are
+    # 1: (lower, lower), 2: (upper, lower), 3: (lower, upper), 4: (upper, upper)
+    # in the two surface coordinate directions.
+    for v in 1:nvars
+        res_1 = zero(eltype(u))
+        res_2 = zero(eltype(u))
+        res_3 = zero(eltype(u))
+        res_4 = zero(eltype(u))
+        for jj in index_range, ii in index_range
+            i_large = delayed_index_3d(i_large_start, i_large_step_i, i_large_step_j,
+                                       ii, jj, n)
+            j_large = delayed_index_3d(j_large_start, j_large_step_i, j_large_step_j,
+                                       ii, jj, n)
+            k_large = delayed_index_3d(k_large_start, k_large_step_i, k_large_step_j,
+                                       ii, jj, n)
+            u_large = u[v, i_large, j_large, k_large, element]
+
+            lower_i = forward_lower[i, ii]
+            upper_i = forward_upper[i, ii]
+            lower_j = forward_lower[j, jj]
+            upper_j = forward_upper[j, jj]
+            res_1 += (lower_i * lower_j) * u_large
+            res_2 += (upper_i * lower_j) * u_large
+            res_3 += (lower_i * upper_j) * u_large
+            res_4 += (upper_i * upper_j) * u_large
+        end
+        mortars_u[2, v, 1, i, j, mortar] = res_1
+        mortars_u[2, v, 2, i, j, mortar] = res_2
+        mortars_u[2, v, 3, i, j, mortar] = res_3
+        mortars_u[2, v, 4, i, j, mortar] = res_4
+    end
+    return nothing
+end
+
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
+                           mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                           have_nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                           dg::DGSEM{<:LobattoLegendreBasis}, cache)
+    nmortars(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    index_range = eachnode(dg)
+    nvars = nvariables(equations)
+
+    kernel! = calc_mortar_flux_KAkernel!(backend)
+    kernel!(cache.mortars.u, surface_flux_values, typeof(mesh),
+            have_nonconservative_terms, equations,
+            surface_flux, typeof(dg),
+            neighbor_ids, node_indices, contravariant_vectors,
+            (mortar_l2.reverse_lower, mortar_l2.reverse_upper),
+            index_range, Val(nvars),
+            ndrange = (nnodes(dg), nnodes(dg), nmortars(dg, cache)))
+
+    return nothing
+end
+
+@kernel inbounds=true function calc_mortar_flux_KAkernel!(mortars_u,
+                                                          surface_flux_values,
+                                                          MeshT::Type{<:Union{P4estMesh{3},
+                                                                              T8codeMesh{3}}},
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          surface_flux::SurfaceFlux,
+                                                          ::Type{SolverT},
+                                                          neighbor_ids,
+                                                          node_indices,
+                                                          contravariant_vectors,
+                                                          reverse_matrices,
+                                                          index_range,
+                                                          val_vars::Val{nvars}) where {
+                                                                                       SurfaceFlux,
+                                                                                       SolverT,
+                                                                                       nvars
+                                                                                       }
+    i, j, mortar = @index(Global, NTuple)
+
+    calc_mortar_flux_small_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u,
+                                     index_range, mortar, i, j, val_vars)
+
+    calc_mortar_flux_large_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u,
+                                     reverse_matrices,
+                                     index_range, mortar, i, j, val_vars)
+end
+
+Base.@propagate_inbounds function calc_mortar_flux_small_per_node!(surface_flux_values,
+                                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                                       T8codeMesh{3}}},
+                                                                   have_nonconservative_terms,
+                                                                   equations,
+                                                                   surface_flux,
+                                                                   SolverT,
+                                                                   neighbor_ids,
+                                                                   node_indices,
+                                                                   contravariant_vectors,
+                                                                   mortars_u,
+                                                                   index_range, mortar,
+                                                                   i, j,
+                                                                   ::Val{nvars}) where {nvars}
+    n = length(index_range)
+
+    # Get index information on the small elements
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
+
+    i_small = delayed_index_3d(i_small_start, i_small_step_i, i_small_step_j, i, j, n)
+    j_small = delayed_index_3d(j_small_start, j_small_step_i, j_small_step_j, i, j, n)
+    k_small = delayed_index_3d(k_small_start, k_small_step_i, k_small_step_j, i, j, n)
+
+    for position in 1:4
+        element = neighbor_ids[position, mortar]
+        # Get the normal direction on the small element.
+        # Note, contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
+        normal_direction = get_normal_direction(small_direction,
+                                                contravariant_vectors,
+                                                i_small, j_small, k_small, element)
+
+        fstar_primary, _ = calc_mortar_flux_node(MeshT,
+                                                 have_nonconservative_terms,
+                                                 combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                 equations),
+                                                 equations,
+                                                 surface_flux, SolverT, mortars_u,
+                                                 mortar, position, normal_direction,
+                                                 i, j)
+
+        # Write to small sides
+        for v in 1:nvars
+            surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v]
+        end
+    end
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_values,
+                                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                                       T8codeMesh{3}}},
+                                                                   have_nonconservative_terms,
+                                                                   equations,
+                                                                   surface_flux,
+                                                                   SolverT,
+                                                                   neighbor_ids,
+                                                                   node_indices,
+                                                                   contravariant_vectors,
+                                                                   mortars_u,
+                                                                   reverse_matrices,
+                                                                   index_range, mortar,
+                                                                   i, j,
+                                                                   ::Val{nvars}) where {nvars}
+    n = length(index_range)
+
+    # Get index information on the small elements
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                           index_range)
+    j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                           index_range)
+    k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                           index_range)
+
+    # This is what the `multiply_dimensionwise!` and `add_multiply_dimensionwise!`
+    # calls in `mortar_fluxes_to_elements!` do in the CPU version.
+    # In contrast to the CPU version, the fluxes on the small elements are not
+    # buffered but recomputed by each thread.
+    # The positions of the small elements are
+    # 1: (lower, lower), 2: (upper, lower), 3: (lower, upper), 4: (upper, upper)
+    # in the two surface coordinate directions.
+    flux_large = zero(SVector{nvars, eltype(mortars_u)})
+
+    KernelAbstractions.Extras.@unroll for position in 1:4
+        reverse_matrix_i = reverse_matrices[isodd(position) ? 1 : 2]
+        reverse_matrix_j = reverse_matrices[position <= 2 ? 1 : 2]
+        element = neighbor_ids[position, mortar]
+
+        for jj in index_range, ii in index_range
+            i_small = delayed_index_3d(i_small_start, i_small_step_i, i_small_step_j,
+                                       ii, jj, n)
+            j_small = delayed_index_3d(j_small_start, j_small_step_i, j_small_step_j,
+                                       ii, jj, n)
+            k_small = delayed_index_3d(k_small_start, k_small_step_i, k_small_step_j,
+                                       ii, jj, n)
+
+            # Get the normal direction on the small element.
+            # Note, contravariant vectors at interfaces in negative coordinate direction
+            # are pointing inwards. This is handled by `get_normal_direction`.
+            normal_direction = get_normal_direction(small_direction,
+                                                    contravariant_vectors,
+                                                    i_small, j_small, k_small,
+                                                    element)
+
+            _, fstar_secondary = calc_mortar_flux_node(MeshT,
+                                                       have_nonconservative_terms,
+                                                       combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                       equations),
+                                                       equations, surface_flux, SolverT,
+                                                       mortars_u, mortar, position,
+                                                       normal_direction, ii, jj)
+
+            factor = reverse_matrix_i[i, ii] * reverse_matrix_j[j, jj]
+            flux_large = flux_large + factor * fstar_secondary
+        end
+    end
+
+    # Copy interpolated flux values to the large element face in the correct
+    # orientation.
+    # Note that the indices of the small sides will always run forward but
+    # the large indices might need to run backwards for flipped sides.
+    large_element = neighbor_ids[5, mortar]
+    large_indices = node_indices[2, mortar]
+    large_direction = indices2direction(large_indices)
+    large_surface_indices = surface_indices(large_indices)
+
+    i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1],
+                                                                           index_range)
+    j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2],
+                                                                           index_range)
+
+    i_large = delayed_index_3d(i_large_start, i_large_step_i, i_large_step_j, i, j, n)
+    j_large = delayed_index_3d(j_large_start, j_large_step_i, j_large_step_j, i, j, n)
+
+    # The flux is calculated in the outward direction of the small elements,
+    # so the sign must be switched to get the flux in outward direction
+    # of the large element.
+    # The contravariant vectors of the large element (and therefore the normal
+    # vectors of the large element as well) are four times as large as the
+    # contravariant vectors of the small elements. Therefore, the flux needs
+    # to be scaled by a factor of 4 to obtain the flux of the large element.
+    for v in 1:nvars
+        surface_flux_values[v, i_large, j_large,
+        large_direction, large_element] = -4 * flux_large[v]
+    end
+    return nothing
+end
+
+# Mortar flux computation at a single node of a small element for conservation laws.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{3},
+                                                                            T8codeMesh{3}}},
+                                                        have_nonconservative_terms::False,
+                                                        combine_conservative_and_nonconservative_fluxes,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        i_node_index, j_node_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       i_node_index, j_node_index, mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    return flux, flux
+end
+
+# Mortar flux computation at a single node of a small element for equations with
+# conservative and nonconservative terms.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{3},
+                                                                            T8codeMesh{3}}},
+                                                        have_nonconservative_terms::True,
+                                                        combine_conservative_and_nonconservative_fluxes::True,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        i_node_index, j_node_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       i_node_index, j_node_index, mortar_index)
+
+    # Compute combined fluxes
+    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    return flux_left, flux_right
+end
+
 function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
                                                                     du, u, t,
                                                                     source_terms,
