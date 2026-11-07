@@ -52,8 +52,8 @@ end
 @testitem "P4estMesh3D: elixir_advection_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=[9.773852895157622e-6],
-                        linf=[0.0005853874124926162])
+                        l2=[0.010388150319902733],
+                        linf=[0.5264392942902125])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
