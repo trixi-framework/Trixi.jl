@@ -759,7 +759,7 @@ end
 # A single numerical flux for equations with nonconservative terms has to return the
 # combined fluxes for both sides, see `combine_conservative_and_nonconservative_fluxes`.
 # Without this check, destructuring a single flux vector would silently take its first
-# two components. The check is resolved at compile time via dispatch.
+# two components.
 check_combined_fluxes(fluxes::Tuple{Any, Any}, numerical_flux) = nothing
 
 function check_combined_fluxes(fluxes, numerical_flux)
