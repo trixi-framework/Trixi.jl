@@ -648,7 +648,7 @@ end
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_shear_flow.jl"),
-                        # Expected errors are exactly the same as with the regular CPU code!
+                        # Expected errors are exactly the same as on CPU
                         l2=[0.00519048662880307],
                         linf=[0.026769982125784075],
                         storage_type=ROCArray)

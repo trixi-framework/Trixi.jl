@@ -440,7 +440,6 @@ end
     @synchronize
 
     u_node = get_node_vars(u_local, equations, dg, i, j, k)
-    # Loaded after `@synchronize`, which splits the kernel on CPU backends
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 

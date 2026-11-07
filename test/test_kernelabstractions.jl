@@ -839,7 +839,7 @@ end
 ] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advectionconservative_shear_flow.jl"),
-                        # Expected errors are exactly the same as with the regular CPU code!
+                        # Expected errors are exactly the same as on CPU
                         l2=[0.00519048662880307],
                         linf=[0.026769982125784075])
     # The elixir adapts `semi` before creating the ODE problem
