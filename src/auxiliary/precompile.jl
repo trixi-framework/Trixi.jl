@@ -195,6 +195,27 @@ function _precompile_manual_()
                                        Matrix{RealT}}
     end
 
+    function element_container_type(ElementContainer, uEltype,
+                                    ::Type{<:AbstractEquations{NDIMS, NVARS}},
+                                    ::Type{<:LobattoLegendreBasis{RealT, NNODES}}) where {
+                                                                                          NDIMS,
+                                                                                          NVARS,
+                                                                                          RealT,
+                                                                                          NNODES
+                                                                                          }
+        # SurfaceFluxValues, see `unsafe_wrap_storage`:
+        # [variables, i, ..., direction, elements]
+        N = NDIMS + 2
+        surface_flux_values_type = PtrArray{uEltype, N, ntuple(identity, N),
+                                            Tuple{StaticInt{NVARS},
+                                                  ntuple(_ -> StaticInt{NNODES},
+                                                         NDIMS - 1)...,
+                                                  StaticInt{2 * NDIMS}, Int},
+                                            NTuple{N, Nothing},
+                                            NTuple{N, StaticInt{1}}}
+        return ElementContainer{RealT, uEltype, surface_flux_values_type}
+    end
+
     function analyzer_type_dgsem(RealT, nnodes_)
         polydeg = nnodes_ - 1
         nnodes_analysis = 2 * polydeg + 1
@@ -438,17 +459,22 @@ function _precompile_manual_()
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT}, String})
 
         # 3D, serial
-        @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype},
-                                      basis_type_dgsem(RealT, nnodes_)})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype}})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype},
-                                      mortar_type})
+        for equations_type in equations_types_3d(RealT)
+            elements_type = element_container_type(Trixi.TreeElementContainer3D, uEltype,
+                                                   equations_type,
+                                                   basis_type_dgsem(RealT, nnodes_))
+            @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
+                                          TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                                          elements_type,
+                                          basis_type_dgsem(RealT, nnodes_)})
+            @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
+                                          TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                                          elements_type})
+            @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
+                                          TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                                          elements_type,
+                                          mortar_type})
+        end
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT}, String})
     end
