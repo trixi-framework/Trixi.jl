@@ -222,6 +222,17 @@ end
                                                                                    gamma,
                                                                                    R))
         equations_helmholtz_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzIdealGas(RealT(2)))
+        equations_helmholtz_vdw = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzVanDerWaals(;
+                                                                                                      a = RealT(10),
+                                                                                                      b = RealT(0.01),
+                                                                                                      gamma = RealT(1.4),
+                                                                                                      R = RealT(287)))
+        equations_helmholtz_pr = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzPengRobinson(RealT(0.5),
+                                                                                                      RealT(0.1),
+                                                                                                      RealT(0.7),
+                                                                                                      RealT(0.3),
+                                                                                                      RealT(300),
+                                                                                                      RealT(8.314)))
         R_specific = convert(RealT, 287.0509010514002)
         temperature_bounds = convert.(RealT, SVector(200.0, 1000.0, 6000.0))
         a = convert.(RealT, Trixi.coefficients_air_9polyfit(temperature_bounds))
@@ -234,7 +245,8 @@ end
                                                                                                                   p_ref,
                                                                                                                   T_ref))
         for equations in (equations_ideal_gas, equations_vdw,
-                          equations_helmholtz_ideal_gas, equations_thermally_perf_gas)
+                          equations_helmholtz_ideal_gas, equations_helmholtz_vdw,
+                          equations_helmholtz_pr, equations_thermally_perf_gas)
             x = SVector(zero(RealT))
             t = zero(RealT)
             if equations.equation_of_state isa ThermallyPerfectGas9PolyFit
@@ -305,6 +317,14 @@ end
                                                    equations_helmholtz_ideal_gas.equation_of_state)
         @test typeof(adapted_heim.gamma) == Float32
         @test typeof(adapted_heim.R) == Float32
+        adapted_helm_vdw = @inferred Trixi.trixi_adapt(Array, Float32,
+                                                       equations_helmholtz_vdw.equation_of_state)
+        @test typeof(adapted_helm_vdw.a) == Float32
+        @test typeof(adapted_helm_vdw.cv) == Float32
+        adapted_helm_pr = @inferred Trixi.trixi_adapt(Array, Float32,
+                                                      equations_helmholtz_pr.equation_of_state)
+        @test typeof(adapted_helm_pr.R) == Float32
+        @test typeof(adapted_helm_pr.inv2sqrt2b) == Float32
 
         eos_thermally_perfect = equations_thermally_perf_gas.equation_of_state
         adapted_tp = @inferred Trixi.trixi_adapt(Array, Float32, eos_thermally_perfect)
