@@ -659,6 +659,7 @@ end
         check_axes(du, mesh, equations, dg, cache)
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -686,15 +687,17 @@ end
             numerical_flux, Val(NNODES), Val(nvariables(equations)),
             nturbovars(numerical_flux, equations),
             derivative_split,
-            contravariant_vectors,
+            contravariant_vectors, get_aux_vars(cache),
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
 # Variant of `flux_differencing_KAkernel!` for volume fluxes wrapped in a
-# [`FluxTurbo`](@ref). The `NAUX` precomputed variables of `Trixi.cons2turbo` are
+# [`FluxTurbo`](@ref). The `NTURBO` precomputed variables of `Trixi.cons2turbo` are
 # evaluated once per node instead of once per two-point flux evaluation and stored
-# in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels.
+# in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels. For equations
+# with auxiliary variables, `Trixi.cons2turbo` also receives the auxiliary variables of the
+# node as scalars after the conserved variables, as in the CPU code.
 @kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
@@ -704,14 +707,15 @@ end
                                                                  numerical_flux::NumericalFlux,
                                                                  ::Val{NNODES},
                                                                  ::Val{NVARIABLES},
-                                                                 ::Val{NAUX},
+                                                                 ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors) where {
-                                                                                               NumericalFlux,
-                                                                                               NNODES,
-                                                                                               NVARIABLES,
-                                                                                               NAUX
-                                                                                               }
+                                                                 contravariant_vectors,
+                                                                 aux) where {
+                                                                             NumericalFlux,
+                                                                             NNODES,
+                                                                             NVARIABLES,
+                                                                             NTURBO
+                                                                             }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -719,16 +723,19 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
-    turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
+    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
+    # the precomputed variables
+    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, Val(NTURBO), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -754,7 +761,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), ii, j, k)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), ii, j, k)...,
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
 
@@ -784,7 +791,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), i, jj, k)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), i, jj, k)...,
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
 
@@ -814,7 +821,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX), i, j, kk)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), i, j, kk)...,
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
 
@@ -842,14 +849,15 @@ end
                                                                  numerical_flux::NumericalFlux,
                                                                  ::Val{NNODES},
                                                                  ::Val{NVARIABLES},
-                                                                 ::Val{NAUX},
+                                                                 ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors) where {
-                                                                                               NumericalFlux,
-                                                                                               NNODES,
-                                                                                               NVARIABLES,
-                                                                                               NAUX
-                                                                                               }
+                                                                 contravariant_vectors,
+                                                                 aux) where {
+                                                                             NumericalFlux,
+                                                                             NNODES,
+                                                                             NVARIABLES,
+                                                                             NTURBO
+                                                                             }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -857,16 +865,19 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
-    turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
+    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
+    # the precomputed variables
+    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, Val(NTURBO), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -893,7 +904,8 @@ end
         fluxtilde1_left, fluxtilde1_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), ii, j,
+                                                                      Val(NTURBO), ii,
+                                                                      j,
                                                                       k)...,
                                                        Ja1_avg[1], Ja1_avg[2],
                                                        Ja1_avg[3],
@@ -928,7 +940,8 @@ end
         fluxtilde2_left, fluxtilde2_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), i, jj,
+                                                                      Val(NTURBO), i,
+                                                                      jj,
                                                                       k)...,
                                                        Ja2_avg[1], Ja2_avg[2],
                                                        Ja2_avg[3],
@@ -963,7 +976,7 @@ end
         fluxtilde3_left, fluxtilde3_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX), i, j,
+                                                                      Val(NTURBO), i, j,
                                                                       kk)...,
                                                        Ja3_avg[1], Ja3_avg[2],
                                                        Ja3_avg[3],
@@ -995,14 +1008,15 @@ end
                                                                  numerical_flux::NumericalFlux,
                                                                  ::Val{NNODES},
                                                                  ::Val{NVARIABLES},
-                                                                 ::Val{NAUX},
+                                                                 ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors) where {
-                                                                                               NumericalFlux,
-                                                                                               NNODES,
-                                                                                               NVARIABLES,
-                                                                                               NAUX
-                                                                                               }
+                                                                 contravariant_vectors,
+                                                                 aux) where {
+                                                                             NumericalFlux,
+                                                                             NNODES,
+                                                                             NVARIABLES,
+                                                                             NTURBO
+                                                                             }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -1011,16 +1025,19 @@ end
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
     # kernel but only the local turbo variables.
-    turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
+    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
+    # the precomputed variables
+    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, Val(NTURBO), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -1033,7 +1050,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, Val(NTURBO),
                                                ii, j, k)...,
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
@@ -1048,7 +1065,7 @@ end
                                             i, jj, k, element))
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, Val(NTURBO),
                                                i, jj, k)...,
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
@@ -1063,7 +1080,7 @@ end
                                             i, j, kk, element))
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NAUX),
+                                get_node_turbo(turbo_local, Val(NTURBO),
                                                i, j, kk)...,
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
@@ -1083,14 +1100,15 @@ end
                                                                  numerical_flux::NumericalFlux,
                                                                  ::Val{NNODES},
                                                                  ::Val{NVARIABLES},
-                                                                 ::Val{NAUX},
+                                                                 ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors) where {
-                                                                                               NumericalFlux,
-                                                                                               NNODES,
-                                                                                               NVARIABLES,
-                                                                                               NAUX
-                                                                                               }
+                                                                 contravariant_vectors,
+                                                                 aux) where {
+                                                                             NumericalFlux,
+                                                                             NNODES,
+                                                                             NVARIABLES,
+                                                                             NTURBO
+                                                                             }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -1099,16 +1117,19 @@ end
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
     # kernel but only the local turbo variables.
-    turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo(numerical_flux, u_node..., equations)
-    for v in 1:NAUX
+    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
+    # the precomputed variables
+    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
+    turbo_node = get_node_turbo(turbo_local, Val(NTURBO), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -1121,7 +1142,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, Val(NTURBO),
                                                        ii, j, k)...,
                                         Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                         equations)
@@ -1137,7 +1158,7 @@ end
                                             i, jj, k, element))
         fluxtilde2_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, Val(NTURBO),
                                                        i, jj, k)...,
                                         Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                         equations)
@@ -1153,7 +1174,7 @@ end
                                             i, j, kk, element))
         fluxtilde3_left, _ = flux_turbo(numerical_flux,
                                         turbo_node...,
-                                        get_node_turbo(turbo_local, Val(NAUX),
+                                        get_node_turbo(turbo_local, Val(NTURBO),
                                                        i, j, kk)...,
                                         Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                         equations)

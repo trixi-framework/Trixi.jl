@@ -6436,6 +6436,57 @@ end
     end
 end
 
+@testitem "Unit: FluxTurbo with auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The default precomputed variables of `FluxTurbo` are the conserved variables followed
+    # by the auxiliary variables, and the default `flux_turbo` calls the fluxes with the
+    # auxiliary variables of both nodes
+    normal_direction = SVector(0.2, -0.3, 0.9)
+    u_ll = SVector(1.2)
+    u_rr = SVector(0.7)
+    aux_ll = SVector(0.3, -0.5, 1.1)
+    aux_rr = SVector(0.4, 0.2, -0.6)
+
+    # Conservative equation
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    @test Trixi.nturbovars(flux_central, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(flux_central, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_central, u_rr..., aux_rr..., equations)
+    @test turbo_ll == (u_ll..., aux_ll...)
+    @test Trixi.flux_turbo(flux_central, turbo_ll..., turbo_rr..., normal_direction...,
+                           equations) ≈
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+
+    # Nonconservative equation: the node receiving the nonconservative flux passes its
+    # own state and auxiliary variables first
+    equations = NonconservativeLinearScalarAdvectionEquation3D()
+    numerical_flux = (flux_central, flux_nonconservative_central)
+    @test Trixi.nturbovars(numerical_flux, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(numerical_flux, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(numerical_flux, u_rr..., aux_rr..., equations)
+    flux_left, flux_right = Trixi.flux_turbo(numerical_flux, turbo_ll..., turbo_rr...,
+                                             normal_direction..., equations)
+    flux = flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    @test flux_left ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                       normal_direction, equations)
+    @test flux_right ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_rr, u_ll, aux_rr, aux_ll,
+                                       normal_direction, equations)
+
+    # Equations without auxiliary variables are not affected
+    equations = CompressibleEulerEquations3D(1.4)
+    @test Trixi.nturbovars(flux_shima_etal, equations) == Val(5)
+    u_ll = prim2cons(SVector(1.0, 0.1, -0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.1, 0.2, 0.1, 0.9), equations)
+    turbo_ll = Trixi.cons2turbo(flux_shima_etal, u_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_shima_etal, u_rr..., equations)
+    @test Trixi.flux_turbo(flux_shima_etal, turbo_ll..., turbo_rr...,
+                           normal_direction..., equations) ≈
+          flux_shima_etal(u_ll, u_rr, normal_direction, equations)
+end
+
 @testitem "Unit: Auxiliary variables at mortars" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # We only need the statically refined mesh of the elixir. Thus, we do not run the
     # simulation by replacing `sol = solve(...)` with `sol = nothing`.

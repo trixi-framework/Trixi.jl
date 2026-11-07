@@ -15,7 +15,8 @@ for human readability.
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
   they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
-  AMR and MPI, and on conforming `P4estMesh{3}`es also on GPUs. The new equations
+  AMR and MPI, and on conforming `P4estMesh{3}`es also on GPUs, also with volume fluxes
+  wrapped in `FluxTurbo`. The new equations
   `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
   advection velocity ([#3239], [#3396]).

@@ -1,6 +1,19 @@
-@inline function get_node_turbo(turbo_local, ::Val{NAUX},
-                                indices...) where {NAUX}
-    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
+@inline function get_node_turbo(turbo_local, ::Val{NTURBO},
+                                indices...) where {NTURBO}
+    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NTURBO))
+end
+
+# Precomputed variables of `Trixi.cons2turbo` at a node with the conserved variables
+# `u_node` and the auxiliary variables `aux_node` as returned by `get_aux_node_vars`, i.e.,
+# an empty tuple for equations without auxiliary variables and `(aux,)` otherwise.
+# As in the CPU code, the auxiliary variables are passed as scalars after the conserved
+# variables.
+@inline function cons2turbo_node(numerical_flux, u_node, ::Tuple{}, equations)
+    return cons2turbo(numerical_flux, u_node..., equations)
+end
+
+@inline function cons2turbo_node(numerical_flux, u_node, (aux,)::Tuple{Any}, equations)
+    return cons2turbo(numerical_flux, u_node..., aux..., equations)
 end
 
 # This is a general fallback for volume integral kernels, parallelizing across
