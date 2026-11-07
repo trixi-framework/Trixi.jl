@@ -2,7 +2,7 @@
 
 ## Methods from OrdinaryDiffEq.jl
 
-Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
+Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://docs.sciml.ai/DiffEqDocs/stable/).
 In particular, [explicit Runge-Kutta methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Runge-Kutta-Methods)
 from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and its sub-packages
 are tested extensively.
@@ -14,7 +14,7 @@ Interesting classes of time integration schemes are
 
 Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are the following. Further documentation can be found in the
-[SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
+[SciML docs](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 - If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
   a time step as `dt = ...`. If you use a [`StepsizeCallback`](@ref), the value passed
   as `dt = ...` is irrelevant since it will be overwritten by the [`StepsizeCallback`](@ref).
@@ -77,7 +77,7 @@ Trixi.jl implements the [Paired-Explicit Runge-Kutta (PERK)](https://doi.org/10.
 ### Paired-Explicit Runge-Kutta (PERK) Schemes
 
 Paired-Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
-In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://doi.org/10.48550/arXiv.2408.05470) order in subsequent works.
+In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://doi.org/10.1007/s44207-025-00005-4) order in subsequent works.
 
 By construction, PERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
 Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods. In Trixi.jl, the _standalone_ PERK integrators are implemented such that all stages of the method are active.

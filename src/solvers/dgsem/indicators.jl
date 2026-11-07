@@ -43,9 +43,10 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct IndicatorHennemannGassner{RealT <: Real, Variable, Cache} <: AbstractIndicator
     alpha_max::RealT

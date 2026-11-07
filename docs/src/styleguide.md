@@ -44,7 +44,7 @@ We use [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) to form
 source code of Trixi.jl, which will also enforce *some* of the [Conventions](@ref) listed
 above (e.g., line length or indentation with 4 spaces are automatically handled, while
 capitalization of names is not). Our format is mostly based on the
-[SciML](https://domluna.github.io/JuliaFormatter.jl/stable/sciml_style/)-style formatting
+[SciML](https://juliaeditorsupport.github.io/JuliaFormatter.jl/stable/sciml_style/)-style formatting
 rules. For more details you can have a look at the current
 [`.JuliaFormatter.toml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.JuliaFormatter.toml)
 file that holds the configuration options we use for JuliaFormatter.jl.

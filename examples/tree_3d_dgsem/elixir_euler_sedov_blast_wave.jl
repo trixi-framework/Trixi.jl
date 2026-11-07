@@ -10,9 +10,9 @@ equations = CompressibleEulerEquations3D(1.4)
     initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations3D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 based on example 35.1.4 from Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
@@ -55,9 +55,9 @@ initial_condition = initial_condition_sedov_self_gravity
                                           equations::CompressibleEulerEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 based on example 35.1.4 from Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).

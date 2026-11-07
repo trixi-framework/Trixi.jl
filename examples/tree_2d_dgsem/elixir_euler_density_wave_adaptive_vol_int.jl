@@ -6,7 +6,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 # We repeat test case for linear stability of EC fluxes from the paper
-# - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
+# - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2022)
 #   Stability issues of entropy-stable and/or split-form high-order schemes
 #   [DOI: 10.1007/s10915-021-01720-8](https://doi.org/10.1007/s10915-021-01720-8)
 initial_condition = initial_condition_density_wave

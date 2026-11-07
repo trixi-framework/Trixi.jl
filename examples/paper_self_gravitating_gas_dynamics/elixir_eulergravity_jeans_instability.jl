@@ -7,19 +7,19 @@ using Trixi
                                                          HyperbolicDiffusionEquations2D})
 
 The classical Jeans instability taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
-  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
-- Flash manual https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
+- Flash manual https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
 in CGS (centimeter, gram, second) units.
 """
 function initial_condition_jeans_instability(x, t,
                                              equations::CompressibleEulerEquations2D)
     # Jeans gravitational instability test case
-    # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
+    # see Derigs et al. https://doi.org/10.1016/j.jcp.2016.04.048; Sec. 4.6
     # Note: this uses cgs (centimeter, gram, second) units
     # periodic boundaries
     # domain size [0,L]^2 depends on the wave number chosen for the perturbation
@@ -30,7 +30,7 @@ function initial_condition_jeans_instability(x, t,
     pres0 = 1.5e7 # dyn/cm^2
     delta0 = 1e-3
     # set wave vector values for perturbation (units 1/cm)
-    # see FLASH manual: https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+    # see FLASH manual: https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
     kx = 2.0 * pi / 0.5 # 2π/λ_x, λ_x = 0.5
     ky = 0.0   # 2π/λ_y, λ_y = 1e10
     k_dot_x = kx * x[1] + ky * x[2]
@@ -47,7 +47,7 @@ function initial_condition_jeans_instability(x, t,
                                              equations::HyperbolicDiffusionEquations2D)
     # gravity equation: -Δϕ = -4πGρ
     # Constants taken from the FLASH manual
-    # https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+    # https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
     rho0 = 1.5e7
     delta0 = 1e-3
 

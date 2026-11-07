@@ -17,7 +17,7 @@ initial_condition = initial_condition_constant
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580, but reduced to 2D
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

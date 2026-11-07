@@ -4,7 +4,7 @@ using ForwardDiff
 
 ###############################################################################
 # Semidiscretization of the quasi 1d compressible Euler equations
-# See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
+# See Chan et al.  https://doi.org/10.1016/j.jcp.2024.112876 for details
 
 equations = CompressibleEulerEquationsQuasi1D(1.4)
 
