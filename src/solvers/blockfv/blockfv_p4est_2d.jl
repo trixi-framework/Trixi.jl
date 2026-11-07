@@ -244,9 +244,10 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                       i_primary, j_primary,
                                                       primary_element, n_nodes)
 
+            # Auxiliary variables are not supported for this solver
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
-                                 cache.interfaces.u, interface,
+                                 cache.interfaces.u, nothing, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
                                  node_secondary,

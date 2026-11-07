@@ -69,8 +69,15 @@ end
                        eachmortar(solver, cache)))
 end
 
-# Create and initialize the container of auxiliary variables
+# Create and initialize the container of auxiliary variables. Only serial `P4estMesh`es
+# provide the containers of interfaces and mortars used below. Other mesh types throw an
+# error before accessing them, see also `init_aux_surface_node_vars!`.
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
+    throw_aux_not_implemented(mesh, solver)
+end
+
+function init_aux_vars(mesh::P4estMeshSerial, equations, solver::DGSEM, cache,
+                       aux_field)
     NDIMS = ndims(mesh)
     n_aux = nauxvariables(equations)
     n_nodes = nnodes(solver)
@@ -147,8 +154,13 @@ end
 
 # Filling the interface and mortar values requires information about the coupling of the
 # elements and is thus implemented for each mesh type separately, currently only for
-# serial `P4estMesh{3}`es in `dgsem_p4est/containers_3d.jl`.
+# serial `P4estMesh{2}`es and `P4estMesh{3}`es in `dgsem_p4est/containers_2d.jl` and
+# `dgsem_p4est/containers_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
+    throw_aux_not_implemented(mesh, solver)
+end
+
+@noinline function throw_aux_not_implemented(mesh, solver)
     throw(ArgumentError("auxiliary variables are not implemented for $(typeof(mesh)) " *
                         "with $(typeof(solver))"))
 end
