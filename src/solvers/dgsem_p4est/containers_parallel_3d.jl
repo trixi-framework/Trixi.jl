@@ -231,4 +231,159 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{3},
 
     return nothing
 end
+
+# Auxiliary variables at the MPI interface and MPI mortar nodes, cf.
+# `prolong2mpiinterfaces!` and `prolong2mpimortars!`. The values of the local elements are
+# copied (and interpolated to the small elements for large elements at MPI mortars) and
+# afterwards exchanged with the neighbor ranks once, see `exchange_aux_mpi!`.
+function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
+                                         equations, solver, cache)
+    @unpack aux, aux_mpi_interface = aux_vars
+    @unpack mpi_interfaces = cache
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachmpiinterface(solver, cache)
+        local_side = mpi_interfaces.local_sides[interface]
+        local_element = mpi_interfaces.local_neighbor_ids[interface]
+        local_indices = mpi_interfaces.node_indices[interface]
+
+        i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                     index_range)
+        j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                     index_range)
+        k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                     index_range)
+
+        i_element = i_element_start
+        j_element = j_element_start
+        k_element = k_element_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_mpi_interface[local_side, v, i, j, interface] = aux[v,
+                                                                            i_element,
+                                                                            j_element,
+                                                                            k_element,
+                                                                            local_element]
+                end
+                i_element += i_element_step_i
+                j_element += j_element_step_i
+                k_element += k_element_step_i
+            end
+            i_element += i_element_step_j
+            j_element += j_element_step_j
+            k_element += k_element_step_j
+        end
+    end
+
+    init_aux_mpi_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver,
+                                   cache)
+
+    # Get the auxiliary variables of the remote elements from the neighbor ranks
+    exchange_aux_mpi!(aux_vars, cache.mpi_interfaces, cache.mpi_mortars,
+                      cache.mpi_cache,
+                      mesh, equations, nnodes(solver))
+
+    return nothing
+end
+
+function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, equations,
+                                        mortar_l2::LobattoLegendreMortarL2, solver,
+                                        cache)
+    @unpack aux, aux_mpi_mortar = aux_vars
+    @unpack node_indices = cache.mpi_mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmpimortar(solver, cache)
+        local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+        local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
+
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        large_indices = node_indices[2, mortar]
+        i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                               index_range)
+        j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                               index_range)
+        k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                               index_range)
+
+        for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
+            if position == 5 # -> large element
+                # Buffers to copy the auxiliary variables of the large element face in the
+                # correct orientation before interpolating. This is done only once, so we
+                # do not need pre-allocated buffers.
+                aux_buffer = similar(aux, nauxvariables(equations), nnodes(solver),
+                                     nnodes(solver))
+                aux_tmp = similar(aux_buffer)
+
+                i_large = i_large_start
+                j_large = j_large_start
+                k_large = k_large_start
+                for j in eachnode(solver)
+                    for i in eachnode(solver)
+                        for v in eachauxvariable(equations)
+                            aux_buffer[v, i, j] = aux[v, i_large, j_large, k_large,
+                                                      element]
+                        end
+                        i_large += i_large_step_i
+                        j_large += j_large_step_i
+                        k_large += k_large_step_i
+                    end
+                    i_large += i_large_step_j
+                    j_large += j_large_step_j
+                    k_large += k_large_step_j
+                end
+
+                # Interpolate the auxiliary variables of the large element face to the
+                # surface nodes of the small elements
+                multiply_dimensionwise!(view(aux_mpi_mortar, 2, :, 1, :, :, mortar),
+                                        mortar_l2.forward_lower,
+                                        mortar_l2.forward_lower,
+                                        aux_buffer, aux_tmp)
+                multiply_dimensionwise!(view(aux_mpi_mortar, 2, :, 2, :, :, mortar),
+                                        mortar_l2.forward_upper,
+                                        mortar_l2.forward_lower,
+                                        aux_buffer, aux_tmp)
+                multiply_dimensionwise!(view(aux_mpi_mortar, 2, :, 3, :, :, mortar),
+                                        mortar_l2.forward_lower,
+                                        mortar_l2.forward_upper,
+                                        aux_buffer, aux_tmp)
+                multiply_dimensionwise!(view(aux_mpi_mortar, 2, :, 4, :, :, mortar),
+                                        mortar_l2.forward_upper,
+                                        mortar_l2.forward_upper,
+                                        aux_buffer, aux_tmp)
+            else # position in (1, 2, 3, 4) -> small element
+                i_small = i_small_start
+                j_small = j_small_start
+                k_small = k_small_start
+                for j in eachnode(solver)
+                    for i in eachnode(solver)
+                        for v in eachauxvariable(equations)
+                            aux_mpi_mortar[1, v, position, i, j, mortar] = aux[v,
+                                                                               i_small,
+                                                                               j_small,
+                                                                               k_small,
+                                                                               element]
+                        end
+                        i_small += i_small_step_i
+                        j_small += j_small_step_i
+                        k_small += k_small_step_i
+                    end
+                    i_small += i_small_step_j
+                    j_small += j_small_step_j
+                    k_small += k_small_step_j
+                end
+            end
+        end
+    end
+
+    return nothing
+end
 end # muladd

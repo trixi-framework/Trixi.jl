@@ -449,8 +449,8 @@ be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](
 For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR, MPI, and GPUs. The progress is tracked in
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D
+(also with MPI), without AMR and GPUs. The progress is tracked in
 https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0
