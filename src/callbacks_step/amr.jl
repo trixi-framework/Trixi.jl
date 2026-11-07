@@ -651,8 +651,14 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 partition!(mesh)
                 rebalance_solver!(u_ode, mesh, equations, dg, cache,
                                   old_global_first_quadrant)
+
                 @unpack parabolic_container = cache_parabolic
                 resize!(parabolic_container, equations, dg, cache)
+                # 3D does currently not have a `GradientBoundaryContainer`
+                if mesh isa P4estMesh{2}
+                    @unpack gradients_at_boundaries_container = cache_parabolic
+                    resize!(gradients_at_boundaries_container, equations, dg, cache)
+                end
             end
         end
 

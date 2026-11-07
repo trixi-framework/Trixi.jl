@@ -946,24 +946,28 @@ end
             # BC tests
             for direction in directions
                 @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                nothing, # `gradients_inner` placeholder
                                                                 orientation, direction,
                                                                 x,
                                                                 t, operator_gradient,
                                                                 equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                nothing, # `gradients_inner` placeholder
                                                                 orientation, direction,
                                                                 x,
                                                                 t, operator_divergence,
                                                                 equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                               nothing, # `gradients_inner` placeholder
                                                                orientation, direction,
                                                                x,
                                                                t, operator_gradient,
                                                                equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                               nothing, # `gradients_inner` placeholder
                                                                orientation, direction,
                                                                x,
                                                                t, operator_divergence,
