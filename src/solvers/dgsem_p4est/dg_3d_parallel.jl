@@ -186,6 +186,8 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache), equations, dg,
+                                     cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
@@ -263,10 +265,15 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     # `normal_direction` is the normal direction of the primary element.
     # The flux entering the primary element leaves the secondary element
     # (note the `-` for the `else` case).
+    # Auxiliary variables on both sides of the MPI interface
+    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
+                                         typeof(dg), interface_i_node_index,
+                                         interface_j_node_index, interface_index)
+
     if local_side == 1
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     end
 
     for v in eachvariable(equations)
@@ -337,12 +344,19 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     # `normal_direction` is the normal direction of the primary element.
     # The flux entering the primary element leaves the secondary element
     # (note the `-` for the `else` case).
+    # Auxiliary variables on both sides of the MPI interface
+    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
+                                         typeof(dg), interface_i_node_index,
+                                         interface_j_node_index, interface_index)
+
     if local_side == 1
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
+        noncons_flux_ = nonconservative_flux(u_ll, u_rr, aux_node..., normal_direction,
+                                             equations)
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
+        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
+                                              normal_direction, equations)
     end
 
     for v in eachvariable(equations)
@@ -378,10 +392,16 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
 
+    # Auxiliary variables on both sides of the MPI interface
+    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
+                                         typeof(dg), interface_i_node_index,
+                                         interface_j_node_index, interface_index)
+
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
     # (note the `-` for the `else` case).
-    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
+                                         equations)
     if local_side == 1
         flux_ = flux_left
     else # local_side == 2
@@ -528,10 +548,14 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
     @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux_mpi_mortar = get_aux_mpi_mortar_vars(cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mpi_mortars, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_mpi_mortar(aux_mpi_mortar, equations, dg, cache)
     end
 
     @threaded for mortar in eachmpimortar(dg, cache)
@@ -561,11 +585,17 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                         normal_direction = get_normal_direction(cache.mpi_mortars, i, j,
                                                                 position, mortar)
 
+                        # Auxiliary variables on the small (primary) and the large
+                        # (secondary) side, cf. `init_aux_mpi_mortar_node_vars!`
+                        aux_node = get_aux_surface_node_vars(aux_mpi_mortar, equations,
+                                                             typeof(dg), position, i, j,
+                                                             mortar)
+
                         calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                                               have_nonconservative_terms, equations,
                                               surface_integral, dg, cache,
                                               mortar, position, normal_direction,
-                                              i, j)
+                                              aux_node, i, j)
 
                         i_small += i_small_step_i
                         j_small += j_small_step_i
@@ -599,7 +629,7 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
                                                         equations,
                                                         surface_integral, dg::DG, cache,
                                                         mortar_index, position_index,
-                                                        normal_direction,
+                                                        normal_direction, aux_node,
                                                         i_node_index, j_node_index)
     @unpack u = cache.mpi_mortars
     @unpack surface_flux = surface_integral
@@ -607,7 +637,7 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
-    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary, flux, equations, dg,
@@ -626,14 +656,14 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
                                                         equations,
                                                         surface_integral, dg::DG, cache,
                                                         mortar_index, position_index,
-                                                        normal_direction,
+                                                        normal_direction, aux_node,
                                                         i_node_index, j_node_index)
     calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                           have_nonconservative_terms,
                           combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                           equations),
                           equations, surface_integral, dg, cache,
-                          mortar_index, position_index, normal_direction,
+                          mortar_index, position_index, normal_direction, aux_node,
                           i_node_index, j_node_index)
     return nothing
 end
@@ -646,7 +676,7 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
                                                         equations,
                                                         surface_integral, dg::DG, cache,
                                                         mortar_index, position_index,
-                                                        normal_direction,
+                                                        normal_direction, aux_node,
                                                         i_node_index, j_node_index)
     @unpack u = cache.mpi_mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -654,10 +684,11 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
                                        j_node_index, mortar_index)
 
-    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_flux_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_flux_secondary = nonconservative_flux(u_rr, u_ll, normal_direction,
-                                                  equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
+    noncons_flux_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
+                                                normal_direction, equations)
+    noncons_flux_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
+                                                  normal_direction, equations)
 
     for v in eachvariable(equations)
         fstar_primary[v, i_node_index, j_node_index, position_index] = flux[v] +
@@ -679,7 +710,7 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
                                                         equations,
                                                         surface_integral, dg::DG, cache,
                                                         mortar_index, position_index,
-                                                        normal_direction,
+                                                        normal_direction, aux_node,
                                                         i_node_index, j_node_index)
     @unpack u = cache.mpi_mortars
     @unpack surface_flux = surface_integral
@@ -690,6 +721,7 @@ Base.@propagate_inbounds function calc_mpi_mortar_flux!(fstar_primary, fstar_sec
     # The combined flux returns the conservative flux plus 0.5 times the
     # nonconservative flux for the small (primary) and large (secondary) side
     flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
+                                                                          aux_node...,
                                                                           normal_direction,
                                                                           equations)
 

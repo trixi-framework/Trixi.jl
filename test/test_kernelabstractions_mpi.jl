@@ -118,6 +118,30 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions MPI CPU 3D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    KernelAbstractionsMPIExamples
+] tags=[:kernelabstractions_mpi] begin
+    # Auxiliary variables at MPI interfaces, see `exchange_aux_mpi!`
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors are exactly the same as with the regular CPU code!
+                        l2=[0.00519048662880307],
+                        linf=[0.026769982125784075])
+    @test semi === ode.p
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test !any(isnan, semi.cache.aux_vars.aux_mpi_interface)
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 # The unstructured mesh contains MPI interfaces with flipped orientations
 @testitem "KernelAbstractions MPI CPU 3D: elixir_advection_unstructured_curved.jl" setup=[
     Setup,

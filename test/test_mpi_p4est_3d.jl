@@ -449,3 +449,47 @@ end
         @test Trixi.check_axes(container, equations, dg, cache) === nothing
     end
 end
+
+@testitem "P4estMesh MPI 3D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi, :mpi_skip_windows] begin
+    # Auxiliary variables at MPI interfaces, MPI mortars, boundaries, and in the source
+    # terms. With more trees, the refined regions and thus the mortars are on both ranks.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.00032966706996308975],
+                        linf=[0.00233523138610936],
+                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    # The auxiliary variables of the remote elements are received from the neighbor ranks
+    (; aux_mpi_interface, aux_mpi_mortar) = semi.cache.aux_vars
+    @test !any(isnan, aux_mpi_interface)
+    @test !any(isnan, aux_mpi_mortar)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi, :mpi_skip_windows] begin
+    # The velocity is discontinuous, also at MPI interfaces and MPI mortars
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        l2=[8.879258369319651e-16],
+                        linf=[1.6298074001497298e-13],
+                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end

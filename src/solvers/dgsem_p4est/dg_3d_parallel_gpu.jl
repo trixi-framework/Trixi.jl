@@ -109,10 +109,13 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values, u,
         checkbounds(mpi_recv_buffer,
                     1:(nvariables(equations) * nnodes(dg)^2 *
                        nmpiinterfaces(dg, cache)))
+        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache), equations, dg,
+                                     cache)
     end
 
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, mpi_recv_buffer, typeof(mesh),
+    kernel!(surface_flux_values, u, mpi_recv_buffer, get_aux_mpi_interface_vars(cache),
+            typeof(mesh),
             have_nonconservative_terms, equations, surface_integral, dg,
             local_neighbor_ids, node_indices, local_sides,
             mpi_interfaces_buffer_offsets, normal_directions, index_range,
@@ -122,6 +125,7 @@ end
 
 @kernel inbounds=true function calc_mpi_interface_flux_KAkernel!(surface_flux_values, u,
                                                                  mpi_recv_buffer,
+                                                                 aux_mpi_interface,
                                                                  MeshT::Type{<:Union{P4estMeshParallel{3},
                                                                                      T8codeMeshParallel{3}}},
                                                                  have_nonconservative_terms,
@@ -190,11 +194,16 @@ end
                                normal_directions[2, i, j, interface],
                                normal_directions[3, i, j, interface])
 
+    # Auxiliary variables on the primary and secondary side, which are available on
+    # both MPI ranks, see `exchange_aux_mpi!`
+    aux_node = get_aux_surface_node_vars(aux_mpi_interface, equations, typeof(dg),
+                                         i, j, interface)
+
     calc_mpi_interface_flux_per_node!(surface_flux_values, MeshT,
                                       have_nonconservative_terms, equations,
-                                      surface_integral, u_ll, u_rr, normal_direction,
-                                      local_side, i_surface, j_surface, local_direction,
-                                      local_element)
+                                      surface_integral, u_ll, u_rr, aux_node,
+                                      normal_direction, local_side, i_surface,
+                                      j_surface, local_direction, local_element)
 end
 
 # Inlined version of the interface flux computation for conservation laws
@@ -205,6 +214,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                                                     equations,
                                                                     surface_integral,
                                                                     u_ll, u_rr,
+                                                                    aux_node,
                                                                     normal_direction,
                                                                     local_side,
                                                                     surface_i_node_index,
@@ -217,9 +227,9 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
     # The flux entering the primary element leaves the secondary element
     # (note the `-` for the `else` case).
     if local_side == 1
-        flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     end
 
     for v in eachvariable(equations)
@@ -240,6 +250,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                                                     equations,
                                                                     surface_integral,
                                                                     u_ll, u_rr,
+                                                                    aux_node,
                                                                     normal_direction,
                                                                     local_side,
                                                                     surface_i_node_index,
@@ -251,7 +262,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                       combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                                       equations),
                                       equations, surface_integral, u_ll, u_rr,
-                                      normal_direction, local_side,
+                                      aux_node, normal_direction, local_side,
                                       surface_i_node_index, surface_j_node_index,
                                       local_direction_index, local_element_index)
     return nothing
@@ -265,6 +276,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
                                                                     equations,
                                                                     surface_integral,
                                                                     u_ll, u_rr,
+                                                                    aux_node,
                                                                     normal_direction,
                                                                     local_side,
                                                                     surface_i_node_index,
@@ -276,7 +288,8 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
     # Compute the flux including the non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
     # (note the `-` for the `else` case).
-    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
+                                         equations)
     if local_side == 1
         flux_ = flux_left
     else # local_side == 2

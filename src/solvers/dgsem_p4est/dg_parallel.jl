@@ -779,6 +779,118 @@ function exchange_normal_directions!(mpi_mortars::P4estMPIMortarContainer, mpi_c
     return nothing
 end
 
+# Exchange the auxiliary variables at the MPI interfaces and MPI mortars once after
+# initializing the values of the local elements, see `init_aux_mpi_surface_node_vars!`.
+# The data layout of the buffers is the same as for the solution, see `start_mpi_send!`
+# and `finish_mpi_receive!`, with the auxiliary variables instead of the conservative
+# variables.
+function exchange_aux_mpi!(aux_vars, mpi_interfaces::P4estMPIInterfaceContainer,
+                           mpi_mortars::P4estMPIMortarContainer, mpi_cache,
+                           mesh::P4estMeshParallel, equations, n_nodes)
+    @unpack aux_mpi_interface, aux_mpi_mortar = aux_vars
+    @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = mpi_cache
+    RealT = eltype(aux_mpi_interface)
+    data_size = nauxvariables(equations) * n_nodes^(ndims(mesh) - 1)
+    n_small_elements = 2^(ndims(mesh) - 1)
+    n_positions = n_small_elements + 1
+
+    # Create buffers and requests. The mortar data of positions without local elements
+    # stays NaN and is skipped on the receiving side.
+    send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_ranks))
+    recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_ranks))
+    for index in eachindex(mpi_neighbor_ranks)
+        n_data = (length(mpi_neighbor_interfaces[index]) +
+                  length(mpi_neighbor_mortars[index]) * n_small_elements * 2) *
+                 data_size
+        send_buffers[index] = fill(NaN |> RealT, n_data)
+        recv_buffers[index] = fill(NaN |> RealT, n_data)
+    end
+    send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_ranks))
+    recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_ranks))
+
+    # Fill send buffers
+    for index in eachindex(mpi_neighbor_ranks)
+        send_buffer = send_buffers[index]
+
+        for (i, interface) in enumerate(mpi_neighbor_interfaces[index])
+            first = (i - 1) * data_size + 1
+            last = (i - 1) * data_size + data_size
+            local_side = mpi_interfaces.local_sides[interface]
+            @views send_buffer[first:last] .= vec(aux_mpi_interface[local_side, ..,
+                                                                    interface])
+        end
+
+        interfaces_data_size = length(mpi_neighbor_interfaces[index]) * data_size
+        for (i, mortar) in enumerate(mpi_neighbor_mortars[index])
+            index_base = interfaces_data_size +
+                         (i - 1) * n_small_elements * 2 * data_size
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
+
+            for position in mpi_mortars.local_neighbor_positions[mortar]
+                first, last = indices[position]
+                if position > n_small_elements # large element
+                    @views send_buffer[first:last] .= vec(aux_mpi_mortar[2, :, :, ..,
+                                                                         mortar])
+                else # small element
+                    @views send_buffer[first:last] .= vec(aux_mpi_mortar[1, :, position,
+                                                                         ..,
+                                                                         mortar])
+                end
+            end
+        end
+    end
+
+    # Start data exchange
+    for (index, rank) in enumerate(mpi_neighbor_ranks)
+        send_requests[index] = MPI.Isend(send_buffers[index], rank, mpi_rank(),
+                                         mpi_comm())
+        recv_requests[index] = MPI.Irecv!(recv_buffers[index], rank, rank, mpi_comm())
+    end
+
+    # Unpack data from receive buffers
+    data = MPI.Waitany(recv_requests)
+    while data !== nothing
+        recv_buffer = recv_buffers[data]
+
+        for (i, interface) in enumerate(mpi_neighbor_interfaces[data])
+            first = (i - 1) * data_size + 1
+            last = (i - 1) * data_size + data_size
+            # The remote element is on the other side of the interface
+            remote_side = 3 - mpi_interfaces.local_sides[interface]
+            @views vec(aux_mpi_interface[remote_side, .., interface]) .= recv_buffer[first:last]
+        end
+
+        interfaces_data_size = length(mpi_neighbor_interfaces[data]) * data_size
+        for (i, mortar) in enumerate(mpi_neighbor_mortars[data])
+            index_base = interfaces_data_size +
+                         (i - 1) * n_small_elements * 2 * data_size
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
+
+            for position in 1:n_positions
+                # Skip if no data has been sent for `position` since the corresponding
+                # element is not on the neighbor rank
+                if isnan(recv_buffer[Base.first(indices[position])])
+                    continue
+                end
+
+                first, last = indices[position]
+                if position == n_positions # large element
+                    @views vec(aux_mpi_mortar[2, :, :, .., mortar]) .= recv_buffer[first:last]
+                else # small element
+                    @views vec(aux_mpi_mortar[1, :, position, .., mortar]) .= recv_buffer[first:last]
+                end
+            end
+        end
+
+        data = MPI.Waitany(recv_requests)
+    end
+
+    # Wait for communication to finish
+    MPI.Waitall(send_requests, MPI.Status)
+
+    return nothing
+end
+
 # Get normal direction of MPI interface (of the primary element) or MPI mortar (of the
 # small element)
 Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPIInterfaceContainer,
