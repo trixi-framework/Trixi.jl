@@ -14,9 +14,12 @@ for human readability.
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
-  they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
-  AMR and MPI, and on conforming `P4estMesh{3}`es also on GPUs. The new equations
-  `ConservativeLinearScalarAdvectionEquation3D` and
+  they are supported for `DGSEM` on (also statically refined) `P4estMesh{2}`es and
+  `P4estMesh{3}`es without AMR and MPI. On GPUs, they are supported on (also statically
+  refined) `P4estMesh{2}`es and conforming `P4estMesh{3}`es. The new equations
+  `ConservativeLinearScalarAdvectionEquation2D`,
+  `ConservativeLinearScalarAdvectionEquation3D`,
+  `NonconservativeLinearScalarAdvectionEquation2D`, and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
   advection velocity ([#3239], [#3396]).
 - Contour plotting using Makie.jl is now supported for

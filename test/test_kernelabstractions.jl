@@ -451,6 +451,50 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 2D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors are exactly the same as with the regular CPU code!
+                        l2=[0.00538396786215058],
+                        linf=[0.021196710151645703])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache.aux_vars.aux isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Auxiliary variables at interfaces, boundaries, mortars, and in the source terms
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as with the regular CPU code!
+                        l2=[0.0063968890644693814],
+                        linf=[0.042584955404490143])
+    @test semi === ode.p
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples
