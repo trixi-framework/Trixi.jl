@@ -20,9 +20,10 @@ default:
   id_tokens:
     CI_JOB_JWT:
       aud: https://git.uni-paderborn.de
+  # Jobs receive the artifacts of the jobs they need, so each job uploads only its own results.
   artifacts:
     when: always
-    paths: [results/]
+    paths: [results/$CHECK/$JULIA_VERSION/]
     expire_in: 4 weeks
   before_script:
     - set -euo pipefail
@@ -64,7 +65,7 @@ default:
   artifacts:
     when: always
     paths:
-      - results/
+      - results/$CHECK/$JULIA_VERSION/
       - run_hpc/$JULIA_VERSION/test/
       - run_hpc/$JULIA_VERSION/provenance.toml
     expire_in: 4 weeks
