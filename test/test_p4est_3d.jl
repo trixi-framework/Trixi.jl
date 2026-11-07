@@ -941,6 +941,79 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        l2=[0.00519048662880307],
+                        linf=[0.026769982125784075])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        l2=[0.01080549145175204],
+                        linf=[0.08535203150832649])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl (flux differencing)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        l2=[0.010805491451752015],
+                        linf=[0.08535203150832515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0023544877254049017],
+                        linf=[0.02091570013800048])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        l2=[2.2815930561249495e-16],
+                        linf=[1.3100631690576847e-14])
+    # The velocity is discontinuous at interfaces and mortars
+    (; aux_interface, aux_mortar) = semi.cache.aux_vars
+    @test !(aux_interface[1, :, :, :, :] ≈ aux_interface[2, :, :, :, :])
+    @test !(aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
