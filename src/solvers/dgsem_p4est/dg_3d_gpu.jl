@@ -38,7 +38,7 @@ end
     kernel! = flux_differencing_KAkernel!(backend,
                                           flux_differencing_workgroupsize_3d(kernel_type,
                                                                              Val(NNODES))...)
-    kernel!(du, u, equations,
+    kernel!(du, u, get_aux_vars(cache), equations,
             typeof(mesh),
             kernel_type,
             have_nonconservative_terms,
@@ -47,7 +47,7 @@ end
             dg,
             volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
             derivative_split,
-            contravariant_vectors, get_aux_vars(cache),
+            contravariant_vectors,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -71,7 +71,7 @@ end
 #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
 #   with Non-Conservative Terms
 #   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
@@ -82,11 +82,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -193,7 +192,7 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
@@ -204,11 +203,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -331,7 +329,7 @@ end
 # GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
 # see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
 # See the documentation of [`HalfSweep`](@ref) for details on the trade-offs.
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
@@ -342,11 +340,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -414,7 +411,7 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
@@ -425,11 +422,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -502,7 +498,7 @@ end
 # See the documentation of [`HalfSweep`](@ref) for details on the trade-offs.
 # This is the least efficient version, but it is also the most flexible one since
 # it is not restricted by shared memory or workgroup size limits.
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
@@ -513,11 +509,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -573,7 +568,7 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
@@ -584,11 +579,10 @@ end
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
                                                            derivative_split,
-                                                           contravariant_vectors,
-                                                           aux) where {
-                                                                       NNODES,
-                                                                       NVARIABLES
-                                                                       }
+                                                           contravariant_vectors) where {
+                                                                                         NNODES,
+                                                                                         NVARIABLES
+                                                                                         }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
