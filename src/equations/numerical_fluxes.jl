@@ -750,12 +750,23 @@ end
 
 @inline function flux_combined(numerical_flux, u_ll, u_rr, aux,
                                orientation_or_normal_direction, equations)
-    # The type assertion catches single numerical fluxes not returning the combined
-    # fluxes for both sides, see `combine_conservative_and_nonconservative_fluxes`
-    flux_left, flux_right = numerical_flux(u_ll, u_rr, aux...,
-                                           orientation_or_normal_direction,
-                                           equations)::Tuple{Any, Any}
+    fluxes = numerical_flux(u_ll, u_rr, aux..., orientation_or_normal_direction,
+                            equations)
+    check_combined_fluxes(fluxes, numerical_flux)
+    flux_left, flux_right = fluxes
     return flux_left, flux_right
+end
+
+# A single numerical flux for equations with nonconservative terms has to return the
+# combined fluxes for both sides, see `combine_conservative_and_nonconservative_fluxes`.
+# Without this check, destructuring a single flux vector would silently take its first
+# two components. The check is resolved at compile time via dispatch.
+check_combined_fluxes(fluxes::Tuple{Any, Any}, numerical_flux) = nothing
+
+function check_combined_fluxes(fluxes, numerical_flux)
+    throw(ArgumentError("the numerical flux $numerical_flux does not return the " *
+                        "combined fluxes for both sides; pass a tuple " *
+                        "`(flux_conservative, flux_nonconservative)` instead"))
 end
 
 # Same as `flux_combined` for boundary conditions, returning the conservative flux plus

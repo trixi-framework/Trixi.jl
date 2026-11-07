@@ -2617,6 +2617,34 @@ end
     end
 end
 
+@testitem "Unit: flux_combined" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+    u_ll = SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0)
+    u_rr = SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.1)
+    normal_direction = SVector(0.3, -1.2)
+
+    flux = flux_central(u_ll, u_rr, normal_direction, equations)
+    noncons_ll = flux_nonconservative_powell(u_ll, u_rr, normal_direction, equations)
+    noncons_rr = flux_nonconservative_powell(u_rr, u_ll, normal_direction, equations)
+    combined = (flux + 0.5 * noncons_ll, flux + 0.5 * noncons_rr)
+
+    # Tuple of conservative and nonconservative fluxes
+    fluxes = (flux_central, flux_nonconservative_powell)
+    @test all(Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction, equations) .≈
+              combined)
+
+    # Single numerical flux returning the combined fluxes for both sides
+    function flux_single(u_ll, u_rr, normal_direction, equations)
+        return Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction, equations)
+    end
+    @test all(Trixi.flux_combined(flux_single, u_ll, u_rr, (), normal_direction,
+                                  equations) .≈ combined)
+
+    # Single numerical flux returning only one flux vector
+    @test_throws ArgumentError Trixi.flux_combined(flux_central, u_ll, u_rr, (),
+                                                   normal_direction, equations)
+end
+
 @testitem "Unit: Consistency check for LMARS flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations2D(1.4)
     flux_lmars = FluxLMARS(340)
