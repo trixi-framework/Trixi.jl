@@ -493,7 +493,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
 
                 x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                     i, j, boundary)
-                flux = boundary_condition(flux_inner, u_inner,
+                flux = boundary_condition(flux_inner, u_inner, nothing,
                                           get_unsigned_normal_vector_3d(direction),
                                           x, t, Gradient(), equations_parabolic)
 
@@ -600,7 +600,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
                 # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion3D as of 2022-6-27.
                 # It will not work with implementations which utilize `u_inner` to impose boundary conditions, such as
                 # the `Slip` boundary condition, which can be imposed to realize reflective or symmetric boundaries.
-                flux = boundary_condition(flux_inner, nothing,
+                flux = boundary_condition(flux_inner, nothing, nothing,
                                           get_unsigned_normal_vector_3d(direction),
                                           x, t, Divergence(), equations_parabolic)
 

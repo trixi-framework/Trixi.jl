@@ -347,7 +347,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
             flux_inner = u_inner
 
             x = get_node_coords(node_coordinates, equations_parabolic, dg, boundary)
-            flux = boundary_condition(flux_inner, u_inner, orientations[boundary],
+            flux = boundary_condition(flux_inner, u_inner, nothing,
+                                      orientations[boundary],
                                       direction,
                                       x, t, Gradient(), equations_parabolic)
 
@@ -430,7 +431,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
             # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
             # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
             # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
-            flux = boundary_condition(flux_inner, nothing, orientations[boundary],
+            flux = boundary_condition(flux_inner, nothing, nothing,
+                                      orientations[boundary],
                                       direction,
                                       x, t, Divergence(), equations_parabolic)
 

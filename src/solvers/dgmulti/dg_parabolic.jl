@@ -293,8 +293,8 @@ end
                                          face_normal, face_coordinates, t,
                                          operator_type::Gradient, boundary_condition,
                                          equations)
-    u_boundary = boundary_condition(u_inner, u_inner, face_normal, face_coordinates, t,
-                                    operator_type, equations)
+    u_boundary = boundary_condition(u_inner, u_inner, nothing, face_normal,
+                                    face_coordinates, t, operator_type, equations)
     return u_boundary - u_inner
 end
 
@@ -305,9 +305,9 @@ end
                                          face_normal, face_coordinates, t,
                                          operator_type::Divergence, boundary_condition,
                                          equations)
-    flux_boundary = boundary_condition(flux_inner / face_jacobian, u_inner,
-                                       face_normal, face_coordinates, t,
-                                       operator_type, equations)
+    flux_boundary = boundary_condition(flux_inner / face_jacobian, u_inner, nothing,
+                                       face_normal, face_coordinates, t, operator_type,
+                                       equations)
     return flux_boundary * face_jacobian
 end
 
