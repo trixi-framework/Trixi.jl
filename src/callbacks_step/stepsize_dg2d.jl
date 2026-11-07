@@ -134,11 +134,12 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::False, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              aux::Nothing, element)
+                                              aux, element)
     max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        lambda1, lambda2 = max_abs_speeds(u_node, equations)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
+        lambda1, lambda2 = max_abs_speeds(u_node, aux_node..., equations)
 
         # Local speeds transformed to the reference element
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
