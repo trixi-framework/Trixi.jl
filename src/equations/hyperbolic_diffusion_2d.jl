@@ -223,14 +223,19 @@ end
 
     # this is an optimized version of the application of the upwind dissipation matrix:
     #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
+    # With λ = sqrt(nu * inv_Tr), the flux Jacobian A_n satisfies
+    #   A_n^2 = λ^2 * diag(|n|^2, n n^T),
+    # so |A_n| = λ * diag(|n|, n n^T / |n|), i.e., only the normal component of the
+    # jump [[q]] is dissipated.
     λ_max = sqrt(equations.nu * equations.inv_Tr)
-    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) -
-         0.5f0 * λ_max * (phi_rr - phi_ll) *
-         sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+    norm_ = norm(normal_direction)
+    jump_q_normal = (normal_direction[1] * (q1_rr - q1_ll) +
+                     normal_direction[2] * (q2_rr - q2_ll)) / norm_
+    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) - 0.5f0 * λ_max * (phi_rr - phi_ll) * norm_
     f2 = 0.5f0 * (f_ll[2] + f_rr[2]) -
-         0.5f0 * λ_max * (q1_rr - q1_ll) * normal_direction[1]
+         0.5f0 * λ_max * jump_q_normal * normal_direction[1]
     f3 = 0.5f0 * (f_ll[3] + f_rr[3]) -
-         0.5f0 * λ_max * (q2_rr - q2_ll) * normal_direction[2]
+         0.5f0 * λ_max * jump_q_normal * normal_direction[2]
 
     return SVector(f1, f2, f3)
 end
