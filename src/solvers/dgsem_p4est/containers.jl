@@ -1123,8 +1123,15 @@ end
 
 # Build a reduced cache which can be passed to GPU kernels
 @inline function kernel_filter_cache(cache)
-    return (;
-            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+    elements = (; contravariant_vectors = cache.elements.contravariant_vectors)
+    # The auxiliary variables are only stored for equations with auxiliary variables,
+    # see `get_aux_vars`
+    if hasproperty(cache, :aux_vars)
+        aux_vars = (; aux = cache.aux_vars.aux)
+        return (; elements, aux_vars)
+    else
+        return (; elements)
+    end
 end
 
 include("containers_2d.jl")
