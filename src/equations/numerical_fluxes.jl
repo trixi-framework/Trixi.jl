@@ -753,8 +753,7 @@ end
     fluxes = numerical_flux(u_ll, u_rr, aux..., orientation_or_normal_direction,
                             equations)
     check_combined_fluxes(fluxes, numerical_flux)
-    flux_left, flux_right = fluxes
-    return flux_left, flux_right
+    return fluxes
 end
 
 # A single numerical flux for equations with nonconservative terms has to return the
