@@ -70,6 +70,21 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
            f2_L_threaded, f2_R_threaded
 end
 
+# Check whether the thread-local buffers created by `create_f_threaded` have the axes
+# we assume in the inner loops of Trixi.jl.
+function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
+                               f2_L_threaded, f2_R_threaded,
+                               mesh::AbstractMesh{2}, equations, dg::DG)
+    f1_axes = (eachvariable(equations), Base.OneTo(nnodes(dg) + 1), eachnode(dg))
+    f2_axes = (eachvariable(equations), eachnode(dg), Base.OneTo(nnodes(dg) + 1))
+    check_axes_threaded(f1_L_threaded, f1_axes)
+    check_axes_threaded(f1_R_threaded, f1_axes)
+    check_axes_threaded(f2_L_threaded, f2_axes)
+    check_axes_threaded(f2_R_threaded, f2_axes)
+
+    return nothing
+end
+
 # Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
 # subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
 function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
@@ -80,6 +95,16 @@ function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
 
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded)
+end
+
+# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# assume in the inner loops of Trixi.jl.
+function check_axes_subcell_fv(mesh::TreeMesh{2}, equations, dg::DG, cache)
+    check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
+                          cache.fstar2_L_threaded, cache.fstar2_R_threaded,
+                          mesh, equations, dg)
+
+    return nothing
 end
 
 # The methods below are specialized on the mortar type
@@ -308,15 +333,18 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     end
 end
 
-@inline function fvO2_kernel!(du, u,
-                              MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                                  UnstructuredMesh2D, P4estMesh{2},
-                                                  T8codeMesh{2}}},
-                              have_nonconservative_terms, equations,
-                              volume_flux_fv, dg::DGSEM, cache, element,
-                              sc_interface_coords, reconstruction_mode, slope_limiter,
-                              cons2recon, recon2cons,
-                              alpha = true)
+Base.@propagate_inbounds function fvO2_kernel!(du, u,
+                                               MeshT::Type{<:Union{TreeMesh{2},
+                                                                   StructuredMesh{2},
+                                                                   UnstructuredMesh2D,
+                                                                   P4estMesh{2},
+                                                                   T8codeMesh{2}}},
+                                               have_nonconservative_terms, equations,
+                                               volume_flux_fv, dg::DGSEM, cache,
+                                               element,
+                                               sc_interface_coords, reconstruction_mode,
+                                               slope_limiter, cons2recon, recon2cons,
+                                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -345,12 +373,14 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                ::Type{<:TreeMesh{2}},
-                                have_nonconservative_terms::False,
-                                equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter,
-                                cons2recon, recon2cons)
+Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                                 u, ::Type{<:TreeMesh{2}},
+                                                 have_nonconservative_terms::False,
+                                                 equations, volume_flux_fv, dg::DGSEM,
+                                                 element, cache,
+                                                 sc_interface_coords,
+                                                 reconstruction_mode,
+                                                 slope_limiter, cons2recon, recon2cons)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -412,12 +442,15 @@ end
     return nothing
 end
 
-@inline function fv_kernel!(du, u,
-                            MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                                UnstructuredMesh2D, P4estMesh{2},
-                                                T8codeMesh{2}}},
-                            have_nonconservative_terms, equations,
-                            volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
+Base.@propagate_inbounds function fv_kernel!(du, u,
+                                             MeshT::Type{<:Union{TreeMesh{2},
+                                                                 StructuredMesh{2},
+                                                                 UnstructuredMesh2D,
+                                                                 P4estMesh{2},
+                                                                 T8codeMesh{2}}},
+                                             have_nonconservative_terms, equations,
+                                             volume_flux_fv, dg::DGSEM, cache,
+                                             element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -448,10 +481,11 @@ end
 # Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:TreeMesh{2}},
-                              have_nonconservative_terms::False, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u, ::Type{<:TreeMesh{2}},
+                                               have_nonconservative_terms::False,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
@@ -471,10 +505,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:TreeMesh{2}},
-                              have_nonconservative_terms::True, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u, ::Type{<:TreeMesh{2}},
+                                               have_nonconservative_terms::True,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
     # Fluxes in x-direction
@@ -1171,6 +1206,10 @@ function calc_mortar_flux!(surface_flux_values,
             # central fluxes/SATs) explains why we need the factor 0.5.
             # Alternatively, you can also follow the argumentation of Bohm et al. 2018
             # ("nonconservative diamond flux")
+            # As for interfaces, the first argument of the nonconservative flux is the
+            # state of the element receiving the flux. The primary fluxes are copied to
+            # the small elements and the secondary fluxes are projected to the large
+            # element, see `mortar_fluxes_to_elements!`.
             if large_sides[mortar] == 1 # -> small elements on right side
                 for i in eachnode(dg)
                     # Pull the left and right solutions
@@ -1181,16 +1220,16 @@ function calc_mortar_flux!(surface_flux_values,
                                                                    equations, dg,
                                                                    i, mortar)
                     # Call pointwise nonconservative term
-                    noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
+                    noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
                                                                  orientation, equations)
-                    noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
+                    noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
                                                                  orientation, equations)
-                    noncons_secondary_upper = nonconservative_flux(u_upper_rr,
-                                                                   u_upper_ll,
+                    noncons_secondary_upper = nonconservative_flux(u_upper_ll,
+                                                                   u_upper_rr,
                                                                    orientation,
                                                                    equations)
-                    noncons_secondary_lower = nonconservative_flux(u_lower_rr,
-                                                                   u_lower_ll,
+                    noncons_secondary_lower = nonconservative_flux(u_lower_ll,
+                                                                   u_lower_rr,
                                                                    orientation,
                                                                    equations)
                     # Add to primary and secondary temporary storage
@@ -1217,16 +1256,16 @@ function calc_mortar_flux!(surface_flux_values,
                                                                    equations, dg,
                                                                    i, mortar)
                     # Call pointwise nonconservative term
-                    noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
+                    noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
                                                                  orientation, equations)
-                    noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
+                    noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
                                                                  orientation, equations)
-                    noncons_secondary_upper = nonconservative_flux(u_upper_ll,
-                                                                   u_upper_rr,
+                    noncons_secondary_upper = nonconservative_flux(u_upper_rr,
+                                                                   u_upper_ll,
                                                                    orientation,
                                                                    equations)
-                    noncons_secondary_lower = nonconservative_flux(u_lower_ll,
-                                                                   u_lower_rr,
+                    noncons_secondary_lower = nonconservative_flux(u_lower_rr,
+                                                                   u_lower_ll,
                                                                    orientation,
                                                                    equations)
                     # Add to primary and secondary temporary storage

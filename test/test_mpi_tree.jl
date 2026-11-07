@@ -66,6 +66,29 @@ end
     end
 end
 
+@testitem "TreeMesh MPI 2D: linf_divb" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
+    # The maximum 8 of |div B| = |3 x^2 + 2 y + 3 y^2| is attained only at y = 1,
+    # i.e., on some but not all MPI ranks. Polynomial degree 3 differentiates B exactly.
+    equations = IdealGlmMhdEquations2D(1.4)
+    function initial_condition(x, t, equations)
+        B1 = x[1]^3
+        B2 = x[2]^2 * (1 + x[2])
+        prim = SVector(1.0, 0.0, 0.0, 0.0, 1.0, B1, B2, 0.0, 0.0)
+        return prim2cons(prim, equations)
+    end
+    solver = DGSEM(polydeg = 3,
+                   surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                   volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                     flux_nonconservative_powell)))
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
+                    periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    u_ode = compute_coefficients(0.0, semi)
+    u = Trixi.wrap_array(u_ode, semi)
+    @test Trixi.analyze(Val(:linf_divb), nothing, u, 0.0, semi) ≈ 8
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_amr.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the serial test!
@@ -361,6 +384,7 @@ end
 ] tags=[:mpi, :mpi_skip_windows] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_vortex_shockcapturing.jl"),
+                        # Expected errors are exactly the same as in the serial test!
                         l2=[
                             0.0017158367642679273,
                             0.09619888722871434,
@@ -372,8 +396,31 @@ end
                             0.9878047229255944,
                             0.9880191167111795,
                             2.2154030488035588
+                        ])
+end
+
+# Shock capturing with smoothing of the blending factors across MPI interfaces and
+# MPI mortars
+@testitem "TreeMesh MPI 2D: elixir_euler_riemannproblem_quadrants_amr.jl" setup=[
+    Setup,
+    MPITreeMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants_amr.jl"),
+                        tspan=(0.0, 0.05),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.12802172216950314,
+                            0.1333199240875145,
+                            0.13331992408751456,
+                            0.48888051192644405
                         ],
-                        rtol=0.001)
+                        linf=[
+                            0.853710403180942,
+                            0.9151148367639803,
+                            0.9151148367639808,
+                            3.4300525777582864
+                        ])
 end
 
 @testitem "TreeMesh MPI 2D: elixir_advection_limiter_liu_zhang.jl" setup=[
