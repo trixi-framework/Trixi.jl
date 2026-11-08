@@ -1,16 +1,20 @@
 name: HPC
 run-name: >-
   ${{ inputs.context_run_id && format('HPC resume {0}', inputs.context_run_id)
-  || inputs.pull_request && format('HPC PR {0} {1} checks={2} julia={3}', inputs.pull_request, inputs.source_sha, inputs.checks, inputs.julia)
-  || format('HPC checks={0} julia={1}', inputs.checks || 'all', inputs.julia || 'all') }}
+  || inputs.pull_request && format('HPC PR {0} {1} checks={2} benchmarks={3} julia={4}', inputs.pull_request, inputs.source_sha, inputs.checks, inputs.benchmarks, inputs.julia)
+  || format('HPC checks={0} benchmarks={1} julia={2}', inputs.checks || 'all', inputs.benchmarks || 'none', inputs.julia || 'all') }}
 
 on:
   workflow_dispatch:
     inputs:
       checks:
-        description: Checks to run, all or cpu, mpi and gpu joined by +.
+        description: Checks to run, all, none or cpu, mpi and gpu joined by +.
         type: string
         default: all
+      benchmarks:
+        description: Scaling benchmarks to run, all, none or threads, mpi and gpu joined by +.
+        type: string
+        default: none
       julia:
         description: Julia versions to run, all or 1.10 and 1.13 joined by +.
         type: string
@@ -42,16 +46,32 @@ permissions:
 
 jobs:
   hpc:
-    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@58f6bf270de20d78d395877306e627c25f0c53d5
+    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@499b0d0c0729a16761d9cdda86263e820af97cf5
     with:
       gitlab_hostname: git.uni-paderborn.de
       gitlab_project_id: ${{ vars.GITLAB_PROJECT_ID }}
       pipeline_variables: |
         HPC_CHECKS=${{ inputs.checks || 'all' }}
+        HPC_BENCHMARKS=${{ inputs.benchmarks || 'none' }}
         HPC_JULIA=${{ inputs.julia || 'all' }}
       variable_patterns: |
-        HPC_CHECKS=(all|cpu|mpi|gpu)(\+(all|cpu|mpi|gpu))*
+        HPC_CHECKS=none|(all|cpu|mpi|gpu)(\+(all|cpu|mpi|gpu))*
+        HPC_BENCHMARKS=none|(all|threads|mpi|gpu)(\+(all|threads|mpi|gpu))*
         HPC_JULIA=(all|1\.10|1\.13)(\+(all|1\.10|1\.13))*
+      benchmark: >-
+        {"mode":"history","branch":"hpc-results","suites":[
+          {"name":"Threads 1.10 PID","archive":"scaling-threads1.10.zip","directory":"bench","file":"results/bench-threads/1.10/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
+          {"name":"Threads 1.10 efficiency","archive":"scaling-threads1.10.zip","directory":"bench","file":"results/bench-threads/1.10/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
+          {"name":"Threads 1.13 PID","archive":"scaling-threads1.13.zip","directory":"bench","file":"results/bench-threads/1.13/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
+          {"name":"Threads 1.13 efficiency","archive":"scaling-threads1.13.zip","directory":"bench","file":"results/bench-threads/1.13/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
+          {"name":"MPI 1.10 PID","archive":"scaling-mpi1.10.zip","directory":"bench","file":"results/bench-mpi/1.10/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
+          {"name":"MPI 1.10 efficiency","archive":"scaling-mpi1.10.zip","directory":"bench","file":"results/bench-mpi/1.10/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
+          {"name":"MPI 1.13 PID","archive":"scaling-mpi1.13.zip","directory":"bench","file":"results/bench-mpi/1.13/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
+          {"name":"MPI 1.13 efficiency","archive":"scaling-mpi1.13.zip","directory":"bench","file":"results/bench-mpi/1.13/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
+          {"name":"GPU 1.10 PID","archive":"scaling-gpu1.10.zip","directory":"bench","file":"results/bench-gpu/1.10/benchmark.json","alert_threshold":"120%","fail_threshold":"200%"},
+          {"name":"GPU 1.10 efficiency","archive":"scaling-gpu1.10.zip","directory":"bench","file":"results/bench-gpu/1.10/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
+          {"name":"GPU 1.13 PID","archive":"scaling-gpu1.13.zip","directory":"bench","file":"results/bench-gpu/1.13/benchmark.json","alert_threshold":"120%","fail_threshold":"200%"},
+          {"name":"GPU 1.13 efficiency","archive":"scaling-gpu1.13.zip","directory":"bench","file":"results/bench-gpu/1.13/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"}]}
     secrets:
       GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       GITLAB_TRIGGER_TOKEN: ${{ secrets.GITLAB_TRIGGER_TOKEN }}

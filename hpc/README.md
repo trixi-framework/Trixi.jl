@@ -64,13 +64,30 @@ The pipeline defaults to the configured Otus depot, account and partitions, proj
 Both `otus-shell` and `otus-slurm` runners must be enabled.
 Slurm jobs use the [express QoS](https://upb-pc2.atlassian.net/wiki/spaces/PC2DOK/pages/1902070).
 [Jacamar scheduler parameters](https://ecp-ci.gitlab.io/docs/ci-users/ci-batch.html#scheduler-parameters) specify explicit tasks, CPUs, memory and execution time for each compute job.
-Slurm limits are thirty minutes for CPU and MPI jobs and twenty minutes for GPU jobs.
+Slurm limits are thirty minutes for CPU, MPI and benchmark jobs and twenty minutes for GPU checks.
 The GitLab timeout is seven days to accommodate queue wait, the runner must permit that timeout.
 Logs and prepared environments are retained for four weeks, including artifacts from failed jobs.
 Job logs report Slurm submit and start times, MPI bindings and the node, CPUs and threads visible to each worker.
 CPU MPI jobs log the UCX transport selection, CPU binding checks compare ranks within each node.
 `JACAMAR_SCHEDULER_JOB_PREFIX` identifies Trixi, the check and Julia version in Slurm job names.
-The full test suites and benchmark follow this validation pipeline.
+The full test suites follow this validation pipeline.
+
+## Benchmarks
+
+`HPC_BENCHMARKS` selects scaling benchmarks independently of the checks, `HPC_CHECKS=none` runs benchmarks without validation.
+[run.jl](../benchmark/run.jl) measures the performance index (PID) of an existing elixir, the pipeline variables define the elixir and its `trixi_include` overrides.
+Each scaling point runs as its own matrix job, a final job per series on the shell runner writes `benchmark.json` with the PIDs and `efficiency.json` with the parallel efficiency relative to the smallest count.
+Benchmarks run with automatic bounds checking, preparation precompiles that mode when benchmarks are selected.
+
+| Series | Points | Allocation |
+|---|---|---|
+| Threads | `p4est_3d_dgsem/elixir_euler_source_terms.jl` with about 2.1 million degrees of freedom on 1, 8, 24, 48 and 96 threads. | One socket of 96 cores. |
+| MPI | The same elixir on 1, 24 and 96 ranks of one node and 192 ranks on two nodes. | One socket of 96 cores per node. |
+| GPU | The Taylor-Green vortex of [benchmark/CUDA](../benchmark/CUDA) on one and two H100 GPUs. | Two GPUs with 24 cores each. |
+
+Allocating whole sockets keeps other jobs from sharing memory bandwidth with the measured cores.
+The runs are compute bound, so the remaining noise between separate jobs is small compared to the alert thresholds.
+The [GitHub caller](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
 
 ## GitHub setup
 
