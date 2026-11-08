@@ -6455,6 +6455,11 @@ end
     @test Trixi.flux_turbo(flux_central, turbo_ll..., turbo_rr..., normal_direction...,
                            equations) ≈
           flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The fallback used outside of the turbo kernels forwards the auxiliary variables to
+    # the wrapped flux
+    @test FluxTurbo(flux_central)(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                  equations) ==
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
 
     # Nonconservative equation: the node receiving the nonconservative flux passes its
     # own state and auxiliary variables first

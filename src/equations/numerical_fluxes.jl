@@ -651,9 +651,8 @@ function FluxTurbo(flux_conservative, flux_nonconservative)
 end
 
 # As a fallback method, the wrapped flux is called.
-@inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
-                                equations)
-    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (f::FluxTurbo)(args...)
+    return f.numerical_flux(args...)
 end
 
 # When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
