@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-# Buffers for the finite volume fluxes on the subcells, called from
+# Preallocated storage for the finite volume fluxes on the subcells, called from
 # `create_cache_volume_integral` of subcell-based volume integrals
 # (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
@@ -22,7 +22,7 @@ function create_cache_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh
             normal_vectors)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                            P4estMesh{2}, T8codeMesh{2}}, equations,

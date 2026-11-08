@@ -33,7 +33,7 @@ function create_cache_hyperbolic(mesh::TreeMesh{1}, equations,
     return cache
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from
+# Preallocated storage for the finite volume fluxes on the subcells, called from
 # `create_cache_volume_integral` of subcell-based volume integrals
 # (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
@@ -53,7 +53,7 @@ function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, eq
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                                dg::DG, cache)

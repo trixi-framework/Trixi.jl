@@ -75,7 +75,7 @@ function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
     return nothing
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from
+# Preallocated storage for the finite volume fluxes on the subcells, called from
 # `create_cache_volume_integral` of subcell-based volume integrals
 # (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
@@ -90,7 +90,7 @@ function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
             fstar3_L_threaded, fstar3_R_threaded)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::TreeMesh{3}, equations, dg::DG, cache)
     check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,

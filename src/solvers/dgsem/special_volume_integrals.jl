@@ -16,7 +16,7 @@ function create_cache_volume_integral(mesh, equations,
     return create_cache_subcell_fv(mesh, equations, dg, cache_containers, uEltype)
 end
 
-# The buffers created by `create_cache_subcell_fv` are checked by
+# The storage created by `create_cache_subcell_fv` is checked by
 # `check_axes_subcell_fv`, which dispatches on the mesh type as well.
 function check_axes_volume_integral(mesh, equations,
                                     volume_integral::AbstractVolumeIntegralSubcell,
