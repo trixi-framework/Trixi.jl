@@ -151,8 +151,9 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, jj,
-                                                   k, element)..., Ja2_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, jj, k, element)...,
+                                 Ja2_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
         end
@@ -177,8 +178,9 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, j,
-                                                   kk, element)..., Ja3_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, j, kk, element)...,
+                                 Ja3_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
         end
@@ -236,19 +238,16 @@ end
         # first coordinate direction: rotate the partner index along `i`
         ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+        aux_node_ii = get_aux_node_vars(aux, equations, dg, ii, j, k, element)
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                ii, j, k, element)
         Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, aux_node...,
-                                                        get_aux_node_vars(aux,
-                                                                          equations, dg,
-                                                                          ii, j, k,
-                                                                          element)...,
-                                                        Ja1_avg,
-                                                        equations)
+        fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii,
+                                                        aux_node..., aux_node_ii...,
+                                                        Ja1_avg, equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
@@ -268,19 +267,16 @@ end
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+        aux_node_jj = get_aux_node_vars(aux, equations, dg, i, jj, k, element)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                i, jj, k, element)
         Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, aux_node...,
-                                                        get_aux_node_vars(aux,
-                                                                          equations, dg,
-                                                                          i, jj, k,
-                                                                          element)...,
-                                                        Ja2_avg,
-                                                        equations)
+        fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj,
+                                                        aux_node..., aux_node_jj...,
+                                                        Ja2_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
@@ -299,19 +295,16 @@ end
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+        aux_node_kk = get_aux_node_vars(aux, equations, dg, i, j, kk, element)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                i, j, kk, element)
         Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, aux_node...,
-                                                        get_aux_node_vars(aux,
-                                                                          equations, dg,
-                                                                          i, j, kk,
-                                                                          element)...,
-                                                        Ja3_avg,
-                                                        equations)
+        fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk,
+                                                        aux_node..., aux_node_kk...,
+                                                        Ja3_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
@@ -372,11 +365,11 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node,
-                                 get_node_vars(u_local, equations, dg, ii, j,
-                                               k),
+                                 get_node_vars(u_local, equations, dg, ii, j, k),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, ii, j,
-                                                   k, element)..., Ja1_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   ii, j, k, element)...,
+                                 Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
 
@@ -386,11 +379,11 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2 = volume_flux(u_node,
-                                 get_node_vars(u_local, equations, dg, i, jj,
-                                               k),
+                                 get_node_vars(u_local, equations, dg, i, jj, k),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, jj,
-                                                   k, element)..., Ja2_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, jj, k, element)...,
+                                 Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
 
@@ -400,11 +393,11 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3 = volume_flux(u_node,
-                                 get_node_vars(u_local, equations, dg, i, j,
-                                               kk),
+                                 get_node_vars(u_local, equations, dg, i, j, kk),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, j,
-                                                   kk, element)..., Ja3_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, j, kk, element)...,
+                                 Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3
     end
 
@@ -533,8 +526,9 @@ end
         fluxtilde1 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, ii, j, k, element),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, ii, j,
-                                                   k, element)..., Ja1_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   ii, j, k, element)...,
+                                 Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
 
@@ -546,8 +540,9 @@ end
         fluxtilde2 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, i, jj, k, element),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, jj,
-                                                   k, element)..., Ja2_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, jj, k, element)...,
+                                 Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
 
@@ -559,8 +554,9 @@ end
         fluxtilde3 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, i, j, kk, element),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, i, j,
-                                                   kk, element)..., Ja3_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   i, j, kk, element)...,
+                                 Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3
     end
 
@@ -1332,8 +1328,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
 
     # Auxiliary variables on both sides of the interface at the surface node `(i, j)`,
     # counted along the primary side as for `surface_flux_values`
-    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg), i, j,
-                                         interface)
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
+                                         i, j, interface)
 
     flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     for v in eachvariable(equations)
@@ -1407,11 +1403,11 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
 
     # Auxiliary variables on both sides of the interface at the surface node `(i, j)`,
     # counted along the primary side as for `surface_flux_values`
-    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg), i, j,
-                                         interface)
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
+                                         i, j, interface)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                         equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
     for v in eachvariable(equations)
         surface_flux_values[v, i, j, primary_direction, primary_element] = flux_left[v]
         surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
