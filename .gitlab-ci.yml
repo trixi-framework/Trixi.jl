@@ -124,9 +124,10 @@ default:
   stage: benchmark
   variables:
     CPU_ELIXIR: examples/p4est_3d_dgsem/elixir_euler_source_terms.jl
-    CPU_OPTIONS: "(; initial_refinement_level = 3, maxiters = 20, analysis_callback = TrivialCallback(), save_solution = TrivialCallback())"
+    # The steps grow with the count, so every point measures about ten seconds under ideal scaling.
+    CPU_OPTIONS: '(; initial_refinement_level = 3, maxiters = 16 * parse(Int, ENV["COUNT"]), analysis_callback = TrivialCallback(), save_solution = TrivialCallback())'
     GPU_ELIXIR: benchmark/CUDA/elixir_euler_taylor_green_vortex.jl
-    GPU_OPTIONS: "using CUDA; CUDA.device!(Trixi.mpi_rank()); (; initial_refinement_level = 3, maxiters = 50, storage_type = CuArray, real_type = Float64, analysis_callback = TrivialCallback())"
+    GPU_OPTIONS: "using CUDA; CUDA.device!(Trixi.mpi_rank()); (; initial_refinement_level = 3, maxiters = 500, storage_type = CuArray, real_type = Float64, analysis_callback = TrivialCallback())"
 
 .bench-threads:
   extends: .bench
