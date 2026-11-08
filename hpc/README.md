@@ -88,6 +88,7 @@ Benchmarks run with automatic bounds checking, preparation precompiles that mode
 Allocating whole sockets keeps other jobs from sharing memory bandwidth with the measured cores.
 The runs are compute bound, so the remaining noise between separate jobs is small compared to the alert thresholds.
 The [GitHub caller](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
+Runs record the history on the `hpc-results` branch and deploy its dashboard with GitHub Pages under `/bench/`.
 
 ## GitHub setup
 

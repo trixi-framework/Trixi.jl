@@ -59,7 +59,7 @@ jobs:
         HPC_BENCHMARKS=none|(all|threads|mpi|gpu)(\+(all|threads|mpi|gpu))*
         HPC_JULIA=(all|1\.10|1\.13)(\+(all|1\.10|1\.13))*
       benchmark: >-
-        {"mode":"history","branch":"hpc-results","suites":[
+        {"mode":"pages","branch":"hpc-results","suites":[
           {"name":"Threads 1.10 PID","archive":"scaling-threads1.10.zip","directory":"bench","file":"results/bench-threads/1.10/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
           {"name":"Threads 1.10 efficiency","archive":"scaling-threads1.10.zip","directory":"bench","file":"results/bench-threads/1.10/efficiency.json","tool":"customBiggerIsBetter","alert_threshold":"125%","fail_threshold":"150%"},
           {"name":"Threads 1.13 PID","archive":"scaling-threads1.13.zip","directory":"bench","file":"results/bench-threads/1.13/benchmark.json","alert_threshold":"130%","fail_threshold":"200%"},
