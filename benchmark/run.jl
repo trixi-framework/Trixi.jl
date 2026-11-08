@@ -23,6 +23,11 @@ function run_elixir(elixir, overrides)
     Trixi.MPI.Barrier(Trixi.mpi_comm())
     seconds = @elapsed trixi_include(elixir; overrides...)
     semi = @invokelatest Main.semi
+    # Elixirs either solve into `sol` or step an `integrator`.
+    solution = (@invokelatest isdefined(Main, :sol)) ? (@invokelatest Main.sol) :
+               (@invokelatest Main.integrator).sol
+    # An aborted run, for example after a vanishing time step, measures fewer steps of a wrong solution.
+    @assert Symbol(solution.retcode) in (:Success, :MaxIters) "The elixir stopped with $(solution.retcode)."
     return seconds, Trixi.ncalls(semi.performance_counter), Trixi.ndofsglobal(semi)
 end
 
