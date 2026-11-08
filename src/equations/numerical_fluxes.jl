@@ -734,8 +734,6 @@ end
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
     flux = flux_conservative(u_ll, u_rr, aux..., normal_direction, equations)
-    # The node receiving the nonconservative flux passes its own state (and auxiliary
-    # variables) first
     noncons_left = flux_nonconservative(u_ll, u_rr, aux..., normal_direction, equations)
     noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)..., normal_direction,
                                          equations)
