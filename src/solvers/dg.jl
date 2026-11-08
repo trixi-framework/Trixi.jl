@@ -364,6 +364,7 @@ the interface of numerical fluxes in Trixi.jl.
 - Hendrik Ranocha (2018)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
+  [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
   [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
 - Chen, Shu (2017)
   Entropy stable high order discontinuous Galerkin methods with suitable
