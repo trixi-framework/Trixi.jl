@@ -8,8 +8,8 @@
 # This file contains the storage of DGSEM-specific volume integrals and specialized
 # volume integrals that require some indicators already to be defined.
 
-# Subcell-based volume integrals use finite volume fluxes on the subcells. The buffers
-# for them are created by `create_cache_subcell_fv`, which dispatches on the mesh type.
+# Subcell-based volume integrals use finite volume fluxes on the subcells. The storage
+# for them is created by `create_cache_subcell_fv`, which dispatches on the mesh type.
 function create_cache_volume_integral(mesh, equations,
                                       volume_integral::AbstractVolumeIntegralSubcell,
                                       dg::DGSEM, cache_containers, uEltype)

@@ -56,10 +56,11 @@ volume_integral_children(volume_integral) = ()
 # storage of its children. The results for all volume integrals in the tree are merged
 # into the `cache` of the semidiscretization. Entries with the same name are shared
 # between the volume integrals; they must be compatible (`compatible_cache_entries`),
-# otherwise an error is thrown. Thus, use shared entries only for scratch buffers that
-# are not used across calls into children. All other state must be stored in the
-# volume integral objects (e.g., in their indicators). Such state is created without
-# knowing the mesh and must be sized in `resize_cache_volume_integral!`, not here.
+# otherwise an error is thrown. Thus, use shared entries only for temporary storage
+# whose contents need not persist across calls into children. All other state must be
+# stored in the volume integral objects (e.g., in their indicators). Such state is
+# created without knowing the mesh and must be sized in `resize_cache_volume_integral!`,
+# not here.
 # By default, a volume integral has no own storage in the `cache`.
 function create_cache_volume_integral(mesh, equations,
                                       volume_integral::AbstractVolumeIntegral, dg,
@@ -200,7 +201,7 @@ end
 
 # Check whether two cache entries with the same name can be shared by different
 # volume integrals. By default, they must have the same type. Arrays must also have
-# the same axes, which is checked recursively, e.g., for thread-local buffers.
+# the same axes, which is checked recursively, e.g., for thread-local storage.
 # Methods for other types of storage can be added by dispatch.
 compatible_cache_entries(a, b) = false
 compatible_cache_entries(a::T, b::T) where {T} = true
@@ -947,9 +948,9 @@ function volume_integral_children(volume_integral::VolumeIntegralSubcellLimiting
     return (volume_integral.volume_integral_low_order,)
 end
 
-# `VolumeIntegralSubcellLimiting` uses the subcell finite volume buffers of its child
-# `volume_integral_low_order`, so only the storage specific to subcell limiting
-# is created here.
+# `VolumeIntegralSubcellLimiting` uses the storage for the subcell finite volume fluxes
+# created for its child `volume_integral_low_order`, so only the storage specific to
+# subcell limiting is created here.
 function create_cache_volume_integral(mesh, equations,
                                       volume_integral::VolumeIntegralSubcellLimiting,
                                       dg, cache_containers, uEltype)
@@ -988,8 +989,8 @@ end
 # was performed. This is only implemented for the positions in the tree accepted by
 # `supports_subcell_limiting`. Moreover, the antidiffusive fluxes are stored in the
 # shared `cache`. Thus, at most one `VolumeIntegralSubcellLimiting` is allowed.
-# Furthermore, `VolumeIntegralSubcellLimiting` does not create the buffers for the
-# subcell finite volume fluxes itself but uses the ones created for its child
+# Furthermore, `VolumeIntegralSubcellLimiting` does not create the storage for the
+# subcell finite volume fluxes itself but uses the storage created for its child
 # `volume_integral_low_order`, which must thus be a subcell-based volume integral.
 function check_volume_integral_tree(volume_integral)
     # We want to count how many `VolumeIntegralSubcellLimiting` are in the tree of
