@@ -1845,10 +1845,9 @@ end
                                                                                   element]),
                                                     _zero)),
                                   Val(nvariables(equations))))
-    aux_node = get_aux_node_vars(get_aux_vars(cache), equations, dg,
-                                 i, j, k, element)
-    source_node = calc_source_terms_node(u, aux_node, t, source_terms, node_coordinates,
-                                         equations, dg, i, j, k, element)
+    source_node = calc_source_terms_node(u, get_aux_vars(cache), t, source_terms,
+                                         node_coordinates, equations, dg,
+                                         i, j, k, element)
     jacobian_factor = inverse_jacobian[i, j, k, element]
     du_local = get_node_vars(du, equations, dg, i, j, k, element) +
                factor * surface_node
