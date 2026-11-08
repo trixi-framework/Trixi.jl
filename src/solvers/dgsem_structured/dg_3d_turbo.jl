@@ -307,7 +307,7 @@ end
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
     # The auxiliary variables of the node (if any) are passed as additional scalars after
-    # the conserved variables, e.g., `cons2turbo(volume_flux, u_1, ..., aux_1, ...)`.
+    # the conserved variables, e.g., `cons2turbo(numerical_flux, u_1, ..., aux_1, ...)`.
     cons_reads = vcat([:(u_cons[$v, i, j, k, element]) for v in 1:NVARS],
                       [:(aux[$v, i, j, k, element]) for v in 1:NAUXVARS])
     cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NTURBO]...),
