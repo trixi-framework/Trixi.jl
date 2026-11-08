@@ -159,13 +159,17 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                 have_nonconservative_terms, equations,
                                 volume_integral_stabilized, dg, cache)
 
-        dS_stabilized = -entropy_change_reference_element(du, u, element, MeshT,
-                                                          equations, dg, cache)
+        dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
+                                                                          element,
+                                                                          MeshT,
+                                                                          equations,
+                                                                          dg,
+                                                                          cache)
 
         # Calculate difference between high and low order FV entropy production;
         # this should provide positive entropy dissipation if `entropy_residual > 0`,
         # assuming the stabilized volume integral is entropy stable.
-        entropy_dissipation = dS_stabilized - dS_volume_integral
+        entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
         # Calculate DG-FV blending factor
         ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
@@ -392,13 +396,17 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                         have_nonconservative_terms, equations,
                                         volume_integral_stabilized, dg, cache)
 
-                dS_stabilized = -entropy_change_reference_element(du, u, element, MeshT,
-                                                                  equations, dg, cache)
+                dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
+                                                                                  element,
+                                                                                  MeshT,
+                                                                                  equations,
+                                                                                  dg,
+                                                                                  cache)
 
                 # Calculate difference between high and low order FV entropy production;
                 # this should provide positive entropy dissipation if `entropy_residual > 0`,
                 # assuming the stabilized volume integral is entropy stable.
-                entropy_dissipation = dS_stabilized - dS_volume_integral
+                entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
                 # Calculate DG-FV blending factor as the maximum between the entropy correction
                 # indicator and shock capturing indicator.

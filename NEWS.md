@@ -101,7 +101,7 @@ for human readability.
     supporting them ([#3428])
   - the volume integrals `VolumeIntegralAdaptive` with `IndicatorEntropyChange`,
     `IndicatorEntropyCorrection`, and `IndicatorEntropyCorrectionShockCapturingCombined`
-    on all mesh types supporting them ([#3430])
+    on all mesh types supporting them ([#3432])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
