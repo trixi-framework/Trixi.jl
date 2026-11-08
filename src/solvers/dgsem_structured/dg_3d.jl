@@ -57,13 +57,16 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
-        flux1 = flux(u_node, 1, equations)
-        flux2 = flux(u_node, 2, equations)
-        flux3 = flux(u_node, 3, equations)
+        flux1 = flux(u_node, aux_node..., 1, equations)
+        flux2 = flux(u_node, aux_node..., 2, equations)
+        flux3 = flux(u_node, aux_node..., 3, equations)
 
         # Compute the contravariant flux by taking the scalar product of the
         # first contravariant vector Ja^1 and the flux vector
@@ -118,10 +121,13 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Calculate volume integral in one element
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
         Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -136,6 +142,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux, equations, dg,
+                                            ii, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -144,7 +152,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+            fluxtilde1 = volume_flux(u_node, u_node_ii,
+                                     aux_node..., aux_node_ii...,
+                                     Ja1_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
@@ -154,6 +164,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux, equations, dg,
+                                            i, jj, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -162,7 +174,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+            fluxtilde2 = volume_flux(u_node, u_node_jj,
+                                     aux_node..., aux_node_jj...,
+                                     Ja2_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
@@ -172,6 +186,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # z direction
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux, equations, dg,
+                                            i, j, kk, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -180,7 +196,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
+            fluxtilde3 = volume_flux(u_node, u_node_kk,
+                                     aux_node..., aux_node_kk...,
+                                     Ja3_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk], fluxtilde3,
                                        equations, dg, i, j, k, element)
             multiply_add_to_node_vars!(du, alpha * derivative_split[kk, k], fluxtilde3,
@@ -221,6 +239,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     symmetric_flux, nonconservative_flux = volume_flux
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Apply the symmetric flux as usual
     flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
@@ -229,6 +249,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
         Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -245,6 +266,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         integral_contribution = zero(u_node)
         for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux, equations, dg,
+                                            ii, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -253,8 +276,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_avg,
-                                              equations)
+            fluxtilde1 = nonconservative_flux(u_node, u_node_ii,
+                                              aux_node..., aux_node_ii...,
+                                              Ja1_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[i, ii] * fluxtilde1
         end
@@ -262,6 +286,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # y direction
         for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux, equations, dg,
+                                            i, jj, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -270,8 +296,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_avg,
-                                              equations)
+            fluxtilde2 = nonconservative_flux(u_node, u_node_jj,
+                                              aux_node..., aux_node_jj...,
+                                              Ja2_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[j, jj] * fluxtilde2
         end
@@ -279,6 +306,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # z direction
         for kk in eachnode(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux, equations, dg,
+                                            i, j, kk, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -287,8 +316,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3 = nonconservative_flux(u_node, u_node_kk, Ja3_avg,
-                                              equations)
+            fluxtilde3 = nonconservative_flux(u_node, u_node_kk,
+                                              aux_node..., aux_node_kk...,
+                                              Ja3_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[k, kk] * fluxtilde3
         end
@@ -313,10 +343,13 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                             cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Calculate volume integral in one element
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
         Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -331,6 +364,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux, equations, dg,
+                                            ii, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -339,8 +374,10 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
-                                                            equations)
+            fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii,
+                                                            aux_node...,
+                                                            aux_node_ii...,
+                                                            Ja1_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii],
                                        fluxtilde1_left,
                                        equations, dg, i, j, k, element)
@@ -352,6 +389,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux, equations, dg,
+                                            i, jj, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -360,8 +399,10 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
-                                                            equations)
+            fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj,
+                                                            aux_node...,
+                                                            aux_node_jj...,
+                                                            Ja2_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj],
                                        fluxtilde2_left,
                                        equations, dg, i, j, k, element)
@@ -373,6 +414,8 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # z direction
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux, equations, dg,
+                                            i, j, kk, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -381,8 +424,10 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
-            fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
-                                                            equations)
+            fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk,
+                                                            aux_node...,
+                                                            aux_node_kk...,
+                                                            Ja3_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[k, kk],
                                        fluxtilde3_left,
                                        equations, dg, i, j, k, element)

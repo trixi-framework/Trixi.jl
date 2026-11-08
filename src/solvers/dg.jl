@@ -1430,6 +1430,21 @@ Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indice
                           Val(nvariables(equations))))
 end
 
+# Return the auxiliary variables at a given volume node index as a tuple. Thus, the flux
+# functions are called as `flux(u_node, aux_node..., 1, equations)`. The tuple is empty if
+# the `cache` does not store any auxiliary variables, so that this reduces to
+# `flux(u_node, 1, equations)`.
+@inline get_aux_node_vars(::Nothing, equations, ::DG, indices...) = ()
+
+Base.@propagate_inbounds function get_aux_node_vars(aux, equations, ::DG,
+                                                    indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(aux, eachauxvariable(equations), indices...)
+    # Assume inbounds access now
+    return (SVector(ntuple(@inline(v->@inbounds aux[v, indices...]),
+                           Val(nauxvariables(equations)))),)
+end
+
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
                                                         indices...)
     # There is a cut-off at `n == 10` inside of the method
@@ -1460,12 +1475,59 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:D
     return u_ll, u_rr
 end
 
+# Return the auxiliary variables on both sides of a given surface node index.
+@inline get_aux_surface_node_vars(::Nothing, equations, ::Type{<:DG}, indices...) = ()
+
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
+                                                            equations, ::Type{<:DG},
+                                                            indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(aux_interface, 1:2, eachauxvariable(equations),
+                             indices...)
+    # Assume inbounds access now
+    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_interface[1, v, indices...]),
+                            Val(nauxvariables(equations))))
+    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_interface[2, v, indices...]),
+                            Val(nauxvariables(equations))))
+    return aux_ll, aux_rr
+end
+
 Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
                                                  indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
     return nothing
+end
+
+Base.@propagate_inbounds function set_aux_node_vars!(aux, aux_node, equations,
+                                                     solver::DG, indices...)
+    for v in eachauxvariable(equations)
+        aux[v, indices...] = aux_node[v]
+    end
+    return nothing
+end
+
+# Accessors for the arrays of auxiliary variables stored in the `aux_vars` container of
+# the `cache`. The `aux_vars` container is only created for equations with auxiliary
+# variables, see `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is
+# a `NamedTuple`, the check is resolved at compile time.
+@inline function get_aux_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux : nothing
+end
+
+@inline function get_aux_interface_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_interface : nothing
+end
+
+@inline function get_aux_mortar_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
+end
+
+# Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
+# `remake` a semidiscretization, or `nothing` without auxiliary variables.
+@inline function get_aux_field(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_field : nothing
 end
 
 Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,
