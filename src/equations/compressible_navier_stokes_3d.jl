@@ -683,6 +683,7 @@ end
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       w_inner,
+                                                                                      gradients_inner,
                                                                                       normal::AbstractVector,
                                                                                       x,
                                                                                       t,
@@ -717,6 +718,7 @@ end
 # The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
+                                                                  gradients_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
