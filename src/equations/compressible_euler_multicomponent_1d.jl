@@ -215,7 +215,7 @@ A for multicomponent adapted weak blast wave adapted to multicomponent and taken
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerMulticomponentEquations1D)
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # From Hennemann et al. JCP paper 2021 (Sec. 6.3)
     RealT = eltype(x)
     inicenter = SVector(0)
     x_norm = x[1] - inicenter[1]

@@ -16,7 +16,7 @@ A medium blast wave taken from
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    # Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
     RealT = eltype(x)
     inicenter = SVector(0, 0)

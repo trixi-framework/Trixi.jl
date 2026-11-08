@@ -181,7 +181,7 @@ A weak blast wave taken from
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerEquations2D)
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # From Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Set up polar coordinates
     inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]

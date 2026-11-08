@@ -122,7 +122,7 @@ A weak blast wave adapted from
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Set up polar coordinates
     inicenter = (0, 0)
     x_norm = x[1] - inicenter[1]

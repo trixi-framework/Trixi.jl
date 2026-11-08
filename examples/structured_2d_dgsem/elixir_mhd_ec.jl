@@ -7,7 +7,7 @@ using Trixi
 equations = IdealGlmMhdEquations2D(1.4)
 
 function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     inicenter = (1.5, 1.5)
