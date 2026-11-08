@@ -121,8 +121,9 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node, u_node_ii, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg, ii, j,
-                                                   k, element)..., Ja1_avg, equations)
+                                 get_aux_node_vars(aux, equations, dg,
+                                                   ii, j, k, element)...,
+                                 Ja1_avg, equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
@@ -1544,8 +1545,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             check_axes(cache.elements, equations, dg, cache)
             check_axes_surface_flux_values(cache.elements.surface_flux_values, mesh,
                                            equations, dg, cache)
-            check_axes_aux(get_aux_vars(cache), equations, dg,
-                           cache)
+            check_axes_aux(get_aux_vars(cache), equations, dg, cache)
         end
 
         index_range = eachnode(dg)

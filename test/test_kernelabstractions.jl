@@ -861,7 +861,7 @@ end
     KernelAbstractionsExamples
 ] tags=[:kernelabstractions] begin
     # The central flux of the linear equation results in the same discretization as the
-    # weak form volume integral (up to round-off errors)
+    # weak form volume integral (up to round-off errors) on Cartesian meshes
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advectionconservative_shear_flow.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
