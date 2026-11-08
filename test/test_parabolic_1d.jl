@@ -118,6 +118,21 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_neumann_amr.jl (LaplaceDiffusionEntropyVariables1D)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_diffusion_neumann_amr.jl"),
+                        equations_parabolic=LaplaceDiffusionEntropyVariables1D(diffusivity(),
+                                                                               equations),
+                        l2=[0.9974473329952409], linf=[1.0000064762499612])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion.jl (AMR)" setup=[
     Setup,
     Parabolic1D
