@@ -47,7 +47,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     @trixi_timeit timer() "calculate gradient local" begin
         calc_gradient_local!(backend, gradients, u_transformed, t, mesh,
                              equations_parabolic, boundary_conditions_parabolic,
-                             dg, parabolic_scheme, cache)
+                             dg, parabolic_scheme, cache, cache_parabolic)
     end
 
     # Finish gradient MPI receive
@@ -233,7 +233,7 @@ end
 function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
                               mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                               equations_parabolic, boundary_conditions_parabolic,
-                              dg::DG, parabolic_scheme, cache)
+                              dg::DG, parabolic_scheme, cache, cache_parabolic)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin

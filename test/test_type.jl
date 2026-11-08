@@ -2266,22 +2266,22 @@ end
                                                                                           0))
 
         # BC tests
-        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
-                                                            x, t,
+        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, nothing,
+                                                            normal, x, t,
                                                             operator_gradient,
                                                             equations_parabolic)) ==
               RealT
-        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
-                                                            x, t,
+        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, nothing,
+                                                            normal, x, t,
                                                             operator_divergence,
                                                             equations_parabolic)) ==
               RealT
-        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
-                                                          x, t,
+        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, nothing,
+                                                          normal, x, t,
                                                           operator_gradient,
                                                           equations_parabolic)) == RealT
-        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
-                                                          x, t,
+        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, nothing,
+                                                          normal, x, t,
                                                           operator_divergence,
                                                           equations_parabolic)) == RealT
 
