@@ -640,7 +640,7 @@ end
     @test all(isfinite, du_ode)
 end
 
-@testitem "AMDGPU 3D: elixir_advectionconservative_shear_flow.jl native" setup=[
+@testitem "AMDGPU 3D: elixir_advectionconservative_shear_flow.jl Float64 / AMDGPU" setup=[
     Setup,
     AMDGPU3DExamples
 ] tags=[:AMDGPU] begin

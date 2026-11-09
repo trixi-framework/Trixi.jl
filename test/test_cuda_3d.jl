@@ -637,7 +637,7 @@ end
     @test all(isfinite, du_ode)
 end
 
-@testitem "CUDA 3D: elixir_advectionconservative_shear_flow.jl native" setup=[
+@testitem "CUDA 3D: elixir_advectionconservative_shear_flow.jl Float64 / CUDA" setup=[
     Setup,
     CUDA3DExamples
 ] tags=[:CUDA] begin
