@@ -235,6 +235,7 @@ end
 # Coupled Euler and gravity solver at each Runge-Kutta stage,
 # corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2021),
 # https://dx.doi.org/10.1016/j.jcp.2021.110467
+# (arXiv: https://arxiv.org/abs/2008.10593)
 function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 

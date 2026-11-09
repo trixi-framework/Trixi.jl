@@ -13,6 +13,7 @@ Weak magnetic blast wave setup taken from Section 6.1 of the paper:
 - A. M. Rueda-Ramírez, S. Hennemann, F. J. Hindenlang, A. R. Winters, G. J. Gassner (2021)
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD
   equations. Part II: Subcell finite volume shock capturing
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [doi: 10.1016/j.jcp.2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
