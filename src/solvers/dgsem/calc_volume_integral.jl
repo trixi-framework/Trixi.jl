@@ -197,6 +197,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     MeshT = typeof(mesh)

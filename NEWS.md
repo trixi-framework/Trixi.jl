@@ -8,6 +8,16 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Auxiliary variables, i.e., spatially varying but time-independent fields stored at
+  every node such as a prescribed background flow. Whether equations use auxiliary
+  variables is a fixed property of their type given by `nauxvariables(equations)`;
+  their values are given by the function `aux_field` passed to
+  `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
+  arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
+  they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
+  AMR, MPI, and GPUs. The new equations `ConservativeLinearScalarAdvectionEquation3D` and
+  `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
+  advection velocity ([#3239]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -18,8 +28,9 @@ for human readability.
   Makie, and `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of
   3D `DGMultiMesh` solutions and plots of 1D `DGMultiMesh` solutions now show the
   correct axis labels ([#3405]).
-- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
-  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+- Added multi-GPU support for 2D and 3D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240], [#3364]). A local CUDA/ROCm-aware MPI installation is required.
+  For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
   on conforming meshes (no mortars, thus also no AMR) are supported.
