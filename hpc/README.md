@@ -4,11 +4,10 @@ The Otus setup supports Julia 1.10 and 1.13 with system OpenMPI, parallel HDF5 a
 [env.sh](env.sh) and the [preferences project](Project.toml) define one fixed toolchain and must be updated together.
 See the [system MPI documentation](../docs/src/parallelization.md) for library requirements.
 
-Set `CI_DEPOT_ROOT` to an absolute shared depot directory.
+[env.sh](env.sh) defaults `CI_DEPOT_ROOT` to the shared Otus depot, set it to another absolute directory for a separate depot.
 Load the environment and install the pinned native libraries from Bash.
 
 ```bash
-export CI_DEPOT_ROOT=/scratch/hpc-prf-cobentx/depot
 source hpc/env.sh 1.13 &&
     bash hpc/install_libraries.sh
 ```
@@ -33,7 +32,6 @@ It runs the existing basic p4est and t8code advection items, which generate thei
 Use a test environment that develops this checkout and contains `test/Project.toml` dependencies, for example `run_hpc/1.13/test`.
 
 ```bash
-export CI_DEPOT_ROOT=/scratch/hpc-prf-cobentx/depot
 source hpc/env.sh 1.13 &&
     julia --startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes \
         --threads=1 --project=run_hpc/1.13/test hpc/check_environment.jl 1.13
@@ -60,7 +58,7 @@ The persistent depot caches packages and compilation, compute jobs perform no de
 Every selected item must be found, GPU checks require functional CUDA and MPI workers abort collectively on failures.
 Serial RHS allocation checks use a 1,000 byte budget, threaded checks allow 5,000 bytes for thread scheduling overhead.
 
-The pipeline defaults to the configured Otus depot, account and partitions, project variables can override `CI_DEPOT_ROOT`, `HPC_ACCOUNT`, `CPU_PARTITION` and `GPU_PARTITION`.
+The Slurm account and partitions come from GitLab project variables, see the [setup](#setup).
 Both `otus-shell` and `otus-slurm` runners must be enabled.
 Slurm jobs use the [express QoS](https://upb-pc2.atlassian.net/wiki/spaces/PC2DOK/pages/1902070).
 [Jacamar scheduler parameters](https://ecp-ci.gitlab.io/docs/ci-users/ci-batch.html#scheduler-parameters) specify explicit tasks, CPUs, memory and execution time for each compute job.
@@ -86,20 +84,36 @@ Benchmarks run with automatic bounds checking, preparation precompiles that mode
 | GPU | The Taylor-Green vortex of [benchmark/CUDA](../benchmark/CUDA) on one and two H100 GPUs. | Two GPUs with 24 cores each. |
 
 Allocating whole sockets keeps other jobs from sharing memory bandwidth with the measured cores.
-The runs are compute bound, so the remaining noise between separate jobs is small compared to the alert thresholds.
+The CPU case is limited by memory bandwidth, its efficiency drops towards a full socket and improves when two nodes share the work.
+The steps grow with the count, so every CPU point measures about ten seconds under ideal scaling and both Julia versions agree within about ten percent.
+`run.jl` fails when the elixir stops before its last step, an aborted solve would report the PID of a wrong solution.
+The distributed GPU solve of the Taylor-Green vortex currently diverges after about fifty steps, so the two GPU point fails and the GPU series records no results until it is fixed.
 The [GitHub caller](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
 Runs record the history on the `hpc-results` branch and deploy its dashboard with GitHub Pages under `/bench/`.
 
-## GitHub setup
+## Setup
 
 The [caller](../.github/workflows/hpc.yml) and the [command workflow](../.github/workflows/hpc-command.yml) pin `pc2/hpc-cb-workflow` to the same reviewed commit, update both together.
 Follow the [workflow setup](https://github.com/pc2/hpc-cb-workflow#setup) for GitLab mirroring, tokens and GitHub secrets.
 Use GitLab project `pc2-ci/julia/Trixi.jl` on `git.uni-paderborn.de` and set the Actions repository variable `GITLAB_PROJECT_ID` to `10376`.
 
+Jacamar submits the Slurm jobs before they source [env.sh](env.sh), so the GitLab project defines the Slurm settings as CI/CD variables.
+Preparation fails when one of them is missing.
+A project variable `CI_DEPOT_ROOT` overrides the default depot.
+
+```bash
+project=https://git.uni-paderborn.de/pc2-ci/julia/trixi.jl
+glab variable set HPC_ACCOUNT hpc-prf-cobentx -R "$project"
+glab variable set CPU_PARTITION normal -R "$project"
+glab variable set GPU_PARTITION gpu_h100 -R "$project"
+```
+
 Start a run from GitHub Actions, HPC, Run workflow on `main`.
-`checks` selects `all` or `cpu`, `mpi` and `gpu` joined by `+`, `julia` selects `all` or `1.10` and `1.13` joined by `+`.
+`checks` selects `all`, `none` or `cpu`, `mpi` and `gpu` joined by `+` and defaults to `all`.
+`benchmarks` selects `all`, `none` or `threads`, `mpi` and `gpu` joined by `+` and defaults to `none`.
+`julia` selects `all` or `1.10` and `1.13` joined by `+`.
 The workflow checks the values against the caller's patterns and stops before anything reaches GitLab.
-Preparation runs only for the selected Julia versions.
+Preparation runs only for the selected Julia versions and only when checks or benchmarks are selected.
 Monitoring continues automatically after long queue waits, see [monitoring and results](https://github.com/pc2/hpc-cb-workflow#how-it-runs).
 
 Maintainers run reviewed PR commits with a comment on the PR, the command workflow dispatches the caller once per commit.
@@ -107,10 +121,11 @@ Maintainers run reviewed PR commits with a comment on the PR, the command workfl
 ```text
 /hpc <commit>
 /hpc <commit> <commit> checks=gpu julia=1.13
+/hpc <commit> checks=none benchmarks=all
 ```
 
 Commits are named by their full 40 character hash and must belong to the PR, later pushes need another comment.
 Commands and manual runs of PR commits or other branches need repository write access.
 Options apply to all named commits and use the names of the workflow inputs.
 See the [PR command](https://github.com/pc2/hpc-cb-workflow#pr-command) for authorization and replies.
-Pipelines started from the GitLab UI run all jobs unless `HPC_CHECKS` or `HPC_JULIA` are set as pipeline variables.
+Pipelines started from the GitLab UI run all checks and no benchmarks unless `HPC_CHECKS`, `HPC_BENCHMARKS` or `HPC_JULIA` are set as pipeline variables.

@@ -6,10 +6,6 @@ workflow:
 stages: [prepare, check, benchmark, scaling]
 
 variables:
-  CI_DEPOT_ROOT: /scratch/hpc-prf-cobentx/depot
-  HPC_ACCOUNT: hpc-prf-cobentx
-  CPU_PARTITION: normal
-  GPU_PARTITION: gpu_h100
   GIT_DEPTH: "1"
   # Selected checks, benchmarks and Julia versions, all, none or single values joined by +, GitHub triggers override them.
   HPC_CHECKS: all
@@ -52,6 +48,10 @@ default:
     JULIA_NUM_THREADS: "8"
   script:
     - |
+      # Slurm jobs are submitted before they can source env.sh, so these come from GitLab project variables.
+      for name in HPC_ACCOUNT CPU_PARTITION GPU_PARTITION; do
+        [[ -n ${!name:-} ]] || { echo "Set the GitLab project variable $name for the Slurm requests." >&2; exit 1; }
+      done
       mkdir -p "$CI_DEPOT_ROOT/$JULIA_VERSION"
       exec 8>"$CI_DEPOT_ROOT/$JULIA_VERSION/prepare.lock"
       flock 8

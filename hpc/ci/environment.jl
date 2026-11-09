@@ -6,7 +6,7 @@ const project = joinpath(prepared, "test")
 const mode = first(ARGS)
 @assert length(ARGS) == (mode == "backend" ? 2 : 1)
 @assert "$(VERSION.major).$(VERSION.minor)" == ENV["JULIA_VERSION"]
-# Benchmarks run with automatic bounds checking, so their packages are also precompiled in that mode.
+# Benchmarks run with automatic bounds checking, so precompilation also covers that mode.
 @assert Base.JLOptions().check_bounds == 1 ||
         (mode == "precompile" && Base.JLOptions().check_bounds == 0)
 @assert unsafe_string(Base.JLOptions().cpu_target) == ENV["JULIA_CPU_TARGET"]

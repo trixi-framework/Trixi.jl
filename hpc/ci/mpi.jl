@@ -11,4 +11,7 @@ end
 
 project = dirname(Base.active_project())
 script = joinpath(@__DIR__, "validate.jl")
-run(`$(MPI.mpiexec()) --map-by $mapping --bind-to core --report-bindings -n 2 $(Base.julia_cmd()) --startup-file=no -C $(ENV["JULIA_CPU_TARGET"]) --check-bounds=yes --threads=$threads --project=$project $script $mode`)
+target = ENV["JULIA_CPU_TARGET"]
+julia = `$(Base.julia_cmd()) --startup-file=no -C $target --check-bounds=yes
+         --threads=$threads --project=$project $script $mode`
+run(`$(MPI.mpiexec()) --map-by $mapping --bind-to core --report-bindings -n 2 $julia`)

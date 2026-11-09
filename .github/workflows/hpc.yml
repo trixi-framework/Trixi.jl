@@ -46,7 +46,7 @@ permissions:
 
 jobs:
   hpc:
-    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@499b0d0c0729a16761d9cdda86263e820af97cf5
+    uses: pc2/hpc-cb-workflow/.github/workflows/hpc-pipeline.yml@1eaa31d7e9035ea9c662af1bfd18d90a6654804d
     with:
       gitlab_hostname: git.uni-paderborn.de
       gitlab_project_id: ${{ vars.GITLAB_PROJECT_ID }}

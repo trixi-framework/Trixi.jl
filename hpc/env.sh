@@ -3,7 +3,8 @@
 # Source this file from Bash with the Julia minor version as its argument.
 otus_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 otus_julia_minor=${1:?Expected Julia minor version.}
-: "${CI_DEPOT_ROOT:?Set CI_DEPOT_ROOT to the shared dependency directory.}"
+# The shared Otus depot holds packages, compilation caches and the native libraries.
+export CI_DEPOT_ROOT=${CI_DEPOT_ROOT:-/scratch/hpc-prf-cobentx/depot}
 case "$CI_DEPOT_ROOT" in
     /*) CI_DEPOT_ROOT=$(realpath -m -- "$CI_DEPOT_ROOT") ;;
     *) echo 'CI_DEPOT_ROOT must be an absolute path.' >&2; return 1 ;;

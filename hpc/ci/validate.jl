@@ -28,7 +28,8 @@ function affinity()
         append!(cpus, first(limits):last(limits))
     end
     @assert length(cpus) >= Threads.nthreads()
-    println("Rank $(MPI.Comm_rank(MPI.COMM_WORLD)), node $(MPI.Get_processor_name()), threads $(Threads.nthreads()), CPUs $line.")
+    println("Rank $(MPI.Comm_rank(MPI.COMM_WORLD)), node $(MPI.Get_processor_name()), ",
+            "threads $(Threads.nthreads()), CPUs $line.")
     return cpus
 end
 
