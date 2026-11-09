@@ -5,23 +5,33 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                  P4estMesh{2}, T8codeMesh{2}}, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                             P4estMesh{2}, T8codeMesh{2}}, equations,
+                                 dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
     normal_vectors = NormalVectorContainer2D(mesh, dg, cache_containers)
 
-    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
-                                                           volume_integral, dg,
-                                                           cache_containers, uEltype)
-
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            normal_vectors, cache_subcell_limiting...)
+            normal_vectors)
+end
+
+# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# assume in the inner loops of Trixi.jl.
+function check_axes_subcell_fv(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                                           P4estMesh{2}, T8codeMesh{2}}, equations,
+                               dg::DG, cache)
+    check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
+                          cache.fstar2_L_threaded, cache.fstar2_R_threaded,
+                          mesh, equations, dg)
+    check_axes(cache.normal_vectors, equations, dg, cache)
+
+    return nothing
 end
 
 #=
@@ -315,12 +325,16 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
-                                             UnstructuredMesh2D,
-                                             P4estMesh{2}, T8codeMesh{2}}},
-                              have_nonconservative_terms::False, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u,
+                                               ::Type{<:Union{StructuredMesh{2},
+                                                              StructuredMeshView{2},
+                                                              UnstructuredMesh2D,
+                                                              P4estMesh{2},
+                                                              T8codeMesh{2}}},
+                                               have_nonconservative_terms::False,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     for j in eachnode(dg), i in 2:nnodes(dg)
@@ -357,14 +371,19 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
-                                               UnstructuredMesh2D,
-                                               P4estMesh{2}, T8codeMesh{2}}},
-                                have_nonconservative_terms::False, equations,
-                                volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter,
-                                cons2recon, recon2cons)
+Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                                 u,
+                                                 ::Type{<:Union{StructuredMesh{2},
+                                                                StructuredMeshView{2},
+                                                                UnstructuredMesh2D,
+                                                                P4estMesh{2},
+                                                                T8codeMesh{2}}},
+                                                 have_nonconservative_terms::False,
+                                                 equations, volume_flux_fv, dg::DGSEM,
+                                                 element, cache,
+                                                 sc_interface_coords,
+                                                 reconstruction_mode,
+                                                 slope_limiter, cons2recon, recon2cons)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
@@ -438,13 +457,16 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:Union{StructuredMesh{2},
-                                             StructuredMeshView{2},
-                                             UnstructuredMesh2D,
-                                             P4estMesh{2}, T8codeMesh{2}}},
-                              have_nonconservative_terms::True, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u,
+                                               ::Type{<:Union{StructuredMesh{2},
+                                                              StructuredMeshView{2},
+                                                              UnstructuredMesh2D,
+                                                              P4estMesh{2},
+                                                              T8codeMesh{2}}},
+                                               have_nonconservative_terms::True,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     volume_flux, nonconservative_flux = volume_flux_fv

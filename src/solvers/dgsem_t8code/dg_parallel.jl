@@ -55,7 +55,8 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which

@@ -567,9 +567,10 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                                     node_indices, names,
                                                     _u)
 
-    if n_boundaries > 0
-        init_boundaries!(boundaries, mesh)
-    end
+    # Call this on all MPI ranks, even if there are no local boundaries, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_boundaries!(boundaries, mesh)
 
     return boundaries
 end
@@ -748,9 +749,10 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
                                                           _neighbor_ids,
                                                           _node_indices)
 
-    if n_mortars > 0
-        init_mortars!(mortars, mesh)
-    end
+    # Call this on all MPI ranks, even if there are no local mortars, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_mortars!(mortars, mesh)
 
     return mortars
 end
@@ -797,9 +799,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     required = count_required_surfaces(mesh)
 
@@ -821,6 +821,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
+
+    # Auxiliary variables are evaluated once for a fixed mesh, so adaptation would
+    # require re-initializing (and resizing) their container.
+    if haskey(cache, :aux_vars)
+        throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
+    end
 
     return nothing
 end

@@ -27,17 +27,16 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
 
     return cache
 end
 
-# The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at the top.
-
-function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                      volume_integral::AbstractVolumeIntegralSubcell,
-                      dg::DG, cache_containers, uEltype)
+# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
+# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                                 dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
                   uEltype, 2, nvariables(equations) * (nnodes(dg) + 1)}
     fstar1_L_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
@@ -51,6 +50,17 @@ function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
     end
 
     return (; fstar1_L_threaded, fstar1_R_threaded)
+end
+
+# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# assume in the inner loops of Trixi.jl.
+function check_axes_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                               dg::DG, cache)
+    f1_axes = (eachvariable(equations), Base.OneTo(nnodes(dg) + 1))
+    check_axes_threaded(cache.fstar1_L_threaded, f1_axes)
+    check_axes_threaded(cache.fstar1_R_threaded, f1_axes)
+
+    return nothing
 end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
@@ -220,10 +230,12 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     end
 end
 
-@inline function fv_kernel!(du, u,
-                            MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                            have_nonconservative_terms, equations,
-                            volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
+Base.@propagate_inbounds function fv_kernel!(du, u,
+                                             MeshT::Type{<:Union{TreeMesh{1},
+                                                                 StructuredMesh{1}}},
+                                             have_nonconservative_terms, equations,
+                                             volume_flux_fv, dg::DGSEM, cache,
+                                             element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -246,13 +258,15 @@ end
     return nothing
 end
 
-@inline function fvO2_kernel!(du, u,
-                              MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                              nonconservative_terms, equations,
-                              volume_flux_fv, dg::DGSEM, cache, element,
-                              sc_interface_coords, reconstruction_mode, slope_limiter,
-                              cons2recon, recon2cons,
-                              alpha = true)
+Base.@propagate_inbounds function fvO2_kernel!(du, u,
+                                               MeshT::Type{<:Union{TreeMesh{1},
+                                                                   StructuredMesh{1}}},
+                                               nonconservative_terms, equations,
+                                               volume_flux_fv, dg::DGSEM, cache,
+                                               element,
+                                               sc_interface_coords, reconstruction_mode,
+                                               slope_limiter, cons2recon, recon2cons,
+                                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -280,10 +294,13 @@ end
 # Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                              have_nonconservative_terms::False,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R,
+                                               u,
+                                               ::Type{<:Union{TreeMesh{1},
+                                                              StructuredMesh{1}}},
+                                               have_nonconservative_terms::False,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
@@ -295,10 +312,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              ::Type{<:TreeMesh{1}},
-                              have_nonconservative_terms::True,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R,
+                                               u, ::Type{<:TreeMesh{1}},
+                                               have_nonconservative_terms::True,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
@@ -326,12 +344,16 @@ end
 # Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021)
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
-                                ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                                nonconservative_terms::False,
-                                equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter,
-                                cons2recon, recon2cons)
+Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R,
+                                                 u,
+                                                 ::Type{<:Union{TreeMesh{1},
+                                                                StructuredMesh{1}}},
+                                                 nonconservative_terms::False,
+                                                 equations, volume_flux_fv, dg::DGSEM,
+                                                 element, cache,
+                                                 sc_interface_coords,
+                                                 reconstruction_mode,
+                                                 slope_limiter, cons2recon, recon2cons)
     for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         #             Reference element:
         #  -1 ------------------0------------------ 1 -> x

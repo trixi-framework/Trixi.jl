@@ -165,6 +165,19 @@ function coarsen_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, coarsen_fn_
     return p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
 end
 
+# Renumber the trees of a connectivity, where `permutation` is an `sc_array` mapping
+# the current to the new zero-based tree indices
+# 2D
+function permute_trees_p4est!(connectivity::PointerOrWrapper{p4est_connectivity_t},
+                              permutation)
+    return p4est_connectivity_permute(connectivity, permutation, 1)
+end
+# 3D
+function permute_trees_p4est!(connectivity::PointerOrWrapper{p8est_connectivity_t},
+                              permutation)
+    return p8est_connectivity_permute(connectivity, permutation, 1)
+end
+
 # Create new ghost layer from p4est, only connections via faces are relevant
 # 2D
 function ghost_new_p4est(p4est::PointerOrWrapper{p4est_t})

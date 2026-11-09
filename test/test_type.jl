@@ -870,6 +870,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion1D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion1D(equations,
                                                                                     mu = mu,
@@ -976,6 +977,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion1D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations1D{Float32}
@@ -993,6 +995,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion2D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion2D(equations,
                                                                                     mu = mu,
@@ -1109,6 +1112,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion2D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations2D{Float32}
@@ -1126,6 +1130,7 @@ end
         equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion3D(equations,
                                                                                       mu = mu,
                                                                                       Prandtl = prandtl_number,
+                                                                                      R = RealT(287),
                                                                                       gradient_variables = GradientVariablesPrimitive())
         equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion3D(equations,
                                                                                     mu = mu,
@@ -1248,6 +1253,7 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion3D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
+        @test typeof(adapted.R) == Float32
         @test typeof(adapted.kappa_over_mu) == Float32
         @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations3D{Float32}
@@ -1266,6 +1272,7 @@ end
         equations_parabolic_1d = CompressibleNavierStokesDiffusion1D(equations_1d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_1d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(4.0)), equations_1d)
         w_1d = cons2entropy(u_1d, equations_parabolic_1d)
@@ -1278,6 +1285,7 @@ end
         equations_parabolic_2d = CompressibleNavierStokesDiffusion2D(equations_2d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_2d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(4.0)),
                          equations_2d)
@@ -1291,6 +1299,7 @@ end
         equations_parabolic_3d = CompressibleNavierStokesDiffusion3D(equations_3d,
                                                                      mu = mu,
                                                                      Prandtl = prandtl_number,
+                                                                     R = RealT(287),
                                                                      gradient_variables = GradientVariablesEntropy())
         u_3d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(0.3),
                                  RealT(4.0)), equations_3d)
@@ -2990,6 +2999,77 @@ end
     end
 end
 
+@testitem "Type stability: Linear Scalar Advection 3D with auxiliary variables" setup=[
+    Setup,
+    TypeStability
+] tags=[:misc_part1] begin
+    for RealT in (Float32, Float64)
+        equations_conservative = @inferred ConservativeLinearScalarAdvectionEquation3D()
+        equations_nonconservative = @inferred NonconservativeLinearScalarAdvectionEquation3D()
+
+        x = SVector(zero(RealT), zero(RealT), zero(RealT))
+        t = zero(RealT)
+        u = u_ll = u_rr = u_inner = SVector(one(RealT))
+        aux = aux_ll = aux_rr = aux_inner = SVector(one(RealT), RealT(0.5), -RealT(0.5))
+        orientations = [1, 2, 3]
+        normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
+
+        boundary_value(x, t, equations) = SVector(one(eltype(x)))
+        boundary_condition = BoundaryConditionDirichlet(boundary_value)
+
+        for equations in (equations_conservative, equations_nonconservative)
+            for orientation in orientations
+                @test eltype(@inferred flux(u, aux, orientation, equations)) == RealT
+                @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                                     orientation, equations)) == RealT
+                @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                           orientation, equations)) ==
+                      RealT
+            end
+
+            @test eltype(@inferred flux(u, aux, normal_direction, equations)) == RealT
+            @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                                 normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                       normal_direction, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, aux, equations)) == RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+
+        equations = equations_conservative
+        @test eltype(@inferred boundary_condition(u_inner, aux_inner, normal_direction,
+                                                  x, t, flux_lax_friedrichs,
+                                                  equations)) == RealT
+
+        equations = equations_nonconservative
+        for orientation in orientations
+            @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                                orientation, equations)) ==
+                  RealT
+        end
+        @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                            normal_direction, equations)) ==
+              RealT
+        surface_flux_functions = (flux_lax_friedrichs, flux_nonconservative_central)
+        flux_, noncons_flux = @inferred boundary_condition(u_inner, aux_inner,
+                                                           normal_direction, x, t,
+                                                           surface_flux_functions,
+                                                           equations)
+        @test eltype(flux_) == RealT
+        @test eltype(noncons_flux) == RealT
+    end
+
+    for equations in (ConservativeLinearScalarAdvectionEquation3D(),
+                      NonconservativeLinearScalarAdvectionEquation3D())
+        @test @inferred(Trixi.trixi_adapt(Array, Float32, equations)) === equations
+    end
+end
+
 @testitem "Type stability: Polytropic Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
     for RealT in (Float32, Float64)
         equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
@@ -3322,6 +3402,5 @@ end
         @test adapted isa LinearElasticityEquations1D{Float32}
         @test typeof(adapted.rho) == Float32
         @test typeof(adapted.c1) == Float32
-        @test typeof(adapted.E) == Float32
     end
 end

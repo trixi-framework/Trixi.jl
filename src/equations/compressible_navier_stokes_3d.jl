@@ -69,9 +69,10 @@ the thermal conductivity is
 From this combination of temperature ``T`` and thermal conductivity ``\kappa`` we see
 that the gas constant `R` cancels and the heat flux becomes
 ```math
-\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right)
+\mathbf{q} = -\kappa\nabla\left(T\right) = -\frac{\gamma \mu}{(\gamma - 1)\textrm{Pr}}\nabla\left(\frac{p}{\rho}\right).
 ```
-which is the form implemented below in the [`flux`](@ref) function.
+However, the [`flux`](@ref) function uses the first of these expressions,
+i.e., both the thermal conductivity ``\kappa`` and the temperature ``T`` include ``R``.
 
 In three spatial dimensions we require gradients for four quantities, e.g.,
 primitive quantities
@@ -217,8 +218,9 @@ end
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
-    # Note, the gas constant cancels under this formulation, so it is not present
-    # in the implementation
+    # Note, the gas constant R cancels mathematically in this formulation. However,
+    # it is included in both `kappa_over_mu` and the temperature gradient since the
+    # gradient variables and boundary conditions use the temperature T = p / (R rho).
     q1 = equations.kappa_over_mu * dTdx
     q2 = equations.kappa_over_mu * dTdy
     q3 = equations.kappa_over_mu * dTdz
@@ -266,8 +268,10 @@ end
     max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion3D)
 
 # Returns
-- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
-where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
+- `mu / u[1] * equations_parabolic.max_visc_cond` for the conservative variables `u`,
+where `mu` is the [`dynamic_viscosity`](@ref) evaluated for the transformed variables
+(see [`gradient_variable_transformation`](@ref)),
+and `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -294,7 +298,7 @@ and thus the largest absolute eigenvalue is
     # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L122-L128
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
-    return dynamic_viscosity(u, equations_parabolic) / u[1] *
+    return dynamic_viscosity_conservative(u, equations_parabolic) / u[1] *
            equations_parabolic.max_visc_cond
 end
 
@@ -522,9 +526,12 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D)
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
+    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
+    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
+    # prescribed normal heat flux must be scaled by `norm(normal)` as well.
+    (; boundary_value_normal_flux_function) = boundary_condition.boundary_condition_heat_flux
+    normal_heat_flux = boundary_value_normal_flux_function(x, t, equations) *
+                       norm(normal)
     v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
                                                                                         t,
                                                                                         equations)
@@ -650,9 +657,12 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D)
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
+    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
+    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
+    # prescribed normal heat flux must be scaled by `norm(normal)` as well.
+    (; boundary_value_normal_flux_function) = boundary_condition.boundary_condition_heat_flux
+    normal_heat_flux = boundary_value_normal_flux_function(x, t, equations) *
+                       norm(normal)
     # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
     # For details, see Section 4.2 of
     # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions

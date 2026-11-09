@@ -322,7 +322,8 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_volume_integral_caches(mesh, equations, dg.volume_integral,
+                                           dg, cache, uEltype)...)
     # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
@@ -791,9 +792,11 @@ Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPI
                           Val(ndims(container))))
 end
 
+include("dg_parallel_gpu.jl")
 include("dg_2d_parallel.jl")
 include("dg_2d_parallel_gpu.jl")
 include("dg_3d_parallel.jl")
+include("dg_3d_parallel_gpu.jl")
 include("dg_2d_parabolic_parallel.jl")
 include("dg_3d_parabolic_parallel.jl")
 end # muladd

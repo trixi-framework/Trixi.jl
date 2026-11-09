@@ -276,9 +276,10 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
                                                       _u, _node_indices,
                                                       _normal_directions)
 
-    if n_mpi_mortars > 0
-        init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
-    end
+    # Call this on all MPI ranks, even if there are no local MPI mortars, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
 
     return mpi_mortars
 end
@@ -353,9 +354,7 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     required = count_required_surfaces(mesh)
 
