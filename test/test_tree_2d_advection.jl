@@ -126,6 +126,19 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D Advection: elixir_advection_restart_polydeg_lower.jl (L2 projection)" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_restart_polydeg_lower.jl"),
+                        interpolate_high2low=false,
+                        l2=[9.529055280569265e-5], linf=[0.0005004714231924279])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D Advection: elixir_advection_mortar.jl" setup=[
     Setup,
     TreeMesh2DAdvection

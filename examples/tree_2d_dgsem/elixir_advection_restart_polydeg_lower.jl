@@ -12,16 +12,19 @@ restart_filename = joinpath("out", "restart_000000018.h5")
 tspan = (1.0, 1.0)
 
 ###############################################################################
-# Project original solution to LOWER order (3 -> 2)
+# Convert original solution to LOWER order (3 -> 2)
+
+# Set `interpolate_high2low = false` to construct the solution via L2 projection
+# instead of interpolation. The L2 projection conserves the integral over each element
+# and yields smaller L2 errors, but is in general not continuous across element interfaces.
+interpolate_high2low = true
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
-# Set `interpolate_high2low = false` to avoid interpolation of the solution and
-# construct the solution via L2-projection
-ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low = true)
+ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low)
 
 # We can increase the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 2.0)

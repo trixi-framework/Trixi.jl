@@ -403,6 +403,7 @@ end
 end
 
 @testitem "Unit: L2 projection" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    using LinearAlgebra: I
     @testset "polynomial_l2projection_matrix" begin
         nodes_high = Trixi.gauss_lobatto_nodes_weights(6)[1]
         nodes_low = Trixi.gauss_lobatto_nodes_weights(4)[1]
@@ -411,11 +412,47 @@ end
 
         @test projection * ones(length(nodes_high)) ≈ ones(length(nodes_low))
 
-        # The diagonal GLL mass is exact for these test polynomials and the
-        # Gauss quadrature exactly integrates the projection right-hand side.
-        for degree in 0:(length(nodes_low) - 2)
+        # All polynomials of the lower degree must be reproduced exactly,
+        # including the highest degree `length(nodes_low) - 1`
+        for degree in 0:(length(nodes_low) - 1)
             @test projection * (nodes_high .^ degree) ≈ nodes_low .^ degree
         end
+
+        # Projection is idempotent: interpolating low -> high and projecting back
+        # yields the identity
+        interpolation = Trixi.polynomial_interpolation_matrix(nodes_low, nodes_high)
+        @test projection * interpolation ≈ I
+
+        # Conservation: the integral over the reference element is preserved.
+        # The LGL quadratures are exact for the polynomials of the respective degree.
+        weights_high = Trixi.gauss_lobatto_nodes_weights(6)[2]
+        weights_low = Trixi.gauss_lobatto_nodes_weights(4)[2]
+        @test weights_low' * projection ≈ weights_high'
+
+        # Galerkin orthogonality: the projection error of the highest-degree monomial
+        # is orthogonal to all low-degree basis functions. Integrate exactly with
+        # Gauss quadrature after interpolating both polynomials to the Gauss nodes.
+        nodes_gauss, weights_gauss = Trixi.gauss_nodes_weights(6)
+        u_high = nodes_high .^ (length(nodes_high) - 1)
+        error_gauss = (Trixi.polynomial_interpolation_matrix(nodes_high, nodes_gauss) *
+                       u_high -
+                       Trixi.polynomial_interpolation_matrix(nodes_low, nodes_gauss) *
+                       (projection * u_high))
+        basis_low_gauss = Trixi.polynomial_interpolation_matrix(nodes_low, nodes_gauss)
+        @test isapprox(basis_low_gauss' * (weights_gauss .* error_gauss),
+                       zeros(length(nodes_low)), atol = 1.0e-14)
+
+        # Same properties for a different combination of degrees
+        nodes_high = Trixi.gauss_lobatto_nodes_weights(5)[1]
+        nodes_low = Trixi.gauss_lobatto_nodes_weights(2)[1]
+        projection = Trixi.polynomial_l2projection_matrix(nodes_high, nodes_low,
+                                                          Val(:gauss))
+        for degree in 0:(length(nodes_low) - 1)
+            @test projection * (nodes_high .^ degree) ≈ nodes_low .^ degree
+        end
+        weights_high = Trixi.gauss_lobatto_nodes_weights(5)[2]
+        weights_low = Trixi.gauss_lobatto_nodes_weights(2)[2]
+        @test weights_low' * projection ≈ weights_high'
     end
 
     @testset "calc_reverse_upper for LGL" begin

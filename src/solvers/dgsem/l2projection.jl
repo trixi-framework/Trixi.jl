@@ -155,10 +155,20 @@ end
 # Compute the L2 projection matrix for projecting polynomials
 # from a higher degree to a lower degree using Gauss-Legendre quadrature.
 #
+# The projection `u_low = P * u_high` is defined by
+#   ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ   for all low-degree basis functions ℓ_i^low,
+# i.e., `P = M \ B` with the exact low-degree mass matrix `M_ik = ∫ ℓ_i^low ℓ_k^low dξ`
+# and `B_ij = ∫ ℓ_i^low ℓ_j^high dξ`. Both integrals are computed exactly with
+# Gauss-Legendre quadrature. Note that the lumped (diagonal) LGL mass matrix must not be
+# used for `M`, since it is not exact for the products of two low-degree basis functions;
+# the resulting operator would not reproduce polynomials of the lower degree.
+# The exact projection reproduces all polynomials of the lower degree, conserves the
+# integral over the reference element, and minimizes the L2 error.
+#
 # Arguments
 # - `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
 # - `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
-# - `::Val{:gauss}`: Use Gauss-Legendre quadrature (accuracy 2N - 1)
+# - `::Val{:gauss}`: Use Gauss-Legendre quadrature (exact for the integrands above)
 # - `RealT`: Type of the output matrix (default: Float64)
 #
 # Returns
@@ -170,8 +180,10 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
     n_high = length(nodes_high)
     n_low = length(nodes_low)
 
-    # Get Gauss-Legendre nodes and weights for quadrature
-    # Use enough nodes to exactly integrate polynomials of degree n_high + n_low - 1
+    # Get Gauss-Legendre nodes and weights for quadrature.
+    # `n_quad` nodes integrate polynomials of degree `2 * n_quad - 1 >= n_high + n_low - 1`
+    # exactly, which covers both the mass matrix (degree `2 * n_low - 2`) and the
+    # right-hand side (degree `n_high + n_low - 2`).
     n_quad = div(n_high + n_low + 1, 2)
     gauss_nodes, gauss_weights = gauss_nodes_weights(n_quad, RealT)
 
@@ -179,11 +191,9 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
     wbary_high = barycentric_weights(nodes_high)
     wbary_low = barycentric_weights(nodes_low)
 
-    # Weights for the low-degree mass matrix (diagonal for Gauss-Lobatto)
-    weights_low = gauss_lobatto_nodes_weights(n_low, RealT)[2]
-
-    # Build projection matrix
-    projection_matrix = zeros(RealT, n_low, n_high)
+    # Exact low-degree mass matrix and mixed mass matrix (right-hand side)
+    mass_low = zeros(RealT, n_low, n_low)
+    mass_mixed = zeros(RealT, n_low, n_high)
 
     for q in 1:n_quad
         # Evaluate low-degree basis functions at Gauss quadrature point
@@ -194,13 +204,16 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
         poly_high = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_high,
                                                        wbary_high)
 
-        for i in 1:n_low, j in 1:n_high
-            # Build integral using Gauss quadrature
-            projection_matrix[i, j] += poly_low[i] * poly_high[j] * gauss_weights[q] /
-                                       weights_low[i]
+        for i in 1:n_low
+            for k in 1:n_low
+                mass_low[i, k] += poly_low[i] * poly_low[k] * gauss_weights[q]
+            end
+            for j in 1:n_high
+                mass_mixed[i, j] += poly_low[i] * poly_high[j] * gauss_weights[q]
+            end
         end
     end
 
-    return projection_matrix
+    return mass_low \ mass_mixed
 end
 end # @muladd

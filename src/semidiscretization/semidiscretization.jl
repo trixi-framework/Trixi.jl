@@ -333,6 +333,9 @@ Optional keyword arguments:
   For `interpolate_high2low = false`, the solution is projected with minimal L2-error onto the
   lower-degree polynomial.
   This results in overall smaller L2-errors, but does not preserve continuity at the cell interfaces.
+  The projection preserves the integral of the solution over each element in reference
+  coordinates, i.e., it is conservative on meshes with an element-wise constant Jacobian
+  (such as the `TreeMesh`).
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
