@@ -94,8 +94,8 @@ Poisson equation for the gravitational potential as steady-state problem of
 the hyperbolic diffusion equations.
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   "A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics"
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
-  [arXiv: 2008.10593](https://arXiv.org/abs/2008.10593)
 """
 struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
                                       Parameters <: ParametersEulerGravity, Cache} <:
@@ -234,8 +234,7 @@ end
 
 # Coupled Euler and gravity solver at each Runge-Kutta stage,
 # corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2021),
-# https://dx.doi.org/10.1016/j.jcp.2021.110467
-# (arXiv: https://arxiv.org/abs/2008.10593)
+# https://arxiv.org/abs/2008.10593 (DOI: https://doi.org/10.1016/j.jcp.2021.110467)
 function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 

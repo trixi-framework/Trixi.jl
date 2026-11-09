@@ -79,6 +79,7 @@ This approach corresponds to equation (79) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
@@ -143,6 +144,7 @@ This approach corresponds to equation (78) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,

@@ -252,6 +252,7 @@ For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
 - Krais et. al (2021)
   FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+  [arXiv: 1910.02858](https://arxiv.org/abs/1910.02858)
   [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
 
 For details on the derivation of eigenvalues of the diffusivity matrix

@@ -12,7 +12,8 @@ equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 function Trixi.initial_condition_gauss(x, t, equations_parabolic::LaplaceDiffusion3D)
@@ -29,8 +30,8 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 boundary_conditions = (; all = boundary_condition)
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
-# (arXiv: https://arxiv.org/abs/2012.12040) but with less warping.
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. The original mapping applied to this unstructured mesh
 # causes some Jacobians to be negative, which makes the mesh invalid.

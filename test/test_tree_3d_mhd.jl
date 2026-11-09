@@ -195,6 +195,7 @@ end
                             # - M. Bohm, A. R. Winters, G. J. Gassner, D. Derigs, F. Hindenlang, & J. Saur (2020)
                             #   An entropy stable nodal discontinuous Galerkin method for the resistive MHD
                             #   equations. Part I: Theory and numerical verification
+                            #   [arXiv: 1802.07341](https://arxiv.org/abs/1802.07341)
                             #   [doi: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
                             # Domain must be [0, 1]^3 , γ = 5/3
                             rho = 25.0 / (36.0 * pi)

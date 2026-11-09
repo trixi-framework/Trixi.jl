@@ -29,6 +29,7 @@ All expressions used here are taken from the following references:
 - V. Michel-Dansac, A. Thomann (2024)
   Towards a fully well-balanced and entropy-stable scheme for the Euler equations with
   gravity: preserving isentropic steady solutions
+  [arXiv: 2410.19710](https://arxiv.org/abs/2410.19710)
   [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 
 """
@@ -54,6 +55,7 @@ follow the naming conventions in Section 2.2 of the following reference:
 - V. Michel-Dansac, A. Thomann (2025)
   Towards a fully well-balanced and entropy-stable scheme for the Euler equations
   with gravity: General equations of state
+  [arXiv: 2410.19710](https://arxiv.org/abs/2410.19710)
   [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 """
 function PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)

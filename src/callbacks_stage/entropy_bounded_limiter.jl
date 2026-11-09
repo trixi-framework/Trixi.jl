@@ -15,6 +15,7 @@ end
 Entropy-bounded limiter by
 - Lv, Ihme (2015)
   Entropy-bounded discontinuous Galerkin scheme for Euler equations
+  [arXiv: 1411.5044](https://arxiv.org/abs/1411.5044)
   [doi: 10.1016/j.jcp.2015.04.026](https://doi.org/10.1016/j.jcp.2015.04.026)
 
 This is an ideal-gas specific limiter that bounds the (unphysical) decrease of the thermodynamic entropy

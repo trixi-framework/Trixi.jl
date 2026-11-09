@@ -9,8 +9,10 @@
 # The following rough explanation is on a very basic level. More information about an entropy stable
 # shock-capturing strategy for DGSEM discretizations of advection dominated problems, such as the
 # compressible Euler equations or the compressible Navier-Stokes equations, can be found in
-# [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935). In
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580) you find the extension to
+# [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)). In
+# [Rueda-Ramírez et al. (2021)](https://arxiv.org/abs/2012.12040)
+# ([DOI](https://doi.org/10.1016/j.jcp.2021.110580)) you find the extension to
 # the systems with non-conservative terms, such as the compressible magnetohydrodynamics (MHD) equations.
 # Furthermore, the latter paper introduces also second-order subcell finite volume stabilization.
 
@@ -285,7 +287,8 @@ combined_plot = plot(plot_density, plot_mesh, layout = (1, 2))
 # over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is
 # shown for the compressible Euler equations.
 # As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations),
-# Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
+# Lv and Ihme devised an a-posteriori limiter in [this paper](https://arxiv.org/abs/1411.5044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2015.04.026)) which can be applied after each Runge-Kutta stage.
 # This limiter enforces a non-decrease in the physical, thermodynamic entropy $S$
 # by bounding the entropy decrease (entropy increase is always tolerated) $\Delta S$ in each grid cell.
 #

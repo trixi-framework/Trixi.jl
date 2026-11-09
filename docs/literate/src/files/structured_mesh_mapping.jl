@@ -120,8 +120,8 @@ plot!(getmesh(pd))
 # a transformation mapping. Here, we want to present a nice mapping, which is often used to test
 # free-stream preservation. Exact free-stream preservation is a crucial property of any numerical
 # method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580)
-# ([arXiv](https://arxiv.org/abs/2012.12040)), Section 6.1, Eqs. (90)-(93).
+# [Rueda-Ramírez et al. (2021)](https://arxiv.org/abs/2012.12040)
+# ([DOI](https://doi.org/10.1016/j.jcp.2021.110580)), Section 6.1, Eqs. (90)-(93).
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi

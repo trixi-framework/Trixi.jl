@@ -10,8 +10,8 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
-# (arXiv: https://arxiv.org/abs/2012.12040)
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi_, eta_, zeta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

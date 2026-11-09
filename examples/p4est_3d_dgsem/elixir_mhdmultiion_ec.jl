@@ -28,8 +28,8 @@ surface_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
-# (arXiv: https://arxiv.org/abs/2012.12040)
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi_, eta_, zeta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

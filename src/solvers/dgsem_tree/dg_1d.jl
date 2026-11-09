@@ -293,8 +293,8 @@ end
 # Compute the normal flux for the FV method on subcells of the LGL subgrid, see
 # Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
+# [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 # [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R,
                                                u,
                                                ::Type{<:Union{TreeMesh{1},
@@ -344,6 +344,7 @@ end
 # Compute the normal flux for the second-order FV method on subcells of the LGL subgrid, see
 # Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021)
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
+# [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R,
                                                  u,

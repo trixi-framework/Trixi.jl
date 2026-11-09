@@ -11,6 +11,7 @@ equations = IdealGlmMhdEquations2D(gamma)
 The classical Orszag-Tang vortex test case. Here, the setup is taken from
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [arXiv: 1708.03537](https://arxiv.org/abs/1708.03537)
   [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
 """
 function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations2D)
@@ -54,8 +55,8 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Get the curved quad mesh from a mapping function
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
-# (arXiv: https://arxiv.org/abs/2012.12040)
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi, eta)
     y = 0.5 + 0.5 * eta + 1.0 / 15.0 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 

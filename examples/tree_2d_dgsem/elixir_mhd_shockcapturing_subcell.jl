@@ -11,6 +11,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 An MHD blast wave modified from:
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [arXiv: 1708.03537](https://arxiv.org/abs/1708.03537)
   [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
 This setup needs a positivity limiter for the density.
 """

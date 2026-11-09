@@ -10,7 +10,7 @@ function PERK3_compute_c_coeffs(num_stages, cS2)
     c = zeros(num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in Section 3.3 of
-    # https://doi.org/10.1016/j.jcp.2024.113223
+    # https://arxiv.org/abs/2403.05144 (DOI: https://doi.org/10.1016/j.jcp.2024.113223)
     c[num_stages - 1] = 1
     c[num_stages] = 0.5
 
@@ -114,6 +114,7 @@ The original paper is
   While the changes to SSPRK33 base-scheme are described in
 - Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
   Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
+  [arXiv: 2403.05144](https://arxiv.org/abs/2403.05144)
   [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
 # Arguments

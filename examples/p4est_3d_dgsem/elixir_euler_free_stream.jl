@@ -12,7 +12,8 @@ boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
@@ -24,8 +25,8 @@ boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
-# (arXiv: https://arxiv.org/abs/2012.12040) but with less warping.
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. This can yield problematic geometries if the unrefined mesh
 # is not fine enough.

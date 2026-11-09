@@ -348,8 +348,8 @@ end
 # equations (14) and (B.53) in:
 # - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 #   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
-#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                         normal_vectors_3,
                                         mesh::Union{StructuredMesh{3},

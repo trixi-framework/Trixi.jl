@@ -5,10 +5,10 @@
 # introduction to the idea and implementation of subcell shock capturing approaches in Trixi.jl,
 # which is also based on the DGSEM scheme in flux differencing formulation.
 # Trixi.jl contains the a-posteriori invariant domain-preserving (IDP) limiter which was
-# introduced by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876)
-# ([arXiv](https://arxiv.org/abs/2004.08503)) and
-# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627)
-# ([arXiv](https://arxiv.org/abs/2202.00576)).
+# introduced by [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://arxiv.org/abs/2202.00576)
+# ([DOI](https://doi.org/10.1016/j.compfluid.2022.105627)).
 # It is a flux-corrected transport-type (FCT) limiter and is implemented using [`SubcellLimiterIDP`](@ref)
 # and [`VolumeIntegralSubcellLimiting`](@ref).
 # Since it is an a-posteriori limiter you have to apply a correction stage after each Runge-Kutta
@@ -40,10 +40,10 @@
 
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
-# is based on [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876)
-# ([arXiv](https://arxiv.org/abs/2004.08503)) and
-# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627)
-# ([arXiv](https://arxiv.org/abs/2202.00576)).
+# is based on [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://arxiv.org/abs/2202.00576)
+# ([DOI](https://doi.org/10.1016/j.compfluid.2022.105627)).
 # It supports several types of limiting which are enabled by passing parameters individually.
 
 # ### [Global bounds](@id global_bounds)
@@ -62,8 +62,8 @@
 # Additionally, there is the parameter
 # `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
 # of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
-# as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876)
-# ([arXiv](https://arxiv.org/abs/2004.08503)) [Section 4.2.2.]
+# as it was shown by [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) [Section 4.2.2.]
 # that this value guarantees the fulfillment of bounds for a forward-Euler increment.
 
 # Very small non-negative values can be an issue as well. That's why we use an additional

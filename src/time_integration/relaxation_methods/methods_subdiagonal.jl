@@ -43,9 +43,11 @@ This allows the relaxation methods to suppress entropy defects due to the time s
 For details on the relaxation procedure, see
 - Ketcheson (2019)
   Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+  [arXiv: 1905.09847](https://arxiv.org/abs/1905.09847)
   [DOI: 10.1137/19M1263662](https://doi.org/10.1137/19M1263662)
 - Ranocha et al. (2020)
   Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations
+  [arXiv: 1905.09129](https://arxiv.org/abs/1905.09129)
   [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
 
 Currently implemented are the third-order, three-stage method by Ralston [`Ralston3`](@ref)

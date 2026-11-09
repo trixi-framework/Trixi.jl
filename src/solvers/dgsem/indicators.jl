@@ -46,8 +46,8 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
 - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
   "A provably entropy stable subcell shock capturing approach for high order split form DG
   for the compressible Euler equations"
-  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct IndicatorHennemannGassner{RealT <: Real, Variable, Cache} <: AbstractIndicator
     alpha_max::RealT
@@ -334,6 +334,7 @@ This is discussed in more detail in
   [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 - Lin, Chan (2024)
   "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
+  [arXiv: 2306.12663](https://arxiv.org/abs/2306.12663)
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 
 For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,
