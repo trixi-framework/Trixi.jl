@@ -121,7 +121,7 @@ A weak blast wave (adapted to multi-ion MHD) from
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::IdealGlmMhdMultiIonEquations3D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     RealT = eltype(x)
     # Set up polar coordinates

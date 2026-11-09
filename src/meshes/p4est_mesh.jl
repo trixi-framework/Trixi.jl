@@ -991,7 +991,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
     @threaded for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see
-        # https://docs.software.vt.edu/abaqusv2025/English/SIMACAEELMRefMap/simaelm-r-2delem.htm
+        # https://docs.software.vt.edu/abaqusv2025/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
         # and search for "Node ordering and face numbering on elements"
         for boundary in keys(node_set_dict) # Loop over specified boundaries
             # Check bottom edge

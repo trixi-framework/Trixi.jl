@@ -129,7 +129,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     ## Set up polar coordinates
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]

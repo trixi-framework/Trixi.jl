@@ -8,6 +8,16 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Auxiliary variables, i.e., spatially varying but time-independent fields stored at
+  every node such as a prescribed background flow. Whether equations use auxiliary
+  variables is a fixed property of their type given by `nauxvariables(equations)`;
+  their values are given by the function `aux_field` passed to
+  `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
+  arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
+  they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
+  AMR, MPI, and GPUs. The new equations `ConservativeLinearScalarAdvectionEquation3D` and
+  `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
+  advection velocity ([#3239]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -18,8 +28,9 @@ for human readability.
   Makie, and `trixiheatmap` accepts the attributes of `Makie.mesh`. Plots of slices of
   3D `DGMultiMesh` solutions and plots of 1D `DGMultiMesh` solutions now show the
   correct axis labels ([#3405]).
-- Added multi-GPU support for 2D `P4estMesh`es, i.e., GPU computations with MPI
-  ([#3240]). A local CUDA/ROCm-aware MPI installation is required. For configuration, see
+- Added multi-GPU support for 2D and 3D `P4estMesh`es, i.e., GPU computations with MPI
+  ([#3240], [#3364]). A local CUDA/ROCm-aware MPI installation is required.
+  For configuration, see
   [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
   in the docs. Currently, only hyperbolic problems (no `SemidiscretizationHyperbolicParabolic`)
   on conforming meshes (no mortars, thus also no AMR) are supported.
@@ -209,6 +220,15 @@ for human readability.
   takes the metric terms into account and agrees with the value on a `TreeMesh` for
   Cartesian elements. Thus, results of MHD simulations using the `GlmSpeedCallback` on these
   meshes change ([#3360]).
+- Fixes a bug in `flux_godunov` with a `normal_direction` for the
+  `HyperbolicDiffusionEquations2D`: The upwind dissipation of the gradient variables
+  `q1, q2` was applied componentwise instead of to the normal component of their jump.
+  This was wrong for normal directions that are not aligned with the coordinate axes and
+  anti-dissipative for normal directions with negative components. Thus, results of
+  simulations using `flux_godunov` with these equations change, e.g., on
+  `UnstructuredMesh2D`, `P4estMesh`, `T8codeMesh`, `DGMultiMesh`, or curved
+  `StructuredMesh`es. Results on `TreeMesh`es and Cartesian `StructuredMesh`es are
+  unchanged ([#3406]).
 - `semidiscretize` converts the time span `tspan` to the real type `real(semi)` of the
   semidiscretization. Thus, `tspan = (0.0, 1.0)` results in `Float32` time values for a
   `Float32` semidiscretization. Previously, the time was only converted when passing
