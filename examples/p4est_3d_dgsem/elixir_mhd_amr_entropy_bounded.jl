@@ -50,7 +50,8 @@ volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580 but with slightly less warping.
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
+# (arXiv: https://arxiv.org/abs/2012.12040) but with slightly less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant.
 function mapping(xi_, eta_, zeta_)

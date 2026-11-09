@@ -152,6 +152,7 @@ compressible Euler equations to the linear advection equations.
 This setup is the test case for stability of EC fluxes from paper
 - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2022)
   Stability issues of entropy-stable and/or split-form high-order schemes
+  [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
   [DOI: 10.1007/s10915-021-01720-8](https://doi.org/10.1007/s10915-021-01720-8)
 with the following parameters
 - domain [-1, 1]
@@ -177,6 +178,7 @@ A weak blast wave taken from
 - Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   for the compressible Euler equations
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
@@ -206,6 +208,7 @@ end
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_eoc_test_coupled_euler_gravity`](@ref)
 or [`source_terms_eoc_test_euler`](@ref).
@@ -236,6 +239,7 @@ end
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """
@@ -267,6 +271,7 @@ end
 Setup used for convergence tests of the Euler equations with self-gravity used in
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """

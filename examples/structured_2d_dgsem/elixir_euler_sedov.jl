@@ -63,6 +63,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
+# (arXiv: https://arxiv.org/abs/2012.12040)
 function mapping(xi, eta)
     y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 

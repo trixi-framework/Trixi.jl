@@ -156,6 +156,7 @@ A weak blast wave adapted from
 - Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   for the compressible Euler equations
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
@@ -397,6 +398,7 @@ compute the subcell fluxes in dg_3d_subcell_limiters.jl.
 ## References
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
@@ -447,6 +449,7 @@ Local part of the Powell and GLM non-conservative terms. Needed for the calculat
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
 
 This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.
@@ -505,6 +508,7 @@ Symmetric part of the Powell and GLM non-conservative terms. Needed for the calc
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607).
 
 This function is used to compute the subcell fluxes in dg_3d_subcell_limiters.jl.

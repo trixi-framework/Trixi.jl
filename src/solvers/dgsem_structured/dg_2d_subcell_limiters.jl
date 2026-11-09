@@ -112,7 +112,8 @@ end
 # terms that can be written as a product of local and a symmetric contributions. See, e.g.,
 #
 # - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
-#   Discretizations of Non-Conservative Systems. https://doi.org/10.1016/j.jcp.2023.112607.
+#   Discretizations of Non-Conservative Systems. https://doi.org/10.1016/j.jcp.2023.112607
+# (arXiv: https://arxiv.org/abs/2211.14009).
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 ::Type{<:Union{StructuredMesh{2}, P4estMesh{2}}},

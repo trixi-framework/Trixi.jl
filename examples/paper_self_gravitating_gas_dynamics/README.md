@@ -1,7 +1,7 @@
 # Overview of how to reproduce results in Euler-gravity paper
 
 Run the following commands from the Julia REPL. The code used in the
-[paper](https://doi.org/10.1016/j.jcp.2021.110467)
+[paper](https://doi.org/10.1016/j.jcp.2021.110467) ([arXiv](https://arxiv.org/abs/2008.10593))
 was written for Trixi.jl `v0.2`. Since breaking changes were introduced
 in Trixi.jl `v0.3`, the code provided below does not reproduce the examples
 exactly. Complete instructions how to reproduce the numerical experiments

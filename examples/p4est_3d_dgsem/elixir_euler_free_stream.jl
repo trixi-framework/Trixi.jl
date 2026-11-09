@@ -24,7 +24,8 @@ boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
 solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580 but with less warping.
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
+# (arXiv: https://arxiv.org/abs/2012.12040) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. This can yield problematic geometries if the unrefined mesh
 # is not fine enough.

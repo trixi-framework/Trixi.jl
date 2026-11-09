@@ -17,7 +17,8 @@ equations = CompressibleEulerEquations2D(1.4)
 ###############################################################################
 ### mesh ###
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580,
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
+# (arXiv: https://arxiv.org/abs/2012.12040),
 # reduced to 2D on [0, 2]^2 instead of [0, 3]^3
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,2]

@@ -17,7 +17,8 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 boundary_conditions = (; all = boundary_condition)
 
-# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580 but with less warping.
+# Mapping as described in https://doi.org/10.1016/j.jcp.2021.110580
+# (arXiv: https://arxiv.org/abs/2012.12040) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. The original mapping applied to this unstructured mesh
 # causes some Jacobians to be negative, which makes the mesh invalid.

@@ -25,6 +25,7 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://doi.org/10.1137/18M1209234
+# (arXiv: https://arxiv.org/abs/1809.01178)
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0, sqrt(2)]
     # Note, we use the domain [0, sqrt(2)]^2 for the Alfvén wave convergence test case

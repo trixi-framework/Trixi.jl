@@ -164,6 +164,7 @@ A weak blast wave adapted from
 - Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   for the compressible Euler equations
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
