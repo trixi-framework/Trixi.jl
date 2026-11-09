@@ -34,7 +34,7 @@ end
 mpi_libraries = filter(path -> startswith(basename(path), "libmpi.so"), Libdl.dllist())
 @assert length(unique(realpath.(mpi_libraries))) == 1
 
-mktempdir(ENV["TMPDIR"]) do directory
+mktempdir() do directory
     filename = joinpath(directory, "parallel.h5")
     Trixi.HDF5.h5open(filename, "w", MPI.COMM_SELF) do file
         file["values"] = [1, 2, 3]

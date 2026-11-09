@@ -22,12 +22,13 @@ case "$otus_julia_minor" in
 esac
 
 if [[ -n ${SLURM_JOB_ID:-} ]]; then
-    export TMPDIR=${TMPDIR:-/tmp}
+    # The job's /tmp resides on GPFS, the MPI session directory holds shared memory backing files.
+    export PRTE_MCA_prte_tmpdir_base=/dev/shm
 else
     export TMPDIR="$otus_root/run_hpc/$otus_julia_minor/tmp"
+    export TMP="$TMPDIR" TEMP="$TMPDIR"
+    mkdir -p -- "$TMPDIR" || return
 fi
-export TMP="$TMPDIR" TEMP="$TMPDIR"
-mkdir -p -- "$TMPDIR" || return
 otus_julia_threads=${JULIA_NUM_THREADS:-${SLURM_CPUS_PER_TASK:-8}}
 otus_mpi_cuda_support=${OMPI_MCA_opal_cuda_support:-0}
 module purge || return

@@ -16,7 +16,8 @@ source hpc/env.sh 1.13 &&
 Pass `-C "$JULIA_CPU_TARGET"` to Julia so runtime compilation matches package compilation.
 OpenMPI selects UCX for CPU and GPU communication.
 `UCX_MEMTYPE_CACHE=no` disables cached pointer classification and must be set before Julia starts, following the [MPI.jl compatibility guidance](https://juliaparallel.org/MPI.jl/stable/knownissues/#Memory-cache).
-Login node temporary files stay in the checkout, compute jobs preserve the allocation's `TMPDIR` or use `/tmp`.
+Login node temporary files stay in the checkout, compute jobs keep the default temporary directory.
+The job's `/tmp` resides on GPFS, so compute jobs place the OpenMPI session directory in `/dev/shm`.
 `CMAKE_BUILD_PARALLEL_LEVEL`, `JULIA_NUM_PRECOMPILE_TASKS`, `JULIA_NUM_THREADS` and `OPENBLAS_NUM_THREADS` control concurrency.
 
 [install_libraries.sh](install_libraries.sh) builds the pinned [CMake recipe](libraries/CMakeLists.txt) under a shared lock and publishes its marker after checking the installed libraries.
