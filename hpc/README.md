@@ -31,6 +31,7 @@ Use `bash hpc/install_libraries.sh --print-fingerprint` to record it without mod
 [check_environment.jl](check_environment.jl) verifies effective preferences, loaded native libraries, parallel HDF5 and driverless CUDA precompilation.
 It runs the existing basic p4est and t8code advection items, which generate their own meshes.
 Use a test environment that develops this checkout and contains `test/Project.toml` dependencies, for example `run_hpc/1.13/test`.
+`run_hpc/` holds the prepared environments and login node temporary files per Julia version, the existing `run*/` pattern of `.gitignore` keeps it out of git.
 
 ```bash
 source hpc/env.sh 1.13 &&
