@@ -19,12 +19,12 @@ called with [`VolumeIntegralSubcellLimiting`](@ref).
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
   Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
-  [arXiv: 2202.00576](https://arxiv.org/abs/2202.00576)
   [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
+  [arXiv: 2202.00576](https://arxiv.org/abs/2202.00576)
 - Pazner (2020)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
-  [arXiv: 2004.08503](https://arxiv.org/abs/2004.08503)
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
+  [arXiv: 2004.08503](https://arxiv.org/abs/2004.08503)
 """
 struct SubcellLimiterIDPCorrection end
 

@@ -148,8 +148,8 @@ A weak blast wave adapted from
 - Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang, Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   for the compressible Euler equations
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
 function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
@@ -369,8 +369,8 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 ## References
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          orientation::Integer,
@@ -462,8 +462,8 @@ Local part of the Powell and GLM non-conservative terms. Needed for the calculat
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
@@ -573,8 +573,8 @@ Symmetric part of the Powell and GLM non-conservative terms. Needed for the calc
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
@@ -702,8 +702,8 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 ## References
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,
@@ -796,8 +796,8 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 ## References
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
                                                                     orientation::Integer,
@@ -908,8 +908,8 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 ## References
 - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems.
-  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
   [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,

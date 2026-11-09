@@ -13,8 +13,8 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 A shock-bubble testcase for multicomponent Euler equations
 - Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
   Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
-  [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
+  [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
 """
 function initial_condition_shock_bubble(x, t,
                                         equations::CompressibleEulerMulticomponentEquations2D{5,

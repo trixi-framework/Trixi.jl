@@ -198,8 +198,8 @@ Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2024)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
-  [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
   [DOI: 10.1016/j.jcp.2024.112876](https://doi.org/10.1016/j.jcp.2024.112876)
+  [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
 """
 @inline function flux_nonconservative_chan_etal(u_ll, u_rr, orientation::Integer,
                                                 equations::CompressibleEulerEquationsQuasi1D)
@@ -237,8 +237,8 @@ Further details are available in the paper:
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2024)
   High order entropy stable schemes for the quasi-one-dimensional
   shallow water and compressible Euler equations
-  [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
   [DOI: 10.1016/j.jcp.2024.112876](https://doi.org/10.1016/j.jcp.2024.112876)
+  [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
 """
 @inline function flux_chan_etal(u_ll, u_rr, orientation::Integer,
                                 equations::CompressibleEulerEquationsQuasi1D)

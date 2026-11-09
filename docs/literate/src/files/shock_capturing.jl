@@ -184,7 +184,7 @@ volume_flux = flux_ranocha
 
 # Now, we specify the shock capturing indicator $\alpha$.
 
-# We implement the described indicator of Hennemann, Gassner as explained above with parameters
+# We implement the described indicator of Hennemann et al. as explained above with parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
 # Since density and pressure are the critical variables in this example, we use
 # `density_pressure = density * pressure = rho * p` as indicator variable.

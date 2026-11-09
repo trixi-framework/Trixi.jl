@@ -112,8 +112,8 @@ The method has been proposed in
 
 - D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2025).
   Fourth-Order Paired-Explicit Runge-Kutta Methods
-  [arXiv: 2408.05470](https://arxiv.org/abs/2408.05470)
   [DOI: 10.1007/s44207-025-00005-4](https://doi.org/10.1007/s44207-025-00005-4)
+  [arXiv: 2408.05470](https://arxiv.org/abs/2408.05470)
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.

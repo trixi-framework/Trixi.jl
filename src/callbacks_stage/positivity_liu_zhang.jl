@@ -16,8 +16,8 @@ with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
 The Davis-Yin splitting implementation of the global cell-average limiter is from:
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
-  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
   [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
+  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
 
 The "Liu-Zhang" naming convention reflects that, while other co-authors have been involved,
 C. Liu and X. Zhang are the main developers of the optimization-based limiter, and are the

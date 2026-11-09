@@ -12,8 +12,8 @@ equations = CompressibleEulerEquations2D(gamma)
 The blob test case taken from
 - Agertz et al. (2007)
   Fundamental differences between SPH and grid methods
-  [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
   [DOI: 10.1111/j.1365-2966.2007.12183.x](https://doi.org/10.1111/j.1365-2966.2007.12183.x)
+  [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
 """
 function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     # blob test case, see Agertz et al. https://doi.org/10.1111/j.1365-2966.2007.12183.x

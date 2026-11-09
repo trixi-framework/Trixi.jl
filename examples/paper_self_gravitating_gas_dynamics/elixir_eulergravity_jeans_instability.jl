@@ -9,12 +9,12 @@ using Trixi
 The classical Jeans instability taken from
 - Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
   [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
-  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
+  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
 - Flash manual https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
 in CGS (centimeter, gram, second) units.
 """

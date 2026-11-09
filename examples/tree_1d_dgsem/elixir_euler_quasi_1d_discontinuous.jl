@@ -15,8 +15,8 @@ A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2024)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations
-    [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
     [DOI: 10.1016/j.jcp.2024.112876](https://doi.org/10.1016/j.jcp.2024.112876)
+    [arXiv: 2307.12089](https://arxiv.org/abs/2307.12089)
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
