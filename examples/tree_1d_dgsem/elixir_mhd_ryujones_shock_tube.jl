@@ -16,6 +16,7 @@ present in the one dimensional MHD equations. It is the second test from Section
 - Ryu and Jones (1995)
   Numerical Magnetohydrodynamics in Astrophysics: Algorithm and Tests
   for One-Dimensional Flow
+  [arXiv: astro-ph/9404074](https://arxiv.org/abs/astro-ph/9404074)
   [DOI: 10.1086/175437](https://doi.org/10.1086/175437)
 !!! note
     This paper has a typo in the initial conditions. Their variable `E` should be `p`.

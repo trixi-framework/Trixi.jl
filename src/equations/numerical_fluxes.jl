@@ -315,6 +315,7 @@ which must be specialized for each equation.
 For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
 struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
@@ -634,6 +635,11 @@ This optimization can be enabled by defining three ingredients:
 - and the  `flux_turbo(flux_turbo::typeof(numerical_flux), ...)`,
   that computes the numerical flux in terms of the precomputed variables.
 
+For equations with auxiliary variables (see [`nauxvariables`](@ref)), `Trixi.cons2turbo`
+receives the auxiliary variables of the node as additional scalars after the conserved
+variables, and the default precomputed variables are the conserved variables followed by
+the auxiliary variables.
+
 See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
 """
 struct FluxTurbo{NumericalFlux}
@@ -646,9 +652,8 @@ function FluxTurbo(flux_conservative, flux_nonconservative)
 end
 
 # As a fallback method, the wrapped flux is called.
-@inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
-                                equations)
-    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (f::FluxTurbo)(args...)
+    return f.numerical_flux(args...)
 end
 
 # When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
@@ -664,15 +669,49 @@ end
 Base.length(::FluxTurbo{<:NTuple{2, Any}}) = 2
 
 # By default the turbo flux has the same number of precomputed variables
-# as the number of variables.
-@inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
+# as the number of variables and auxiliary variables.
+@inline function nturbovars(numerical_flux, equations)
+    return Val(nvariables(equations) + nauxvariables(equations))
+end
 
-# Transform the conserved variables in precomputed auxiliary variables to speed up the computation
+# Transform the conserved variables in precomputed variables to speed up the computation
 # of the numerical flux. When no specialization is given, this gives cons2cons.
 # Note that the conserved variables are passed as scalars instead of a vector
 # to enable optimizations by LoopVectorization.jl. Thus, we use
-# `conserved_and_equations...` instead of `cons, equations`.
+# `conserved_and_equations...` instead of `cons, equations`. For equations with auxiliary
+# variables, the auxiliary variables of the node are passed as additional scalars after
+# the conserved variables, i.e., `conserved_and_equations` is
+# `(u_1, ..., u_nvariables, aux_1, ..., aux_nauxvariables, equations)`, and the default
+# precomputed variables are the conserved variables followed by the auxiliary variables.
 @inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
+
+# Extract the conserved and auxiliary variables of both nodes from the default precomputed
+# variables of `cons2turbo`, i.e., the conserved variables followed by the auxiliary
+# variables of each node. The auxiliary variables are returned as the tuple
+# `(aux_ll, aux_rr)`, which is empty for equations without auxiliary variables, such that
+# the fluxes are called as `numerical_flux(u_ll, u_rr, aux..., normal_direction, equations)`.
+@inline function turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
+    n = nvariables(equations)
+    m = nauxvariables(equations)
+    # This condition is resolved at compile time, so the check is free at runtime.
+    length(turbovars_and_normals_and_equations) == 2 * (n + m) + 4 ||
+        throw(ArgumentError("the default `flux_turbo` requires the default layout of " *
+                            "`cons2turbo`, i.e., `nvariables(equations) + " *
+                            "nauxvariables(equations)` precomputed variables per node"))
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + m + v], Val(n)))
+    aux = turbo2aux(Val(m), n, turbovars_and_normals_and_equations)
+    return u_ll, u_rr, aux
+end
+
+@inline turbo2aux(::Val{0}, n, turbovars_and_normals_and_equations) = ()
+
+@inline function turbo2aux(::Val{M}, n, turbovars_and_normals_and_equations) where {M}
+    aux_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(M)))
+    aux_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[2 * n + M + v],
+                            Val(M)))
+    return (aux_ll, aux_rr)
+end
 
 # Numerical volume flux that recalls the plain volume flux when no specialization is given.
 @inline function flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
@@ -684,28 +723,25 @@ end
 @inline function flux_turbo(numerical_flux, have_nonconservative_terms::False,
                             turbovars_and_normals_and_equations...)
     equations = last(turbovars_and_normals_and_equations)
-    n = nvariables(equations)
-    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
-    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    u_ll, u_rr, aux = turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
     normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
-    return numerical_flux(u_ll, u_rr, normal_direction, equations)
+    return numerical_flux(u_ll, u_rr, aux..., normal_direction, equations)
 end
 
 @inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
                             turbovars_and_normals_and_equations...)
     flux_conservative, flux_nonconservative = numerical_flux
     equations = last(turbovars_and_normals_and_equations)
-    n = nvariables(equations)
-    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
-    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    u_ll, u_rr, aux = turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
     normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
-    flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
-    noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
-    noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)
+    flux = flux_conservative(u_ll, u_rr, aux..., normal_direction, equations)
+    noncons_left = flux_nonconservative(u_ll, u_rr, aux..., normal_direction, equations)
+    noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)..., normal_direction,
+                                         equations)
     flux_left = flux + 0.5f0 * noncons_left
     flux_right = flux + 0.5f0 * noncons_right
     return flux_left, flux_right

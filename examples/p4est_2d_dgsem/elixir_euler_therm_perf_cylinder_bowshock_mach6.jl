@@ -17,6 +17,7 @@ using OrdinaryDiffEqSSPRK
 # - G. Oblapenko and M. Torrilhon (2025)
 #   Entropy-conservative high-order methods for high-enthalpy gas flows.
 #   Computers & Fluids, 2025.
+#   [arXiv: 2403.16882](https://arxiv.org/abs/2403.16882)
 #   [DOI: 10.1016/j.compfluid.2025.106640](https://doi.org/10.1016/j.compfluid.2025.106640)
 #
 # The mapping produces the following geometry & shock (indicated by the asterisks `* `):

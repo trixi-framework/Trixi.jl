@@ -1,7 +1,7 @@
 # Use SciML style: https://github.com/SciML/SciMLStyle
 style = "sciml"
 
-# Python style alignment. See https://github.com/domluna/JuliaFormatter.jl/pull/732.
+# Python style alignment. See https://github.com/JuliaEditorSupport/JuliaFormatter.jl/pull/732.
 yas_style_nesting = true
 
 # Align struct fields for better readability of large struct definitions

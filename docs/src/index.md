@@ -38,9 +38,9 @@ installation and postprocessing procedures. Its features include:
   * Positivity-preserving limiting
   * Subcell invariant domain-preserving (IDP) limiting
   * Entropy-bounded limiting
-* Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
-  * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
-  * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+* Compatible with the [SciML ecosystem for ordinary differential equations](https://docs.sciml.ai/DiffEqDocs/stable/)
+  * [Explicit low-storage Runge-Kutta time integration](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods)
+  * [Strong stability preserving methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
 * Custom explicit time integration schemes
   * Maximized linear stability via paired explicit Runge-Kutta methods
@@ -188,7 +188,7 @@ simulation. To quickly see Trixi.jl in action, `default_example()`
 returns the path to an example elixir with a short, two-dimensional
 problem setup. A list of all example elixirs packaged with Trixi.jl can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
-[`examples/`](https://github.com/trixi-framework/Trixi.jl/examples/) subdirectory.
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples/) subdirectory.
 If you want to modify one of the elixirs to set up your own simulation,
 download it to your machine, edit the configuration, and pass the file path to
 `trixi_include(...)`.
