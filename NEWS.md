@@ -133,9 +133,6 @@ for human readability.
   `IndicatorMax` throw a `DimensionMismatch` if their basis has a different number of
   nodes than the one of the solver. Previously, `IndicatorMax` silently returned wrong
   values if the basis of the indicator had more nodes ([#3447]).
-- `IndicatorHennemannGassner` uses statically sized arrays as thread-local storage on
-  three-dimensional meshes, too. This reduces its run time and in particular the time
-  to compile it ([#3447]).
 - `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
   now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
   are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
