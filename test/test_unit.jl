@@ -5952,11 +5952,11 @@ end
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
                                                                                       semi)
     equations = ConservativeLinearScalarAdvectionEquation3D()
+    aux_field(x, equations) = SVector(1.0, 0.0, 0.0)
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
                                         solver;
                                         boundary_conditions = boundary_condition_periodic,
-                                        aux_field = (x, equations) -> SVector(1.0, 0.0,
-                                                                              0.0))
+                                        aux_field)
     @test_logs (:warn, r"shared memory") (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
                                                                                                                 semi)
 end

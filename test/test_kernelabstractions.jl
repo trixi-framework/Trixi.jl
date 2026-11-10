@@ -879,6 +879,34 @@ end
                         linf=[0.02676998212578452])
 end
 
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_source_terms_nonconforming.jl conforming" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Without refinement, the mesh is conforming as required on GPUs in 3D
+    no_refine = @cfunction((p8est, which_tree, quadrant)->Cint(0), Cint,
+                           (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                            Ptr{Trixi.p8est_quadrant_t}))
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[0.010905711222904933],
+                        linf=[0.08350130805195932],
+                        refine_fn_c=no_refine)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test isempty(Trixi.eachmortar(semi.solver, semi.cache))
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples
