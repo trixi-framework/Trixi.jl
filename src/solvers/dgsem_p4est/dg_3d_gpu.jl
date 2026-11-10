@@ -179,15 +179,14 @@ end
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+        aux_node_jj = get_aux_node_vars(aux_shared, equations, dg, i, jj, k)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                i, jj, k, element)
         Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node...,
-                                 get_aux_node_vars(aux_shared, equations, dg,
-                                                   i, jj, k)...,
+        fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node..., aux_node_jj...,
                                  Ja2_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
@@ -206,15 +205,14 @@ end
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+        aux_node_kk = get_aux_node_vars(aux_shared, equations, dg, i, j, kk)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                i, j, kk, element)
         Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node...,
-                                 get_aux_node_vars(aux_shared, equations, dg,
-                                                   i, j, kk)...,
+        fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node..., aux_node_kk...,
                                  Ja3_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
