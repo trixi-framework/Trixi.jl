@@ -2275,7 +2275,7 @@ Calculate the modified specific entropy of Guermond et al. (2019):
 s_0 = p * \rho^{-\gamma} / (\gamma-1).
 ```
 Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma)``.
-- Guermond at al. (2019)
+- Guermond et al. (2019)
   Invariant domain preserving discretization-independent schemes and convex limiting for hyperbolic systems.
   [arXiv: 1807.02563](https://arxiv.org/abs/1807.02563)
   [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
