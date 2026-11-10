@@ -236,24 +236,27 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     resize!(alpha, nelements(dg, cache))
     indicator_variable = indicator_max.variable
 
-    # Explicit bounds check, which allows us to assume inbounds access below
+    # Explicit bounds check, which allows us to assume inbounds access to `u` below.
+    # `maximum(indicator)` reads all entries of the thread-local storage, so its axes
+    # must match the nodes of `dg`.
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes_threaded(indicator_threaded, (eachnode(dg), eachnode(dg)))
     end
 
+    # The thread-local storage has a static size, so the compiler proves that the
+    # accesses to it are in bounds. Thus, only the accesses to `u` and `alpha` use
+    # `@inbounds`.
     @threaded for element in eachelement(dg, cache)
-        @inbounds begin
-            indicator = indicator_threaded[Threads.threadid()]
+        indicator = indicator_threaded[Threads.threadid()]
 
-            # Calculate indicator variables at Gauss-Lobatto nodes
-            for j in eachnode(dg), i in eachnode(dg)
-                u_local = get_node_vars(u, equations, dg, i, j, element)
-                indicator[i, j] = indicator_variable(u_local, equations)
-            end
-
-            alpha[element] = maximum(indicator)
+        # Calculate indicator variables at Gauss-Lobatto nodes
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = @inbounds get_node_vars(u, equations, dg, i, j, element)
+            indicator[i, j] = indicator_variable(u_local, equations)
         end
+
+        @inbounds alpha[element] = maximum(indicator)
     end
 
     return alpha
