@@ -6726,6 +6726,14 @@ end
                                                                 solver;
                                                                 boundary_conditions = boundary_condition_periodic,
                                                                 aux_field)
+
+        mesh_tree = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 1,
+                             periodicity = true)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_tree, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
     end
 end
 
