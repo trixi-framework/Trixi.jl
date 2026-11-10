@@ -692,6 +692,11 @@ end
 @inline function turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
     n = nvariables(equations)
     m = nauxvariables(equations)
+    # This condition is resolved at compile time, so the check is free at runtime.
+    length(turbovars_and_normals_and_equations) == 2 * (n + m) + 4 ||
+        throw(ArgumentError("the default `flux_turbo` requires the default layout of " *
+                            "`cons2turbo`, i.e., `nvariables(equations) + " *
+                            "nauxvariables(equations)` precomputed variables per node"))
     u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
     u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + m + v], Val(n)))
     aux = turbo2aux(Val(m), n, turbovars_and_normals_and_equations)
