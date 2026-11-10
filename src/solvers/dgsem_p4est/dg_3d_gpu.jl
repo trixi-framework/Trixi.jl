@@ -695,9 +695,7 @@ end
 # Variant of `flux_differencing_KAkernel!` for volume fluxes wrapped in a
 # [`FluxTurbo`](@ref). The `NTURBO` precomputed variables of `Trixi.cons2turbo` are
 # evaluated once per node instead of once per two-point flux evaluation and stored
-# in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels. For equations
-# with auxiliary variables, `Trixi.cons2turbo` also receives the auxiliary variables of the
-# node as scalars after the conserved variables, as in the CPU code.
+# in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels.
 @kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
