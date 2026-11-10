@@ -5941,6 +5941,24 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
+
+    # The auxiliary variables are staged in shared memory as well. With `polydeg = 12`,
+    # one variable fits into 48 KiB, but not together with three auxiliary variables.
+    solver = DGSEM(polydeg = 12, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                      semi)
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic,
+                                        aux_field = (x, equations) -> SVector(1.0, 0.0,
+                                                                              0.0))
+    @test_logs (:warn, r"shared memory") (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                                                semi)
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin

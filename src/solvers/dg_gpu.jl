@@ -65,7 +65,8 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
     equations = semi.equations
     volume_integral = semi.solver.volume_integral
 
-    nshared = nvariables(equations)
+    # The auxiliary variables are staged in shared memory as well
+    nshared = nvariables(equations) + nauxvariables(equations)
 
     if volume_integral isa VolumeIntegralFluxDifferencing
         volume_flux = volume_integral.volume_flux

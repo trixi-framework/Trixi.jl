@@ -46,11 +46,35 @@ end
                                                             equations),
             dg,
             volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
+            Val(nauxvariables(equations)),
             derivative_split,
             contravariant_vectors,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
+
+# Store the auxiliary variables of the node `(i, j, k)` of `element` in the shared memory
+# `aux_local` of the flux differencing kernels below.
+# Nothing is stored for equations without auxiliary variables.
+@inline function set_aux_node_vars_local!(aux_local, aux::Nothing, equations, dg,
+                                          i, j, k, element)
+    return nothing
+end
+
+Base.@propagate_inbounds function set_aux_node_vars_local!(aux_local, aux,
+                                                           equations, dg,
+                                                           i, j, k, element)
+    for v in eachauxvariable(equations)
+        aux_local[v, i, j, k] = aux[v, i, j, k, element]
+    end
+    return nothing
+end
+
+# Return the shared memory `aux_local` of the auxiliary variables, or `nothing` for
+# equations without auxiliary variables, such that it can be passed to
+# `get_aux_node_vars` in the same way as `aux`.
+@inline get_aux_vars_local(aux_local, aux::Nothing) = nothing
+@inline get_aux_vars_local(aux_local, aux) = aux_local
 
 # GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
 # see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
@@ -81,10 +105,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
@@ -93,6 +119,14 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+    # Without auxiliary variables, `NAUX == 0` and nothing is stored.
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+
+    # The values in shared memory are visible to all threads after the first
+    # `@synchronize` in the loop below. Thus, we do not need an additional one here,
+    # but the first partner node reads its auxiliary variables from global memory.
+    set_aux_node_vars_local!(aux_local, aux, equations, dg, i, j, k, element)
+    aux_shared = get_aux_vars_local(aux_local, aux)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
@@ -114,15 +148,16 @@ end
         # first coordinate direction: rotate the partner index along `i`
         ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+        aux_node_ii = (offset == 1 ?
+                       get_aux_node_vars(aux, equations, dg, ii, j, k, element) :
+                       get_aux_node_vars(aux_shared, equations, dg, ii, j, k))
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                ii, j, k, element)
         Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde1 = volume_flux(u_node, u_node_ii, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   ii, j, k, element)...,
+        fluxtilde1 = volume_flux(u_node, u_node_ii, aux_node..., aux_node_ii...,
                                  Ja1_avg, equations)
 
         for v in 1:NVARIABLES
@@ -151,8 +186,8 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   i, jj, k, element)...,
+                                 get_aux_node_vars(aux_shared, equations, dg,
+                                                   i, jj, k)...,
                                  Ja2_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
@@ -178,8 +213,8 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   i, j, kk, element)...,
+                                 get_aux_node_vars(aux_shared, equations, dg,
+                                                   i, j, kk)...,
                                  Ja3_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
@@ -205,10 +240,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
@@ -217,6 +254,14 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+    # Without auxiliary variables, `NAUX == 0` and nothing is stored.
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+
+    # The values in shared memory are visible to all threads after the first
+    # `@synchronize` in the loop below. Thus, we do not need an additional one here,
+    # but the first partner node reads its auxiliary variables from global memory.
+    set_aux_node_vars_local!(aux_local, aux, equations, dg, i, j, k, element)
+    aux_shared = get_aux_vars_local(aux_local, aux)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
@@ -238,7 +283,9 @@ end
         # first coordinate direction: rotate the partner index along `i`
         ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-        aux_node_ii = get_aux_node_vars(aux, equations, dg, ii, j, k, element)
+        aux_node_ii = (offset == 1 ?
+                       get_aux_node_vars(aux, equations, dg, ii, j, k, element) :
+                       get_aux_node_vars(aux_shared, equations, dg, ii, j, k))
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                ii, j, k, element)
@@ -267,7 +314,7 @@ end
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-        aux_node_jj = get_aux_node_vars(aux, equations, dg, i, jj, k, element)
+        aux_node_jj = get_aux_node_vars(aux_shared, equations, dg, i, jj, k)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                i, jj, k, element)
@@ -295,7 +342,7 @@ end
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-        aux_node_kk = get_aux_node_vars(aux, equations, dg, i, j, kk, element)
+        aux_node_kk = get_aux_node_vars(aux_shared, equations, dg, i, j, kk)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                i, j, kk, element)
@@ -333,10 +380,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
@@ -345,15 +394,19 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+    # Without auxiliary variables, `NAUX == 0` and nothing is stored.
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES
         u_local[v, i, j, k] = u_node[v]
     end
+    set_aux_node_vars_local!(aux_local, aux, equations, dg, i, j, k, element)
     @synchronize
 
+    aux_shared = get_aux_vars_local(aux_local, aux)
     u_node = get_node_vars(u_local, equations, dg, i, j, k)
-    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    aux_node = get_aux_node_vars(aux_shared, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -367,8 +420,8 @@ end
         fluxtilde1 = volume_flux(u_node,
                                  get_node_vars(u_local, equations, dg, ii, j, k),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   ii, j, k, element)...,
+                                 get_aux_node_vars(aux_shared, equations, dg,
+                                                   ii, j, k)...,
                                  Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
@@ -381,8 +434,8 @@ end
         fluxtilde2 = volume_flux(u_node,
                                  get_node_vars(u_local, equations, dg, i, jj, k),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   i, jj, k, element)...,
+                                 get_aux_node_vars(aux_shared, equations, dg,
+                                                   i, jj, k)...,
                                  Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
@@ -395,8 +448,8 @@ end
         fluxtilde3 = volume_flux(u_node,
                                  get_node_vars(u_local, equations, dg, i, j, kk),
                                  aux_node...,
-                                 get_aux_node_vars(aux, equations, dg,
-                                                   i, j, kk, element)...,
+                                 get_aux_node_vars(aux_shared, equations, dg,
+                                                   i, j, kk)...,
                                  Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3
     end
@@ -414,10 +467,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
@@ -426,15 +481,19 @@ end
     i, j, k, element = @index(Global, NTuple)
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+    # Without auxiliary variables, `NAUX == 0` and nothing is stored.
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES
         u_local[v, i, j, k] = u_node[v]
     end
+    set_aux_node_vars_local!(aux_local, aux, equations, dg, i, j, k, element)
     @synchronize
 
+    aux_shared = get_aux_vars_local(aux_local, aux)
     u_node = get_node_vars(u_local, equations, dg, i, j, k)
-    aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    aux_node = get_aux_node_vars(aux_shared, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -446,8 +505,8 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        ii, j, k),
                                          aux_node...,
-                                         get_aux_node_vars(aux, equations, dg,
-                                                           ii, j, k, element)...,
+                                         get_aux_node_vars(aux_shared, equations, dg,
+                                                           ii, j, k)...,
                                          Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
@@ -461,8 +520,8 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        i, jj, k),
                                          aux_node...,
-                                         get_aux_node_vars(aux, equations, dg,
-                                                           i, jj, k, element)...,
+                                         get_aux_node_vars(aux_shared, equations, dg,
+                                                           i, jj, k)...,
                                          Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
@@ -476,8 +535,8 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        i, j, kk),
                                          aux_node...,
-                                         get_aux_node_vars(aux, equations, dg,
-                                                           i, j, kk, element)...,
+                                         get_aux_node_vars(aux_shared, equations, dg,
+                                                           i, j, kk)...,
                                          Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
     end
@@ -500,10 +559,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
@@ -573,10 +634,12 @@ end
                                                            volume_flux,
                                                            ::Val{NNODES},
                                                            ::Val{NVARIABLES},
+                                                           ::Val{NAUX},
                                                            derivative_split,
                                                            contravariant_vectors) where {
                                                                                          NNODES,
-                                                                                         NVARIABLES
+                                                                                         NVARIABLES,
+                                                                                         NAUX
                                                                                          }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
