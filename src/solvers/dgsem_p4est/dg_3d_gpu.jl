@@ -120,7 +120,7 @@ end
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
 
     # The values in shared memory are visible to all threads after the first
     # `@synchronize` in the loop below. Thus, we do not need an additional one here,
@@ -253,7 +253,7 @@ end
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
 
     # The values in shared memory are visible to all threads after the first
     # `@synchronize` in the loop below. Thus, we do not need an additional one here,
@@ -393,7 +393,7 @@ end
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES
@@ -480,7 +480,7 @@ end
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES
