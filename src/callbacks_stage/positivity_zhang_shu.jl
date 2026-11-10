@@ -17,6 +17,10 @@ The limiter is applied to all scalar `variables` in their given order
 using the associated `thresholds` to determine the minimal acceptable values.
 The order of the `variables` is important and might have a strong influence
 on the robustness.
+
+The limiter is available for [`DGSEM`](@ref) on all mesh types and for [`DGMulti`](@ref)
+solvers with `SBP()` approximation types, for which the solution nodes coincide with the
+volume quadrature nodes.
 """
 struct PositivityPreservingLimiterZhangShu{N, Thresholds <: NTuple{N, <:Real},
                                            Variables <: NTuple{N, Any}}
@@ -78,4 +82,5 @@ end
 include("positivity_zhang_shu_dg1d.jl")
 include("positivity_zhang_shu_dg2d.jl")
 include("positivity_zhang_shu_dg3d.jl")
+include("positivity_zhang_shu_dgmulti.jl")
 end # @muladd
