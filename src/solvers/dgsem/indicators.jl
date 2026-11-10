@@ -417,6 +417,9 @@ The use of `IndicatorEntropyCorrection` requires either
 `entropy_potential(u, normal_direction, equations)` for other mesh types
 to be defined.
 
+The indicator is available for [`DGSEM`](@ref) and for [`DGMulti`](@ref) solvers with `SBP()`
+approximation types on affine meshes, blending [`VolumeIntegralWeakForm`](@ref) with
+[`VolumeIntegralPureLGLFiniteVolume`](@ref).
 """
 struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
     cache::Cache
@@ -424,8 +427,7 @@ struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorEntropyCorrection(equations::AbstractEquations,
-                                    basis::LobattoLegendreBasis;
+function IndicatorEntropyCorrection(equations::AbstractEquations, basis;
                                     scaling = true) # true = 1 in floating point multiplication
     cache = create_cache(IndicatorEntropyCorrection, equations, basis)
     return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
