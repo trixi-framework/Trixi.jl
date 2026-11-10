@@ -117,16 +117,16 @@ end
 @testitem "TreeMesh2D Euler: elixir_euler_free_stream_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_amr.jl"),
                         l2=[
-                            1.98451070e-15,
-                            1.85783446e-15,
-                            1.81540331e-15,
-                            1.38480134e-14
+                            1.9845107030327243e-15,
+                            1.857834455410428e-15,
+                            1.8154033083484456e-15,
+                            1.3848013442274127e-14
                         ],
                         linf=[
-                            6.99440506e-15,
-                            7.46624984e-15,
-                            7.60502772e-15,
-                            3.01980663e-14
+                            6.994405055138486e-15,
+                            7.466249840604178e-15,
+                            7.605027718682322e-15,
+                            3.019806626980426e-14
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
