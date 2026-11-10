@@ -114,6 +114,25 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D Euler: elixir_euler_free_stream_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_amr.jl"),
+                        l2=[
+                            1.98451070e-15,
+                            1.85783446e-15,
+                            1.81540331e-15,
+                            1.38480134e-14
+                        ],
+                        linf=[
+                            6.99440506e-15,
+                            7.46624984e-15,
+                            7.60502772e-15,
+                            3.01980663e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D Euler: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
