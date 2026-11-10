@@ -31,7 +31,6 @@ for human readability.
   `get_element_variables_callback!` and `get_element_variables_controller!`. As part of
   this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
   passed to the ODE solver ([#3399]).
-  ([#3399]).
 
 
 ## Changes in the v0.17 lifecycle
