@@ -10,27 +10,35 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
@@ -42,37 +50,47 @@ function create_cache_analysis(analyzer,
                                RealT, uEltype) where {NDIMS_AMBIENT}
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    jacobian_local = StrideArray(undef, RealT,
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)))
-    jacobian_tmp1 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
-                                StaticInt(nnodes(dg)))
-    jacobian_tmp2 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)),
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(NDIMS_AMBIENT),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(NDIMS_AMBIENT),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(NDIMS_AMBIENT),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = stride_array_or_array(RealT,
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)),
+                                          StaticInt(nnodes(dg)))
+    jacobian_tmp2 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)))
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
             jacobian_tmp1, jacobian_tmp2)
@@ -84,37 +102,47 @@ function create_cache_analysis(analyzer,
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    jacobian_local = StrideArray(undef, RealT,
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)))
-    jacobian_tmp1 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
-                                StaticInt(nnodes(dg)))
-    jacobian_tmp2 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)),
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = stride_array_or_array(RealT,
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)),
+                                          StaticInt(nnodes(dg)))
+    jacobian_tmp2 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)))
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
             jacobian_tmp1, jacobian_tmp2)
@@ -441,9 +469,8 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
-                                     typeof(equations), typeof(dg),
-                                     map(typeof, args)...))
+    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, Int,
+                                 typeof(equations), typeof(dg), map(typeof, args)...)
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (integral0, volume0)
 

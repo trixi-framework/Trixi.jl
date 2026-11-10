@@ -205,8 +205,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
     title --> pd.variable_names[variable_id]
     xlims --> extrema(x)
     ylims --> extrema(y)
-    xguide --> _get_guide(1)
-    yguide --> _get_guide(2)
+    xguide --> _get_guide(pd.orientation_x)
+    yguide --> _get_guide(pd.orientation_y)
     seriestype --> :heatmap
     colorbar --> :true
 
@@ -251,8 +251,8 @@ RecipesBase.@recipe function f(pd::PlotData2DTriangulated{<:ScalarData})
     title --> title_string
     xlims --> extrema(x)
     ylims --> extrema(y)
-    xguide --> _get_guide(1)
-    yguide --> _get_guide(2)
+    xguide --> _get_guide(pd.orientation_x)
+    yguide --> _get_guide(pd.orientation_y)
     seriestype --> :heatmap
     colorbar --> :true
 

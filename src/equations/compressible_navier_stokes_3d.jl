@@ -526,9 +526,12 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D)
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
+    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
+    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
+    # prescribed normal heat flux must be scaled by `norm(normal)` as well.
+    (; boundary_value_normal_flux_function) = boundary_condition.boundary_condition_heat_flux
+    normal_heat_flux = boundary_value_normal_flux_function(x, t, equations) *
+                       norm(normal)
     v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
                                                                                         t,
                                                                                         equations)
@@ -654,9 +657,12 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D)
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
+    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
+    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
+    # prescribed normal heat flux must be scaled by `norm(normal)` as well.
+    (; boundary_value_normal_flux_function) = boundary_condition.boundary_condition_heat_flux
+    normal_heat_flux = boundary_value_normal_flux_function(x, t, equations) *
+                       norm(normal)
     # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
     # For details, see Section 4.2 of
     # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
