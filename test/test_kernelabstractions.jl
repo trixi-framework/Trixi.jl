@@ -879,20 +879,28 @@ end
                         linf=[0.02676998212578452])
 
     # The default `Trixi.cons2turbo` passes the auxiliary variables to the volume flux
-    for flux_differencing_kernel in (HalfSweep(), FullSweep())
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                     "elixir_advectionconservative_shear_flow.jl"),
-                            solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-                                         volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
-                            tuning=Tuning(; flux_differencing_kernel),
-                            l2=[0.005190486628803072],
-                            linf=[0.02676998212578452])
-    end
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        tuning=Tuning(flux_differencing_kernel = HalfSweep()),
+                        l2=[0.005190486628803072],
+                        linf=[0.02676998212578452])
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()),
+                        l2=[0.005190486628803072],
+                        linf=[0.02676998212578452])
 end
 
 @testitem "KernelAbstractions CPU 3D: FluxTurbo with auxiliary variables" setup=[Setup] tags=[:kernelabstractions] begin
-    # Compare the turbo kernels with the regular flux differencing kernels for
-    # conservative and nonconservative equations with auxiliary variables on a curved mesh
+    # Compare the volume integral of the turbo kernels with the regular CPU code for
+    # conservative and nonconservative equations with auxiliary variables on a curved mesh.
+    # The regular CPU code (`backend = nothing`) serves as reference since the GPU kernels
+    # without `FluxTurbo` support nonconservative terms only with combined fluxes.
     function aux_field(x, equations)
         return SVector(1 + 0.5 * sinpi(x[2]), 0.5 + 0.25 * sinpi(x[1]),
                        0.25 * cospi(x[3]))
@@ -905,30 +913,40 @@ end
     end
     mesh = P4estMesh((2, 2, 2), polydeg = 3, mapping = mapping, periodicity = true)
 
-    cases = ((ConservativeLinearScalarAdvectionEquation3D(), flux_lax_friedrichs,
-              flux_central, FluxTurbo(flux_central)),
+    function volume_integral(backend, equations, volume_flux, flux_differencing_kernel)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field = aux_field)
+        semi = trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = zero(u_ode)
+        # The wrapped arrays do not keep `u_ode` and `du_ode` alive
+        GC.@preserve u_ode du_ode begin
+            u = Trixi.wrap_array(u_ode, semi)
+            du = Trixi.wrap_array(du_ode, semi)
+            Trixi.calc_volume_integral!(backend, du, u, mesh,
+                                        Trixi.have_nonconservative_terms(equations),
+                                        equations, semi.solver.volume_integral,
+                                        semi.solver, semi.cache)
+        end
+        return du_ode
+    end
+
+    cases = ((ConservativeLinearScalarAdvectionEquation3D(), flux_central,
+              FluxTurbo(flux_central)),
              (NonconservativeLinearScalarAdvectionEquation3D(),
-              (flux_lax_friedrichs, flux_nonconservative_central),
               (flux_central, flux_nonconservative_central),
               FluxTurbo(flux_central, flux_nonconservative_central)))
-    for (equations, surface_flux, volume_flux, volume_flux_turbo) in cases,
+    for (equations, volume_flux, volume_flux_turbo) in cases,
         flux_differencing_kernel in (HalfSweep(), FullSweep())
 
-        du_plain, du_turbo = map((volume_flux, volume_flux_turbo)) do volume_flux_
-            solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
-                           volume_integral = VolumeIntegralFluxDifferencing(volume_flux_))
-            semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                                solver;
-                                                boundary_conditions = boundary_condition_periodic,
-                                                aux_field = aux_field)
-            semi = trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))
-            u_ode = compute_coefficients(0.0, semi)
-            du_ode = similar(u_ode)
-            Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
-            return du_ode
-        end
-        @test du_turbo ≈ du_plain
-        @test maximum(abs, du_plain) > 0.1
+        du_cpu = volume_integral(nothing, equations, volume_flux, flux_differencing_kernel)
+        du_turbo = volume_integral(Trixi.KernelAbstractions.CPU(), equations,
+                                   volume_flux_turbo, flux_differencing_kernel)
+        @test du_turbo ≈ du_cpu
+        @test maximum(abs, du_cpu) > 0.1
     end
 end
 
