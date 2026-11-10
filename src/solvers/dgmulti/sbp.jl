@@ -187,8 +187,8 @@ function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
                                  dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     # since dg.basis.Drst is not skew-symmetric for CG operators, we explicitly construct
     # the skew-symmetric operators for flux differencing

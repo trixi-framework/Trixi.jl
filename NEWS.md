@@ -24,11 +24,12 @@ for human readability.
   consistently, which affects packages extending or calling them:
   `reinitialize_containers!` to `reinit_containers!`, `reinitialize_boundaries!` to
   `reinit_boundaries!`, `initialize_left_neighbor_connectivity!` to
-  `init_left_neighbor_connectivity!`, `initialize_mean_values` to `init_mean_values`, and
-  `initialize_cache!` (`AveragingCallback`) to `init_cache_averaging!`. The methods of
-  `initialize!` for `TreeMesh` and `UnstructuredSortedBoundaryTypes` were renamed to
-  `init_refinement!` and `init_boundary_types!`; `initialize!` now only refers to
-  the initialization of callbacks ([#3402]).
+  `init_left_neighbor_connectivity!`, `initialize_mean_values` to `init_mean_values`,
+  `initialize_cache!` (`AveragingCallback`) to `init_cache_averaging!`, and
+  `initialize_dgmulti_solution_container` to `init_dgmulti_solution_container`. The
+  methods of `initialize!` for `TreeMesh` and `UnstructuredSortedBoundaryTypes` were
+  renamed to `init_refinement!` and `init_boundary_types!`; `initialize!` now only refers
+  to the initialization of callbacks ([#3402]).
 
 
 ## Changes in the v0.17 lifecycle
