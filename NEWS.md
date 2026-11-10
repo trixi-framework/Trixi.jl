@@ -26,7 +26,11 @@ for human readability.
   `get_element_variables_controller!`, and `get_element_variables_indicator!`. Only the
   methods for the semidiscretization and the solver remain `get_element_variables!`.
   Custom indicators used for AMR must now specialize `get_element_variables_indicator!`
-  instead of `get_element_variables!(element_variables, indicator, ::AMRCallback)`
+  instead of `get_element_variables!(element_variables, indicator, ::AMRCallback)`.
+  Similarly, custom callbacks and AMR controllers must specialize
+  `get_element_variables_callback!` and `get_element_variables_controller!`. As part of
+  this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
+  passed to the ODE solver ([#3399]).
   ([#3399]).
 
 
