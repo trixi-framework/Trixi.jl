@@ -106,15 +106,7 @@ Optional keyword arguments:
 If all keyword arguments are `nothing`, `semi` is returned unchanged.
 """
 function trixi_adapt(semi::AbstractSemidiscretization;
-                     storage_type = nothing, real_type = nothing, tuning = nothing,
-                     flux_differencing_kernel = nothing)
-    if flux_differencing_kernel !== nothing
-        Base.depwarn("The keyword argument `flux_differencing_kernel` of `trixi_adapt` " *
-                     "is deprecated. Use `tuning = Tuning(; flux_differencing_kernel)` " *
-                     "instead.", :trixi_adapt)
-        tuning = tuning_with_flux_differencing_kernel(tuning, flux_differencing_kernel)
-    end
-
+                     storage_type = nothing, real_type = nothing, tuning = nothing)
     if storage_type === nothing && real_type === nothing && tuning === nothing
         return semi
     end
@@ -131,19 +123,6 @@ function trixi_adapt(semi::AbstractSemidiscretization;
     end
 
     return adapt_tuning(semi, tuning)
-end
-
-# Support the deprecated keyword argument `flux_differencing_kernel`
-function tuning_with_flux_differencing_kernel(tuning, flux_differencing_kernel)
-    if tuning === nothing
-        return Tuning(; flux_differencing_kernel)
-    elseif tuning.flux_differencing_kernel === nothing
-        return merge_tuning(tuning, Tuning(; flux_differencing_kernel))
-    else
-        throw(ArgumentError("The deprecated keyword argument `flux_differencing_kernel` " *
-                            "cannot be combined with a `tuning` setting the " *
-                            "`flux_differencing_kernel`."))
-    end
 end
 
 # Array type of the internal data structures of the semidiscretization `semi`, which
@@ -214,28 +193,6 @@ function copy_tuning(semi_new, semi)
     return semi_new
 end
 
-# Support the deprecated keyword arguments `storage_type`, `real_type`, and
-# `flux_differencing_kernel` of `semidiscretize`. The adapted semidiscretization
-# is only available as `ode.p`, see
-# https://github.com/trixi-framework/Trixi.jl/issues/3350
-function trixi_adapt_deprecated(semi; storage_type, real_type, flux_differencing_kernel)
-    if storage_type === nothing && real_type === nothing &&
-       flux_differencing_kernel === nothing
-        return semi
-    end
-
-    Base.depwarn("The keyword arguments `storage_type`, `real_type`, and " *
-                 "`flux_differencing_kernel` of `semidiscretize` are deprecated. " *
-                 "Use `semi = trixi_adapt(semi; storage_type, real_type, " *
-                 "tuning = Tuning(; flux_differencing_kernel))` before calling " *
-                 "`semidiscretize(semi, tspan)` and use the adapted `semi` afterwards, " *
-                 "e.g., to create callbacks.",
-                 :semidiscretize)
-    tuning = flux_differencing_kernel === nothing ? nothing :
-             Tuning(; flux_differencing_kernel)
-    return trixi_adapt(semi; storage_type, real_type, tuning)
-end
-
 # Convert the time span to the real type of the semidiscretization. Otherwise,
 # e.g., the default `tspan = (0.0, 1.0)` would result in `Float64` time values for
 # a `Float32` semidiscretization, and time-dependent initial conditions, boundary
@@ -261,17 +218,11 @@ Optional keyword arguments:
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-
-The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
-deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
-                        storage_type = nothing,
-                        real_type = nothing,
-                        flux_differencing_kernel = nothing)
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -279,8 +230,6 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
-    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
-                                  flux_differencing_kernel)
     tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition

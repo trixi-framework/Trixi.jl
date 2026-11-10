@@ -32,6 +32,14 @@ for human readability.
   this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
   passed to the ODE solver ([#3399]).
 
+#### Removed
+- The deprecated keyword arguments `storage_type`, `real_type`, and
+  `flux_differencing_kernel` of `semidiscretize` were removed. Use
+  `semi = trixi_adapt(semi; storage_type, real_type, tuning = Tuning(; flux_differencing_kernel))`
+  before calling `semidiscretize(semi, tspan)` instead.
+- The deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt` was removed.
+  Use `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead.
+
 
 ## Changes in the v0.17 lifecycle
 
