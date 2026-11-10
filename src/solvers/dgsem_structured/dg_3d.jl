@@ -4,8 +4,9 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Preallocated storage for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::Union{StructuredMesh{3},
                                              P4estMesh{3}, T8codeMesh{3}},
                                  equations, dg::DG, cache_containers, uEltype)
@@ -22,7 +23,7 @@ function create_cache_subcell_fv(mesh::Union{StructuredMesh{3},
             normal_vectors)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::Union{StructuredMesh{3},
                                            P4estMesh{3}, T8codeMesh{3}},

@@ -6,9 +6,9 @@
 #! format: noindent
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+# and called from `create_cache_hyperbolic`.
+function create_cache_mortar(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
+                             mortar_l2::LobattoLegendreMortarL2, uEltype)
     A4d = Array{uEltype, 4}
     fstar_primary_threaded = A4d[A4d(undef, nvariables(equations),
                                      nnodes(mortar_l2), nnodes(mortar_l2), 4)

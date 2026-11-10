@@ -102,6 +102,18 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![interfaces_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/bc3b6b02-afbc-4371-aaf7-c7bdc5a6c540)
 
+# - `init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)`
+
+#   In order to apply boundary conditions, it is necessary to identify the locations of the
+#   boundaries. Therefore, we initialize a "boundaries" object, which records the elements that
+#   contain boundaries, specifies which side of an element is a boundary, stores the coordinates
+#   of boundary nodes, and allocates containers for managing solutions at these boundaries.
+
+#   In our visualization, boundaries and their corresponding nodes are highlighted with green,
+#   semi-transparent lines.
+
+#   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
+
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
 #   Returning to the consideration of different sizes among adjacent elements, within the
@@ -122,18 +134,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
 
-# - `init_boundaries(leaf_cell_ids, mesh, elements)`
-
-#   In order to apply boundary conditions, it is necessary to identify the locations of the
-#   boundaries. Therefore, we initialize a "boundaries" object, which records the elements that
-#   contain boundaries, specifies which side of an element is a boundary, stores the coordinates
-#   of boundary nodes, and allocates containers for managing solutions at these boundaries.
-
-#   In our visualization, boundaries and their corresponding nodes are highlighted with green,
-#   semi-transparent lines.
-
-#   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
-
 # All the structures mentioned earlier are collected as a cache of type `NamedTuple`. Subsequently,
 # an object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
@@ -147,7 +147,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # functions called subsequently. Without delving into details, the structure of the primary calls
 # are illustrated as follows:
 
-# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/8bf59422-0537-4d7a-9f13-d9b2253c19d7)
+# ![SemidiscretizationHyperbolic_structure](https://github.com/user-attachments/assets/97439115-79e4-4e32-a0b2-bd52022c35b3)
 
 # ## Overview of the [`semidiscretize`](@ref) function
 
@@ -212,7 +212,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # In summary, the internal workings of `semidiscretize` with brief descriptions can be presented
 # as follows.
 
-# ![semidiscretize_structure](https://github.com/user-attachments/assets/be0642ec-e9d2-44cf-a942-da745d8e32c5)
+# ![semidiscretize_structure](https://github.com/user-attachments/assets/54c28659-ee8f-461f-be54-4e7e23195a8f)
 
 # ## Functions `solve` and `rhs_hyperbolic!`
 

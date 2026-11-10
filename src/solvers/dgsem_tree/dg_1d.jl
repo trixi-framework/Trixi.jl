@@ -11,8 +11,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::TreeMesh{1}, equations,
-                      dg::DG, RealT, uEltype)
+function create_cache_hyperbolic(mesh::TreeMesh{1}, equations,
+                                 dg::DG, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
@@ -27,14 +27,15 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
 
     return cache
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Preallocated storage for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                                  dg::DG, cache_containers, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(dg) + 1},
@@ -52,7 +53,7 @@ function create_cache_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, eq
     return (; fstar1_L_threaded, fstar1_R_threaded)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
                                dg::DG, cache)
