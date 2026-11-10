@@ -443,6 +443,7 @@ Given ε = 1.0e-4, we use the following algorithm.
 - Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
   Entropy stable numerical approximations for the isothermal and polytropic
   Euler equations
+  [arXiv: 1907.03287](https://arxiv.org/abs/1907.03287)
   [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
 - Agner Fog.
   Lists of instruction latencies, throughputs and micro-operation breakdowns

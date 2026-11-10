@@ -17,8 +17,9 @@ An entropy-satisfying solution should produce a smooth(!) rarefaction wave.
   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction, 3rd Edition.
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-- Lin, Chan (2014)
+- Lin, Chan (2024)
   High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting
+  [arXiv: 2306.12663](https://arxiv.org/abs/2306.12663)
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 """
 function initial_condition_modified_sod(x, t, ::CompressibleEulerEquations1D)
