@@ -1642,7 +1642,7 @@ end
     @test_throws ArgumentError Trixi.PlotData2DTriangulated(sol)
     @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol)
     @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol; nvisnodes = 4)
-    u_fv = Trixi.wrap_array_native(sol.u[end], semi)
+    u_fv = Trixi.wrap_array(sol.u[end], semi)
     @test_throws ArgumentError ScalarPlotData2D(u_fv[1, :, :, :], semi)
     @test_throws "polydeg = 0" ScalarPlotData2D(u_fv[1, :, :, :], semi)
 
