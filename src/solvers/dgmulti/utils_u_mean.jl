@@ -5,8 +5,9 @@
 @muladd begin
 #! format: noindent
 
-# `compute_u_mean` is used in the stage callback `PositivityPreservingLimiterZhangShu`
-# (and, via its local limiter, in `PositivityPreservingLimiterLiuZhang`).
+# `compute_u_mean` is used in the stage callbacks `PositivityPreservingLimiterZhangShu`
+# and `PositivityPreservingLimiterLiuZhang`; `set_u_mean!` is used in
+# `PositivityPreservingLimiterLiuZhang`.
 # The methods are restricted to `DGMultiSBP`, i.e., to nodal solvers whose solution
 # nodes coincide with the volume quadrature nodes. For `Polynomial` approximation types,
 # the nodal values are not quadrature values, so a weighted nodal mean is not the cell
@@ -28,5 +29,18 @@
         u_mean = u_mean + u[i, element] * wJq_node
     end
     return u_mean / total_volume # normalize with the total volume
+end
+
+# Shifts all nodal values of an element by the same vector such that the cell average
+# becomes `new_cell_average`, as `set_u_mean!` for `DGSEM`. Since the cell average is a
+# weighted mean of the nodal values, this changes it by exactly the shift.
+@inline function set_u_mean!(u, new_cell_average, old_cell_average, element,
+                             mesh::DGMultiMesh, equations, dg::DGMultiSBP, cache)
+    diff_cell_average = new_cell_average - old_cell_average
+    for i in each_quad_node(mesh, dg, cache)
+        u[i, element] = u[i, element] + diff_cell_average
+    end
+
+    return nothing
 end
 end # @muladd

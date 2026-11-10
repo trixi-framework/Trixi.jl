@@ -33,6 +33,18 @@ end
 @inline Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline ncells(mesh::DGMultiMesh) = Int(mesh.md.num_elements)
 
+# `mesh.md.wJq` contains the volume quadrature weights multiplied by the Jacobian at the
+# volume quadrature nodes, so the cell volume is their sum over the nodes of the element.
+# Used by `PositivityPreservingLimiterLiuZhang`.
+@inline function get_cell_volume(element, mesh::DGMultiMesh, equations, dg, cache)
+    (; wJq) = mesh.md
+    cell_volume = zero(eltype(wJq))
+    for i in axes(wJq, 1)
+        cell_volume += wJq[i, element]
+    end
+    return cell_volume
+end
+
 get_name(mesh::DGMultiMesh) = mesh |> typeof |> nameof |> string
 
 function get_element_type_from_string(input::String)
