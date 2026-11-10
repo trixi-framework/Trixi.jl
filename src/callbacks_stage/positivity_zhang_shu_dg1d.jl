@@ -50,7 +50,7 @@ end
 #   Lax-Wendroff flux reconstruction on adaptive curvilinear meshes with
 #   error based time stepping for hyperbolic conservation laws
 #   [arXiv: 2402.11926](https://arxiv.org/abs/2402.11926)
-#   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
+#   [DOI: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
 function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{1},
                             equations, dg::DGSEM, cache,
                             element_ids_new, u_mean_refined_elements)

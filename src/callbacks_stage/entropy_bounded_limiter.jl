@@ -16,7 +16,7 @@ Entropy-bounded limiter by
 - Lv, Ihme (2015)
   Entropy-bounded discontinuous Galerkin scheme for Euler equations
   [arXiv: 1411.5044](https://arxiv.org/abs/1411.5044)
-  [doi: 10.1016/j.jcp.2015.04.026](https://doi.org/10.1016/j.jcp.2015.04.026)
+  [DOI: 10.1016/j.jcp.2015.04.026](https://doi.org/10.1016/j.jcp.2015.04.026)
 
 This is an ideal-gas specific limiter that bounds the (unphysical) decrease of the thermodynamic entropy
 per element from one time step (or Runge-Kutta stage) to the next.
@@ -27,7 +27,7 @@ In the original version of the paper, this value is set to zero to
 ensure that the entropy does not decrease, i.e., guarantee entropy stability in the sense of
 - Tadmor (1986)
   A minimum entropy principle in the gas dynamics equations
-  [doi: 10.1016/0168-9274(86)90029-2](https://doi.org/10.1016/0168-9274(86)90029-2)
+  [DOI: 10.1016/0168-9274(86)90029-2](https://doi.org/10.1016/0168-9274(86)90029-2)
 
 This, however, leads in general to very diffusive solutions for timesteps violating
 a CFL condition (Lemma 3 in Lv, Ihme (2015)) which is required for entropy stability in the mean values.

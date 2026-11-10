@@ -52,14 +52,14 @@ The corresponding opposite directions are:
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
    nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
-   [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
+   [DOI: 10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
-   [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
+   [DOI: 10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
 4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
-   [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
+   [DOI: 10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations2D{RealT <: Real, CollisionOp} <:
        AbstractLatticeBoltzmannEquations{2, 9}

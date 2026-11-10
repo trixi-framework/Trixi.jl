@@ -331,11 +331,11 @@ standard textbooks.
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 
 `VolumeIntegralWeakForm()` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -356,19 +356,19 @@ the interface of numerical fluxes in Trixi.jl.
 
 - LeFloch, Mercier, Rohde (2002)
   Fully Discrete, Entropy Conservative Schemes of Arbitrary Order
-  [doi: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
+  [DOI: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
 - Fisher, Carpenter (2013)
   High-order entropy stable finite difference schemes for nonlinear
   conservation laws: Finite domains
-  [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
+  [DOI: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
 - Hendrik Ranocha (2018)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
-  [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
+  [DOI: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
 - Chen, Shu (2017)
   Entropy stable high order discontinuous Galerkin methods with suitable
   quadrature rules for hyperbolic conservation laws
-  [doi: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
@@ -1058,7 +1058,7 @@ See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
 
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
-  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+  [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -1098,11 +1098,11 @@ See also [`VolumeIntegralWeakForm`](@ref).
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 """
 struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
     surface_flux::SurfaceFlux

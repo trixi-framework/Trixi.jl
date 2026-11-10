@@ -272,7 +272,7 @@ end
 A version in left/right slopes `sl, sr` is given by equations (14) and (15) in
 - P. Jenny (2020)
   Time adaptive conservative finite volume method.
-  [DOI:10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
+  [DOI: 10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
 
 This limiter is biased for positive (right-going) velocities.
 For the flipped version, which is biased for negative (left-going) velocities,
