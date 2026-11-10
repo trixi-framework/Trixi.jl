@@ -26,9 +26,9 @@ All expressions used here are taken from the following references:
   An entropy-stable hybrid scheme for simulations of transcritical real-fluid flows
   [DOI: 10.1016/j.jcp.2017.03.022](https://doi.org/10.1016/j.jcp.2017.03.022)
 
-- V. Michel-Dansac, A. Thomann (2024)
-  Towards a fully well-balanced and entropy-stable scheme for the Euler equations with
-  gravity: preserving isentropic steady solutions
+- V. Michel-Dansac, A. Thomann (2025)
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations
+  with gravity: General equations of state
   [arXiv: 2410.19710](https://arxiv.org/abs/2410.19710)
   [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 
