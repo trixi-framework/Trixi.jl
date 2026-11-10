@@ -8,6 +8,10 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `VolumeIntegralAdaptive` with `IndicatorEntropyCorrection` or
+  `IndicatorEntropyCorrectionShockCapturingCombined` is now supported for `DGMulti` solvers
+  with `SBP()` approximation types on affine meshes, blending `VolumeIntegralWeakForm` with
+  `VolumeIntegralPureLGLFiniteVolume` on the SBP nodes.
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
   variables is a fixed property of their type given by `nauxvariables(equations)`;

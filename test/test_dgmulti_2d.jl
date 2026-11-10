@@ -439,6 +439,161 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl (SBP, entropy correction)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    # Entropy correction of the weak form with the algebraic low-order method on the
+    # SBP nodes of the triangles
+    equations = CompressibleEulerEquations2D(1.4)
+    surface_flux = flux_lax_friedrichs
+    basis = DGMultiBasis(Tri(), 3, approximation_type = SBP())
+    # The names differ from the ones in the elixir, which are overwritten by `trixi_include`
+    indicator_ec = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_ec = VolumeIntegralAdaptive(indicator_ec,
+                                                VolumeIntegralWeakForm(),
+                                                VolumeIntegralPureLGLFiniteVolume(surface_flux))
+    dg_ec = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                    volume_integral = volume_integral_ec)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        dg=dg_ec, tspan=(0.0, 0.2),
+                        l2=[
+                            0.055705280539865246,
+                            0.032996309920560046,
+                            0.05224815309818023,
+                            0.08011541837270784
+                        ],
+                        linf=[
+                            0.24422317302753682,
+                            0.1667771720433348,
+                            0.12360158779970301,
+                            0.2699502313349198
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    # The entropy correction is active in many elements with blending factors well above
+    # round-off errors (about 7e-5 at the end of this run)
+    @test maximum(indicator_ec.cache.alpha) > 1.0e-6
+end
+
+@testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl (SBP, entropy correction and shock capturing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    surface_flux = flux_lax_friedrichs
+    basis = DGMultiBasis(Tri(), 3, approximation_type = SBP())
+    indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                             alpha_max = 0.5,
+                                             alpha_min = 0.001,
+                                             alpha_smooth = true,
+                                             variable = density_pressure)
+    indicator_ec = IndicatorEntropyCorrection(equations, basis)
+    indicator_combined = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = indicator_sc,
+                                                                          indicator_entropy_correction = indicator_ec)
+    volume_integral_combined = VolumeIntegralAdaptive(indicator_combined,
+                                                      VolumeIntegralWeakForm(),
+                                                      VolumeIntegralPureLGLFiniteVolume(surface_flux))
+    dg_combined = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                          volume_integral = volume_integral_combined)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        dg=dg_combined, tspan=(0.0, 0.2),
+                        l2=[
+                            0.05570414098799065,
+                            0.0329966067434786,
+                            0.05224813158372537,
+                            0.08011459019518968
+                        ],
+                        linf=[
+                            0.24422317329894527,
+                            0.16677717204094966,
+                            0.12360158779971125,
+                            0.26998677214377187
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    # The final blending factors are stored in the shock capturing indicator
+    @test maximum(indicator_sc.cache.alpha) > 0
+end
+
+@testitem "DGMulti2D: VolumeIntegralAdaptive with IndicatorEntropyCorrection (SBP)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    surface_flux = flux_lax_friedrichs
+    basis = DGMultiBasis(Tri(), 3, approximation_type = SBP())
+
+    # Discontinuous state with jumps in all variables such that the weak form produces
+    # entropy. The velocity must not vanish; otherwise, the entropy residual of the
+    # weak form is identically zero.
+    function initial_condition_discontinuous(x, t,
+                                             equations::CompressibleEulerEquations2D)
+        rho = x[2] > 0 ? 2.0 : 1.0
+        v1 = x[2] > 0 ? 0.5 : -0.5
+        v2 = 0.1 * sin(2 * pi * x[1])
+        p = x[1] > 0 ? 2.5 : 1.0
+        return prim2cons(SVector(rho, v1, v2, p), equations)
+    end
+
+    for scaling in (true, 2)
+        indicator = IndicatorEntropyCorrection(equations, basis; scaling)
+        volume_integral = VolumeIntegralAdaptive(indicator,
+                                                 VolumeIntegralWeakForm(),
+                                                 VolumeIntegralPureLGLFiniteVolume(surface_flux))
+        dg = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                     volume_integral = volume_integral)
+        mesh = DGMultiMesh(dg, (4, 4); coordinates_min = (-2.0, -2.0),
+                           coordinates_max = (2.0, 2.0), periodicity = true)
+
+        # Free-stream preservation: a constant state yields a zero right-hand side
+        # (up to round-off errors from the cancellation of the volume and surface
+        # terms, scaled by the inverse quadrature weights) without any entropy
+        # correction beyond round-off errors
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        du = Trixi.wrap_array(du_ode, semi)
+        @test maximum(maximum(abs, du[i]) for i in eachindex(du)) < 1.0e-10
+        @test maximum(indicator.cache.alpha) < 1.0e-10
+
+        # The blended volume integral does not produce entropy in any element
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuous, dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        (; cache) = semi
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        du_ode = similar(u_ode)
+        du = Trixi.wrap_array(du_ode, semi)
+        fill!(du, zero(eltype(du)))
+        Trixi.calc_volume_integral!(du, u, mesh,
+                                    Trixi.have_nonconservative_terms(equations),
+                                    equations, dg.volume_integral, dg, cache)
+        @test maximum(indicator.cache.alpha) > 0
+        for element in Trixi.eachelement(mesh, dg, cache)
+            dS_volume_integral = -Trixi.entropy_change_reference_element(view(du, :,
+                                                                              element),
+                                                                         view(u, :,
+                                                                              element),
+                                                                         mesh,
+                                                                         equations,
+                                                                         dg, cache)
+            dS_true = Trixi.surface_integral_reference_element(entropy_potential, u,
+                                                               element, mesh, equations,
+                                                               dg, cache)
+            @test dS_volume_integral - dS_true <= 1.0e-12
+        end
+    end
+end
+
 @testitem "DGMulti2D: elixir_euler_rayleigh_taylor_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
