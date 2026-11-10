@@ -717,20 +717,31 @@ LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
 
 Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
 
-# Compute the conservative flux plus 0.5 times the nonconservative flux on both sides of
-# an interface (or for a pair of volume nodes), i.e., the combined form described in
-# `combine_conservative_and_nonconservative_fluxes`. The solvers only implement this
-# combined form for equations with nonconservative terms:
-# - A tuple `(flux_conservative, flux_nonconservative)` is combined here. The element
-#   receiving the flux passes its own state and auxiliary variables first.
-# - A single numerical flux has to return the combined fluxes itself.
+# Compute the numerical fluxes on both sides of an interface (or for a pair of volume
+# nodes) in the combined form described in
+# `combine_conservative_and_nonconservative_fluxes`, i.e., the conservative flux plus
+# 0.5 times the nonconservative flux on each side. This allows the solvers to implement
+# a single kernel for equations with and without nonconservative terms:
+# - Without nonconservative terms, the fluxes on both sides are the same numerical flux,
+#   which is evaluated only once.
+# - With nonconservative terms, a tuple `(flux_conservative, flux_nonconservative)` is
+#   combined here. The element receiving the flux passes its own state and auxiliary
+#   variables first. A single numerical flux has to return the combined fluxes itself.
 # `aux` are the auxiliary variables on both sides, i.e., `(aux_ll, aux_rr)` or an empty
 # tuple for equations without auxiliary variables, see `get_aux_surface_node_vars`.
+@inline function flux_combined(numerical_flux, u_ll, u_rr, aux,
+                               orientation_or_normal_direction,
+                               have_nonconservative_terms::False, equations)
+    flux = numerical_flux(u_ll, u_rr, aux..., orientation_or_normal_direction,
+                          equations)
+    return flux, flux
+end
+
 @inline function flux_combined(numerical_flux::Union{Tuple{Any, Any},
                                                      NamedTuple{<:Any,
                                                                 <:Tuple{Any, Any}}},
                                u_ll, u_rr, aux, orientation_or_normal_direction,
-                               equations)
+                               have_nonconservative_terms::True, equations)
     flux_conservative, flux_nonconservative = numerical_flux
     flux = flux_conservative(u_ll, u_rr, aux..., orientation_or_normal_direction,
                              equations)
@@ -743,17 +754,34 @@ end
 
 # `FluxTurbo` wrapping a tuple of fluxes falls back to the wrapped fluxes
 @inline function flux_combined(numerical_flux::FluxTurbo{<:Tuple{Any, Any}}, u_ll, u_rr,
-                               aux, orientation_or_normal_direction, equations)
+                               aux, orientation_or_normal_direction,
+                               have_nonconservative_terms::True, equations)
     return flux_combined(numerical_flux.numerical_flux, u_ll, u_rr, aux,
-                         orientation_or_normal_direction, equations)
+                         orientation_or_normal_direction, have_nonconservative_terms,
+                         equations)
 end
 
 @inline function flux_combined(numerical_flux, u_ll, u_rr, aux,
-                               orientation_or_normal_direction, equations)
+                               orientation_or_normal_direction,
+                               have_nonconservative_terms::True, equations)
     fluxes = numerical_flux(u_ll, u_rr, aux..., orientation_or_normal_direction,
                             equations)
     check_combined_fluxes(fluxes, numerical_flux)
     return fluxes
+end
+
+# Same as `flux_combined` for `flux_turbo`, which uses the precomputed variables of
+# `cons2turbo` and already returns the combined fluxes for both sides for equations with
+# nonconservative terms.
+@inline function flux_turbo_combined(numerical_flux, have_nonconservative_terms::False,
+                                     turbovars_and_normals_and_equations...)
+    flux = flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
+    return flux, flux
+end
+
+@inline function flux_turbo_combined(numerical_flux, have_nonconservative_terms::True,
+                                     turbovars_and_normals_and_equations...)
+    return flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
 end
 
 # A single numerical flux for equations with nonconservative terms has to return the
@@ -771,7 +799,8 @@ end
 # Same as `flux_combined` for boundary conditions, returning the conservative flux plus
 # 0.5 times the nonconservative flux on the inner side of the boundary. With a tuple of
 # surface fluxes, boundary conditions return the conservative and the nonconservative
-# flux separately. Otherwise, they return the combined flux.
+# flux separately. Otherwise, they return the combined flux, which is just the
+# numerical flux for equations without nonconservative terms.
 @inline function boundary_flux_combined(boundary_condition, u_inner, aux_inner,
                                         normal_direction, x, t,
                                         surface_flux::Union{Tuple{Any, Any},

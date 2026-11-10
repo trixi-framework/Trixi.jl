@@ -2630,19 +2630,40 @@ end
 
     # Tuple of conservative and nonconservative fluxes
     fluxes = (flux_central, flux_nonconservative_powell)
-    @test all(Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction, equations) .≈
-              combined)
+    @test all(Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction,
+                                  Trixi.True(), equations) .≈ combined)
 
     # Single numerical flux returning the combined fluxes for both sides
     function flux_single(u_ll, u_rr, normal_direction, equations)
-        return Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction, equations)
+        return Trixi.flux_combined(fluxes, u_ll, u_rr, (), normal_direction,
+                                   Trixi.True(), equations)
     end
     @test all(Trixi.flux_combined(flux_single, u_ll, u_rr, (), normal_direction,
-                                  equations) .≈ combined)
+                                  Trixi.True(), equations) .≈ combined)
 
     # Single numerical flux returning only one flux vector
     @test_throws ArgumentError Trixi.flux_combined(flux_central, u_ll, u_rr, (),
-                                                   normal_direction, equations)
+                                                   normal_direction, Trixi.True(),
+                                                   equations)
+
+    # Without nonconservative terms, both sides get the same numerical flux
+    equations_euler = CompressibleEulerEquations3D(1.4)
+    u_ll = SVector(1.0, 0.4, -0.5, 0.1, 2.0)
+    u_rr = SVector(1.5, -0.2, 0.1, 0.2, 5.0)
+    normal_direction = SVector(0.3, -1.2, 0.7)
+    flux = flux_ranocha(u_ll, u_rr, normal_direction, equations_euler)
+    @test Trixi.flux_combined(flux_ranocha, u_ll, u_rr, (), normal_direction,
+                              Trixi.False(), equations_euler) === (flux, flux)
+
+    # The same for fluxes using precomputed variables
+    turbo_ll = Trixi.cons2turbo(flux_ranocha, u_ll..., equations_euler)
+    turbo_rr = Trixi.cons2turbo(flux_ranocha, u_rr..., equations_euler)
+    flux_left, flux_right = Trixi.flux_turbo_combined(flux_ranocha, Trixi.False(),
+                                                      turbo_ll..., turbo_rr...,
+                                                      normal_direction...,
+                                                      equations_euler)
+    @test flux_left === flux_right
+    @test flux_left ≈ flux
 end
 
 @testitem "Unit: Consistency check for LMARS flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
