@@ -6924,6 +6924,72 @@ end
     end
 end
 
+@testitem "Unit: check_axes of the storage of indicators" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the solution passed to the indicators and their thread-local storage, whose
+    # size is determined by the basis passed when constructing them
+    function test_check_axes_indicators(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+        u_wrong = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+
+        # `IndicatorLöhner` checks the axes only in 3D, where it assumes inbounds access
+        check_loehner = ndims(mesh) == 3
+
+        indicators = (IndicatorHennemannGassner(semi; variable = density_pressure),
+                      IndicatorLöhner(semi; variable = density),
+                      IndicatorMax(semi; variable = density),
+                      IndicatorNodalFunction((u, x, t) -> u[1], semi))
+        for indicator in indicators
+            alpha = indicator(u, mesh, equations, dg, cache; t = 0.0)
+            @test length(alpha) == nelements(dg, cache)
+            if indicator isa IndicatorLöhner && !check_loehner
+                continue
+            end
+            @test_throws DimensionMismatch indicator(u_wrong, mesh, equations, dg, cache;
+                                                     t = 0.0)
+        end
+
+        # Thread-local storage for a basis different from the one of `dg`
+        for polydeg in (Trixi.polydeg(dg) - 1, Trixi.polydeg(dg) + 1)
+            basis = LobattoLegendreBasis(polydeg)
+            indicators = (IndicatorHennemannGassner(equations, basis;
+                                                    variable = density_pressure),
+                          IndicatorMax(equations, basis; variable = density))
+            if check_loehner
+                indicators = (indicators...,
+                              IndicatorLöhner(equations, basis; variable = density))
+            end
+            for indicator in indicators
+                @test_throws DimensionMismatch indicator(u, mesh, equations, dg, cache;
+                                                         t = 0.0)
+            end
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of the elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_indicators, semi)
+        end
+    end
+end
+
 @testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The fallback `@turbo` used when LoopVectorization.jl is disabled
     # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo

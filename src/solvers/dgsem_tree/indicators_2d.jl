@@ -26,10 +26,30 @@ function create_cache(::Type{IndicatorHennemannGassner},
             alpha_mpi_buffers)
 end
 
+# Check whether the thread-local storage of `indicator_hg` has the axes we assume in
+# `calc_indicator_hennemann_gassner!`. The size of this storage is determined by the
+# basis passed when constructing the indicator, which may differ from the one of `dg`.
+function check_axes_indicator_hennemann_gassner(indicator_hg, mesh::AbstractMesh{2},
+                                                dg)
+    @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
+    expected_axes = (eachnode(dg), eachnode(dg))
+    check_axes_threaded(indicator_threaded, expected_axes)
+    check_axes_threaded(modal_threaded, expected_axes)
+    check_axes_threaded(modal_tmp1_threaded, expected_axes)
+    return nothing
+end
+
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
+#
+# The caller checks the axes of `u` and of the thread-local storage and resizes `alpha`
+# to the number of elements. Thus, this kernel accesses `u` and `alpha` with
+# `@inbounds`. The thread-local storage has a static size, so the compiler proves that
+# the accesses to it are in bounds. Annotating these accesses with `@inbounds` as well,
+# e.g., via `Base.@propagate_inbounds`, can make the threaded loop calling this kernel
+# slower.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
                                                    u, element, mesh::AbstractMesh{2},
                                                    equations, dg, cache)
@@ -43,7 +63,7 @@ end
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for j in eachnode(dg), i in eachnode(dg)
-        u_local = get_node_vars(u, equations, dg, i, j, element)
+        u_local = @inbounds get_node_vars(u, equations, dg, i, j, element)
         indicator[i, j] = indicator_hg.variable(u_local, equations)
     end
 
@@ -99,7 +119,7 @@ end
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
+    @inbounds alpha[element] = min(alpha_max, alpha_element)
     return nothing
 end
 
@@ -173,6 +193,8 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
     @unpack variable = löhner
     resize!(alpha, nelements(dg, cache))
 
+    # No `@inbounds` here: it keeps the compiler from fully unrolling the loops over the
+    # statically sized `indicator` below, which makes this indicator slower.
     @threaded for element in eachelement(dg, cache)
         indicator = indicator_threaded[Threads.threadid()]
 
@@ -214,16 +236,24 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     resize!(alpha, nelements(dg, cache))
     indicator_variable = indicator_max.variable
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_threaded(indicator_threaded, (eachnode(dg), eachnode(dg)))
+    end
+
     @threaded for element in eachelement(dg, cache)
-        indicator = indicator_threaded[Threads.threadid()]
+        @inbounds begin
+            indicator = indicator_threaded[Threads.threadid()]
 
-        # Calculate indicator variables at Gauss-Lobatto nodes
-        for j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, element)
-            indicator[i, j] = indicator_variable(u_local, equations)
+            # Calculate indicator variables at Gauss-Lobatto nodes
+            for j in eachnode(dg), i in eachnode(dg)
+                u_local = get_node_vars(u, equations, dg, i, j, element)
+                indicator[i, j] = indicator_variable(u_local, equations)
+            end
+
+            alpha[element] = maximum(indicator)
         end
-
-        alpha[element] = maximum(indicator)
     end
 
     return alpha
@@ -238,15 +268,23 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
     # Extract function to local variable to avoid capturing `indicator` in the threaded loop
     indicator_function = indicator.indicator_function
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        estimate = typemin(eltype(alpha))
-        for j in eachnode(dg), i in eachnode(dg)
-            u_nodal = get_node_vars(u, equations, dg, i, j, element)
-            x_nodal = get_node_coords(node_coordinates, equations, dg,
-                                      i, j, element)
-            estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
+        @inbounds begin
+            estimate = typemin(eltype(alpha))
+            for j in eachnode(dg), i in eachnode(dg)
+                u_nodal = get_node_vars(u, equations, dg, i, j, element)
+                x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                          i, j, element)
+                estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
+            end
+            alpha[element] = estimate
         end
-        alpha[element] = estimate
     end
 
     return alpha
