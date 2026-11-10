@@ -35,8 +35,10 @@ if mode == "prepare"
     using Pkg
     mkpath(project)
     data = TOML.parsefile(joinpath(root, "test", "Project.toml"))
-    merge!(get!(data, "extras", Dict{String, Any}()),
-           TOML.parsefile(joinpath(root, "hpc", "Project.toml"))["extras"])
+    hpc = TOML.parsefile(joinpath(root, "hpc", "Project.toml"))
+    for section in ("deps", "compat", "extras")
+        merge!(get!(data, section, Dict{String, Any}()), hpc[section])
+    end
     write_toml(joinpath(project, "Project.toml"), data)
     rm(joinpath(project, "Manifest.toml"); force = true)
     write_toml(joinpath(project, "LocalPreferences.toml"),

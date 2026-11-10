@@ -14,6 +14,7 @@
 # multiplied by the number of ranks and threads.
 # It follows the definition of the `AnalysisCallback` and is constant under ideal scaling.
 # The difference to a run with a single step removes the setup time from the measurement.
+# Both runs are repeated, the fastest repetition filters out disturbances of single runs.
 # The overrides must disable the analysis callback, since it resets the call counter.
 
 using Trixi
@@ -36,10 +37,12 @@ function run_elixir(elixir, overrides)
     return seconds, Trixi.ncalls(semi.performance_counter), Trixi.ndofsglobal(semi)
 end
 
+const repetitions = 3
+single_step = (; overrides..., maxiters = 1)
 # The first run compiles the code.
-run_elixir(elixir, (; overrides..., maxiters = 1))
-setup_seconds, setup_calls, _ = run_elixir(elixir, (; overrides..., maxiters = 1))
-seconds, calls, ndofs = run_elixir(elixir, overrides)
+run_elixir(elixir, single_step)
+setup_seconds, setup_calls, _ = minimum(_ -> run_elixir(elixir, single_step), 1:repetitions)
+seconds, calls, ndofs = minimum(_ -> run_elixir(elixir, overrides), 1:repetitions)
 @assert calls > setup_calls
 
 pid = (seconds - setup_seconds) * Trixi.mpi_nranks() * Threads.nthreads() /

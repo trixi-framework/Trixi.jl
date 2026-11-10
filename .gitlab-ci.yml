@@ -119,6 +119,7 @@ default:
       julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl cuda_mpi 2>&1 | tee "$RESULTS/cuda-mpi.log"
 
 # Each scaling point runs as its own matrix job, the job names end with the count of threads, ranks or GPUs.
+# CPU points reserve whole nodes, so no other job shares the memory bandwidth, and fill the cores of the first socket in order.
 .bench:
   extends: .compute
   stage: benchmark
@@ -133,19 +134,20 @@ default:
   extends: .bench
   variables:
     CHECK: bench-threads
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 1 -n 1 -c 96 --sockets-per-node=1 --mem=360G -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 1 -n 1 -c 192 --exclusive --mem=0 -t 00:30:00"
   parallel:
     matrix:
       - COUNT: ["1", "8", "24", "48", "96"]
   script:
     - julia "${julia_args[@]}" hpc/ci/environment.jl verify
-    - julia "${bench_args[@]}" --threads=$COUNT benchmark/run.jl "$CPU_ELIXIR" "$CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+    - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
+    - julia "${bench_args[@]}" --threads=$COUNT benchmark/run.jl "$CPU_ELIXIR" "using ThreadPinning; pinthreads(:cores); threadinfo(); $CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 .bench-mpi:
   extends: .bench
   variables:
     CHECK: bench-mpi
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --sockets-per-node=1 --mem=360G -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --exclusive --mem=0 -t 00:30:00"
   parallel:
     matrix:
       - COUNT: ["1", "24", "96"]
@@ -154,7 +156,8 @@ default:
         NODES: "2"
   script:
     - julia "${julia_args[@]}" hpc/ci/environment.jl verify
-    - mpiexec --map-by core --bind-to core -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$CPU_ELIXIR" "$CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+    - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
+    - mpiexec --map-by core --bind-to core --report-bindings -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$CPU_ELIXIR" "$CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 .bench-gpu:
   extends: .bench

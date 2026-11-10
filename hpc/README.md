@@ -55,6 +55,7 @@ The YAML defines resources and invokes [environment.jl](ci/environment.jl) for p
 | GPU | Run the existing CUDA item, then verify distinct GPUs, device buffer exchange and a distributed p4est solve with Float64 GPU storage. |
 
 Preparation resolves dependencies once per pipeline and Julia version and publishes the project, manifest, threading preference and provenance.
+The test environment gains the dependencies of the [preferences project](Project.toml), currently ThreadPinning.jl for the benchmarks.
 Compute jobs restore the matching artifact and check its pipeline, commit, Julia version, CPU target, native installation marker and file hashes before loading Trixi.
 The persistent depot caches packages and compilation, compute jobs perform no dependency resolution.
 Every selected item must be found, GPU checks require functional CUDA and MPI workers abort collectively on failures.
@@ -81,13 +82,17 @@ Benchmarks run with automatic bounds checking, preparation precompiles that mode
 
 | Series | Points | Allocation |
 |---|---|---|
-| Threads | `p4est_3d_dgsem/elixir_euler_source_terms.jl` with about 2.1 million degrees of freedom on 1, 8, 24, 48 and 96 threads. | One socket of 96 cores. |
-| MPI | The same elixir on 1, 24 and 96 ranks of one node and 192 ranks on two nodes. | One socket of 96 cores per node. |
+| Threads | `p4est_3d_dgsem/elixir_euler_source_terms.jl` with about 2.1 million degrees of freedom on 1, 8, 24, 48 and 96 threads. | A whole node, the threads fill the cores of the first socket in order. |
+| MPI | The same elixir on 1, 24 and 96 ranks of one node and 192 ranks on two nodes. | Whole nodes, the ranks fill the cores of the first socket of each node in order. |
 | GPU | The Taylor-Green vortex of [benchmark/CUDA](../benchmark/CUDA) on one and two H100 GPUs. | Two GPUs with 24 cores each. |
 
-Allocating whole sockets keeps other jobs from sharing memory bandwidth with the measured cores.
-The CPU case is limited by memory bandwidth, its efficiency drops towards a full socket and improves when two nodes share the work.
-The steps grow with the count, so every CPU point measures about ten seconds under ideal scaling and both Julia versions agree within about ten percent.
+The CPU case is limited by memory bandwidth, so the measurements depend on other jobs on the node and on the placement of threads and ranks.
+CPU points therefore reserve whole nodes, [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl) pins the threads and OpenMPI binds the ranks to consecutive cores.
+Compact placement fills one cache domain after the other, so the efficiency shows how the code saturates the memory bandwidth of a socket.
+The thread series stays within one socket, since Trixi.jl initializes its arrays on the main thread and the pages reside in its NUMA domain.
+The jobs log the CPU and NUMA layout, the thread placement and the rank bindings.
+The steps grow with the count, so every CPU point measures about ten seconds under ideal scaling.
+`run.jl` repeats the single step and the measured run three times and keeps the fastest repetition of each.
 `run.jl` fails when the elixir stops before its last step, an aborted solve would report the PID of a wrong solution.
 The distributed GPU solve of the Taylor-Green vortex currently diverges after about fifty steps, so the two GPU point fails and the GPU series records no results until it is fixed.
 The [GitHub caller](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
