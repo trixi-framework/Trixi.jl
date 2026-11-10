@@ -60,53 +60,6 @@ function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
                                                                  equations_hyperbolic)
 end
 
-# Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
-# Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any
-# spatial dimension.
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                  u_inner,
-                                                                  gradients_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return boundary_condition.boundary_value_function(x, t, equations_parabolic)
-end
-
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
-                                                                  u_inner,
-                                                                  gradients_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return flux_inner
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
-                                                                u_inner,
-                                                                gradients_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusionEntropyVariables)
-    # `flux_inner` is the parabolic flux dotted with `normal`, which need not be a
-    # unit vector (it includes the surface scaling on curvilinear meshes). Thus, the
-    # prescribed normal flux must be scaled by `norm(normal)` as well.
-    return (boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic) *
-            norm(normal))
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
-                                                                u_inner,
-                                                                gradients_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return flux_inner
-end
-
 include("laplace_diffusion_entropy_variables_1d.jl")
 include("laplace_diffusion_entropy_variables_2d.jl")
 include("laplace_diffusion_entropy_variables_3d.jl")
