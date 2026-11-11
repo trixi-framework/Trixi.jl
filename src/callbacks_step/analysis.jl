@@ -702,6 +702,15 @@ function zero_return_type(func::Func, argtypes...) where {Func}
     end
     return zero(T)
 end
+
+# Same as `zero_return_type` but return `nothing` instead of throwing an error if the
+# inferred return type is not concrete. This is used to pass an optional initial value
+# `init` to `integrate_via_indices`, which falls back to its default if `init` is
+# `nothing`.
+function zero_return_type_or_nothing(func::Func, argtypes...) where {Func}
+    T = Base.promote_op(func, argtypes...)
+    return isconcretetype(T) ? zero(T) : nothing
+end
 end # @muladd
 
 # specialized implementations specific to some solvers

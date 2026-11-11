@@ -334,13 +334,14 @@ end
 # AnalysisCallback
 function integrate_via_indices(func::Func, u,
                                mesh::UnstructuredMesh2D, equations,
-                               dg::FDSBP, cache, args...; normalize = true) where {Func}
+                               dg::FDSBP, cache, args...; normalize = true,
+                               init = nothing) where {Func}
     # TODO: FD. This is rather inefficient right now and allocates...
     weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
     @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
-    integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+    integral = @something(init, zero(func(u, 1, 1, 1, equations, dg, args...)))
     total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain

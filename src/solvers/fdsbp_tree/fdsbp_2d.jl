@@ -437,7 +437,8 @@ end
 # AnalysisCallback
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations,
-                               dg::FDSBP, cache, args...; normalize = true) where {Func}
+                               dg::FDSBP, cache, args...; normalize = true,
+                               init = nothing) where {Func}
     # TODO: FD. This is rather inefficient right now and allocates...
     M = SummationByPartsOperators.mass_matrix(dg.basis)
     if M isa UniformScaling
@@ -446,7 +447,7 @@ function integrate_via_indices(func::Func, u,
     weights = diag(M)
 
     # Initialize integral with zeros of the right shape
-    integral = zero(func(u, 1, 1, 1, equations, dg, args...))
+    integral = @something(init, zero(func(u, 1, 1, 1, equations, dg, args...)))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=(+, integral) for element in eachelement(dg, cache)

@@ -7033,3 +7033,55 @@ end
     @test length(loopinfos) == 2
     @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
 end
+
+@testitem "Unit: Initial value of integrate_via_indices" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The type of the integral is inferred from pointwise functions without evaluating
+    # them; `nothing` signals a failed inference
+    @test @inferred(Trixi.zero_return_type_or_nothing(cons2prim, SVector{4, Float32},
+                                                      CompressibleEulerEquations2D{Float32})) ===
+          zero(SVector{4, Float32})
+    @test Trixi.zero_return_type_or_nothing(x -> x[1] > 0 ? 1 : 1.0,
+                                            SVector{4, Float64}) === nothing
+
+    function create_semi(mesh, equations)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        return SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_convergence_test, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+    end
+    semis = (create_semi(TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                  initial_refinement_level = 2, periodicity = true),
+                         CompressibleEulerEquations2D(1.4)),
+             create_semi(P4estMesh((2, 2); polydeg = 1, periodicity = true,
+                                   coordinates_min = (-1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0)),
+                         CompressibleEulerEquations2D(1.4)),
+             create_semi(TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                  initial_refinement_level = 2, periodicity = true),
+                         CompressibleEulerEquations3D(1.4)),
+             create_semi(P4estMesh((2, 2, 2); polydeg = 1, periodicity = true,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0)),
+                         CompressibleEulerEquations3D(1.4)))
+    for semi in semis
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+
+        # `integrate` passes the inferred initial value
+        @test @inferred(integrate(cons2prim, u_ode, semi)) isa
+              SVector{nvariables(equations), Float64}
+        # `integrate` falls back to evaluating functions that cannot be inferred
+        @test integrate((u, equations) -> u[1] > 0 ? 1 : 1.0, u_ode, semi) ≈ 1
+
+        # An explicit initial value determines the type of the integral
+        # `func(u, indices..., equations, solver)` returns the density
+        func = (u, args...) -> u[1, Base.front(Base.front(args))...]
+        integral = Trixi.integrate_via_indices(func, u_ode, semi)
+        @test integral ≈ integrate(density, u_ode, semi)
+        integral_big = Trixi.integrate_via_indices(func, u, mesh, equations, solver,
+                                                   cache; init = zero(BigFloat))
+        @test integral_big isa BigFloat
+        @test integral_big ≈ integral
+    end
+end

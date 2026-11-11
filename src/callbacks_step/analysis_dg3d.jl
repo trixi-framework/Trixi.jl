@@ -403,11 +403,11 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
-                               args...; normalize = true) where {Func}
+                               args...; normalize = true, init = nothing) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+    integral = @something(init, zero(func(u, 1, 1, 1, 1, equations, dg, args...)))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=(+, integral) for element in eachelement(dg, cache)
@@ -430,21 +430,21 @@ function integrate_via_indices(func::Func, u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
-                               args...; normalize = true) where {Func}
+                               args...; normalize = true, init = nothing) where {Func}
     return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache,
-                                 args...; normalize = normalize)
+                                 args...; normalize = normalize, init = init)
 end
 
 function integrate_via_indices(func::Func, ::Nothing, u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
-                               args...; normalize = true) where {Func}
+                               args...; normalize = true, init = nothing) where {Func}
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
-    integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+    integral = @something(init, zero(func(u, 1, 1, 1, 1, equations, dg, args...)))
     total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
@@ -470,7 +470,7 @@ function integrate_via_indices(func::Func, backend::Backend, u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
-                               args...; normalize = true) where {Func}
+                               args...; normalize = true, init = nothing) where {Func}
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
@@ -479,17 +479,20 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     end
 
     # `func(u, 1,1,1,1, equations, dg, args...)` might access GPU memory
-    # so we have to rely on the compiler to correctly infer the type of the integral here.
+    # so we cannot evaluate it here. If the caller does not pass `init`, we have to
+    # rely on the compiler to correctly infer the type of the integral on the host.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, Int,
-                                 typeof(equations), typeof(dg), map(typeof, args)...)
+    integral0 = @something(init,
+                           zero_return_type(func, typeof(u), Int, Int, Int, Int,
+                                            typeof(equations), typeof(dg),
+                                            map(typeof, args)...))
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
-    init = neutral = (integral0, volume0)
+    neutral = (integral0, volume0)
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
     integral, total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
-                                                          backend; init,
+                                                          backend; init = neutral,
                                                           neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
@@ -516,8 +519,14 @@ function integrate(func::Func, u,
                                T8codeMesh{3}},
                    equations, dg::Union{DGSEM, FDSBP}, cache;
                    normalize = true) where {Func}
+    # Infer the type of the integral from the pointwise `func`, which is independent
+    # of the array types (and thus of the backend), see `integrate_via_indices`
+    init = zero_return_type_or_nothing(func,
+                                       SVector{nvariables(equations), eltype(u)},
+                                       typeof(equations))
     integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, k, element, equations, dg
+                          normalize = normalize,
+                          init = init) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
         return func(u_local, equations)
     end
@@ -528,8 +537,16 @@ function integrate(func::Func, u,
                    equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
     gradients_x, gradients_y, gradients_z = cache_parabolic.parabolic_container.gradients
+    # Infer the type of the integral from the pointwise `func`, which is independent
+    # of the array types (and thus of the backend), see `integrate_via_indices`
+    u_type = SVector{nvariables(equations), eltype(u)}
+    gradient_type = SVector{nvariables(equations_parabolic), eltype(gradients_x)}
+    init = zero_return_type_or_nothing(func, u_type,
+                                       NTuple{3, gradient_type},
+                                       typeof(equations_parabolic))
     integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, k, element, equations, dg
+                          normalize = normalize,
+                          init = init) do u, i, j, k, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
         gradients_1_local = get_node_vars(gradients_x, equations_parabolic, dg, i, j, k,
                                           element)

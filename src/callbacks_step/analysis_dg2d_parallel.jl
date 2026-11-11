@@ -141,7 +141,7 @@ end
 
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMeshParallel{2}, equations, dg::DGSEM, cache,
-                               args...; normalize = true) where {Func}
+                               args...; normalize = true, init = nothing) where {Func}
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -151,7 +151,7 @@ function integrate_via_indices(func::Func, u,
                                   typeof(equations),
                                   typeof(dg), typeof(cache), map(typeof, args)...},
                             func, u, mesh, equations, dg, cache, args...,
-                            normalize = normalize)
+                            normalize = normalize, init = init)
 
     # Note: Global results are only calculated on MPI root, all other domains receive `nothing`
     global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
@@ -223,13 +223,16 @@ end
 function integrate_via_indices(func::Func, backend::Nothing, u,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+                               dg::DGSEM, cache, args...; normalize = true,
+                               init = nothing) where {Func}
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
-    integral = zero_return_type(func, typeof(u), Int, Int, Int, typeof(equations),
-                                typeof(dg), map(typeof, args)...)
+    integral = @something(init,
+                          zero_return_type(func, typeof(u), Int, Int, Int,
+                                           typeof(equations),
+                                           typeof(dg), map(typeof, args)...))
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
@@ -248,7 +251,8 @@ end
 function integrate_via_indices(func::Func, backend::Backend, u,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
+                               dg::DGSEM, cache, args...; normalize = true,
+                               init = nothing) where {Func}
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
@@ -257,17 +261,20 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     end
 
     # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
-    # so we have to rely on the compiler to correctly infer the type of the integral here.
+    # so we cannot evaluate it here. If the caller does not pass `init`, we have to
+    # rely on the compiler to correctly infer the type of the integral on the host.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, typeof(equations),
-                                 typeof(dg), map(typeof, args)...)
+    integral0 = @something(init,
+                           zero_return_type(func, typeof(u), Int, Int, Int,
+                                            typeof(equations),
+                                            typeof(dg), map(typeof, args)...))
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
-    init = neutral = (integral0, volume0)
+    neutral = (integral0, volume0)
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
     integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
-                                                    backend; init,
+                                                    backend; init = neutral,
                                                     neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
