@@ -37,6 +37,7 @@ default:
       project="$CI_PROJECT_DIR/run_hpc/$JULIA_VERSION/test"
       julia_args=(--startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes "--project=$project")
       bench_args=("${julia_args[@]/--check-bounds=yes/--check-bounds=auto}")
+      set_backend() { julia "${julia_args[@]}" --threads=1 -e 'using Trixi; Trixi.set_threading_backend!(Symbol(ARGS[1]))' "$1"; }
 
 .prepare:
   stage: prepare
@@ -56,23 +57,21 @@ default:
       exec 8>"$CI_DEPOT_ROOT/$JULIA_VERSION/prepare.lock"
       flock 8
       bash hpc/install_libraries.sh 2>&1 | tee "$RESULTS/native.log"
-      julia --startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes --project=hpc hpc/ci/environment.jl prepare 2>&1 | tee "$RESULTS/resolve.log"
+      julia --startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes --project=hpc hpc/ci/prepare.jl 2>&1 | tee "$RESULTS/resolve.log"
       for backend in polyester kernelabstractions; do
-        julia "${julia_args[@]}" hpc/ci/environment.jl backend "$backend"
-        julia "${julia_args[@]}" hpc/ci/environment.jl precompile 2>&1 | tee "$RESULTS/precompile-$backend.log"
+        set_backend "$backend"
+        julia "${julia_args[@]}" -e 'using Pkg; Pkg.precompile()' 2>&1 | tee "$RESULTS/precompile-$backend.log"
       done
-      julia "${julia_args[@]}" hpc/ci/environment.jl backend polyester
+      set_backend polyester
       if [[ $HPC_BENCHMARKS != none ]]; then
-        julia "${bench_args[@]}" hpc/ci/environment.jl precompile 2>&1 | tee "$RESULTS/precompile-benchmark.log"
+        julia "${bench_args[@]}" -e 'using Pkg; Pkg.precompile()' 2>&1 | tee "$RESULTS/precompile-benchmark.log"
       fi
       julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/check.log"
-      julia "${julia_args[@]}" hpc/ci/environment.jl freeze
   artifacts:
     when: always
     paths:
       - results/$CHECK/$JULIA_VERSION/
       - run_hpc/$JULIA_VERSION/test/
-      - run_hpc/$JULIA_VERSION/provenance.toml
     expire_in: 4 weeks
 
 .compute:
@@ -88,12 +87,11 @@ default:
     SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 1 -n 1 -c 4 --mem=32G -t 00:30:00"
   script:
     - |
-      julia "${julia_args[@]}" hpc/ci/environment.jl verify
       julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/serial.log"
       julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl polyester 2>&1 | tee "$RESULTS/threaded.log"
-      julia "${julia_args[@]}" --threads=1 hpc/ci/environment.jl backend kernelabstractions
+      set_backend kernelabstractions
       julia "${julia_args[@]}" --threads=3 hpc/ci/validate.jl kernelabstractions 2>&1 | tee "$RESULTS/kernelabstractions.log"
-      julia "${julia_args[@]}" --threads=1 hpc/ci/environment.jl backend polyester
+      set_backend polyester
 
 .mpi:
   extends: .compute
@@ -103,7 +101,6 @@ default:
     SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 2 -n 2 --ntasks-per-node=1 -c 1 --mem=32G -t 00:30:00"
   script:
     - |
-      julia "${julia_args[@]}" hpc/ci/environment.jl verify
       julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl mpi 2>&1 | tee "$RESULTS/mpi.log"
 
 .gpu:
@@ -114,7 +111,6 @@ default:
     SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 00:20:00"
   script:
     - |
-      julia "${julia_args[@]}" hpc/ci/environment.jl verify
       julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl cuda 2>&1 | tee "$RESULTS/cuda.log"
       julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl cuda_mpi 2>&1 | tee "$RESULTS/cuda-mpi.log"
 
@@ -139,7 +135,6 @@ default:
     matrix:
       - COUNT: ["1", "8", "24", "48", "96"]
   script:
-    - julia "${julia_args[@]}" hpc/ci/environment.jl verify
     - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
     - julia "${bench_args[@]}" --threads=$COUNT benchmark/run.jl "$CPU_ELIXIR" "using ThreadPinning; pinthreads(:cores); threadinfo(); $CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
@@ -155,7 +150,6 @@ default:
       - COUNT: "192"
         NODES: "2"
   script:
-    - julia "${julia_args[@]}" hpc/ci/environment.jl verify
     - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
     - mpiexec --map-by core --bind-to core --report-bindings -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$CPU_ELIXIR" "$CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
@@ -169,7 +163,6 @@ default:
     matrix:
       - COUNT: ["1", "2"]
   script:
-    - julia "${julia_args[@]}" hpc/ci/environment.jl verify
     - mpiexec --map-by slot:PE=24 --bind-to core -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$GPU_ELIXIR" "$GPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 # Combines the points of one series into the benchmark files read by the GitHub benchmark suites.
