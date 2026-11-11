@@ -111,8 +111,9 @@ end
 # The calculation of the non-conservative staggered "fluxes" requires non-conservative
 # terms that can be written as a product of local and a symmetric contributions. See, e.g.,
 #
-# - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-#   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+# - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+#   Discretizations of Non-Conservative Systems. https://arxiv.org/abs/2211.14009
+#   (DOI: https://doi.org/10.1016/j.jcp.2023.112607).
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 ::Type{<:Union{StructuredMesh{2}, P4estMesh{2}}},

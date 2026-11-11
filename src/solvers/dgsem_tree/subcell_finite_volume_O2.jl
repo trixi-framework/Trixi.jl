@@ -79,6 +79,7 @@ This approach corresponds to equation (79) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
@@ -143,6 +144,7 @@ This approach corresponds to equation (78) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
@@ -270,7 +272,7 @@ end
 A version in left/right slopes `sl, sr` is given by equations (14) and (15) in
 - P. Jenny (2020)
   Time adaptive conservative finite volume method.
-  [DOI:10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
+  [DOI: 10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
 
 This limiter is biased for positive (right-going) velocities.
 For the flipped version, which is biased for negative (left-going) velocities,

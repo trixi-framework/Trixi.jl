@@ -1096,6 +1096,22 @@ end
     end
 end
 
+@testitem "Unit: Linear scalar advection conversion between conservative/entropy variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    for (equations, cons_vars) in ((LinearScalarAdvectionEquation1D(0.5),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation2D(0.5, -0.3),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation3D(0.5, -0.3, 0.7),
+                                    SVector(1.2)))
+        entropy_vars = cons2entropy(cons_vars, equations)
+        @test entropy_vars == cons_vars
+        @test entropy2cons(entropy_vars, equations) == cons_vars
+    end
+end
+
 @testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
     Setup,
     UnitTests
@@ -4589,7 +4605,7 @@ end
     ### Compute the Jacobian sparsity pattern ###
 
     # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_jac_type! = function (du_ode, u0_ode)
         Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
     end
@@ -4706,7 +4722,7 @@ end
     # This test validates this.
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
                                                                       u0_ode,
                                                                       semi_jac_type,
@@ -6436,6 +6452,69 @@ end
     end
 end
 
+@testitem "Unit: FluxTurbo with auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The default precomputed variables of `FluxTurbo` are the conserved variables followed
+    # by the auxiliary variables, and the default `flux_turbo` calls the fluxes with the
+    # auxiliary variables of both nodes
+    normal_direction = SVector(0.2, -0.3, 0.9)
+    u_ll = SVector(1.2)
+    u_rr = SVector(0.7)
+    aux_ll = SVector(0.3, -0.5, 1.1)
+    aux_rr = SVector(0.4, 0.2, -0.6)
+
+    # Conservative equation
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    @test Trixi.nturbovars(flux_central, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(flux_central, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_central, u_rr..., aux_rr..., equations)
+    @test turbo_ll == (u_ll..., aux_ll...)
+    @test Trixi.flux_turbo(flux_central, turbo_ll..., turbo_rr..., normal_direction...,
+                           equations) ≈
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The fallback used outside of the turbo kernels forwards the auxiliary variables to
+    # the wrapped flux
+    @test FluxTurbo(flux_central)(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                  equations) ==
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The default `flux_turbo` detects precomputed variables without the auxiliary
+    # variables
+    @test_throws "requires the default layout of `cons2turbo`" Trixi.flux_turbo(flux_central,
+                                                                                u_ll...,
+                                                                                u_rr...,
+                                                                                normal_direction...,
+                                                                                equations)
+
+    # Nonconservative equation: the node receiving the nonconservative flux passes its
+    # own state and auxiliary variables first
+    equations = NonconservativeLinearScalarAdvectionEquation3D()
+    numerical_flux = (flux_central, flux_nonconservative_central)
+    @test Trixi.nturbovars(numerical_flux, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(numerical_flux, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(numerical_flux, u_rr..., aux_rr..., equations)
+    flux_left, flux_right = Trixi.flux_turbo(numerical_flux, turbo_ll..., turbo_rr...,
+                                             normal_direction..., equations)
+    flux = flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    @test flux_left ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                       normal_direction, equations)
+    @test flux_right ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_rr, u_ll, aux_rr, aux_ll,
+                                       normal_direction, equations)
+
+    # Equations without auxiliary variables are not affected
+    equations = CompressibleEulerEquations3D(1.4)
+    @test Trixi.nturbovars(flux_shima_etal, equations) == Val(5)
+    u_ll = prim2cons(SVector(1.0, 0.1, -0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.1, 0.2, 0.1, 0.9), equations)
+    turbo_ll = Trixi.cons2turbo(flux_shima_etal, u_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_shima_etal, u_rr..., equations)
+    @test Trixi.flux_turbo(flux_shima_etal, turbo_ll..., turbo_rr...,
+                           normal_direction..., equations) ≈
+          flux_shima_etal(u_ll, u_rr, normal_direction, equations)
+end
+
 @testitem "Unit: Auxiliary variables at mortars" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # We only need the statically refined mesh of the elixir. Thus, we do not run the
     # simulation by replacing `sol = solve(...)` with `sol = nothing`.
@@ -7103,6 +7182,127 @@ end
         @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
                                           equations, volume_integral_rrg,
                                           dg, cache) === nothing
+    end
+
+    # The entropy correction volume integrals store the result of their default volume
+    # integral in thread-local buffers of their indicator, which are shaped like `du` of
+    # a single element, and check them together with their blending factors
+    @testset "Entropy correction composites" begin
+        (; volume_integral) = solver
+        (; indicator, volume_integral_blend_low_order) = volume_integral
+        volume_integral_wf = VolumeIntegralWeakForm()
+        function create_semi(volume_integral_)
+            return SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                DGSEM(basis, surface_flux,
+                                                      volume_integral_);
+                                                boundary_conditions = boundary_condition_periodic)
+        end
+        function allocated_check_axes(mesh, equations, volume_integral, dg, cache)
+            return @allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                volume_integral,
+                                                                dg, cache)
+        end
+
+        indicator_ec = IndicatorEntropyCorrection(equations, basis)
+        volume_integral_ec = VolumeIntegralAdaptive(indicator = indicator_ec,
+                                                    volume_integral_default = volume_integral_wf,
+                                                    volume_integral_stabilized = volume_integral_blend_low_order)
+        indicator_combined = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = indicator,
+                                                                              indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                        basis))
+        volume_integral_combined = VolumeIntegralAdaptive(indicator = indicator_combined,
+                                                          volume_integral_default = volume_integral_wf,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+        # Each indicator has its own buffers, so entropy correction volume integrals
+        # can be nested in each other
+        volume_integral_nested_default = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                                       basis),
+                                                                volume_integral_default = volume_integral_ec,
+                                                                volume_integral_stabilized = volume_integral_blend_low_order)
+        volume_integral_nested_stabilized = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                                          basis),
+                                                                   volume_integral_default = volume_integral_wf,
+                                                                   volume_integral_stabilized = volume_integral_ec)
+
+        for (volume_integral_, indicator_ec_) in ((volume_integral_ec, indicator_ec),
+                                                  (volume_integral_combined,
+                                                   indicator_combined.indicator_entropy_correction),
+                                                  (volume_integral_nested_default,
+                                                   volume_integral_nested_default.indicator),
+                                                  (volume_integral_nested_stabilized,
+                                                   volume_integral_nested_stabilized.indicator))
+            semi_ = create_semi(volume_integral_)
+            mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+            nonconservative_terms = Trixi.have_nonconservative_terms(equations_)
+            u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi_), semi_)
+            du = zero(u)
+
+            (; volume_integral_values_threaded) = indicator_ec_.cache
+            @test length(volume_integral_values_threaded) == Threads.maxthreadid()
+            @test all(==(size(du)[1:(end - 1)]), size.(volume_integral_values_threaded))
+            @test Trixi.check_axes_volume_integrals(mesh_, equations_, volume_integral_,
+                                                    dg_, cache_) === nothing
+            # Measure inside a function since accessing global variables allocates
+            @test allocated_check_axes(mesh_, equations_, volume_integral_,
+                                       dg_, cache_) == 0
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh_,
+                                              nonconservative_terms, equations_,
+                                              volume_integral_, dg_, cache_) === nothing
+
+            # Too few thread-local buffers
+            values_last = pop!(volume_integral_values_threaded)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_,
+                                                                             equations_,
+                                                                             volume_integral_,
+                                                                             dg_, cache_)
+            push!(volume_integral_values_threaded, values_last)
+        end
+
+        semi_ = create_semi(volume_integral_ec)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+
+        # The buffers of an indicator created for equations with another number of
+        # spatial dimensions than the mesh are rejected
+        equations_3d = CompressibleEulerEquations3D(1.4)
+        volume_integral_3d = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations_3d,
+                                                                                           basis),
+                                                    volume_integral_default = volume_integral_wf,
+                                                    volume_integral_stabilized = volume_integral_blend_low_order)
+        @test_throws "same number of spatial dimensions" Trixi.create_cache(mesh_,
+                                                                            equations_3d,
+                                                                            volume_integral_3d,
+                                                                            dg_,
+                                                                            nothing,
+                                                                            Float64)
+        Trixi.resize_volume_integral_caches!(cache_, mesh_, volume_integral_3d, dg_,
+                                             nelements(dg_, cache_))
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
+                                                                         volume_integral_3d,
+                                                                         dg_, cache_)
+
+        # The blending factors are sized for the elements of the mesh
+        @test length(indicator_ec.cache.alpha) == nelements(dg_, cache_)
+        resize!(indicator_ec.cache.alpha, nelements(dg_, cache_) - 1)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
+                                                                         volume_integral_ec,
+                                                                         dg_, cache_)
+
+        # The blending factors returned by the shock capturing indicator are checked
+        indicator_combined_wrong = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = IndicatorWrongSize(),
+                                                                                    indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                              basis))
+        volume_integral_combined_wrong = VolumeIntegralAdaptive(indicator = indicator_combined_wrong,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_blend_low_order)
+        semi_ = create_semi(volume_integral_combined_wrong)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi_), semi_)
+        @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, zero(u), u,
+                                                                   mesh_,
+                                                                   Trixi.have_nonconservative_terms(equations_),
+                                                                   equations_,
+                                                                   volume_integral_combined_wrong,
+                                                                   dg_, cache_)
     end
 end
 

@@ -20,7 +20,7 @@ for human readability.
   `ConservativeLinearScalarAdvectionEquation3D`,
   `NonconservativeLinearScalarAdvectionEquation2D`, and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239]).
+  advection velocity ([#3239], [#3436]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -113,6 +113,9 @@ for human readability.
     `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
     `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
     supporting them ([#3428])
+  - the volume integrals `VolumeIntegralAdaptive` with `IndicatorEntropyChange`,
+    `IndicatorEntropyCorrection`, and `IndicatorEntropyCorrectionShockCapturingCombined`
+    on all mesh types supporting them ([#3432])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
