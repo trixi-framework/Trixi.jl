@@ -45,7 +45,7 @@ Compute jobs then restore the artifacts and are working with an offline depot.
 
 ## Validation
 
-The setup provides three small validation jobs for each Julia version.
+The setup provides three short validation jobs.
 
 | Check | Coverage |
 |---|---|
@@ -53,39 +53,32 @@ The setup provides three small validation jobs for each Julia version.
 | MPI | Run one rank per node on two nodes, collective HDF5 I/O and the existing p4est and t8code MPI advection items. |
 | GPU | Run the existing CUDA item, then verify distinct GPUs, device buffer exchange and a distributed p4est solve with Float64 GPU storage. |
 
-Every selected item must be found, GPU checks require functional CUDA and MPI workers abort collectively on failures.
-
 ## Benchmarks
 
-[run.jl](../benchmark/run.jl) measures the performance index (PID) of an existing elixir, the pipeline variables define the elixir and its `trixi_include` overrides.
-The PID is the wall time per right-hand side evaluation and global degree of freedom, multiplied by the number of ranks and threads, and stays constant under ideal scaling.
-Each scaling point runs as its own job, [scaling.jl](ci/scaling.jl) then writes `benchmark.json` with the PIDs and `efficiency.json` with the parallel efficiency relative to the smallest count.
+[benchmark/scaling](../benchmark/scaling) holds the scaling benchmarks.
+Its `run.jl` measures the [performance index (PID)](../docs/src/performance.md) of a case, a file that names an existing elixir and its `trixi_include` overrides.
+Each scaling point runs as its own job, `combine.jl` then writes `benchmark.json` with the PIDs and `efficiency.json` with the parallel efficiency relative to the baseline.
 Benchmarks run with `--check-bounds=auto` instead of the `yes` of the checks.
 
-| Series | Points | Allocation |
-|---|---|---|
-| Threads | `p4est_3d_dgsem/elixir_euler_source_terms.jl` with about 2.1 million degrees of freedom on 1, 8, 24, 48 and 96 threads. | A whole node, the threads fill the cores of the first socket in order. |
-| MPI | The same elixir on 1, 24 and 96 ranks of one node and 192 ranks on two nodes. | Whole nodes, the ranks fill the cores of the first socket of each node in order. |
-| GPU | The Taylor-Green vortex of [benchmark/CUDA](../benchmark/CUDA) on one and two H100 GPUs. | Two GPUs with 24 cores each. |
+| Series | Points | Baseline | Allocation |
+|---|---|---|---|
+| Threads | [euler_source_terms.jl](../benchmark/scaling/euler_source_terms.jl) with about 2.1 million degrees of freedom on 1, 8, 24, 48 and 96 threads. | 8 threads | A whole node, the threads fill the cores of the first socket in order. |
+| MPI | The same case on 1, 8, 24 and 96 ranks of one node and 192 ranks on two nodes. | 8 ranks | Whole nodes, the ranks fill the cores of the first socket of each node in order. |
+| GPU | [taylor_green_vortex_cuda.jl](../benchmark/scaling/taylor_green_vortex_cuda.jl) on one and two H100 GPUs. | 1 GPU | Two GPUs with 24 cores each. |
 
-The CPU case is limited by memory bandwidth, so CPU points reserve whole nodes and pin threads and ranks to cores with [ThreadPinning.jl](https://github.com/carstenbauer/ThreadPinning.jl) and OpenMPI.
-The thread series stays within one socket, since Trixi.jl initializes its arrays on the main thread and the pages reside in its NUMA domain.
+Because the benchmarks are memory bound, the baseline is one CCD of eight cores with one L3 cache domain.
 
-The number of time steps is proportional to the count, so every CPU point measures about ten seconds under ideal scaling.
-`run.jl` keeps the fastest of three repetitions and fails when the elixir stops before its last step.
+The runs are done on exclusive nodes and the threads/ranks are pinned densely into the CCDs and onto the firstsocket.
 
-The [GitHub workflow](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
-Runs record the history on the `hpc-results` branch and deploy its dashboard with GitHub Pages under `/bench/`.
+The number of time steps is proportional to the count, to get a similar runtime for every core count.
+
+The fastest of three iterations is the measured result.
+
+The published metrics are the PID for every core count and an efficiency based on the 8-core run.
+
+The history of the default branch is recorded on the `hpc-results` branch and the dashboard is deployed to GitHub Pages under `/bench/`.
+
 The workflow defines alert and failure thresholds per suite, PR runs compare with the history without recording.
-
-## Slurm resources and logs
-
-Slurm jobs use the [express QoS](https://upb-pc2.atlassian.net/wiki/spaces/PC2DOK/pages/1902070) with limits of thirty minutes for CPU, MPI and benchmark jobs and twenty minutes for GPU checks.
-The GitLab timeout is seven days to accommodate queue wait.
-Logs and prepared environments are retained for four weeks, including artifacts from failed jobs.
-
-Job logs report Slurm submit and start times, MPI bindings and the node, CPUs and threads visible to each worker, benchmark jobs add the NUMA layout and thread placement.
-`JACAMAR_SCHEDULER_JOB_PREFIX` identifies Trixi, the check and Julia version in Slurm job names.
 
 ## Pipeline setup
 

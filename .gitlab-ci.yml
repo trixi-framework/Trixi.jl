@@ -120,11 +120,8 @@ default:
   extends: .compute
   stage: benchmark
   variables:
-    CPU_ELIXIR: examples/p4est_3d_dgsem/elixir_euler_source_terms.jl
-    # The steps grow with the count, so every point measures about ten seconds under ideal scaling.
-    CPU_OPTIONS: '(; initial_refinement_level = 3, maxiters = 16 * parse(Int, ENV["COUNT"]), analysis_callback = TrivialCallback(), save_solution = TrivialCallback())'
-    GPU_ELIXIR: benchmark/CUDA/elixir_euler_taylor_green_vortex.jl
-    GPU_OPTIONS: "using CUDA; CUDA.device!(Trixi.mpi_rank()); (; initial_refinement_level = 3, maxiters = 500, storage_type = CuArray, real_type = Float64, analysis_callback = TrivialCallback())"
+    CPU_CASE: benchmark/scaling/euler_source_terms.jl
+    GPU_CASE: benchmark/scaling/taylor_green_vortex_cuda.jl
 
 .bench-threads:
   extends: .bench
@@ -136,7 +133,7 @@ default:
       - COUNT: ["1", "8", "24", "48", "96"]
   script:
     - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
-    - julia "${bench_args[@]}" --threads=$COUNT benchmark/run.jl "$CPU_ELIXIR" "using ThreadPinning; pinthreads(:cores); threadinfo(); $CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+    - julia "${bench_args[@]}" --threads=$COUNT -e 'using ThreadPinning; pinthreads(:cores); threadinfo(); include("benchmark/scaling/run.jl")' "$CPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 .bench-mpi:
   extends: .bench
@@ -145,13 +142,13 @@ default:
     SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --exclusive --mem=0 -t 00:30:00"
   parallel:
     matrix:
-      - COUNT: ["1", "24", "96"]
+      - COUNT: ["1", "8", "24", "96"]
         NODES: "1"
       - COUNT: "192"
         NODES: "2"
   script:
     - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
-    - mpiexec --map-by core --bind-to core --report-bindings -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$CPU_ELIXIR" "$CPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+    - mpiexec --map-by core --bind-to core --report-bindings -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/scaling/run.jl "$CPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 .bench-gpu:
   extends: .bench
@@ -163,7 +160,7 @@ default:
     matrix:
       - COUNT: ["1", "2"]
   script:
-    - mpiexec --map-by slot:PE=24 --bind-to core -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/run.jl "$GPU_ELIXIR" "$GPU_OPTIONS" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+    - mpiexec --map-by slot:PE=24 --bind-to core -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/scaling/run.jl "$GPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
 
 # Combines the points of one series into the benchmark files read by the GitHub benchmark suites.
 .scaling:
@@ -174,7 +171,7 @@ default:
     - source hpc/env.sh "$JULIA_VERSION"
     - export RESULTS="$CI_PROJECT_DIR/results/$CHECK/$JULIA_VERSION"
   script:
-    - julia --startup-file=no hpc/ci/scaling.jl "$SERIES"
+    - julia --startup-file=no benchmark/scaling/combine.jl "$SERIES" "$RESULTS" "$BASELINE"
 
 prepare:1.10:
   extends: .prepare
@@ -254,6 +251,7 @@ scaling-threads:1.10:
   variables:
     CHECK: bench-threads
     SERIES: euler_source_terms/threads
+    BASELINE: "8"
     JULIA_VERSION: "1.10"
 
 bench-threads:1.13:
@@ -272,6 +270,7 @@ scaling-threads:1.13:
   variables:
     CHECK: bench-threads
     SERIES: euler_source_terms/threads
+    BASELINE: "8"
     JULIA_VERSION: "1.13"
 
 bench-mpi:1.10:
@@ -290,6 +289,7 @@ scaling-mpi:1.10:
   variables:
     CHECK: bench-mpi
     SERIES: euler_source_terms/ranks
+    BASELINE: "8"
     JULIA_VERSION: "1.10"
 
 bench-mpi:1.13:
@@ -308,6 +308,7 @@ scaling-mpi:1.13:
   variables:
     CHECK: bench-mpi
     SERIES: euler_source_terms/ranks
+    BASELINE: "8"
     JULIA_VERSION: "1.13"
 
 bench-gpu:1.10:
@@ -326,6 +327,7 @@ scaling-gpu:1.10:
   variables:
     CHECK: bench-gpu
     SERIES: taylor_green_vortex/gpus
+    BASELINE: "1"
     JULIA_VERSION: "1.10"
 
 bench-gpu:1.13:
@@ -344,4 +346,5 @@ scaling-gpu:1.13:
   variables:
     CHECK: bench-gpu
     SERIES: taylor_green_vortex/gpus
+    BASELINE: "1"
     JULIA_VERSION: "1.13"

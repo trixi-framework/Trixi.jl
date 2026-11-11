@@ -1,28 +1,23 @@
-# Measures the performance index (PID) of an elixir and writes it in seconds to a file.
+# Measures the performance index (PID) of a scaling case and writes it in seconds to a file.
 #
-#   julia benchmark/run.jl <elixir> <options> <output>
+#   julia --threads=4 benchmark/scaling/run.jl <case> <output>
+#   mpiexec -n 4 julia benchmark/scaling/run.jl <case> <output>
 #
-# The options are Julia code evaluated in `Main`.
-# Their last value is a named tuple of `trixi_include` overrides, for example
-#
-#   julia benchmark/run.jl examples/p4est_3d_dgsem/elixir_euler_source_terms.jl \
-#       "(; initial_refinement_level = 2, maxiters = 20,
-#           analysis_callback = TrivialCallback(), save_solution = TrivialCallback())" \
-#       pid.txt
+# A case is a Julia file that defines the `elixir` and its `trixi_include` `overrides`,
+# for example `euler_source_terms.jl`.
+# The overrides must disable the analysis callback, since it resets the call counter.
 #
 # The PID is the wall time per right-hand side evaluation and global degree of freedom,
 # multiplied by the number of ranks and threads.
 # It follows the definition of the `AnalysisCallback` and is constant under ideal scaling.
 # The difference to a run with a single step removes the setup time from the measurement.
 # Both runs are repeated, the fastest repetition filters out disturbances of single runs.
-# The overrides must disable the analysis callback, since it resets the call counter.
+# Thread and rank placement is left to the caller.
 
 using Trixi
 
-elixir, options, output = ARGS
-# `trixi_include` resolves relative paths against this file, not the working directory.
-elixir = abspath(elixir)
-overrides = Core.eval(Main, Meta.parseall(options))
+case, output = ARGS
+include(abspath(case))
 
 function run_elixir(elixir, overrides)
     Trixi.MPI.Barrier(Trixi.mpi_comm())
