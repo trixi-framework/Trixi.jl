@@ -32,11 +32,18 @@ end
 # of them. When `fill!` of views is called in a loop over the elements as above, the bounds
 # checks are not elided and the loop does not vectorize on Julia v1.10 and v1.13 (the
 # latter is fixed in Julia v1.14 by JuliaLang/julia#63626). Thus, we set the contiguous
-# memory of the `element` in the parent `Vector` directly. This method is not used for the
-# views with static sizes returned by `wrap_array` for `DGSEM` (see `static_view`), for
-# which the broadcast above is faster (the loop below compiles to a `memset` call per
-# element).
-@inline function set_zero_element!(du::VectorBackedArray, element)
+# memory of the `element` in the parent `Vector` directly. This method is used for arrays
+# whose number of nodes is not known at compile time, i.e., `VectorBackedArray`s and the
+# arrays returned by `wrap_array` for `FDSBP`, where only the number of variables is
+# static. It is not used for the views with static sizes returned by `wrap_array` for
+# `DGSEM` (see `static_view`), for which the broadcast above is faster (the loop below
+# compiles to a `memset` call per element).
+@inline function set_zero_element!(du::Union{VectorBackedArray,
+                                             FixedSizeArrayDims{<:Any, <:Any,
+                                                                <:Tuple{Val,
+                                                                        Vararg{Int}},
+                                                                <:Vector}},
+                                   element)
     n = length(du) ÷ size(du, ndims(du))
     data = parent(du)
     @boundscheck checkbounds(data, (element - 1) * n + 1)
