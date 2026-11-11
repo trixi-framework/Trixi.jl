@@ -10,7 +10,7 @@
 # (`rd.Fmask`). Thus, the cell average is a convex combination of the nodal values, and
 # the fluxes are evaluated only at solution nodes, so limiting the nodal values enforces
 # the bounds at all points relevant for the scheme. This does not hold for `Polynomial`
-# approximation types, for which the limiter is not available.
+# approximation types, for which the limiter is not yet available.
 # Since the nodes of `DGMulti` solvers are indexed linearly, one method covers all
 # spatial dimensions.
 function limiter_zhang_shu!(u, threshold::Real, variable,
