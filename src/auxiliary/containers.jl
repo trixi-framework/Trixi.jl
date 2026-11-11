@@ -289,7 +289,16 @@ end
 # (at creation, after every `resize!`, and in `Adapt.adapt_structure`). `wrap_array`
 # wraps the solution vector `u_ode` in the same way. All callers adapt or resize `vector`
 # to the target storage type before wrapping it, so we can dispatch on its type.
-# The wrapped array must be re-created after every `resize!` of `vector`.
+#
+# !!! danger "Stale wrapped arrays"
+#     The wrapped array must be re-created after every `resize!` of `vector`. A wrapped
+#     array created before the `resize!` keeps its old dimensions, but accesses the
+#     current memory of `vector`. It never refers to freed memory (in contrast to the
+#     `unsafe_wrap`ped arrays used previously). However, if `vector` has been shrunk,
+#     indexing the stale wrapped array can read and write memory out of bounds (also
+#     without `@inbounds`), since its bounds checks use the old dimensions and the
+#     access to `vector` itself is not checked again. Thus, do not keep wrapped arrays
+#     across a `resize!`, e.g., in a `cache` or in local variables during AMR.
 #
 # For CPU `Vector`s, this returns a `VectorBackedArray`, an immutable `FixedSizeArray`
 # backed by `vector`. Previously, we used `unsafe_wrap(Array, pointer(vector), dims)`
