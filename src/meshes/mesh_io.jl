@@ -407,6 +407,51 @@ function load_mesh(restart_file::AbstractString; RealT = Float64)
     end
 end
 
+# Extract the name of the mapping defined by the last expression in the
+# `mapping_as_string` code representation of a `StructuredMesh` mapping.
+# Supported are function definitions with arbitrary names (both long and
+# short form) as well as assignments to variables (used for
+# `transfinite_mapping` and `coordinates2mapping`).
+function mapping_name_from_code(mapping_as_string::AbstractString)
+    exprs = flatten_code_expressions(Meta.parseall(mapping_as_string).args)
+    if isempty(exprs)
+        error("could not reconstruct mesh mapping from empty `mapping_as_string`")
+    end
+
+    last_expr = exprs[end]
+    if last_expr isa Expr && last_expr.head === :function
+        # Long-form function definition: `function name(args...); body; end`
+        return last_expr.args[1].args[1]
+    elseif last_expr isa Expr && last_expr.head === :(=) &&
+           last_expr.args[1] isa Expr && last_expr.args[1].head === :call
+        # Short-form function definition: `name(args...) = expr`
+        return last_expr.args[1].args[1]
+    elseif last_expr isa Expr && last_expr.head === :(=) && last_expr.args[1] isa Symbol
+        # Assignment to a variable, e.g. `mapping = transfinite_mapping(faces)`
+        return last_expr.args[1]
+    else
+        error("could not reconstruct mesh mapping from `$mapping_as_string`: the last " *
+              "expression must be a function definition or an assignment")
+    end
+end
+
+# Flatten all expressions in `exprs` into a single vector of individual
+# statements, recursively removing line number nodes as well as `:block` and
+# `:toplevel` container expressions (e.g. from semicolon-separated statements).
+function flatten_code_expressions(exprs)
+    flattened = []
+    for expr in exprs
+        if expr isa LineNumberNode
+            continue
+        elseif expr isa Expr && expr.head in (:block, :toplevel)
+            append!(flattened, flatten_code_expressions(expr.args))
+        else
+            push!(flattened, expr)
+        end
+    end
+    return flattened
+end
+
 function load_mesh_serial(mesh_file::AbstractString; RealT)
     ndims, mesh_type = h5open(mesh_file, "r") do file
         return read(attributes(file)["ndims"]),
@@ -432,22 +477,29 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         #
         # This should be replaced with something more robust and secure,
         # see https://github.com/trixi-framework/Trixi.jl/issues/541).
+        # The code in `mapping_as_string` defines the mapping in its last
+        # expression, either as a function with an arbitrary name (as
+        # obtained from `mapping2string`) or as an assignment to a variable
+        # (as used for `transfinite_mapping` or `coordinates2mapping`).
+        # Thus, the name of the mapping is obtained from the last expression
+        # instead of being hardcoded as `mapping`.
+        mapping_name = mapping_name_from_code(mapping_as_string)
         if ndims == 1
             mapping = eval(Meta.parse("""function (xi)
                 $mapping_as_string
-                mapping(xi)
+                $mapping_name(xi)
             end
             """))
         elseif ndims == 2
             mapping = eval(Meta.parse("""function (xi, eta)
                 $mapping_as_string
-                mapping(xi, eta)
+                $mapping_name(xi, eta)
             end
             """))
         else # ndims == 3
             mapping = eval(Meta.parse("""function (xi, eta, zeta)
                 $mapping_as_string
-                mapping(xi, eta, zeta)
+                $mapping_name(xi, eta, zeta)
             end
             """))
         end
