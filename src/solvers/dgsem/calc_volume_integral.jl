@@ -231,6 +231,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
         check_axes(alpha, (eachelement(dg, cache),))
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     # These tolerances for "active" shock capturing alpha values are copied
@@ -282,6 +283,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
         check_axes(alpha, (eachelement(dg, cache),))
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     # For `Float64`, this gives 1.8189894035458565e-12
@@ -348,6 +350,9 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha_shock_capturing)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+
+    # The `@turbo` kernels of `FluxTurbo` read the auxiliary variables without bounds checks
+    @boundscheck check_axes_aux(get_aux_vars(cache), equations, dg, cache)
 
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)

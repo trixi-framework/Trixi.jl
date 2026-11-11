@@ -32,6 +32,7 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
         check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     # Reset du
@@ -96,7 +97,7 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
 
     if shared_memory > 48 * 1024
         @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
-        In case, consider using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+        In case, consider using `tuning = Tuning(flux_differencing_kernel = FullSweepGlobal())` in `trixi_adapt`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) nauxvariables=nauxvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
     end
 
     workgroup_size = nnodes_element

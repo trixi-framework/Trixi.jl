@@ -315,6 +315,7 @@ which must be specialized for each equation.
 For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
 struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
@@ -651,9 +652,8 @@ function FluxTurbo(flux_conservative, flux_nonconservative)
 end
 
 # As a fallback method, the wrapped flux is called.
-@inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
-                                equations)
-    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+@inline function (f::FluxTurbo)(args...)
+    return f.numerical_flux(args...)
 end
 
 # When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
@@ -693,6 +693,11 @@ end
 @inline function turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
     n = nvariables(equations)
     m = nauxvariables(equations)
+    # This condition is resolved at compile time, so the check is free at runtime.
+    length(turbovars_and_normals_and_equations) == 2 * (n + m) + 4 ||
+        throw(ArgumentError("the default `flux_turbo` requires the default layout of " *
+                            "`cons2turbo`, i.e., `nvariables(equations) + " *
+                            "nauxvariables(equations)` precomputed variables per node"))
     u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
     u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + m + v], Val(n)))
     aux = turbo2aux(Val(m), n, turbovars_and_normals_and_equations)
@@ -734,8 +739,6 @@ end
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
     flux = flux_conservative(u_ll, u_rr, aux..., normal_direction, equations)
-    # The node receiving the nonconservative flux passes its own state (and auxiliary
-    # variables) first
     noncons_left = flux_nonconservative(u_ll, u_rr, aux..., normal_direction, equations)
     noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)..., normal_direction,
                                          equations)

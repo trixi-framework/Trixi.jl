@@ -91,10 +91,11 @@ end
 # contribution is weighted by 1/2 to avoid double counting.
 #
 # For details on the cyclic distribution see Section 4.1 (Eq. 6) of
-# - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+# - Waterhouse, Waruszewski, Wilcox, Warburton, Giraldo (2027)
 #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
 #   with Non-Conservative Terms
 #   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+#   [DOI: 10.1016/j.jcp.2026.115543](https://doi.org/10.1016/j.jcp.2026.115543)
 @kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
@@ -179,15 +180,14 @@ end
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+        aux_node_jj = get_aux_node_vars(aux_shared, equations, dg, i, jj, k)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                i, jj, k, element)
         Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node...,
-                                 get_aux_node_vars(aux_shared, equations, dg,
-                                                   i, jj, k)...,
+        fluxtilde2 = volume_flux(u_node, u_node_jj, aux_node..., aux_node_jj...,
                                  Ja2_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
@@ -206,15 +206,14 @@ end
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+        aux_node_kk = get_aux_node_vars(aux_shared, equations, dg, i, j, kk)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                i, j, kk, element)
         Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node...,
-                                 get_aux_node_vars(aux_shared, equations, dg,
-                                                   i, j, kk)...,
+        fluxtilde3 = volume_flux(u_node, u_node_kk, aux_node..., aux_node_kk...,
                                  Ja3_avg, equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]

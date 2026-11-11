@@ -15,7 +15,8 @@ Proposed in
 - Marvin Bohm, Andrew R Winters, Gregor J Gassner, Dominik Derigs, Florian Hindenlang, Joachim Saur (2020):
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
   Part I: Theory and numerical verification
-  [10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+  [arXiv: 1802.07341](https://arxiv.org/abs/1802.07341)
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 """
 @inline function initial_condition_convergence(x, t, equations::IdealGlmMhdEquations3D)
     h = 0.5f0 * sinpi(2 * (x[1] + x[2] + x[3] - t)) + 2
@@ -42,7 +43,8 @@ Proposed in
 - Marvin Bohm, Andrew R Winters, Gregor J Gassner, Dominik Derigs, Florian Hindenlang, Joachim Saur (2020):
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
   Part I: Theory and numerical verification
-  [10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
+  [arXiv: 1802.07341](https://arxiv.org/abs/1802.07341)
+  [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 
 For the version without parabolic terms see the implementation in FLUXO:
 https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/mhd/equation.f90#L1539-L1554

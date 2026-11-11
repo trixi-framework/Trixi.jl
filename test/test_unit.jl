@@ -1096,6 +1096,22 @@ end
     end
 end
 
+@testitem "Unit: Linear scalar advection conversion between conservative/entropy variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    for (equations, cons_vars) in ((LinearScalarAdvectionEquation1D(0.5),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation2D(0.5, -0.3),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation3D(0.5, -0.3, 0.7),
+                                    SVector(1.2)))
+        entropy_vars = cons2entropy(cons_vars, equations)
+        @test entropy_vars == cons_vars
+        @test entropy2cons(entropy_vars, equations) == cons_vars
+    end
+end
+
 @testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
     Setup,
     UnitTests
@@ -4589,7 +4605,7 @@ end
     ### Compute the Jacobian sparsity pattern ###
 
     # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_jac_type! = function (du_ode, u0_ode)
         Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
     end
@@ -4706,7 +4722,7 @@ end
     # This test validates this.
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
                                                                       u0_ode,
                                                                       semi_jac_type,
@@ -5952,11 +5968,11 @@ end
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
                                                                                       semi)
     equations = ConservativeLinearScalarAdvectionEquation3D()
+    aux_field(x, equations) = SVector(1.0, 0.0, 0.0)
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
                                         solver;
                                         boundary_conditions = boundary_condition_periodic,
-                                        aux_field = (x, equations) -> SVector(1.0, 0.0,
-                                                                              0.0))
+                                        aux_field)
     @test_logs (:warn, r"shared memory") (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
                                                                                                                 semi)
 end
@@ -6473,6 +6489,18 @@ end
     @test Trixi.flux_turbo(flux_central, turbo_ll..., turbo_rr..., normal_direction...,
                            equations) ≈
           flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The fallback used outside of the turbo kernels forwards the auxiliary variables to
+    # the wrapped flux
+    @test FluxTurbo(flux_central)(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                  equations) ==
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The default `flux_turbo` detects precomputed variables without the auxiliary
+    # variables
+    @test_throws "requires the default layout of `cons2turbo`" Trixi.flux_turbo(flux_central,
+                                                                                u_ll...,
+                                                                                u_rr...,
+                                                                                normal_direction...,
+                                                                                equations)
 
     # Nonconservative equation: the node receiving the nonconservative flux passes its
     # own state and auxiliary variables first
