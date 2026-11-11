@@ -110,8 +110,6 @@ The steps grow with the count, so every CPU point measures about ten seconds und
 `run.jl` repeats the single step and the measured run three times and keeps the fastest repetition of each.
 `run.jl` fails when the elixir stops before its last step, an aborted solve would report the PID of a wrong solution.
 
-The distributed GPU solve of the Taylor-Green vortex currently diverges after about fifty steps, so the two GPU point fails and the GPU series records no results until it is fixed.
-
 The [GitHub caller](../.github/workflows/hpc.yml) publishes each series as a PID suite and an efficiency suite per Julia version.
 Runs record the history on the `hpc-results` branch and deploy its dashboard with GitHub Pages under `/bench/`.
 
