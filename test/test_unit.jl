@@ -787,7 +787,7 @@ end
             end
             du_ode = similar(u_ode)
             Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
-            return copy(Trixi.wrap_array_native(du_ode, semi)), copy(node_coordinates)
+            return copy(Trixi.wrap_array(du_ode, semi)), copy(node_coordinates)
         end
         (du_tree, x_tree), (du_p4est, x_p4est) = results
         @test size(du_tree) == size(du_p4est)

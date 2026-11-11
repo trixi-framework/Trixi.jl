@@ -196,7 +196,7 @@ end
                         equations=IdealGlmMhdEquations2D(1.4),
                         tspan=(0.0f0, 0.01f0))
 
-    u = Trixi.wrap_array_native(sol.u[end], semi)
+    u = Trixi.wrap_array(sol.u[end], semi)
     @test eltype(u) == Float32
     prim = [cons2prim(Trixi.get_node_vars(u, equations, solver, i, j, element),
                       equations)
