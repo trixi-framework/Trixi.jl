@@ -20,7 +20,7 @@ mutable struct PairedExplicitRKOptions{Callback, TStops}
     const adaptive::Bool # whether the algorithm is adaptive (false)
     dtmax::Float64 # ignored
     const maxiters::Int # maximal number of time steps
-    tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+    tstops::TStops # tstops from https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/; ignored
 end
 
 function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwargs...)

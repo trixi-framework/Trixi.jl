@@ -9,6 +9,7 @@
 # For complete details on the problem setup see Section 5.7 of the paper:
 # - Jean-Luc Guermond, Murtazo Nazarov, Bojan Popov, and Ignacio Tomas (2018)
 #   Second-Order Invariant Domain Preserving Approximation of the Euler Equations using Convex Limiting.
+#   [arXiv: 1710.00417](https://arxiv.org/abs/1710.00417)
 #   [DOI: 10.1137/17M1149961](https://doi.org/10.1137/17M1149961)
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D

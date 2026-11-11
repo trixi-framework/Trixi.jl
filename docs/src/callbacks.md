@@ -162,9 +162,9 @@ physical constraints. An example elixir using this feature can be found at
 ## Implementing new callbacks
 Since Trixi.jl is compatible with [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 both packages share the same callback interface. A detailed description of it can be found in the
-OrdinaryDiffEq.jl [documentation](https://diffeq.sciml.ai/latest/).
-Step callbacks are just called [callbacks](https://diffeq.sciml.ai/latest/features/callback_functions/).
-Stage callbacks are called [`stage_limiter!`](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws)).
+OrdinaryDiffEq.jl [documentation](https://docs.sciml.ai/DiffEqDocs/stable/).
+Step callbacks are just called [callbacks](https://docs.sciml.ai/DiffEqDocs/stable/features/callback_functions/).
+Stage callbacks are called [`stage_limiter!`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws)).
 
 An example elixir showing how to implement a new simple stage callback and a new simple step
 callback can be found at [`examples/tree_2d_dgsem/elixir_advection_callbacks.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_callbacks.jl).

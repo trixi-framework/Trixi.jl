@@ -68,7 +68,7 @@ du_ode = similar(u0_ode)
 # Only the parabolic part of the `SplitODEProblem` is treated implicitly so we only need the parabolic Jacobian, see
 # https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitFunction
 # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
-# https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+# https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
 rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode, u0_ode,
                                                                   semi_jac_type, tspan[1])
 

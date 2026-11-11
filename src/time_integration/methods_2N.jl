@@ -80,7 +80,7 @@ mutable struct SimpleIntegratorOptions{Callback}
     const adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
     const maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+    tstops::Vector{Float64} # tstops from https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/; ignored
 end
 
 function SimpleIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
@@ -90,7 +90,7 @@ end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
-# https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
+# https://docs.sciml.ai/DiffEqDocs/stable/basics/integrator/#Handling-Integrators
 # which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT <: Real, uType <: AbstractVector,
                                   Params, Sol, F, Alg,

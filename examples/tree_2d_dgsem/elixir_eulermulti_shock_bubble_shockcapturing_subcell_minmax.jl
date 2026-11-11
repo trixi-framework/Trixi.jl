@@ -11,14 +11,16 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
     initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{5, 2})
 
 A shock-bubble testcase for multicomponent Euler equations
-- Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
+- Ayoub Gouasmi, Karthik Duraisamy, Scott M. Murman (2020)
   Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
+  [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 """
 function initial_condition_shock_bubble(x, t,
                                         equations::CompressibleEulerMulticomponentEquations2D{5,
                                                                                               2})
-    # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
+    # bubble test case, see Gouasmi et al. https://arxiv.org/abs/1904.00972
+    # (DOI: https://doi.org/10.1016/j.cma.2020.112912)
     # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
     RealT = eltype(x)

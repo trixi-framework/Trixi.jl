@@ -91,10 +91,11 @@ end
 # contribution is weighted by 1/2 to avoid double counting.
 #
 # For details on the cyclic distribution see Section 4.1 (Eq. 6) of
-# - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+# - Waterhouse, Waruszewski, Wilcox, Warburton, Giraldo (2027)
 #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
 #   with Non-Conservative Terms
 #   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+#   [DOI: 10.1016/j.jcp.2026.115543](https://doi.org/10.1016/j.jcp.2026.115543)
 @kernel inbounds=true function flux_differencing_KAkernel!(du, u, aux, equations,
                                                            MeshT::Type{<:Union{P4estMesh{3},
                                                                                T8codeMesh{3}}},
@@ -120,7 +121,7 @@ end
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     # The values in shared memory are visible to all threads after the first
     # `@synchronize` in the loop below. Thus, we do not need an additional one here,
@@ -253,7 +254,7 @@ end
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     # The values in shared memory are visible to all threads after the first
     # `@synchronize` in the loop below. Thus, we do not need an additional one here,
@@ -393,7 +394,7 @@ end
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES
@@ -480,7 +481,7 @@ end
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
     # Without auxiliary variables, `NAUX == 0` and nothing is stored.
-    aux_local = @localmem eltype(aux) (NAUX, NNODES, NNODES, NNODES)
+    aux_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
     for v in 1:NVARIABLES

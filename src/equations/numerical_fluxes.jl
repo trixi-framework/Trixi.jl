@@ -315,6 +315,7 @@ which must be specialized for each equation.
 For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
 struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
