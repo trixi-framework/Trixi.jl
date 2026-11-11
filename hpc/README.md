@@ -80,21 +80,18 @@ The history of the default branch is recorded on the `hpc-results` branch and th
 
 The workflow defines alert and failure thresholds per suite, PR runs compare with the history without recording.
 
-## Pipeline setup
+## Setup
 
-The [GitHub workflow](../.github/workflows/hpc.yml) and the [command workflow](../.github/workflows/hpc-command.yml) pin `pc2/hpc-cb-workflow` to the same reviewed commit, update both together.
-Follow the [workflow setup](https://github.com/pc2/hpc-cb-workflow#setup) for GitLab mirroring, tokens and GitHub secrets.
-Use GitLab project `pc2-ci/julia/trixi.jl` on `git.uni-paderborn.de` and set the Actions repository variable `GITLAB_PROJECT_ID` to `10376`.
+Follow the [setup of `pc2/hpc-cb-workflow`](https://github.com/pc2/hpc-cb-workflow#setup) for GitLab mirroring, tokens and GitHub secrets.
 
-Both `otus-shell` and `otus-slurm` runners must be enabled and permit the job timeout of seven days.
+The mirror is the GitLab project `pc2-ci/julia/trixi.jl` on `git.uni-paderborn.de` with `otus-shell` and `otus-slurm` runners.
 
-Jacamar submits the Slurm jobs before they source [env.sh](env.sh), so the GitLab project defines the Slurm account and partitions as CI/CD variables.
-Preparation fails when one of them is missing.
-A project variable `CI_DEPOT_ROOT` overrides the default depot.
+The following variables are needed additionally.
 
-```bash
-project=https://git.uni-paderborn.de/pc2-ci/julia/trixi.jl
-glab variable set HPC_ACCOUNT hpc-prf-cobentx -R "$project"
-glab variable set CPU_PARTITION normal -R "$project"
-glab variable set GPU_PARTITION gpu_h100 -R "$project"
-```
+| Variable | Where | Current value |
+|---|---|---|
+| `GITLAB_PROJECT_ID` | GitHub Actions repository variable | `10376` |
+| `HPC_ACCOUNT` | GitLab CI/CD variable | `hpc-prf-cobentx` |
+| `CPU_PARTITION` | GitLab CI/CD variable | `normal` |
+| `GPU_PARTITION` | GitLab CI/CD variable | `gpu_h100` |
+| `CI_DEPOT_ROOT` | GitLab CI/CD variable, optional | Default of [env.sh](env.sh) |
