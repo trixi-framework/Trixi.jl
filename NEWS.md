@@ -11,7 +11,7 @@ for human readability.
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - `PositivityPreservingLimiterLiuZhang` now supports `DGMulti` solvers with `SBP()`
-  approximation types, e.g., on triangles.
+  approximation types, e.g., on triangles ([#3452]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
   variables is a fixed property of their type given by `nauxvariables(equations)`;
