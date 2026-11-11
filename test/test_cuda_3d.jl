@@ -773,6 +773,87 @@ end
     @test u_half_sweep ≈ u_full_sweep_global
 end
 
+@testitem "CUDA 3D: elixir_advectionconservative_shear_flow.jl FluxTurbo / CUDA" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    # The default `Trixi.cons2turbo` passes the auxiliary variables to the volume flux
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        real_type=Float32,
+                        storage_type=CuArray,
+                        tuning=Tuning(flux_differencing_kernel = HalfSweep()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test semi.cache.aux_vars.aux isa CuArray{Float32}
+    u_half_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        real_type=Float32,
+                        storage_type=CuArray,
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi.cache.aux_vars.aux isa CuArray{Float32}
+    u_full_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        real_type=Float32,
+                        storage_type=CuArray,
+                        tuning=Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    @test semi.cache.aux_vars.aux isa CuArray{Float32}
+    u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
+end
+
 @testitem "CUDA 3D: elixir_advectionconservative_source_terms_nonconforming.jl conforming Float32 / CUDA" setup=[
     Setup,
     CUDA3DExamples

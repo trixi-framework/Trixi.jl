@@ -730,7 +730,7 @@ end
     kernel! = flux_differencing_KAkernel_turbo!(backend,
                                                 flux_differencing_workgroupsize_3d(kernel_type,
                                                                                    Val(NNODES))...)
-    kernel!(du, u, equations,
+    kernel!(du, u, get_aux_vars(cache), equations,
             typeof(mesh),
             kernel_type,
             have_nonconservative_terms,
@@ -738,7 +738,7 @@ end
             numerical_flux, Val(NNODES), Val(nvariables(equations)),
             nturbovars(numerical_flux, equations),
             derivative_split,
-            contravariant_vectors, get_aux_vars(cache),
+            contravariant_vectors,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
@@ -747,7 +747,8 @@ end
 # [`FluxTurbo`](@ref). The `NTURBO` precomputed variables of `Trixi.cons2turbo` are
 # evaluated once per node instead of once per two-point flux evaluation and stored
 # in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels.
-@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, aux,
+                                                                 equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::HalfSweep,
@@ -758,13 +759,12 @@ end
                                                                  ::Val{NVARIABLES},
                                                                  ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors,
-                                                                 aux) where {
-                                                                             NumericalFlux,
-                                                                             NNODES,
-                                                                             NVARIABLES,
-                                                                             NTURBO
-                                                                             }
+                                                                 contravariant_vectors) where {
+                                                                                               NumericalFlux,
+                                                                                               NNODES,
+                                                                                               NVARIABLES,
+                                                                                               NTURBO
+                                                                                               }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -889,7 +889,8 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, aux,
+                                                                 equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::HalfSweep,
@@ -900,13 +901,12 @@ end
                                                                  ::Val{NVARIABLES},
                                                                  ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors,
-                                                                 aux) where {
-                                                                             NumericalFlux,
-                                                                             NNODES,
-                                                                             NVARIABLES,
-                                                                             NTURBO
-                                                                             }
+                                                                 contravariant_vectors) where {
+                                                                                               NumericalFlux,
+                                                                                               NNODES,
+                                                                                               NVARIABLES,
+                                                                                               NTURBO
+                                                                                               }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -1048,7 +1048,8 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, aux,
+                                                                 equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::FullSweep,
@@ -1059,13 +1060,12 @@ end
                                                                  ::Val{NVARIABLES},
                                                                  ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors,
-                                                                 aux) where {
-                                                                             NumericalFlux,
-                                                                             NNODES,
-                                                                             NVARIABLES,
-                                                                             NTURBO
-                                                                             }
+                                                                 contravariant_vectors) where {
+                                                                                               NumericalFlux,
+                                                                                               NNODES,
+                                                                                               NVARIABLES,
+                                                                                               NTURBO
+                                                                                               }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
@@ -1140,7 +1140,8 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, equations,
+@kernel inbounds=true function flux_differencing_KAkernel_turbo!(du, u, aux,
+                                                                 equations,
                                                                  MeshT::Type{<:Union{P4estMesh{3},
                                                                                      T8codeMesh{3}}},
                                                                  ::FullSweep,
@@ -1151,13 +1152,12 @@ end
                                                                  ::Val{NVARIABLES},
                                                                  ::Val{NTURBO},
                                                                  derivative_split,
-                                                                 contravariant_vectors,
-                                                                 aux) where {
-                                                                             NumericalFlux,
-                                                                             NNODES,
-                                                                             NVARIABLES,
-                                                                             NTURBO
-                                                                             }
+                                                                 contravariant_vectors) where {
+                                                                                               NumericalFlux,
+                                                                                               NNODES,
+                                                                                               NVARIABLES,
+                                                                                               NTURBO
+                                                                                               }
     # In contrast to the regular (CPU) code, this kernel does not
     # include an additional factor `alpha` scaling the update
     # since we use `set_node_vars!` instead of `add_to_node_vars!`
