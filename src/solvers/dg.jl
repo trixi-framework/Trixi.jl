@@ -1580,8 +1580,8 @@ include("blockfv/blockfv_1d.jl")
 include("blockfv/blockfv_2d.jl")
 
 # Wrap `u_ode` without copying as an array with dimensions `[variable, node..., element]`
-# (see `wrap_storage`). For `DGSEM`, the sizes of all but the last dimension are known at
-# compile time (see `static_view`).
+# (see `wrap_storage`). The number of variables is known at compile time, and for `DGSEM`
+# also the number of nodes (see `static_view`).
 @inline function wrap_array(u_ode::AbstractVector, mesh::AbstractMesh, equations,
                             dg::DG, cache)
     # `wrap_storage` checks that the length of `u_ode` matches.
@@ -1604,10 +1604,11 @@ end
     static_view(A, equations, dg)
 
 Return a view of the solution-like array `A` with dimensions
-`[variable, node..., element]` whose sizes of all but the last dimension (i.e.,
-`nvariables(equations)` and `nnodes(dg)`) are known at compile time, without copying.
-Returns `A` itself for other array types and for solvers whose number of nodes is not
-known at compile time (i.e., other than `DGSEM`).
+`[variable, node..., element]` whose leading sizes are known at compile time, without
+copying. For `DGSEM`, these are the sizes of all but the last dimension (i.e.,
+`nvariables(equations)` and `nnodes(dg)`). For `FDSBP`, it is only the size of the first
+dimension (`nvariables(equations)`), see below. Returns `A` itself for other array types
+and solvers.
 """
 function static_view end
 
@@ -1626,12 +1627,21 @@ function static_view end
                        size(A, ndims(A)))
     return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(A), dims)
 end
+# For finite difference summation by parts (FDSBP) methods, only the number of variables
+# is static. We do not specialize on the number of nodes since
+# - it would not be type stable (SBP operators store it as a runtime value),
+# - FD methods tend to use high node counts.
+# This mirrors the `PtrArray`s that `wrap_array` returned previously for `FDSBP`.
+@inline function static_view(A::VectorBackedArray, equations, dg::FDSBP)
+    dims = (Val(nvariables(equations)), Base.tail(size(A))...)
+    return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(A), dims)
+end
 @inline static_view(A, equations, dg) = A
 
 # Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
 # `flux_differencing_kernel!`). These are the CPU arrays returned by `wrap_array`:
-# - a `FixedSizeArrayDims` backed by a `Vector` (with static sizes for `DGSEM`, see
-#   `static_view`, otherwise a `VectorBackedArray`),
+# - a `FixedSizeArrayDims` backed by a `Vector` (with static sizes for `DGSEM` and
+#   `FDSBP`, see `static_view`, otherwise a `VectorBackedArray`),
 # - a reshaped contiguous view of an `Array` (see `wrap_storage`),
 # - a `PtrArray` that Polyester.jl creates from them in `@threaded` loops.
 # We restrict the element types to those supported natively by LoopVectorization.jl

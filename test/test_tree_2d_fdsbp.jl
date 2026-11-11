@@ -11,6 +11,16 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # For `FDSBP`, `wrap_array` returns an array whose number of variables is known at
+    # compile time, but not the number of nodes.
+    u = @inferred Trixi.wrap_array(sol.u[end], semi)
+    @test u isa Trixi.FixedSizeArrayDims{Float64, 4, Tuple{Val{1}, Int, Int, Int},
+                                   Vector{Float64}}
+    @test parent(u) === sol.u[end]
+    @test size(u) ==
+          (1, Trixi.nnodes(semi.solver), Trixi.nnodes(semi.solver),
+           Trixi.nelements(semi.solver, semi.cache))
 end
 
 @testitem "TreeMesh2D FDSBP: elixir_advection_extended.jl with periodic operators" setup=[
