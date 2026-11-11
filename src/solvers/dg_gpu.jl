@@ -31,6 +31,7 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
         check_axes(du, mesh, equations, dg, cache)
         # Required, e.g., for the `contravariant_vectors` of curvilinear meshes
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
     end
 
     # Reset du
@@ -78,7 +79,8 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
     equations = semi.equations
     volume_integral = semi.solver.volume_integral
 
-    nshared = nvariables(equations)
+    # The auxiliary variables are staged in shared memory as well
+    nshared = nvariables(equations) + nauxvariables(equations)
 
     if volume_integral isa VolumeIntegralFluxDifferencing
         volume_flux = volume_integral.volume_flux

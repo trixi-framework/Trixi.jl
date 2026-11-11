@@ -637,7 +637,7 @@ end
     @test all(isfinite, du_ode)
 end
 
-@testitem "CUDA 3D: elixir_advectionconservative_shear_flow.jl native" setup=[
+@testitem "CUDA 3D: elixir_advectionconservative_shear_flow.jl Float64 / CUDA" setup=[
     Setup,
     CUDA3DExamples
 ] tags=[:CUDA] begin
@@ -645,7 +645,7 @@ end
     using CUDA
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_shear_flow.jl"),
-                        # Expected errors are exactly the same as with the regular CPU code!
+                        # Expected errors are exactly the same as on CPU
                         l2=[0.00519048662880307],
                         linf=[0.026769982125784075],
                         storage_type=CuArray)
