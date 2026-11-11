@@ -3141,6 +3141,40 @@ end
     end
 end
 
+@testitem "Type stability: Linear Scalar Advection 2D with auxiliary variables on TreeMesh" setup=[
+    Setup,
+    TypeStability
+] tags=[:misc_part1] begin
+    # Boundary conditions with `orientation` and `direction` as used on a `TreeMesh`
+    for RealT in (Float32, Float64)
+        x = SVector(zero(RealT), zero(RealT))
+        t = zero(RealT)
+        u_inner = SVector(one(RealT))
+        aux_inner = SVector(one(RealT), -RealT(0.5))
+        boundary_value(x, t, equations) = SVector(one(eltype(x)))
+        boundary_condition = BoundaryConditionDirichlet(boundary_value)
+
+        for direction in 1:4
+            orientation = div(direction + 1, 2)
+            equations = ConservativeLinearScalarAdvectionEquation2D()
+            @test eltype(@inferred boundary_condition(u_inner, aux_inner, orientation,
+                                                      direction, x, t,
+                                                      flux_lax_friedrichs,
+                                                      equations)) == RealT
+
+            equations = NonconservativeLinearScalarAdvectionEquation2D()
+            surface_flux_functions = (flux_lax_friedrichs, flux_nonconservative_central)
+            flux_, noncons_flux = @inferred boundary_condition(u_inner, aux_inner,
+                                                               orientation, direction,
+                                                               x, t,
+                                                               surface_flux_functions,
+                                                               equations)
+            @test eltype(flux_) == RealT
+            @test eltype(noncons_flux) == RealT
+        end
+    end
+end
+
 @testitem "Type stability: Polytropic Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
     for RealT in (Float32, Float64)
         equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
