@@ -43,10 +43,9 @@ KernelAbstractions.jl CPU backend does not support this kernel and uses
 All diagonal entries of `derivative_split` are zero. Thus, we can skip the
 computation of the diagonal terms. In addition, we use the symmetry of the
 `volume_flux` to save half of the possible two-point flux computations. Each flux
-is staged in shared memory, so that both nodes of the pair can use it.
-Auxiliary variables (see [`nauxvariables`](@ref)) are staged in shared memory as well.
-The half sweep is distributed cyclically over the threads,
-so that each of them evaluates the same number of two-point fluxes.
+is staged in shared memory, so that both nodes of the pair can use it. The half
+sweep is distributed cyclically over the threads, so that each of them evaluates
+the same number of two-point fluxes.
 
 On (recent) NVIDIA GPUs, this kernel should be faster than [`FullSweep`](@ref)
 and [`FullSweepGlobal`](@ref) for most configurations. [`FullSweep`](@ref) can
