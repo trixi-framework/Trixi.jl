@@ -47,6 +47,37 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
+# Compute the matrix converting the nodal solution values of a restart file with
+# polynomial degree `polydeg_file` to the polynomial degree of the solver `dg`.
+# Low -> high: interpolation (exact). High -> low: interpolation if
+# `interpolate_high2low == true`, otherwise L2 projection.
+# Restart files do not store the type of the basis, i.e., the nodes of the stored
+# solution are not known. Thus, the conversion is only supported for the
+# Legendre-Gauss-Lobatto nodes of the `LobattoLegendreBasis`, which are assumed for
+# both the restart file and the solver.
+function restart_conversion_matrix(polydeg_file, dg::DG{<:LobattoLegendreBasis},
+                                   interpolate_high2low)
+    RealT = real(dg)
+    nodes_file = gauss_lobatto_nodes_weights(polydeg_file + 1, RealT)[1]
+    nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg), RealT)[1]
+
+    if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation
+        return polynomial_interpolation_matrix(nodes_file, nodes_solver)
+    else # Projection from higher to lower polynomial degree
+        return polynomial_l2projection_matrix(nodes_file, nodes_solver, Val(:gauss),
+                                              RealT)
+    end
+end
+
+function restart_conversion_matrix(polydeg_file, dg::DG, interpolate_high2low)
+    throw(ArgumentError("restart mismatch: the polynomial degree in the restart file " *
+                        "($polydeg_file) differs from the one of the solver " *
+                        "($(polydeg(dg))). Converting the solution to a different " *
+                        "polynomial degree is only supported for a `DGSEM` solver " *
+                        "with a `LobattoLegendreBasis`, but the solver uses a " *
+                        "$(nameof(typeof(dg.basis)))."))
+end
+
 # Load solution variables from restart file and
 # convert them to a different polynomial degree.
 # Version for non-MPI-parallel run
@@ -153,18 +184,8 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
         polydeg_file = read(attributes(file)["polydeg"])
         if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
-            nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
-
-            nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-
-            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
-                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                    nodes_solver)
-            else # Projection from higher to lower
-                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
-                                                                   nodes_solver,
-                                                                   Val(:gauss))
-            end
+            conversion_matrix = restart_conversion_matrix(polydeg_file, dg,
+                                                          interpolate_high2low)
             convert_restart_file_polydeg!(u, file,
                                           mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
@@ -345,17 +366,8 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
         polydeg_file = read(attributes(file)["polydeg"])
         if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
-            nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
-
-            nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
-                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                    nodes_solver)
-            else # Projection from higher to lower
-                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
-                                                                   nodes_solver,
-                                                                   Val(:gauss))
-            end
+            conversion_matrix = restart_conversion_matrix(polydeg_file, dg,
+                                                          interpolate_high2low)
 
             # Calculate element and node counts by MPI rank
             element_size_file = nnodes_file^ndims(mesh)
@@ -439,17 +451,8 @@ function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParall
         polydeg_file = read(attributes(file)["polydeg"])
         if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
-            nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
-
-            nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation from lower to higher
-                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                    nodes_solver)
-            else # Projection from higher to lower
-                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
-                                                                   nodes_solver,
-                                                                   Val(:gauss))
-            end
+            conversion_matrix = restart_conversion_matrix(polydeg_file, dg,
+                                                          interpolate_high2low)
 
             # We perform the interpolation of all elements on the root rank.
             # Thus, we need the allocate the global array

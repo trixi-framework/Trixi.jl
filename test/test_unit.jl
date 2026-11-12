@@ -440,6 +440,26 @@ end
         end
     end
 
+    @testset "restart_conversion_matrix" begin
+        # LGL solver: interpolation from low to high, and from high to low on request
+        nodes_2 = Trixi.gauss_lobatto_nodes_weights(3)[1]
+        nodes_3 = Trixi.gauss_lobatto_nodes_weights(4)[1]
+        solver_2 = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+        solver_3 = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        @test Trixi.restart_conversion_matrix(2, solver_3, false) ≈
+              Trixi.polynomial_interpolation_matrix(nodes_2, nodes_3)
+        @test Trixi.restart_conversion_matrix(3, solver_2, true) ≈
+              Trixi.polynomial_interpolation_matrix(nodes_3, nodes_2)
+        # L2 projection from high to low by default
+        @test Trixi.restart_conversion_matrix(3, solver_2, false) ≈
+              Trixi.polynomial_l2projection_matrix(nodes_3, nodes_2, Val(:gauss))
+
+        # Restart files do not store the nodes, thus only LGL nodes are supported
+        solver_gauss = DGSEM(GaussLegendreBasis(2), flux_lax_friedrichs)
+        @test_throws ArgumentError Trixi.restart_conversion_matrix(3, solver_gauss, false)
+        @test_throws ArgumentError Trixi.restart_conversion_matrix(1, solver_gauss, false)
+    end
+
     @testset "calc_reverse_upper for LGL" begin
         @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)),
                        [[0.25, 0.25] [0.0, 0.5]])
