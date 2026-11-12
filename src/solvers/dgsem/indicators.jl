@@ -137,6 +137,12 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     o_0001 = convert(RealT, 0.0001)
     parameter_s = log((1 - o_0001) / o_0001)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_indicator_hennemann_gassner(indicator_hg, mesh, dg)
+    end
+
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.
         # Use this function barrier and unpack inside to avoid passing closures to
