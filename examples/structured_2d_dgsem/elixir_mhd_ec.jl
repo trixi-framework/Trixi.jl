@@ -7,7 +7,7 @@ using Trixi
 equations = IdealGlmMhdEquations2D(1.4)
 
 function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     inicenter = (1.5, 1.5)
@@ -34,7 +34,8 @@ solver = DGSEM(polydeg = 5,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Get the curved quad mesh from a mapping function
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580), but reduced to 2D
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

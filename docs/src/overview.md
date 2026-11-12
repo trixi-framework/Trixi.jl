@@ -74,7 +74,7 @@ In this case, you can still use this flux on curvilinear meshes by rotating it, 
 
 ## Time integration methods
 
-Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
+Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://docs.sciml.ai/DiffEqDocs/stable/).
 In particular, a spatial semidiscretization can be wrapped in an ODE problem
 using [`semidiscretize`](@ref). A [`SemidiscretizationHyperbolic`](@ref) uses
 `Trixi.rhs_hyperbolic!`, a [`SemidiscretizationParabolic`](@ref) uses

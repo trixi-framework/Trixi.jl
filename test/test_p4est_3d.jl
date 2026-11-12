@@ -984,12 +984,45 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # `FluxTurbo` results in the same discretization as the plain `flux_central`
+    # (up to round-off errors), see the test above
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        l2=[0.010805491451752015],
+                        linf=[0.08535203150832515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0023544877254049017],
+                        linf=[0.02091570013800048])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # `FluxTurbo` results in the same discretization as the plain tuple of fluxes
+    # (up to round-off errors), see the test above
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        volume_flux=FluxTurbo(flux_central, flux_nonconservative_central),
                         l2=[0.0023544877254049017],
                         linf=[0.02091570013800048])
     # Ensure that we do not have excessive memory allocations

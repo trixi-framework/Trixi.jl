@@ -87,7 +87,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 # - Arpit Babbar, Praveen Chandrashekar (2025)
 #   Lax-Wendroff flux reconstruction on adaptive curvilinear meshes with
 #   error based time stepping for hyperbolic conservation laws
-#   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
+#   [arXiv: 2402.11926](https://arxiv.org/abs/2402.11926)
+#   [DOI: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
 positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                          variables = (Trixi.density,
                                                                       pressure))

@@ -7,7 +7,8 @@ equations = CompressibleEulerEquations1D(gamma_gas)
 ###############################################################################
 # setup the GSBP DG discretization that uses the Gauss operators from
 # Chan, Del Rey Fernandez, Carpenter (2019).
-# [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
+# [arXiv: 1809.01178](https://arxiv.org/abs/1809.01178)
+# [DOI: 10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
 # Example 8 from Shu, Osher (1989).

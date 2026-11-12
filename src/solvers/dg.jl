@@ -331,11 +331,11 @@ standard textbooks.
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 
 `VolumeIntegralWeakForm()` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -356,19 +356,19 @@ the interface of numerical fluxes in Trixi.jl.
 
 - LeFloch, Mercier, Rohde (2002)
   Fully Discrete, Entropy Conservative Schemes of Arbitrary Order
-  [doi: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
+  [DOI: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
 - Fisher, Carpenter (2013)
   High-order entropy stable finite difference schemes for nonlinear
   conservation laws: Finite domains
-  [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
-- Hendrik Ranocha (2017)
+  [DOI: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
+- Hendrik Ranocha (2018)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
-  [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
+  [DOI: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
 - Chen, Shu (2017)
   Entropy stable high order discontinuous Galerkin methods with suitable
   quadrature rules for hyperbolic conservation laws
-  [doi: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
@@ -455,9 +455,11 @@ The amount of blending is determined by the `indicator`, e.g.,
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function VolumeIntegralShockCapturingHG(indicator;
                                         volume_flux_dg = flux_central,
@@ -514,6 +516,7 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function VolumeIntegralShockCapturingRRG(basis, indicator;
@@ -564,13 +567,16 @@ Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, fo
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function VolumeIntegralShockCapturingHGType(indicator;
@@ -654,7 +660,7 @@ In such cases, the `volume_integral_default` can be a cheaper volume integral su
 For reference, see
 - Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
   Volume Term Adaptivity for Discontinuous Galerkin Schemes
-  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+  [arXiv: 2603.24189](https://arxiv.org/abs/2603.24189)
 
 especially Sections 3 and 3.1 for a detailed description of the method.
 
@@ -738,9 +744,11 @@ mesh (LGL = Legendre-Gauss-Lobatto).
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
@@ -816,6 +824,7 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 struct VolumeIntegralPureLGLFiniteVolumeO2{SubCellInterfaceCoordinates, VolumeFluxFV,
@@ -1049,7 +1058,7 @@ See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
 
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
-  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+  [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -1089,11 +1098,11 @@ See also [`VolumeIntegralWeakForm`](@ref).
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 """
 struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
     surface_flux::SurfaceFlux

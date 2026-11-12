@@ -15,7 +15,7 @@
 # ## Overview of the right-hand side evaluation
 
 # The semidiscretizations provided by Trixi.jl are set up to create `ODEProblem`s from the
-# [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
+# [SciML ecosystem for ordinary differential equations](https://docs.sciml.ai/DiffEqDocs/stable/).
 # In particular, a spatial semidiscretization can be wrapped in an ODE problem
 # using [`semidiscretize`](@ref), which returns an `ODEProblem`. This `ODEProblem`
 # bundles an initial condition, a right-hand side (RHS) function, the time span,
