@@ -731,7 +731,7 @@ end
 # inverts Jacobian using weight-adjusted DG, and scales by -1.0.
 # - Chan, Jesse, Russell J. Hewett, and Timothy Warburton.
 #   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
-#   https://doi.org/10.1137/16M1089198
+#   https://arxiv.org/abs/1608.03836 (DOI: https://doi.org/10.1137/16M1089198)
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                           dg::DGMulti, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix

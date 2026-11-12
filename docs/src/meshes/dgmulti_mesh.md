@@ -41,7 +41,7 @@ Here, `element_type` can be `Tri()`, `Quad()`, `Tet()`, or `Hex()`, and `approxi
 * `SBP()`, which specifies a DG discretization using multi-dimensional SBP operators. Types of SBP
   discretizations available include:
   `SBP{Kubatko{LobattoFaceNodes}}()` (the default choice), `SBP{Kubatko{LegendreFaceNodes}}()`, and
-  [`SBP{Hicken}()`](https://doi.org/10.1007/s10915-020-01154-8). For `polydeg = 1, ..., 4`, the
+  [`SBP{Hicken}()`](https://arxiv.org/abs/2002.04653) ([DOI](https://doi.org/10.1007/s10915-020-01154-8)). For `polydeg = 1, ..., 4`, the
   `SBP{Kubatko{LegendreFaceNodes}}()` SBP nodes are identical to the SBP nodes of
   [Chen and Shu](https://doi.org/10.1016/j.jcp.2017.05.025).
   More detailed descriptions of each SBP node set can be found in the
@@ -66,9 +66,9 @@ Additional options can also be specified through `RefElemData_kwargs`:
 ### The `GaussSBP()` approximation type on `Quad()` and `Hex()` meshes
 
 When using `VolumeIntegralFluxDifferencing` on `Quad()` and `Hex()` meshes, one can also specify
-`approximation_type = GaussSBP()` to use an [entropy stable Gauss collocation scheme](https://doi.org/10.1137/18M1209234).
+`approximation_type = GaussSBP()` to use an [entropy stable Gauss collocation scheme](https://arxiv.org/abs/1809.01178) ([DOI](https://doi.org/10.1137/18M1209234)).
 Here, `GaussSBP()` refers to "generalized" summation-by-parts operators (see for example
-[Ranocha 2018](https://doi.org/10.1016/j.jcp.2018.02.021) or
+[Ranocha 2018](https://arxiv.org/abs/1705.10541) ([DOI](https://doi.org/10.1016/j.jcp.2018.02.021)) or
 [Fernandez and Zingg 2015](https://doi.org/10.1137/140992205)).
 
 Unlike traditional SBP operators, generalized SBP operators are constructed from nodes which do

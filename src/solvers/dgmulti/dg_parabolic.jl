@@ -259,7 +259,7 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
 
     num_faces = StartUpDG.num_faces(rd.element_type)
     num_pts_per_face = rd.Nfq ÷ num_faces
-    (; xyzf, nxyz) = md
+    (; xyzf, nxyz, Jf) = md
     for f in mesh.boundary_faces[boundary_key]
         for i in Base.OneTo(num_pts_per_face)
 
@@ -272,21 +272,43 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
 
             # for both the gradient and the divergence, the boundary flux is scalar valued.
             # for the gradient, it is the solution; for divergence, it is the normal flux.
-            flux_face_values[fid, e] = boundary_condition(flux_face_values[fid, e],
-                                                          u_face_values[fid, e],
-                                                          face_normal, face_coordinates, t,
-                                                          operator_type, equations)
-
-            # Here, we use the "strong form" for the Gradient (and the "weak form" for Divergence).
-            # `flux_face_values` should contain the boundary values for `u`, and we
-            # subtract off `u_face_values[fid, e]` because we are using the strong formulation to
-            # compute the gradient.
-            if operator_type isa Gradient
-                flux_face_values[fid, e] = flux_face_values[fid, e] - u_face_values[fid, e]
-            end
+            flux_face_values[fid, e] = parabolic_boundary_flux(flux_face_values[fid, e],
+                                                               u_face_values[fid, e],
+                                                               Jf[fid, e],
+                                                               face_normal,
+                                                               face_coordinates, t,
+                                                               operator_type,
+                                                               boundary_condition,
+                                                               equations)
         end
     end
     return nothing
+end
+
+# Here, we use the "strong form" for the gradient. As for DGSEM, the boundary
+# condition receives `u_inner` as `flux_inner` and returns the boundary value of `u`.
+# We subtract off `u_inner` because we are using the strong formulation to compute
+# the gradient.
+@inline function parabolic_boundary_flux(flux_inner, u_inner, face_jacobian,
+                                         face_normal, face_coordinates, t,
+                                         operator_type::Gradient, boundary_condition,
+                                         equations)
+    u_boundary = boundary_condition(u_inner, u_inner, face_normal, face_coordinates, t,
+                                    operator_type, equations)
+    return u_boundary - u_inner
+end
+
+# Here, we use the "weak form" for the divergence. `flux_inner` is the normal flux
+# scaled by the face Jacobian (computed with `nxyzJ`), whereas boundary conditions
+# take and return the physical normal flux with respect to the unit normal `nxyz`.
+@inline function parabolic_boundary_flux(flux_inner, u_inner, face_jacobian,
+                                         face_normal, face_coordinates, t,
+                                         operator_type::Divergence, boundary_condition,
+                                         equations)
+    flux_boundary = boundary_condition(flux_inner / face_jacobian, u_inner,
+                                       face_normal, face_coordinates, t,
+                                       operator_type, equations)
+    return flux_boundary * face_jacobian
 end
 
 function calc_parabolic_fluxes!(flux_parabolic_values, u, gradients, mesh::DGMultiMesh,
@@ -464,8 +486,9 @@ end
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs_parabolic!(backend::Nothing, du, u, t, mesh::DGMultiMesh,
                         equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions, source_terms_parabolic,
-                        dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
+                        boundary_conditions, source_terms_parabolic::Source,
+                        dg::DGMulti, parabolic_scheme, cache,
+                        cache_parabolic) where {Source}
     set_zero!(du, dg)
 
     @trixi_timeit timer() "transform variables" begin
@@ -500,7 +523,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::DGMultiMesh,
 
     @trixi_timeit timer() "source terms parabolic" begin
         calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic, mesh,
-                                equations_parabolic, dg, cache)
+                                equations_parabolic, dg, cache, cache_parabolic)
     end
 
     return nothing
@@ -509,21 +532,33 @@ end
 # Multiple calc_sources_parabolic! to resolve method ambiguities
 function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Nothing,
                                  mesh, equations_parabolic,
-                                 dg::Union{<:DGMulti, <:DGMultiFluxDiffSBP}, cache)
+                                 dg::Union{<:DGMulti, <:DGMultiFluxDiffSBP}, cache,
+                                 cache_parabolic)
     return nothing
 end
 
 # uses quadrature + projection to compute source terms.
+# The `gradients` are stored at the volume quadrature points.
 function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                 mesh, equations_parabolic, dg::DGMulti, cache)
+                                 mesh, equations_parabolic, dg::DGMulti, cache,
+                                 cache_parabolic)
     md = mesh.md
+    (; Vq, Pq) = dg.basis
+    (; local_u_values_threaded, local_flux_parabolic_threaded) = cache_parabolic
     @threaded for e in eachelement(mesh, dg, cache)
-        for i in eachnode(dg)
-            du[i, e] = du[i, e] +
-                       source_terms_parabolic(u[i, e], SVector(getindex.(gradients, i, e)),
-                                              SVector(getindex.(md.xyzq, i, e)),
-                                              t, equations_parabolic)
+        u_values = local_u_values_threaded[Threads.threadid()]
+        source_values = local_flux_parabolic_threaded[Threads.threadid()][1] # reuse storage
+
+        # interpolate u to quadrature points
+        apply_to_each_field(mul_by!(Vq), u_values, view(u, :, e))
+
+        for i in each_quad_node(mesh, dg, cache)
+            source_values[i] = source_terms_parabolic(u_values[i],
+                                                      SVector(getindex.(gradients, i, e)),
+                                                      SVector(getindex.(md.xyzq, i, e)),
+                                                      t, equations_parabolic)
         end
+        apply_to_each_field(mul_by_accum!(Pq), view(du, :, e), source_values)
     end
 
     return nothing

@@ -81,6 +81,14 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
+        if nauxvariables(equations) > 0
+            summary_line(io, "#auxiliary variables", nauxvariables(equations))
+            for variable in eachauxvariable(equations)
+                summary_line(increment_indent(io),
+                             "variable " * string(variable),
+                             auxvarnames(equations)[variable])
+            end
+        end
         summary_footer(io)
     end
 end
@@ -225,6 +233,48 @@ end
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
     return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides.
+    flux = surface_flux_function(u_inner, u_boundary,
+                                 aux_inner, aux_inner,
+                                 normal_direction, equations)
+
+    return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables and
+# nonconservative terms passing a tuple of surface flux functions
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides.
+    flux = surface_flux_function(u_inner, u_boundary,
+                                 aux_inner, aux_inner,
+                                 normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
+                                                 aux_inner, aux_inner,
+                                                 normal_direction, equations)
+
+    return flux, noncons_flux
 end
 
 # Dirichlet-type boundary condition for equations with non-conservative terms for use with UnstructuredMesh2D
@@ -374,6 +424,54 @@ This is the default fallback for nonlinear equations.
 - `False()`
 """
 have_constant_speed(::AbstractEquations) = False()
+
+"""
+    nauxvariables(equations)
+
+Number of auxiliary variables of `equations`, stored at every node.
+Auxiliary variables vary in space but are constant in time, e.g.,
+a prescribed background flow or a variable coefficient. The default is `0`, i.e., no
+auxiliary variables.
+
+Equations using auxiliary variables specialize this function and take them as an
+additional argument in [`flux`](@ref) and in the numerical fluxes, e.g.,
+```julia
+nauxvariables(::MyEquations) = 2
+
+flux(u, aux, normal_direction, equations::MyEquations) = ...
+flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+```
+Similar patterns are used for source terms etc.
+
+The number of auxiliary variables is a fixed property of the equations: equations with
+`nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
+be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref).
+For equations without auxiliary variables, no `aux_field` must be passed.
+
+Currently, auxiliary variables are only supported for
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
+without AMR and MPI. On GPUs, only conforming meshes are supported.
+The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
+"""
+@inline nauxvariables(::AbstractEquations) = 0
+
+"""
+    eachauxvariable(equations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the auxiliary variables in `equations`, see [`nauxvariables`](@ref).
+In particular, not the auxiliary variables themselves are returned.
+"""
+@inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(nauxvariables(equations))
+
+"""
+    auxvarnames(equations)
+
+Return the names of the auxiliary variables of `equations` as a tuple of strings, see
+[`nauxvariables`](@ref). The default names are `"aux1"`, `"aux2"`, etc.
+"""
+auxvarnames(equations::AbstractEquations) = ntuple(v -> "aux" * string(v),
+                                                   Val(nauxvariables(equations)))
 
 """
     default_analysis_errors(equations)
@@ -629,6 +727,8 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("conservative_linear_scalar_advection_3d.jl")
+include("nonconservative_linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:

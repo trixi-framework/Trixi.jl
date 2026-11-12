@@ -219,6 +219,8 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
+       ConservativeLinearScalarAdvectionEquation3D,
+       NonconservativeLinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
@@ -339,8 +341,8 @@ export reconstruction_O2_inner, reconstruction_O2_full,
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
-export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable,
+export nelements, nnodes, nvariables, nauxvariables,
+       eachelement, eachnode, eachvariable, eachauxvariable,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
