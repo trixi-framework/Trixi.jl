@@ -160,7 +160,8 @@ end
 
 # calculate surface integral of func(u, normal_direction, equations) on the reference element.
 # For DGMulti, we loop over all faces of the element and integrate using face quadrature weights.
-# Restricted to `Polynomial` approximation type which requires interpolation to face quadrature nodes
+# This generic version interpolates the volume solution to the face quadrature nodes with `Vf`,
+# e.g., for the `Polynomial` approximation type; see below for nodal SBP discretizations.
 function surface_integral_reference_element(func::Func, u, element,
                                             mesh::DGMultiMesh, equations,
                                             dg::DGMulti,
@@ -183,6 +184,36 @@ function surface_integral_reference_element(func::Func, u, element,
         u_node = u_face_local[i]
 
         # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
+        normal_direction = SVector(getindex.(nxyzJ, i, element))
+
+        # Multiply with face quadrature weight and accumulate
+        surface_integral += wf[i] * func(u_node, normal_direction, equations)
+    end
+
+    return surface_integral
+end
+
+# Specialization for nodal SBP discretizations (`DGMultiSBP`): the face quadrature nodes are
+# a subset of the volume nodes, i.e., `Vf * u = u[Fmask, :]` as in `prolong2interfaces!`
+# (`solvers/dgmulti/dg.jl`), so the face values are read directly instead of being
+# interpolated. This also avoids the sparse matrix-vector product with a view of `u`,
+# which allocates on Julia 1.10.
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::DGMultiMesh, equations,
+                                            dg::DGMultiSBP,
+                                            cache, args...) where {Func}
+    rd = dg.basis
+    @unpack wf, Fmask = rd
+    md = mesh.md
+    @unpack nxyzJ = md
+
+    surface_integral = zero(eltype(first(u)))
+    # Loop over all face nodes for this element
+    for (i, fid) in enumerate(Fmask)
+        # Get solution at this face node, which is the volume node `fid`
+        u_node = u[fid, element]
+
+        # Get face normal; nxyzJ stores components as (nxJ, nyJ, nzJ)
         normal_direction = SVector(getindex.(nxyzJ, i, element))
 
         # Multiply with face quadrature weight and accumulate

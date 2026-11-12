@@ -104,9 +104,11 @@ end
 # elementwise with the entropy stable algebraic low-order method on the SBP nodes
 # (`volume_integral_low_order.jl`) such that the volume integral does not produce entropy,
 # as for `DGSEM` in `dgsem/calc_volume_integral.jl`. Since the solution nodes are the volume
-# quadrature nodes, the entropy production is computed directly from `du`. The solution is
-# stored as a `StructArray` as for `VolumeIntegralWeakForm`, so the weak form kernel and
-# `surface_integral_reference_element` can be used without changes.
+# quadrature nodes, the entropy production is computed directly from `du`, and the face
+# values of the entropy potential are read directly from the volume nodes (`Fmask`, see
+# `surface_integral_reference_element` in `callbacks_step/analysis_dgmulti.jl`). The
+# solution is stored as a `StructArray` as for `VolumeIntegralWeakForm`, so the weak form
+# kernel can be used without changes.
 
 # this method is used when the indicator is constructed as for entropy correction
 # volume integrals
@@ -160,20 +162,13 @@ function create_cache(mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
     cache_low_order = create_cache(mesh, equations, volume_integral_stabilized, dg,
                                    RealT, uEltype)
 
-    # Thread-local buffer for face interpolation, which is required for the computation
-    # of the entropy potential at the face nodes (`surface_integral_reference_element`)
-    rd = dg.basis
-    nvars = nvariables(equations)
-    u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
-
     # The blending factors are stored in the indicator and used for visualization. They
     # are sized here since `DGMulti` does not use `resize_volume_integral_cache!`.
     (; alpha) = indicator_entropy_correction(dg.volume_integral).cache
     resize!(alpha, mesh.md.num_elements)
     fill!(alpha, zero(eltype(alpha)))
 
-    return (; cache_WF..., cache_low_order..., u_face_local_threaded)
+    return (; cache_WF..., cache_low_order...)
 end
 
 # Blends the default (weak form) and the stabilized (low-order) volume integral of one
