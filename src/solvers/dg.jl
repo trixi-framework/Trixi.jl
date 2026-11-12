@@ -1251,14 +1251,40 @@ end
 # inner loops of Trixi.jl before assuming inbounds access.
 # All other methods of `check_axes` compute the expected axes and call this method.
 @inline function check_axes(A, expected_axes::Tuple)
+    # We compare the sizes first, one dimension at a time and with a separate error path
+    # for each dimension. `axes(A)` are `Base.OneTo(max(0, size(A, d)))` for most
+    # arrays, and the compiler does not always conclude from `max(0, size(A, d)) == n`
+    # that `size(A, d) == n` (e.g., on Julia v1.10 for `FixedSizeArray`s, whose sizes
+    # are not known to be non-negative). Moreover, it may vectorize the comparison of
+    # several sizes, which also hides this information. Knowing the sizes as constants
+    # after this check simplifies the index computations in the inner loops.
+    check_sizes(A, expected_axes)
     axes(A) == expected_axes || throw_axes_mismatch(axes(A), expected_axes)
     return nothing
+end
+
+# Only for arrays with the expected number of dimensions; everything else is handled
+# by the comparison of the axes.
+@inline check_sizes(A, expected_axes) = nothing
+@inline function check_sizes(A::AbstractArray{<:Any, N},
+                             expected_axes::NTuple{N, Any}) where {N}
+    return check_sizes(A, expected_axes, size(A), map(length, expected_axes), 1)
+end
+@inline check_sizes(A, expected_axes, ::Tuple{}, ::Tuple{}, dim) = nothing
+@inline function check_sizes(A, expected_axes, sizes::Tuple, expected_sizes::Tuple, dim)
+    first(sizes) == first(expected_sizes) ||
+        throw_axes_mismatch(axes(A), expected_axes, dim)
+    return check_sizes(A, expected_axes, Base.tail(sizes), Base.tail(expected_sizes),
+                       dim + 1)
 end
 
 # Keep the error path out of the inlined code above. The lazy string defers
 # formatting the message until it is actually displayed.
 @noinline function throw_axes_mismatch(found_axes, expected_axes)
     throw(DimensionMismatch(lazy"axes $(found_axes) found, but $(expected_axes) expected"))
+end
+@noinline function throw_axes_mismatch(found_axes, expected_axes, dim)
+    throw(DimensionMismatch(lazy"axes $(found_axes) found, but $(expected_axes) expected (the sizes differ in dimension $(dim))"))
 end
 
 # Check whether the array `u` has the axes we assume it must have in the inner loops

@@ -308,12 +308,15 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, interface,
+                                                     interfaces_u, interface,
                                                      neighbor_ids, node_indices,
                                                      contravariant_vectors,
                                                      index_range)
@@ -413,12 +416,15 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, interface,
+                                                     interfaces_u, interface,
                                                      neighbor_ids, node_indices,
                                                      normal_directions, index_range)
     end
