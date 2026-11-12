@@ -41,8 +41,6 @@ end
             typeof(mesh),
             kernel_type,
             have_nonconservative_terms,
-            combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
-                                                            equations),
             dg,
             volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
             derivative_split,
@@ -76,7 +74,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
                                                            have_nonconservative_terms::False,
-                                                           combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -190,7 +187,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::HalfSweep,
                                                            have_nonconservative_terms::True,
-                                                           combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -233,8 +229,9 @@ end
         Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
-                                                        equations)
+        fluxtilde1_left, fluxtilde1_right = flux_combined(volume_flux, u_node,
+                                                          u_node_ii, (), Ja1_avg,
+                                                          equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
@@ -260,8 +257,9 @@ end
         Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
-                                                        equations)
+        fluxtilde2_left, fluxtilde2_right = flux_combined(volume_flux, u_node,
+                                                          u_node_jj, (), Ja2_avg,
+                                                          equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
@@ -286,8 +284,9 @@ end
         Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
-        fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
-                                                        equations)
+        fluxtilde3_left, fluxtilde3_right = flux_combined(volume_flux, u_node,
+                                                          u_node_kk, (), Ja3_avg,
+                                                          equations)
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
@@ -311,7 +310,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
                                                            have_nonconservative_terms::False,
-                                                           combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -385,7 +383,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::FullSweep,
                                                            have_nonconservative_terms::True,
-                                                           combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -417,10 +414,10 @@ end
         Ja1_avg = 0.5f0 * (Ja1_node +
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
-        fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_node_vars(u_local, equations, dg,
-                                                       ii, j, k),
-                                         Ja1_avg, equations)
+        fluxtilde1_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u_local, equations, dg,
+                                                         ii, j, k),
+                                           (), Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
 
@@ -429,10 +426,10 @@ end
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
-        fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_node_vars(u_local, equations, dg,
-                                                       i, jj, k),
-                                         Ja2_avg, equations)
+        fluxtilde2_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u_local, equations, dg,
+                                                         i, jj, k),
+                                           (), Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
 
@@ -441,10 +438,10 @@ end
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
-        fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_node_vars(u_local, equations, dg,
-                                                       i, j, kk),
-                                         Ja3_avg, equations)
+        fluxtilde3_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u_local, equations, dg,
+                                                         i, j, kk),
+                                           (), Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
     end
 
@@ -461,7 +458,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
                                                            have_nonconservative_terms::False,
-                                                           combine_conservative_and_nonconservative_fluxes::False,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -524,7 +520,6 @@ end
                                                                                T8codeMesh{3}}},
                                                            ::FullSweepGlobal,
                                                            have_nonconservative_terms::True,
-                                                           combine_conservative_and_nonconservative_fluxes::True,
                                                            dg::DGSEM,
                                                            volume_flux,
                                                            ::Val{NNODES},
@@ -548,10 +543,10 @@ end
         Ja1_avg = 0.5f0 * (Ja1_node +
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
-        fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, ii, j, k,
-                                                       element),
-                                         Ja1_avg, equations)
+        fluxtilde1_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u, equations, dg, ii, j, k,
+                                                         element),
+                                           (), Ja1_avg, equations)
         du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
 
@@ -560,10 +555,10 @@ end
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
-        fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, i, jj, k,
-                                                       element),
-                                         Ja2_avg, equations)
+        fluxtilde2_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u, equations, dg, i, jj, k,
+                                                         element),
+                                           (), Ja2_avg, equations)
         du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
 
@@ -572,10 +567,10 @@ end
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
-        fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, i, j, kk,
-                                                       element),
-                                         Ja3_avg, equations)
+        fluxtilde3_left, _ = flux_combined(volume_flux, u_node,
+                                           get_node_vars(u, equations, dg, i, j, kk,
+                                                         element),
+                                           (), Ja3_avg, equations)
         du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
     end
 
@@ -1291,35 +1286,6 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                        i,
                                                                                        j,
                                                                                        interface)
-    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
-                                                         have_nonconservative_terms,
-                                                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                                                         equations),
-                                                         equations, surface_integral,
-                                                         dg,
-                                                         neighbor_ids,
-                                                         node_indices,
-                                                         contravariant_vectors,
-                                                         index_range, i, j, interface)
-    return nothing
-end
-
-Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
-                                                                                       u,
-                                                                                       MeshT::Type{<:Union{P4estMesh{3},
-                                                                                                           T8codeMesh{3}}},
-                                                                                       have_nonconservative_terms::True,
-                                                                                       combine_conservative_and_nonconservative_fluxes::True,
-                                                                                       equations,
-                                                                                       surface_integral,
-                                                                                       dg,
-                                                                                       neighbor_ids,
-                                                                                       node_indices,
-                                                                                       contravariant_vectors,
-                                                                                       index_range,
-                                                                                       i,
-                                                                                       j,
-                                                                                       interface)
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr, normal_direction, primary_direction, primary_element,
@@ -1334,7 +1300,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                             j,
                                                                                             interface)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_left, flux_right = flux_combined(surface_flux, u_ll, u_rr, (),
+                                          normal_direction, equations)
     for v in eachvariable(equations)
         surface_flux_values[v, i, j, primary_direction, primary_element] = flux_left[v]
         surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
@@ -1608,33 +1575,6 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
                                                                           T8codeMesh{3}}},
                                                       have_nonconservative_terms::True,
                                                       equations,
-                                                      surface_integral, dg, cache,
-                                                      i_index, j_index,
-                                                      k_index, i_node_index,
-                                                      j_node_index,
-                                                      direction_index,
-                                                      element_index, boundary_index,
-                                                      node_coordinates,
-                                                      contravariant_vectors)
-    calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
-                        have_nonconservative_terms,
-                        combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                        equations),
-                        equations,
-                        surface_integral, dg, cache,
-                        i_index, j_index, k_index, i_node_index, j_node_index,
-                        direction_index, element_index, boundary_index,
-                        node_coordinates, contravariant_vectors)
-    return nothing
-end
-
-Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
-                                                      boundary_condition,
-                                                      MeshT::Type{<:Union{P4estMesh{3},
-                                                                          T8codeMesh{3}}},
-                                                      have_nonconservative_terms::True,
-                                                      combine_conservative_and_nonconservative_fluxes::True,
-                                                      equations,
                                                       surface_integral, dg::DG, cache,
                                                       i_index, j_index,
                                                       k_index, i_node_index,
@@ -1659,8 +1599,8 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, normal_direction, x, t,
-                              surface_flux, equations)
+    flux = boundary_flux_combined(boundary_condition, u_inner, (), normal_direction,
+                                  x, t, surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)

@@ -752,4 +752,77 @@ LoopVectorization.can_turbo(::typeof(flux_turbo), ::Val) = true
 LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
 
 Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
+
+# Compute the conservative flux plus 0.5 times the nonconservative flux on both sides of
+# an interface (or for a pair of volume nodes), i.e., the combined form described in
+# `combine_conservative_and_nonconservative_fluxes`. The solvers only implement this
+# combined form for equations with nonconservative terms:
+# - A tuple `(flux_conservative, flux_nonconservative)` is combined here. The element
+#   receiving the flux passes its own state and auxiliary variables first.
+# - A single numerical flux has to return the combined fluxes itself.
+# `aux` are the auxiliary variables on both sides, i.e., `(aux_ll, aux_rr)` or an empty
+# tuple for equations without auxiliary variables, see `get_aux_surface_node_vars`.
+@inline function flux_combined(numerical_flux::Union{Tuple{Any, Any},
+                                                     NamedTuple{<:Any,
+                                                                <:Tuple{Any, Any}}},
+                               u_ll, u_rr, aux, orientation_or_normal_direction,
+                               equations)
+    flux_conservative, flux_nonconservative = numerical_flux
+    flux = flux_conservative(u_ll, u_rr, aux..., orientation_or_normal_direction,
+                             equations)
+    noncons_ll = flux_nonconservative(u_ll, u_rr, aux...,
+                                      orientation_or_normal_direction, equations)
+    noncons_rr = flux_nonconservative(u_rr, u_ll, reverse(aux)...,
+                                      orientation_or_normal_direction, equations)
+    return flux + 0.5f0 * noncons_ll, flux + 0.5f0 * noncons_rr
+end
+
+# `FluxTurbo` wrapping a tuple of fluxes falls back to the wrapped fluxes
+@inline function flux_combined(numerical_flux::FluxTurbo{<:Tuple{Any, Any}}, u_ll, u_rr,
+                               aux, orientation_or_normal_direction, equations)
+    return flux_combined(numerical_flux.numerical_flux, u_ll, u_rr, aux,
+                         orientation_or_normal_direction, equations)
+end
+
+@inline function flux_combined(numerical_flux, u_ll, u_rr, aux,
+                               orientation_or_normal_direction, equations)
+    fluxes = numerical_flux(u_ll, u_rr, aux..., orientation_or_normal_direction,
+                            equations)
+    check_combined_fluxes(fluxes, numerical_flux)
+    return fluxes
+end
+
+# A single numerical flux for equations with nonconservative terms has to return the
+# combined fluxes for both sides, see `combine_conservative_and_nonconservative_fluxes`.
+# Without this check, destructuring a single flux vector would silently take its first
+# two components.
+check_combined_fluxes(fluxes::Tuple{Any, Any}, numerical_flux) = nothing
+
+function check_combined_fluxes(fluxes, numerical_flux)
+    throw(ArgumentError("the numerical flux $numerical_flux does not return the " *
+                        "combined fluxes for both sides; pass a tuple " *
+                        "`(flux_conservative, flux_nonconservative)` instead"))
+end
+
+# Same as `flux_combined` for boundary conditions, returning the conservative flux plus
+# 0.5 times the nonconservative flux on the inner side of the boundary. With a tuple of
+# surface fluxes, boundary conditions return the conservative and the nonconservative
+# flux separately. Otherwise, they return the combined flux.
+@inline function boundary_flux_combined(boundary_condition, u_inner, aux_inner,
+                                        normal_direction, x, t,
+                                        surface_flux::Union{Tuple{Any, Any},
+                                                            NamedTuple{<:Any,
+                                                                       <:Tuple{Any,
+                                                                               Any}}},
+                                        equations)
+    flux, noncons_flux = boundary_condition(u_inner, aux_inner..., normal_direction,
+                                            x, t, surface_flux, equations)
+    return flux + 0.5f0 * noncons_flux
+end
+
+@inline function boundary_flux_combined(boundary_condition, u_inner, aux_inner,
+                                        normal_direction, x, t, surface_flux, equations)
+    return boundary_condition(u_inner, aux_inner..., normal_direction, x, t,
+                              surface_flux, equations)
+end
 end # @muladd
