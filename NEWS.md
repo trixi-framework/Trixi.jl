@@ -15,12 +15,13 @@ for human readability.
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
   they are supported for `DGSEM` on (also statically refined) `P4estMesh{2}`es and
-  `P4estMesh{3}`es without AMR, MPI, and GPUs. The new equations
+  `P4estMesh{3}`es, also with volume fluxes wrapped in `FluxTurbo`,
+  but without AMR, MPI, and GPUs. The new equations
   `ConservativeLinearScalarAdvectionEquation2D`,
   `ConservativeLinearScalarAdvectionEquation3D`,
   `NonconservativeLinearScalarAdvectionEquation2D`, and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3436]).
+  advection velocity ([#3239], [#3436], [#3438]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
