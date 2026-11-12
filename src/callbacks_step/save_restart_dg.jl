@@ -50,7 +50,7 @@ end
 # Load solution variables from restart file and
 # convert them to a different polynomial degree.
 # Version for non-MPI-parallel run
-function convert_restart_file_polydeg!(u, file, polydeg_file,
+function convert_restart_file_polydeg!(u, file,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
@@ -71,7 +71,7 @@ function convert_restart_file_polydeg!(u, file, polydeg_file,
 end
 
 # Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
-function convert_restart_file_polydeg!(u_global, file, polydeg_file,
+function convert_restart_file_polydeg!(u_global, file,
                                        mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                    T8codeMeshParallel}, equations,
                                        dg::DGSEM, cache,
@@ -96,7 +96,7 @@ function convert_restart_file_polydeg!(u_global, file, polydeg_file,
 end
 
 # Version for MPI-parallel run with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
-function convert_restart_file_polydeg!(u, file, polydeg_file, slice,
+function convert_restart_file_polydeg!(u, file, slice,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
@@ -165,7 +165,7 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
                                                                    nodes_solver,
                                                                    Val(:gauss))
             end
-            convert_restart_file_polydeg!(u, file, polydeg_file,
+            convert_restart_file_polydeg!(u, file,
                                           mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
         else # Read in variables separately
@@ -357,7 +357,7 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
                                                                    Val(:gauss))
             end
 
-            # Calculate element and node counts by MPI rank                                                                   
+            # Calculate element and node counts by MPI rank
             element_size_file = nnodes_file^ndims(mesh)
             node_counts_file = element_counts * Cint(element_size_file)
             # Cumulative sum of nodes per rank starting with an additional 0
@@ -367,7 +367,7 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
             # Read data of each process in slices (ranks start with 0)
             slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
 
-            convert_restart_file_polydeg!(u, file, polydeg_file, slice,
+            convert_restart_file_polydeg!(u, file, slice,
                                           mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
         else # Read in variables separately
@@ -458,7 +458,7 @@ function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParall
                               ntuple(_ -> nnodes(dg), ndims(mesh))...,
                               nelementsglobal(mesh, dg, cache)))
 
-            convert_restart_file_polydeg!(u_global, file, polydeg_file,
+            convert_restart_file_polydeg!(u_global, file,
                                           mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
             for v in eachvariable(equations)
