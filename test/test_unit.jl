@@ -5958,8 +5958,9 @@ end
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
 
-    # The auxiliary variables are staged in shared memory as well. With `polydeg = 12`,
-    # one variable fits into 48 KiB, but not together with three auxiliary variables.
+    # `FullSweep` stages the auxiliary variables in shared memory as well. With
+    # `polydeg = 12`, one variable fits into 48 KiB, but not together with three
+    # auxiliary variables.
     solver = DGSEM(polydeg = 12, surface_flux = flux_lax_friedrichs,
                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
@@ -5975,6 +5976,8 @@ end
                                         aux_field)
     @test_logs (:warn, r"shared memory") (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
                                                                                                                 semi)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                      semi)
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
