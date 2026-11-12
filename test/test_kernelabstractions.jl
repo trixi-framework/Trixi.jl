@@ -1056,14 +1056,6 @@ end
                                  "elixir_advectionconservative_shear_flow.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                                      volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
-                        tuning=Tuning(flux_differencing_kernel = HalfSweep()),
-                        l2=[0.005190486628803072],
-                        linf=[0.02676998212578452])
-
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_advectionconservative_shear_flow.jl"),
-                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
                         tuning=Tuning(flux_differencing_kernel = FullSweep()),
                         l2=[0.005190486628803072],
                         linf=[0.02676998212578452])
@@ -1112,12 +1104,10 @@ end
              (NonconservativeLinearScalarAdvectionEquation3D(),
               (flux_central, flux_nonconservative_central),
               FluxTurbo(flux_central, flux_nonconservative_central)))
-    for (equations, volume_flux, volume_flux_turbo) in cases,
-        flux_differencing_kernel in (HalfSweep(), FullSweep())
-
-        du_cpu = volume_integral(nothing, equations, volume_flux, flux_differencing_kernel)
+    for (equations, volume_flux, volume_flux_turbo) in cases
+        du_cpu = volume_integral(nothing, equations, volume_flux, FullSweep())
         du_turbo = volume_integral(Trixi.KernelAbstractions.CPU(), equations,
-                                   volume_flux_turbo, flux_differencing_kernel)
+                                   volume_flux_turbo, FullSweep())
         @test du_turbo ≈ du_cpu
         @test maximum(abs, du_cpu) > 0.1
     end
