@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
+  approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
   variables is a fixed property of their type given by `nauxvariables(equations)`;
@@ -129,6 +131,10 @@ for human readability.
 - For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
   different from unity is now supported, which then results in a different temperature
   `T = p / (R * rho)` ([#3165], [#3383]).
+- Trixi.jl now supports KernelAbstractions.jl v0.10 (and AcceleratedKernels.jl v0.5) in
+  addition to v0.9. Note that the `CPU` backend of KernelAbstractions.jl v0.10 compiles
+  kernels like the GPU backends and runs them with PoCL, so the performance of the
+  threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
 - `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
@@ -278,6 +284,11 @@ for human readability.
   normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
   operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
   same way; `flux_inner` already includes this scaling ([#3412]).
+- Fixes a bug in the AMR of `T8codeMesh`es: a family of elements was coarsened if its
+  first element was marked for coarsening, even if other elements of the family were
+  not. Now, a family is coarsened only if all of its elements are marked for coarsening,
+  as for `P4estMesh`es. Thus, results of simulations with AMR on `T8codeMesh`es change
+  and now agree with the corresponding simulations on `P4estMesh`es ([#3421]).
 - The smoothing of the blending factors of the `IndicatorHennemannGassner`
   (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
   into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
