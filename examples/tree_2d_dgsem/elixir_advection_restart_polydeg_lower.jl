@@ -9,14 +9,15 @@ base_elixir = "elixir_advection_extended.jl"
 trixi_include(@__MODULE__, joinpath(@__DIR__, base_elixir), alg = alg)
 
 restart_filename = joinpath("out", "restart_000000018.h5")
-tspan = (1.0, 1.0)
+tspan = (1.0, 2.0)
 
 ###############################################################################
 # Convert original solution to LOWER order (3 -> 2)
 
-# Set `interpolate_high2low = false` to construct the solution via L2 projection
-# instead of interpolation. The L2 projection conserves the integral over each element
-# and yields smaller L2 errors, but is in general not continuous across element interfaces.
+# Interpolate instead of using the default L2 projection. Interpolation preserves continuity
+# across element interfaces. Set `interpolate_high2low = false` (default) to construct the
+# solution via L2 projection, which conserves the integral over each element and yields
+# smaller L2 errors, but is in general not continuous across element interfaces.
 interpolate_high2low = true
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)

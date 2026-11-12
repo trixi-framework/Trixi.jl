@@ -13,17 +13,19 @@ restart_filename = joinpath("out", restart_file)
 tspan = (load_time(restart_filename), 2.0)
 
 ###############################################################################
-# Interpolate original solution to LOWER order (3 -> 2)
+# Project original solution to LOWER order (3 -> 2)
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
-# By default, the higher-degree polynomial is interpolated to the lower degree polynomial,
+# By default, the higher-degree polynomial is L2-projected onto the lower-degree polynomial,
+# which conserves the integral over each element.
+# Set `interpolate_high2low = true` to interpolate instead,
 # thereby preserving continuity across cell interfaces.
-# Set `interpolate_high2low = false` to avoid interpolation in favor of L2-projection.
-ode = semidiscretize(semi, tspan, restart_filename)
+interpolate_high2low = false
+ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low)
 
 # We can increase the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 2.0)
