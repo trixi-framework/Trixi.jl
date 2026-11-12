@@ -15,13 +15,14 @@ for human readability.
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
   they are supported for `DGSEM` on (also statically refined) `P4estMesh{2}`es and
-  `P4estMesh{3}`es, also with volume fluxes wrapped in `FluxTurbo`,
-  but without AMR, MPI, and GPUs. The new equations
+  `P4estMesh{3}`es without AMR and MPI, also with volume fluxes wrapped in `FluxTurbo`,
+  and on conforming `P4estMesh{3}`es also on GPUs (there without `FluxTurbo`).
+  The new equations
   `ConservativeLinearScalarAdvectionEquation2D`,
   `ConservativeLinearScalarAdvectionEquation3D`,
   `NonconservativeLinearScalarAdvectionEquation2D`, and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3436], [#3438]).
+  advection velocity ([#3239], [#3396], [#3436], [#3438]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -65,9 +66,9 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
-- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D and 3D `P4estMesh`s,
   i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
-  CPU backend ([#3251]).
+  CPU backend ([#3251], [#3381]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -117,6 +118,9 @@ for human readability.
   - the volume integrals `VolumeIntegralAdaptive` with `IndicatorEntropyChange`,
     `IndicatorEntropyCorrection`, and `IndicatorEntropyCorrectionShockCapturingCombined`
     on all mesh types supporting them ([#3432])
+  - the indicators `IndicatorHennemannGassner`, `IndicatorMax`, and
+    `IndicatorNodalFunction` on all mesh types and `IndicatorLöhner` on
+    three-dimensional meshes ([#3447])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
@@ -130,6 +134,10 @@ for human readability.
   `T = p / (R * rho)` ([#3165], [#3383]).
 
 #### Changed
+- `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
+  `IndicatorMax` throw a `DimensionMismatch` if their basis has a different number of
+  nodes than the one of the solver. Previously, `IndicatorMax` silently returned wrong
+  values if the basis of the indicator had more nodes ([#3447]).
 - `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
   now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
   are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
