@@ -1560,4 +1560,110 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
 
     return nothing
 end
+
+# Auxiliary variables at the interface and mortar nodes, cf. `prolong2interfaces!` and
+# `prolong2mortars!`. Boundaries use the auxiliary variables of the volume nodes of the
+# adjacent element directly, so they do not need extra storage.
+# MPI is not supported yet since the auxiliary variables are not stored at MPI interfaces
+# and MPI mortars, so parallel meshes use the fallback throwing an error. The same holds
+# for a Gauss-Legendre basis, which requires interpolation to the interfaces.
+function init_aux_surface_node_vars!(aux_vars, mesh::TreeMeshSerial{2}, equations,
+                                     solver::DGSEM{<:LobattoLegendreBasis}, cache)
+    @unpack aux, aux_interface = aux_vars
+    @unpack neighbor_ids, orientations = cache.interfaces
+
+    @threaded for interface in eachinterface(solver, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(solver), v in eachauxvariable(equations)
+                aux_interface[1, v, j, interface] = aux[v, nnodes(solver), j,
+                                                        left_element]
+                aux_interface[2, v, j, interface] = aux[v, 1, j, right_element]
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(solver), v in eachauxvariable(equations)
+                aux_interface[1, v, i, interface] = aux[v, i, nnodes(solver),
+                                                        left_element]
+                aux_interface[2, v, i, interface] = aux[v, i, 1, right_element]
+            end
+        end
+    end
+
+    init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver, cache)
+
+    return nothing
+end
+
+# The auxiliary variables are treated as the solution in `prolong2mortars!`: the values
+# of the small elements are copied and the values of the large element are interpolated
+# to the surface nodes of the small elements. Thus, the auxiliary variables do not need to
+# be continuous across mortars. As for `cache.mortars.u_upper` and `u_lower`, the first
+# index of `aux_mortar[leftright, v, position, i, mortar]` refers to the left and right
+# side of the mortar, and `position` is `1` for the lower and `2` for the upper element.
+function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMeshSerial{2}, equations,
+                                    mortar_l2::LobattoLegendreMortarL2, solver, cache)
+    @unpack aux, aux_mortar = aux_vars
+    @unpack neighbor_ids, large_sides, orientations = cache.mortars
+
+    @threaded for mortar in eachmortar(solver, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Copy the auxiliary variables of the small elements and select the face of the
+        # large element
+        if large_sides[mortar] == 1 # -> small elements on right side
+            leftright_large = 1
+            if orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver), v in eachauxvariable(equations)
+                    aux_mortar[2, v, 1, l, mortar] = aux[v, 1, l, lower_element]
+                    aux_mortar[2, v, 2, l, mortar] = aux[v, 1, l, upper_element]
+                end
+                aux_large = view(aux, :, nnodes(solver), :, large_element)
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver), v in eachauxvariable(equations)
+                    aux_mortar[2, v, 1, l, mortar] = aux[v, l, 1, lower_element]
+                    aux_mortar[2, v, 2, l, mortar] = aux[v, l, 1, upper_element]
+                end
+                aux_large = view(aux, :, :, nnodes(solver), large_element)
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            leftright_large = 2
+            if orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver), v in eachauxvariable(equations)
+                    aux_mortar[1, v, 1, l, mortar] = aux[v, nnodes(solver), l,
+                                                         lower_element]
+                    aux_mortar[1, v, 2, l, mortar] = aux[v, nnodes(solver), l,
+                                                         upper_element]
+                end
+                aux_large = view(aux, :, 1, :, large_element)
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver), v in eachauxvariable(equations)
+                    aux_mortar[1, v, 1, l, mortar] = aux[v, l, nnodes(solver),
+                                                         lower_element]
+                    aux_mortar[1, v, 2, l, mortar] = aux[v, l, nnodes(solver),
+                                                         upper_element]
+                end
+                aux_large = view(aux, :, :, 1, large_element)
+            end
+        end
+
+        # Interpolate the auxiliary variables of the large element face to the surface
+        # nodes of the small elements
+        multiply_dimensionwise!(view(aux_mortar, leftright_large, :, 1, :, mortar),
+                                mortar_l2.forward_lower, aux_large)
+        multiply_dimensionwise!(view(aux_mortar, leftright_large, :, 2, :, mortar),
+                                mortar_l2.forward_upper, aux_large)
+    end
+
+    return nothing
+end
 end # @muladd

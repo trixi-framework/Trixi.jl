@@ -6805,14 +6805,6 @@ end
                                                                 solver;
                                                                 boundary_conditions = boundary_condition_periodic,
                                                                 aux_field)
-
-        mesh_tree = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 1,
-                             periodicity = true)
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_tree, equations,
-                                                                initial_condition,
-                                                                solver;
-                                                                boundary_conditions = boundary_condition_periodic,
-                                                                aux_field)
     end
 end
 
@@ -7025,6 +7017,171 @@ end
         Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
         Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
         @test du_ode_nonconservative ≈ du_ode_conservative
+    end
+end
+
+@testitem "Unit: Auxiliary variables on TreeMesh2D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation2D()
+    @test nauxvariables(equations) == 2
+    @test Trixi.auxvarnames(equations) == ("a1", "a2")
+
+    # Refine a box in the center to get mortars in both coordinate directions with the
+    # large elements on both sides
+    refinement_patches = ((type = "box", coordinates_min = (-0.5, -0.5),
+                           coordinates_max = (0.5, 0.5)),)
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
+                    refinement_patches = refinement_patches, periodicity = true)
+    polydeg = 3
+    solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+    initial_condition(x, t, equations) = SVector(sinpi(x[1] + x[2]))
+    # The auxiliary variables have to be continuous across the periodic boundaries
+    aux_field(x, equations) = SVector(1 + 0.125f0 * sinpi(x[1]), 0.5f0 * cospi(x[2]))
+
+    @timed_testset "Initialization" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        (; aux, aux_interface, aux_mortar) = semi.cache.aux_vars
+        n_elements = nelements(solver, semi.cache)
+        @test size(aux) == (2, polydeg + 1, polydeg + 1, n_elements)
+        @test size(aux_interface) ==
+              (2, 2, polydeg + 1, Trixi.ninterfaces(semi.cache.interfaces))
+        @test size(aux_mortar) == (2, 2, 2, polydeg + 1, Trixi.nmortars(semi.cache.mortars))
+        @test Trixi.nmortars(semi.cache.mortars) > 0
+        @test !any(isnan, aux)
+        @test !any(isnan, aux_interface)
+        @test !any(isnan, aux_mortar)
+        # The auxiliary variables are evaluated at the node coordinates
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test all(aux[:, i, j, element] ≈
+                  aux_field(node_coordinates[:, i, j, element], equations)
+                  for i in eachnode(solver), j in eachnode(solver),
+                      element in 1:n_elements)
+        # The auxiliary variables are continuous, so both sides of an interface agree
+        @test aux_interface[1, :, :, :] ≈ aux_interface[2, :, :, :]
+        # The auxiliary variables are not polynomials, so the values of the large
+        # elements interpolated to the mortars differ from the values of the small elements
+        @test !(aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :])
+        @test_nowarn show(devnull, MIME"text/plain"(), semi)
+        @test_nowarn show(devnull, MIME"text/plain"(), equations)
+
+        # Both sides of the mortars agree if the auxiliary variables are polynomials of
+        # degree `polydeg`
+        aux_field_polynomial(x, equations) = SVector(1 + x[1]^3, x[1] * x[2]^2)
+        semi_polynomial = SemidiscretizationHyperbolic(mesh, equations,
+                                                       initial_condition, solver;
+                                                       boundary_conditions = boundary_condition_periodic,
+                                                       aux_field = aux_field_polynomial)
+        aux_mortar = semi_polynomial.cache.aux_vars.aux_mortar
+        @test !any(isnan, aux_mortar)
+        @test aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :]
+    end
+
+    @timed_testset "Remake and automatic differentiation" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        semi_remade = Trixi.remake(semi)
+        @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
+        @test semi_remade.cache.aux_vars.aux_mortar == semi.cache.aux_vars.aux_mortar
+        @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
+    end
+
+    @timed_testset "Free-stream preservation with discontinuous velocity" begin
+        # Since a⋅∇u = 0 for a constant state `u`, the constant state is preserved up to
+        # round-off errors by the nonconservative form also for velocities that are
+        # discontinuous at interfaces and mortars.
+        equations_nonconservative = NonconservativeLinearScalarAdvectionEquation2D()
+        mesh_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                    initial_refinement_level = 2,
+                                    refinement_patches = refinement_patches,
+                                    periodicity = false)
+        initial_condition_constant(x, t, equations) = SVector(one(eltype(x)))
+        solver_nonconservative = DGSEM(polydeg = polydeg,
+                                       surface_flux = (flux_lax_friedrichs,
+                                                       flux_nonconservative_central),
+                                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                                         flux_nonconservative_central)))
+        semi = SemidiscretizationHyperbolic(mesh_nonperiodic, equations_nonconservative,
+                                            initial_condition_constant,
+                                            solver_nonconservative;
+                                            boundary_conditions = BoundaryConditionDirichlet(initial_condition_constant),
+                                            aux_field)
+        # Use a different smooth velocity in each element
+        (; aux_vars) = semi.cache
+        for element in eachelement(solver_nonconservative, semi.cache)
+            factor = 1 + 0.1 * element
+            for j in eachnode(solver_nonconservative),
+                i in eachnode(solver_nonconservative)
+
+                aux_vars.aux[:, i, j, element] .*= SVector(factor, -factor)
+            end
+        end
+        Trixi.init_aux_surface_node_vars!(aux_vars, mesh_nonperiodic,
+                                          equations_nonconservative,
+                                          solver_nonconservative, semi.cache)
+        @test !(aux_vars.aux_interface[1, :, :, :] ≈ aux_vars.aux_interface[2, :, :, :])
+        @test !(aux_vars.aux_mortar[1, :, :, :, :] ≈ aux_vars.aux_mortar[2, :, :, :, :])
+
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        @test maximum(abs, du_ode) < 1.0e-12
+    end
+
+    @timed_testset "Constant velocity agrees with LinearScalarAdvectionEquation2D" begin
+        # For a constant advection velocity, the conservative and nonconservative
+        # discretizations with auxiliary variables are the same as the discretization
+        # with constant velocity (up to round-off errors)
+        mesh_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                    initial_refinement_level = 2,
+                                    refinement_patches = refinement_patches,
+                                    periodicity = false)
+        aux_field_constant(x, equations) = SVector(0.75, -0.5)
+        boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+        semi_conservative = SemidiscretizationHyperbolic(mesh_nonperiodic, equations,
+                                                         initial_condition, solver;
+                                                         boundary_conditions,
+                                                         aux_field = aux_field_constant)
+        solver_nonconservative = DGSEM(polydeg = polydeg,
+                                       surface_flux = (flux_lax_friedrichs,
+                                                       flux_nonconservative_central),
+                                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                                         flux_nonconservative_central)))
+        semi_nonconservative = SemidiscretizationHyperbolic(mesh_nonperiodic,
+                                                            NonconservativeLinearScalarAdvectionEquation2D(),
+                                                            initial_condition,
+                                                            solver_nonconservative;
+                                                            boundary_conditions,
+                                                            aux_field = aux_field_constant)
+        semi_constant = SemidiscretizationHyperbolic(mesh_nonperiodic,
+                                                     LinearScalarAdvectionEquation2D(0.75,
+                                                                                     -0.5),
+                                                     initial_condition, solver;
+                                                     boundary_conditions)
+        u_ode = compute_coefficients(0.0, semi_constant)
+        du_conservative = similar(u_ode)
+        du_nonconservative = similar(u_ode)
+        du_constant = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_conservative, u_ode, semi_conservative, 0.0)
+        Trixi.rhs_hyperbolic!(du_nonconservative, u_ode, semi_nonconservative, 0.0)
+        Trixi.rhs_hyperbolic!(du_constant, u_ode, semi_constant, 0.0)
+        @test du_conservative ≈ du_constant
+        @test du_nonconservative ≈ du_constant
+    end
+
+    @timed_testset "Unsupported configurations" begin
+        # Gauss-Legendre nodes require interpolation to the interfaces
+        solver_gauss = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs,
+                             basis_type = GaussLegendreBasis)
+        mesh_conforming = TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                   initial_refinement_level = 2, periodicity = true)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_conforming,
+                                                                equations,
+                                                                initial_condition,
+                                                                solver_gauss;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
     end
 end
 
