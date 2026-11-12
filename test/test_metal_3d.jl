@@ -648,3 +648,147 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "Metal 3D: elixir_advectionconservative_shear_flow.jl Float32 / Metal" setup=[
+    Setup,
+    Metal3DExamples
+] tags=[:Metal, :metal_skip_m1_m2] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.00519048662880307)],
+                        linf=[Float32(0.026769982125784075)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "Metal 3D: elixir_advectionconservative_shear_flow.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / Metal" setup=[
+    Setup,
+    Metal3DExamples
+] tags=[:Metal, :metal_skip_m1_m2] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors) on Cartesian meshes
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        real_type=Float32,
+                        storage_type=MtlArray,
+                        tuning=Tuning(flux_differencing_kernel = HalfSweep()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === HalfSweep()
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+    u_half_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        real_type=Float32,
+                        storage_type=MtlArray,
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweep()
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+    u_full_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.005190486628803072)],
+                        linf=[Float32(0.02676998212578452)],
+                        RealT_for_test_tolerances=Float32,
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        real_type=Float32,
+                        storage_type=MtlArray,
+                        tuning=Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test semi === ode.p
+    @test semi.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+    u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
+end
+
+@testitem "Metal 3D: elixir_advectionconservative_source_terms_nonconforming.jl conforming Float32 / Metal" setup=[
+    Setup,
+    Metal3DExamples
+] tags=[:Metal, :metal_skip_m1_m2] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    # Without refinement, the mesh is conforming as required for auxiliary variables on GPUs
+    no_refine = @cfunction((p8est, which_tree, quadrant)->Cint(0), Cint,
+                           (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                            Ptr{Trixi.p8est_quadrant_t}))
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.010905711222904933)],
+                        linf=[Float32(0.08350130805195932)],
+                        RealT_for_test_tolerances=Float32,
+                        refine_fn_c=no_refine,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test isempty(Trixi.eachmortar(semi.solver, semi.cache))
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
