@@ -766,7 +766,8 @@ end
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
-    # The default `Trixi.cons2turbo` passes the auxiliary variables to the volume flux
+    # `FluxTurbo` results in the same discretization as the plain `flux_central`
+    # (up to round-off errors), see the test above
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_shear_flow.jl"),
                         # Expected errors similar to reference on CPU
@@ -847,10 +848,8 @@ end
     # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using Metal
 
-    # Compare the volume integral of the turbo kernels with the regular CPU code for a
-    # nonconservative equation with auxiliary variables on a curved mesh. The regular CPU
-    # code serves as reference since the GPU kernels without `FluxTurbo` support
-    # nonconservative terms only with combined fluxes.
+    # Compare with the plain CPU code since the GPU kernels without `FluxTurbo`
+    # support nonconservative terms only with combined fluxes
     function aux_field(x, equations)
         return SVector(1 + 0.5f0 * sinpi(x[2]), 0.5f0 + 0.25f0 * sinpi(x[1]),
                        0.25f0 * cospi(x[3]))
@@ -874,7 +873,7 @@ end
                            tuning = Tuning(; flux_differencing_kernel))
         u_ode = compute_coefficients(0.0f0, semi)
         du_ode = zero(u_ode)
-        # The wrapped arrays do not keep `u_ode` and `du_ode` alive
+        # `wrap_array` may not keep `u_ode` and `du_ode` alive
         GC.@preserve u_ode du_ode begin
             u = Trixi.wrap_array(u_ode, semi)
             du = Trixi.wrap_array(du_ode, semi)
@@ -886,14 +885,14 @@ end
         return Array(du_ode)
     end
 
+    du_cpu = volume_integral(Array, (flux_central, flux_nonconservative_central),
+                             nothing)
+    @test maximum(abs, du_cpu) > 0.1
     for flux_differencing_kernel in (HalfSweep(), FullSweep())
-        du_cpu = volume_integral(Array, (flux_central, flux_nonconservative_central),
-                                 flux_differencing_kernel)
         du_gpu = volume_integral(MtlArray,
                                  FluxTurbo(flux_central, flux_nonconservative_central),
                                  flux_differencing_kernel)
         @test du_gpu ≈ du_cpu
-        @test maximum(abs, du_cpu) > 0.1
     end
 end
 

@@ -1051,7 +1051,8 @@ end
                         l2=[0.005190486628803072],
                         linf=[0.02676998212578452])
 
-    # The default `Trixi.cons2turbo` passes the auxiliary variables to the volume flux
+    # `FluxTurbo` results in the same discretization as the plain `flux_central`
+    # (up to round-off errors)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advectionconservative_shear_flow.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
@@ -1062,10 +1063,8 @@ end
 end
 
 @testitem "KernelAbstractions CPU 3D: FluxTurbo with auxiliary variables" setup=[Setup] tags=[:kernelabstractions] begin
-    # Compare the volume integral of the turbo kernels with the regular CPU code for
-    # conservative and nonconservative equations with auxiliary variables on a curved mesh.
-    # The regular CPU code (`backend = nothing`) serves as reference since the GPU kernels
-    # without `FluxTurbo` support nonconservative terms only with combined fluxes.
+    # Compare with the plain CPU code since the kernels without `FluxTurbo`
+    # support nonconservative terms only with combined fluxes
     function aux_field(x, equations)
         return SVector(1 + 0.5 * sinpi(x[2]), 0.5 + 0.25 * sinpi(x[1]),
                        0.25 * cospi(x[3]))
@@ -1087,7 +1086,7 @@ end
         semi = trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))
         u_ode = compute_coefficients(0.0, semi)
         du_ode = zero(u_ode)
-        # The wrapped arrays do not keep `u_ode` and `du_ode` alive
+        # `wrap_array` may not keep `u_ode` and `du_ode` alive
         GC.@preserve u_ode du_ode begin
             u = Trixi.wrap_array(u_ode, semi)
             du = Trixi.wrap_array(du_ode, semi)

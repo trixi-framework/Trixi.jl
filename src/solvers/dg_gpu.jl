@@ -3,11 +3,8 @@
     return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NTURBO))
 end
 
-# Precomputed variables of `Trixi.cons2turbo` at a node with the conserved variables
-# `u_node` and the auxiliary variables `aux_node` as returned by `get_aux_node_vars`, i.e.,
-# an empty tuple for equations without auxiliary variables and `(aux,)` otherwise.
-# As in the CPU code, the auxiliary variables are passed as scalars after the conserved
-# variables.
+# `Trixi.cons2turbo` at a node; the auxiliary variables of `get_aux_node_vars` are
+# passed as scalars after the conserved variables, as on the CPU
 @inline function cons2turbo_node(numerical_flux, u_node, ::Tuple{}, equations)
     return cons2turbo(numerical_flux, u_node..., equations)
 end

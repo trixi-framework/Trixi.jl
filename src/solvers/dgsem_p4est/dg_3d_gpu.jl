@@ -924,7 +924,6 @@ end
 
         # first coordinate direction: rotate the partner index along `i`
         ii = mod(i - 1 + offset, NNODES) + 1
-        turbo_node_ii = get_node_turbo(turbo_local, Val(NTURBO), ii, j, k)
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                ii, j, k, element)
@@ -932,7 +931,10 @@ end
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1_left, fluxtilde1_right = flux_turbo(numerical_flux,
-                                                       turbo_node..., turbo_node_ii...,
+                                                       turbo_node...,
+                                                       get_node_turbo(turbo_local,
+                                                                      Val(NTURBO),
+                                                                      ii, j, k)...,
                                                        Ja1_avg..., equations)
 
         for v in 1:NVARIABLES
@@ -955,7 +957,6 @@ end
 
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
-        turbo_node_jj = get_node_turbo(turbo_local, Val(NTURBO), i, jj, k)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                i, jj, k, element)
@@ -963,7 +964,10 @@ end
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde2_left, fluxtilde2_right = flux_turbo(numerical_flux,
-                                                       turbo_node..., turbo_node_jj...,
+                                                       turbo_node...,
+                                                       get_node_turbo(turbo_local,
+                                                                      Val(NTURBO),
+                                                                      i, jj, k)...,
                                                        Ja2_avg..., equations)
 
         for v in 1:NVARIABLES
@@ -986,7 +990,6 @@ end
 
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
-        turbo_node_kk = get_node_turbo(turbo_local, Val(NTURBO), i, j, kk)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                i, j, kk, element)
@@ -994,7 +997,10 @@ end
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde3_left, fluxtilde3_right = flux_turbo(numerical_flux,
-                                                       turbo_node..., turbo_node_kk...,
+                                                       turbo_node...,
+                                                       get_node_turbo(turbo_local,
+                                                                      Val(NTURBO),
+                                                                      i, j, kk)...,
                                                        Ja3_avg..., equations)
 
         for v in 1:NVARIABLES
