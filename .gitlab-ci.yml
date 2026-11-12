@@ -84,7 +84,7 @@ default:
   extends: .compute
   variables:
     CHECK: cpu
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 1 -n 1 -c 4 --mem=32G -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 1 -c 4 --mem=32G -t 00:15:00"
   script:
     - |
       julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/serial.log"
@@ -98,7 +98,7 @@ default:
   variables:
     CHECK: mpi
     UCX_LOG_LEVEL: info
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 2 -n 2 --ntasks-per-node=1 -c 1 --mem=32G -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 2 -n 2 --ntasks-per-node=1 -c 1 --mem=32G -t 00:15:00"
   script:
     - |
       julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl mpi 2>&1 | tee "$RESULTS/mpi.log"
@@ -108,7 +108,7 @@ default:
   variables:
     CHECK: gpu
     OMPI_MCA_opal_cuda_support: "1"
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 00:20:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 00:15:00"
   script:
     - |
       julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl cuda 2>&1 | tee "$RESULTS/cuda.log"
@@ -127,7 +127,7 @@ default:
   extends: .bench
   variables:
     CHECK: bench-threads
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N 1 -n 1 -c 192 --exclusive --mem=0 -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 1 -c 192 --exclusive --mem=0 -t 00:15:00"
   parallel:
     matrix:
       - COUNT: ["1", "8", "24", "48", "96"]
@@ -139,7 +139,7 @@ default:
   extends: .bench
   variables:
     CHECK: bench-mpi
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --exclusive --mem=0 -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --exclusive --mem=0 -t 00:15:00"
   parallel:
     matrix:
       - COUNT: ["1", "8", "24", "96"]
@@ -155,7 +155,7 @@ default:
   variables:
     CHECK: bench-gpu
     OMPI_MCA_opal_cuda_support: "1"
-    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -q express -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 24 --mem=180G -t 00:30:00"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 24 --mem=180G -t 00:15:00"
   parallel:
     matrix:
       - COUNT: ["1", "2"]
