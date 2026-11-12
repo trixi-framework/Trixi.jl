@@ -7,7 +7,7 @@ using Trixi
 equations = IdealGlmMhdEquations2D(5 / 3)
 
 function initial_condition_shifted_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Shift blastwave to center of domain
     inicenter = (sqrt(2) / 2, sqrt(2) / 2)
     x_norm = x[1] - inicenter[1]

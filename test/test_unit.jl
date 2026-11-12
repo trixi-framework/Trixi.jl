@@ -4605,7 +4605,7 @@ end
     ### Compute the Jacobian sparsity pattern ###
 
     # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_jac_type! = function (du_ode, u0_ode)
         Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
     end
@@ -4722,7 +4722,7 @@ end
     # This test validates this.
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
                                                                       u0_ode,
                                                                       semi_jac_type,

@@ -92,9 +92,10 @@ A struct containing everything needed to describe a spatial semidiscretization
 of a the compressible Euler equations with self-gravity, reformulating the
 Poisson equation for the gravitational potential as steady-state problem of
 the hyperbolic diffusion equations.
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   "A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics"
-  [arXiv: 2008.10593](https://arXiv.org/abs/2008.10593)
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 """
 struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
                                       Parameters <: ParametersEulerGravity, Cache} <:
@@ -232,8 +233,8 @@ end
 end
 
 # Coupled Euler and gravity solver at each Runge-Kutta stage,
-# corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020),
-# https://dx.doi.org/10.1016/j.jcp.2021.110467
+# corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2021),
+# https://arxiv.org/abs/2008.10593 (DOI: https://doi.org/10.1016/j.jcp.2021.110467)
 function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 
@@ -453,7 +454,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
         beta_stage_dtau = beta[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
-                # See Algorithm 1 (3S* method) in Schlottke-Lakemper et al. (2020)
+                # See Algorithm 1 (3S* method) in Schlottke-Lakemper et al. (2021)
                 u_tmp1_ode[idx] += delta_stage * u_ode[idx]
                 u_ode[idx] = (gamma1_stage * u_ode[idx] +
                               gamma2_stage * u_tmp1_ode[idx] +

@@ -13,7 +13,8 @@ Weak magnetic blast wave setup taken from Section 6.1 of the paper:
 - A. M. Rueda-Ramírez, S. Hennemann, F. J. Hindenlang, A. R. Winters, G. J. Gassner (2021)
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD
   equations. Part II: Subcell finite volume shock capturing
-  [doi: 10.1016/j.jcp.2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
+  [DOI: 10.1016/j.jcp.2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
     # Center of the blast wave is selected for the domain [0, 3]^3
@@ -58,7 +59,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but with slightly less warping.
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but with slightly less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant.
 function mapping(xi_, eta_, zeta_)

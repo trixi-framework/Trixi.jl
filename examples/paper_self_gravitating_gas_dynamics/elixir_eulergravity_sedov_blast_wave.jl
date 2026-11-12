@@ -10,18 +10,19 @@ equations_euler = CompressibleEulerEquations2D(gamma)
     initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
     r = sqrt(x[1]^2 + x[2]^2)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+    # Setup based on example 35.1.4.1 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
     E = 1.0
     p_inner = (equations.gamma - 1) * E / (pi * r0^2)
@@ -54,11 +55,12 @@ initial_condition = initial_condition_sedov_self_gravity
                                           equations::CompressibleEulerEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
 function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
@@ -116,11 +118,12 @@ equations_gravity = HyperbolicDiffusionEquations2D()
     initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t,
@@ -138,11 +141,12 @@ end
                                           equations::HyperbolicDiffusionEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
 function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
