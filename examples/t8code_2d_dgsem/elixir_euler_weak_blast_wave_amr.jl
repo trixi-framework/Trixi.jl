@@ -57,6 +57,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 # Affine type mapping to take the [-1,1]^2 domain
 # and warp it as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 # Warping with the coefficient 0.2 is even more extreme.
 function mapping_twist(xi, eta)
     y = eta + 0.125 * cos(1.5 * pi * xi) * cos(0.5 * pi * eta)
