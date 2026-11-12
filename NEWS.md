@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
+  approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
   variables is a fixed property of their type given by `nauxvariables(equations)`;
@@ -129,6 +131,10 @@ for human readability.
 - For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
   different from unity is now supported, which then results in a different temperature
   `T = p / (R * rho)` ([#3165], [#3383]).
+- Trixi.jl now supports KernelAbstractions.jl v0.10 (and AcceleratedKernels.jl v0.5) in
+  addition to v0.9. Note that the `CPU` backend of KernelAbstractions.jl v0.10 compiles
+  kernels like the GPU backends and runs them with PoCL, so the performance of the
+  threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
 - `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
