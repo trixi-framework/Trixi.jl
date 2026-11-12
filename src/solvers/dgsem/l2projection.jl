@@ -156,7 +156,7 @@ end
 # from a higher degree to a lower degree using Gauss-Legendre quadrature.
 #
 # The projection `u_low = P * u_high` is defined by
-#  ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ 
+#  ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ
 # for all low-degree basis functions ℓ_i^low,
 # i.e., `P = M \ B` with the exact low-degree mass matrix M_ik = ∫ ℓ_i^low ℓ_k^low dξ
 # and B_ij = ∫ ℓ_i^low ℓ_j^high dξ.
