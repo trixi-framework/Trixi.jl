@@ -9,8 +9,10 @@
     HyperbolicDiffusionEquations2D
 
 The linear hyperbolic diffusion equations in two space dimensions.
-A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
-The book is freely available at [http://www.cfdbooks.com/](http://www.cfdbooks.com/) and further analysis can be found in
+A description of this system can be found in Sec. 2.5 of the book "I do like CFD, VOL.1".
+The book is freely available at
+[ResearchGate](https://www.researchgate.net/publication/315378648_I_do_like_CFD_VOL1_Governing_Equations_and_Exact_Solutions)
+and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
 struct HyperbolicDiffusionEquations2D{RealT <: Real} <:
@@ -118,9 +120,10 @@ end
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_harmonic`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
@@ -223,14 +226,19 @@ end
 
     # this is an optimized version of the application of the upwind dissipation matrix:
     #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
+    # With λ = sqrt(nu * inv_Tr), the flux Jacobian A_n satisfies
+    #   A_n^2 = λ^2 * diag(|n|^2, n n^T),
+    # so |A_n| = λ * diag(|n|, n n^T / |n|), i.e., only the normal component of the
+    # jump [[q]] is dissipated.
     λ_max = sqrt(equations.nu * equations.inv_Tr)
-    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) -
-         0.5f0 * λ_max * (phi_rr - phi_ll) *
-         sqrt(normal_direction[1]^2 + normal_direction[2]^2)
+    norm_ = norm(normal_direction)
+    jump_q_normal = (normal_direction[1] * (q1_rr - q1_ll) +
+                     normal_direction[2] * (q2_rr - q2_ll)) / norm_
+    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) - 0.5f0 * λ_max * (phi_rr - phi_ll) * norm_
     f2 = 0.5f0 * (f_ll[2] + f_rr[2]) -
-         0.5f0 * λ_max * (q1_rr - q1_ll) * normal_direction[1]
+         0.5f0 * λ_max * jump_q_normal * normal_direction[1]
     f3 = 0.5f0 * (f_ll[3] + f_rr[3]) -
-         0.5f0 * λ_max * (q2_rr - q2_ll) * normal_direction[2]
+         0.5f0 * λ_max * jump_q_normal * normal_direction[2]
 
     return SVector(f1, f2, f3)
 end
@@ -254,7 +262,7 @@ end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::HyperbolicDiffusionEquations2D) = u
 
-# Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
+# Convert conservative variables to entropy found in "I do like CFD, VOL.1"
 @inline function cons2entropy(u, equations::HyperbolicDiffusionEquations2D)
     phi, q1, q2 = u
     w1 = phi
@@ -271,7 +279,7 @@ end
 
 # Calculate total energy for a conservative state `u`
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations2D)
-    # energy function as found in equations (2.5.12) in the book "I Do Like CFD, Vol. 1"
+    # energy function as found in equations (2.5.12) in the book "I do like CFD, VOL.1"
     phi, q1, q2 = u
     return 0.5f0 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2))
 end

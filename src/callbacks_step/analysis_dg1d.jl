@@ -10,13 +10,15 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{1},
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)))
 
     return (; u_local, x_local)
 end
@@ -26,15 +28,17 @@ function create_cache_analysis(analyzer, mesh::StructuredMesh{1},
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)))
-    jacobian_local = StrideArray(undef, RealT,
-                                 StaticInt(nnodes(analyzer)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)))
+    jacobian_local = stride_array_or_array(RealT,
+                                           StaticInt(nnodes(analyzer)))
 
     return (; u_local, x_local, jacobian_local)
 end
@@ -123,10 +127,11 @@ end
 # We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
-function integrate_reference_element(func::Func, u, element,
-                                     ::Type{<:AbstractMesh{1}}, equations, dg::DGSEM,
-                                     cache,
-                                     args...) where {Func}
+Base.@propagate_inbounds function integrate_reference_element(func::Func, u, element,
+                                                              ::Type{<:AbstractMesh{1}},
+                                                              equations, dg::DGSEM,
+                                                              cache,
+                                                              args...) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
@@ -142,24 +147,31 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du, u, element,
-                                          MeshT::Type{<:AbstractMesh{1}},
-                                          equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
-                                       du) do u, i, element, equations, dg, du
+Base.@propagate_inbounds function entropy_change_reference_element(du, u, element,
+                                                                   MeshT::Type{<:AbstractMesh{1}},
+                                                                   equations, dg::DGSEM,
+                                                                   cache, args...)
+    # Not a `do` block since `Base.@propagate_inbounds` cannot be applied to it
+    Base.@propagate_inbounds function integrand(u, i, element, equations, dg, du)
         u_node = get_node_vars(u, equations, dg, i, element)
         du_node = get_node_vars(du, equations, dg, i, element)
 
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
+
+    return integrate_reference_element(integrand, u, element, MeshT, equations, dg,
+                                       cache, du)
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral_reference_element(func::Func, u, element,
-                                            ::Type{<:Union{TreeMesh{1},
-                                                           StructuredMesh{1}}},
-                                            equations, dg::DGSEM,
-                                            cache, args...) where {Func}
+Base.@propagate_inbounds function surface_integral_reference_element(func::Func, u,
+                                                                     element,
+                                                                     ::Type{<:Union{TreeMesh{1},
+                                                                                    StructuredMesh{1}}},
+                                                                     equations,
+                                                                     dg::DGSEM,
+                                                                     cache,
+                                                                     args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
     u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
 
