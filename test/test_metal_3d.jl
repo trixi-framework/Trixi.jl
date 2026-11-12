@@ -246,7 +246,7 @@ end
     using Metal
     using Trixi
     # Create a non-conforming mesh by refining the bottom left front octant of each tree
-    # to level 4 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
+    # to level 3 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
     # periodicity to match the boundary conditions of the elixir used below
     mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 1,
                                    coordinates_min = (-1.0, -1.0, -1.0),
@@ -270,25 +270,26 @@ end
 
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        # Reference errors computed with KernelAbstractions CPU backend with `Float64`
-                        l2=Float32[0.001656350469788179,
-                                   0.005878912164586573,
-                                   0.0030351693310068915,
-                                   0.006415910708712904,
-                                   0.006315360797389399,
-                                   0.006235810541664033,
+                        # Reference errors computed on the CPU with `Float64` for this
+                        # mesh, which is not used by any CPU test item
+                        l2=Float32[0.0016563504697881934,
+                                   0.005878912164586567,
+                                   0.0030351693310069093,
+                                   0.006415910708712913,
+                                   0.006315360797389436,
+                                   0.0062358105416640275,
                                    0.002844337960841682,
-                                   0.006547611570440981,
-                                   0.0033770756724939297],
-                        linf=Float32[0.011726707425792626,
-                                     0.043758334597288714,
-                                     0.018828037099486855,
-                                     0.044739187284319026,
-                                     0.047655270947795536,
-                                     0.04068120133668496,
-                                     0.02570557246571159,
-                                     0.04804236486857274,
-                                     0.024268494473398607],
+                                   0.006547611570440987,
+                                   0.00337707567249393],
+                        linf=Float32[0.011726707425792737,
+                                     0.04375833459728863,
+                                     0.018828037099487202,
+                                     0.044739187284319665,
+                                     0.04765527094779598,
+                                     0.04068120133668507,
+                                     0.02570557246571148,
+                                     0.04804236486857292,
+                                     0.02426849447339827],
                         RealT_for_test_tolerances=Float32,
                         mesh=mesh_nonconforming,
                         tspan=(0.0, 0.25),
