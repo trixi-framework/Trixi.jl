@@ -53,28 +53,26 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-# This test is identical to the one in `test_p4est_3d.jl` besides minor
-# deviations from the expected error norms.
+# This test is identical to the one in `test_p4est_3d.jl`.
 @testitem "T8codeMesh3D: elixir_advection_amr.jl" setup=[Setup, T8codeMesh3D] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=[1.1302812803902801e-5],
-                        linf=[0.0007889950196294793])
+                        l2=[9.773852895190228e-6],
+                        linf=[0.0005853874124925398])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-# This test is identical to the one in `test_p4est_3d.jl` besides minor
-# deviations from the expected error norms.
+# This test is identical to the one in `test_p4est_3d.jl`.
 @testitem "T8codeMesh3D: elixir_advection_amr_unstructured_curved.jl" setup=[
     Setup,
     T8codeMesh3D
 ] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_curved.jl"),
-                        l2=[2.0535121347526814e-5],
-                        linf=[0.0010586603797777504],
+                        l2=[1.6163120948209677e-5],
+                        linf=[0.0010572201890564834],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -309,18 +307,18 @@ end
 @testitem "T8codeMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, T8codeMesh3D] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.010014531529951328,
-                            0.0176268986746271,
-                            0.01817514447099777,
-                            0.018271085903740675,
-                            0.15193033077438198
+                            0.011345993108796826,
+                            0.018525073963833696,
+                            0.01910234810591794,
+                            0.019205154389438376,
+                            0.15060493968460145
                         ],
                         linf=[
-                            0.2898958869606375,
-                            0.529717119064458,
-                            0.5567193302705906,
-                            0.570663236219957,
-                            3.5496520808512027
+                            0.29949497797834046,
+                            0.5530175050084668,
+                            0.5335803757792124,
+                            0.5647252867336114,
+                            3.6462732329242566
                         ],
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
