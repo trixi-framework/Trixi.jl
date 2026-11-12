@@ -202,6 +202,9 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
                                        equations_parabolic, dg, cache)
     end
 
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin
             # Get neighboring elements
@@ -214,7 +217,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
             right_direction = 2 * orientations[interface] - 1
 
             # Get precomputed fluxes at interfaces
-            flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
+            flux_ll, flux_rr = get_surface_node_vars(interfaces_u,
                                                      equations_parabolic, dg,
                                                      interface)
 
@@ -489,6 +492,9 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic, dg, cache)
     end
 
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin
             # Get neighboring elements
@@ -501,7 +507,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
             right_direction = 2 * orientations[interface] - 1
 
             # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
+            u_ll, u_rr = get_surface_node_vars(interfaces_u,
                                                equations_parabolic, dg,
                                                interface)
 

@@ -66,8 +66,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::P4estElementContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
+@inline function check_axes(elements::P4estElementContainer{NDIMS}, equations,
+                            solver::DG, cache) where {NDIMS}
     node_axes = ntuple(_ -> eachnode(solver), NDIMS)
     check_axes(elements.node_coordinates,
                (Base.OneTo(NDIMS),
@@ -286,8 +286,8 @@ end
 
 # Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(interfaces::P4estInterfaceContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
+@inline function check_axes(interfaces::P4estInterfaceContainer{NDIMS}, equations,
+                            solver::DG, cache) where {NDIMS}
     surface_node_axes = ntuple(_ -> eachnode(solver), NDIMS - 1)
     check_axes(interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
