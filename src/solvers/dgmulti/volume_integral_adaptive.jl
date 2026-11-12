@@ -102,8 +102,9 @@ end
 # Entropy correction for `DGMulti` solvers with diagonal-norm SBP operators
 # (`DGMultiEntropyCorrectionSBP`, see `types.jl`): the weak form volume integral is blended
 # elementwise with the entropy stable algebraic low-order method on the SBP nodes
-# (`volume_integral_low_order.jl`) such that the volume integral does not produce entropy,
-# as for `DGSEM` in `dgsem/calc_volume_integral.jl`. Since the solution nodes are the volume
+# (`volume_integral_low_order.jl`) such that the volume integral does not produce entropy.
+# The `volume_integral_kernel!` and `calc_volume_integral!` methods below mirror the ones
+# for `DGSEM` in `dgsem/calc_volume_integral.jl`. Since the solution nodes are the volume
 # quadrature nodes, the entropy production is computed directly from `du`, and the face
 # values of the entropy potential are read directly from the volume nodes (`Fmask`, see
 # `surface_integral_reference_element` in `callbacks_step/analysis_dgmulti.jl`). The
@@ -126,14 +127,6 @@ function create_cache(::Type{IndicatorEntropyCorrection},
     alpha = Vector{uEltype}()
 
     return (; alpha, volume_integral_values_threaded)
-end
-
-@inline function indicator_entropy_correction(volume_integral::VolumeIntegralEntropyCorrection)
-    return volume_integral.indicator
-end
-
-@inline function indicator_entropy_correction(volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined)
-    return volume_integral.indicator.indicator_entropy_correction
 end
 
 # Currently restricted to affine meshes; the low-order method does not preserve free-stream
@@ -162,37 +155,43 @@ function create_cache(mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
     cache_low_order = create_cache(mesh, equations, volume_integral_stabilized, dg,
                                    RealT, uEltype)
 
-    # The blending factors are stored in the indicator and used for visualization. They
-    # are sized here since `DGMulti` does not use `resize_volume_integral_cache!`.
-    (; alpha) = indicator_entropy_correction(dg.volume_integral).cache
-    resize!(alpha, mesh.md.num_elements)
-    fill!(alpha, zero(eltype(alpha)))
+    cache = (; cache_WF..., cache_low_order...)
 
-    return (; cache_WF..., cache_low_order...)
+    # The blending factors of `VolumeIntegralEntropyCorrection` are stored in its indicator
+    # and are sized by the same method as for `DGSEM` (see
+    # `dgsem/special_volume_integrals.jl`); the ones of
+    # `VolumeIntegralEntropyCorrectionShockCapturingCombined` are stored in its shock
+    # capturing indicator, which resizes them when it is called. Since `DGMulti` does not
+    # support mesh adaptation, this is the only resize. Only the root of the tree of volume
+    # integrals is resized, since the subcell storage of the `DGSEM` version of
+    # `VolumeIntegralPureLGLFiniteVolume` is not used by `DGMulti`.
+    resize_volume_integral_cache!(cache, mesh, dg.volume_integral, dg,
+                                  mesh.md.num_elements)
+
+    return cache
 end
 
-# Blends the default (weak form) and the stabilized (low-order) volume integral of one
-# element such that the volume integral does not produce entropy, and returns the blending
-# factor. `alpha_floor` is a lower bound of the blending factor, e.g., from shock capturing,
-# and `atol` the tolerance below which `alpha_floor` is considered inactive.
-@inline function entropy_correction_kernel!(du, u, element, mesh::DGMultiMesh,
-                                            have_nonconservative_terms::False,
-                                            equations, volume_integral,
-                                            dg::DGMultiEntropyCorrectionSBP, cache,
-                                            alpha_floor, atol)
-    (; volume_integral_default, volume_integral_stabilized) = volume_integral
-    indicator = indicator_entropy_correction(volume_integral)
-    (; scaling) = indicator
-    du_default = indicator.cache.volume_integral_values_threaded[Threads.threadid()]
+# version for affine meshes (currently only supported one for entropy correction)
+@inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                         have_nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralEntropyCorrection,
+                                         dg::DGMultiEntropyCorrectionSBP, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    @unpack scaling = indicator
+    @unpack alpha = indicator.cache
+    du_element_threaded = indicator.cache.volume_integral_values_threaded
 
     # run default volume integral
     volume_integral_kernel!(du, u, element, mesh,
                             have_nonconservative_terms, equations,
                             volume_integral_default, dg, cache)
 
-    # Check entropy production of the default volume integral. Both the volume and the
-    # surface integral are evaluated on the physical element, since `du` contains the
-    # geometric terms and the surface integral uses the scaled normal vectors.
+    # Check entropy production of "high order" volume integral.
+    #
+    # Note that both the volume and the surface integral are evaluated on the physical
+    # element, since `du` contains the geometric terms and the surface integral uses the
+    # scaled normal vectors.
+    #
     # Minus sign because of the flipped sign of the volume term in the DG RHS.
     du_local = view(du, :, element)
     u_local = view(u, :, element)
@@ -207,11 +206,11 @@ end
     # exactly zero for an entropy conservative volume integral.
     entropy_residual = dS_volume_integral - dS_true
 
-    # if either entropy correction or shock capturing is activated
-    if entropy_residual > 0 || alpha_floor > atol
-        # Store default result
+    if entropy_residual > 0
+        # Store "high order" result
+        du_FD_element = du_element_threaded[Threads.threadid()]
         for i in each_quad_node(mesh, dg, cache)
-            du_default[i] = du[i, element]
+            du_FD_element[i] = du[i, element]
         end
 
         # Reset default volume integral contribution.
@@ -230,48 +229,48 @@ end
                                                                           equations,
                                                                           dg, cache)
 
-        # Calculate difference between high and low order entropy production;
+        # Calculate difference between high and low order FV entropy production;
         # this should provide positive entropy dissipation if `entropy_residual > 0`,
         # assuming the stabilized volume integral is entropy stable.
         entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
-        # Calculate the blending factor as the maximum of the entropy correction and
-        # `alpha_floor`. `max(0, entropy_residual)` avoids activating entropy correction
-        # if shock capturing is active but there is no entropy violation.
-        ratio = regularized_ratio(-max(0, entropy_residual), entropy_dissipation)
-        alpha_element = max(alpha_floor, min(1, scaling * ratio))
+        # Calculate DG-FV blending factor. In contrast to `DGSEM`, `max(0, ...)` avoids
+        # negative blending factors if the stabilized volume integral produces more
+        # entropy than the default one, e.g., due to round-off errors.
+        ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
+        alpha_element = max(0, min(1, scaling * ratio))
 
-        # Blend the default volume integral back in
+        # Save blending coefficient for visualization
+        alpha[element] = alpha_element
+
+        # Blend the high order method back in
         for i in each_quad_node(mesh, dg, cache)
             du[i, element] = alpha_element * du[i, element] +
-                             (1 - alpha_element) * du_default[i]
+                             (1 - alpha_element) * du_FD_element[i]
         end
-
-        return alpha_element
     else
         # No entropy correction needed, i.e., pure default volume integral
-        return zero(alpha_floor)
+        alpha[element] = zero(eltype(alpha))
     end
+
+    return nothing
 end
 
 function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralEntropyCorrection,
                                dg::DGMultiEntropyCorrectionSBP, cache) where {NDIMS}
-    (; alpha) = volume_integral.indicator.cache
-    check_axes(alpha, (eachelement(mesh, dg, cache),))
+    check_axes(volume_integral.indicator.cache.alpha, (eachelement(mesh, dg, cache),))
 
     # interpolate to quadrature points (a copy for SBP), required by the weak form kernel
     rd = dg.basis
     (; u_values) = cache.solution_container
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-    RealT = eltype(alpha)
     @threaded for element in eachelement(mesh, dg, cache)
-        alpha[element] = entropy_correction_kernel!(du, u, element, mesh,
-                                                    have_nonconservative_terms,
-                                                    equations, volume_integral, dg,
-                                                    cache, zero(RealT), zero(RealT))
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing
@@ -281,11 +280,15 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                dg::DGMultiEntropyCorrectionSBP, cache) where {NDIMS}
-    (; indicator_shock_capturing) = volume_integral.indicator
+    (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
+    (; indicator_entropy_correction, indicator_shock_capturing) = indicator
+    (; scaling) = indicator_entropy_correction
+    du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
 
-    # Calculate the shock capturing blending factors a priori. Note that we also reuse
-    # the `alpha` array of `indicator_shock_capturing` to store the final blending factors
-    # for visualization.
+    # Calculate DG-FV blending factors α a-priori for:
+    # u_{DG-FV} = u_DG * (1 - α) + u_FV * α
+    # Note that we also reuse the `alpha_shock_capturing` array to store the indicator
+    # values for visualization.
     alpha_shock_capturing = @trixi_timeit timer() "blending factors" begin
         indicator_shock_capturing(u, mesh, equations, dg, cache)
     end
@@ -303,14 +306,81 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
     @threaded for element in eachelement(mesh, dg, cache)
-        alpha_shock_capturing[element] = entropy_correction_kernel!(du, u, element,
-                                                                    mesh,
-                                                                    have_nonconservative_terms,
-                                                                    equations,
-                                                                    volume_integral,
-                                                                    dg, cache,
-                                                                    alpha_shock_capturing[element],
-                                                                    atol)
+        # run default volume integral
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral_default, dg, cache)
+
+        # Check entropy production of "high order" volume integral.
+        #
+        # Note that both the volume and the surface integral are evaluated on the
+        # physical element, since `du` contains the geometric terms and the surface
+        # integral uses the scaled normal vectors.
+        #
+        # Minus sign because of the flipped sign of the volume term in the DG RHS.
+        du_local = view(du, :, element)
+        u_local = view(u, :, element)
+        dS_volume_integral = -entropy_change_reference_element(du_local, u_local,
+                                                               mesh, equations, dg,
+                                                               cache)
+
+        # Compute true entropy change given by surface integral of the entropy potential
+        dS_true = surface_integral_reference_element(entropy_potential, u, element,
+                                                     mesh, equations, dg, cache)
+
+        # This quantity should be ≤ 0 for an entropy stable volume integral, and
+        # exactly zero for an entropy conservative volume integral.
+        entropy_residual = dS_volume_integral - dS_true
+
+        alpha_shock_capturing_element = alpha_shock_capturing[element]
+
+        # if either entropy correction or shock capturing is activated
+        if entropy_residual > 0 || alpha_shock_capturing_element > atol
+            # Store "high order" result
+            du_FD_element = du_element_threaded[Threads.threadid()]
+            for i in each_quad_node(mesh, dg, cache)
+                du_FD_element[i] = du[i, element]
+            end
+
+            # Reset default volume integral contribution.
+            # Note that this assumes that the volume terms are computed first,
+            # before any surface terms are added.
+            fill!(du_local, zero(eltype(du_local)))
+
+            # Calculate entropy stable volume integral contribution
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_stabilized, dg, cache)
+
+            dS_volume_integral_stabilized = -entropy_change_reference_element(du_local,
+                                                                              u_local,
+                                                                              mesh,
+                                                                              equations,
+                                                                              dg, cache)
+
+            # Calculate difference between high and low order FV entropy production;
+            # this should provide positive entropy dissipation if `entropy_residual > 0`,
+            # assuming the stabilized volume integral is entropy stable.
+            entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
+
+            # Calculate DG-FV blending factor as the maximum between the entropy correction
+            # indicator and shock capturing indicator.
+
+            # max(0, entropy_residual) avoids activating entropy correction if
+            # shock capturing is active but there is no entropy violation.
+            ratio = regularized_ratio(-max(0, entropy_residual), entropy_dissipation)
+            alpha_element = max(alpha_shock_capturing_element, min(1, scaling * ratio))
+
+            # Save blending coefficient for visualization. Note that we overwrite the data
+            # in `alpha_shock_capturing[element]`.
+            alpha_shock_capturing[element] = alpha_element
+
+            # Blend the high order method back in
+            for i in each_quad_node(mesh, dg, cache)
+                du[i, element] = alpha_element * du[i, element] +
+                                 (1 - alpha_element) * du_FD_element[i]
+            end
+        end
     end
 
     return nothing
