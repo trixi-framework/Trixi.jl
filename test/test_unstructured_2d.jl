@@ -138,16 +138,16 @@ end
                         # report, as the error report from the simulation is different from the one from the test environment.
                         # Thus, we do not exchange the `AnalysisCallback` here.
                         l2=[
-                            0.0009176725767375231,
-                            0.0008372573129939656,
-                            0.0008737313332592571,
-                            0.0025200523850636924
+                            0.000917673507518412,
+                            0.0008372575675532226,
+                            0.000873731846411516,
+                            0.002520052679741056
                         ],
                         linf=[
-                            0.0035175269957474775,
-                            0.003834735777443754,
-                            0.0038532228516379163,
-                            0.012228066588492403
+                            0.0035175224058798804,
+                            0.0038347324347283163,
+                            0.0038531892827382563,
+                            0.012228059313844852
                         ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
