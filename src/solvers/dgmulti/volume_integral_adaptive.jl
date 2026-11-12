@@ -208,9 +208,9 @@ end
 
     if entropy_residual > 0
         # Store "high order" result
-        du_FD_element = du_element_threaded[Threads.threadid()]
+        du_element = du_element_threaded[Threads.threadid()]
         for i in each_quad_node(mesh, dg, cache)
-            du_FD_element[i] = du[i, element]
+            du_element[i] = du[i, element]
         end
 
         # Reset default volume integral contribution.
@@ -246,7 +246,7 @@ end
         # Blend the high order method back in
         for i in each_quad_node(mesh, dg, cache)
             du[i, element] = alpha_element * du[i, element] +
-                             (1 - alpha_element) * du_FD_element[i]
+                             (1 - alpha_element) * du_element[i]
         end
     else
         # No entropy correction needed, i.e., pure default volume integral
@@ -337,9 +337,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
         # if either entropy correction or shock capturing is activated
         if entropy_residual > 0 || alpha_shock_capturing_element > atol
             # Store "high order" result
-            du_FD_element = du_element_threaded[Threads.threadid()]
+            du_element = du_element_threaded[Threads.threadid()]
             for i in each_quad_node(mesh, dg, cache)
-                du_FD_element[i] = du[i, element]
+                du_element[i] = du[i, element]
             end
 
             # Reset default volume integral contribution.
@@ -378,7 +378,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
             # Blend the high order method back in
             for i in each_quad_node(mesh, dg, cache)
                 du[i, element] = alpha_element * du[i, element] +
-                                 (1 - alpha_element) * du_FD_element[i]
+                                 (1 - alpha_element) * du_element[i]
             end
         end
     end
