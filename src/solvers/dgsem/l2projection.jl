@@ -156,10 +156,12 @@ end
 # from a higher degree to a lower degree using Gauss-Legendre quadrature.
 #
 # The projection `u_low = P * u_high` is defined by
-#   ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ   for all low-degree basis functions ℓ_i^low,
-# i.e., `P = M \ B` with the exact low-degree mass matrix `M_ik = ∫ ℓ_i^low ℓ_k^low dξ`
-# and `B_ij = ∫ ℓ_i^low ℓ_j^high dξ`. Both integrals are computed exactly with
-# Gauss-Legendre quadrature. Note that the lumped (diagonal) LGL mass matrix must not be
+#  ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ 
+# for all low-degree basis functions ℓ_i^low,
+# i.e., `P = M \ B` with the exact low-degree mass matrix M_ik = ∫ ℓ_i^low ℓ_k^low dξ
+# and B_ij = ∫ ℓ_i^low ℓ_j^high dξ.
+# Both integrals are computed exactly with Gauss-Legendre quadrature.
+# Note that the lumped (diagonal) LGL mass matrix must NOT be
 # used for `M`, since it is not exact for the products of two low-degree basis functions;
 # the resulting operator would not reproduce polynomials of the lower degree.
 # The exact projection reproduces all polynomials of the lower degree, conserves the
@@ -181,9 +183,10 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
     n_low = length(nodes_low)
 
     # Get Gauss-Legendre nodes and weights for quadrature.
-    # `n_quad` nodes integrate polynomials of degree `2 * n_quad - 1 >= n_high + n_low - 1`
-    # exactly, which covers both the mass matrix (degree `2 * n_low - 2`) and the
-    # right-hand side (degree `n_high + n_low - 2`).
+    # `n_quad` nodes integrate polynomials of degree
+    # 2 * n_quad - 1 >= n_high + n_low - 1 exactly,
+    # which covers both the mass matrix (degree: 2 * n_low - 2) and the
+    # right-hand side (degree: n_high + n_low - 2).
     n_quad = div(n_high + n_low + 1, 2)
     gauss_nodes, gauss_weights = gauss_nodes_weights(n_quad, RealT)
 
@@ -191,10 +194,13 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
     wbary_high = barycentric_weights(nodes_high)
     wbary_low = barycentric_weights(nodes_low)
 
-    # Exact low-degree mass matrix and mixed mass matrix (right-hand side)
+    # Exact low-degree mass matrix
     mass_low = zeros(RealT, n_low, n_low)
+    # Mixed mass matrix (right-hand side)
     mass_mixed = zeros(RealT, n_low, n_high)
 
+    # Assemble both matrices by Gauss quadrature, one quadrature point at a time:
+    # ∫ f(ξ) dξ ≈ ∑_q w_q f(ξ_q)
     for q in 1:n_quad
         # Evaluate low-degree basis functions at Gauss quadrature point
         poly_low = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_low,
@@ -205,15 +211,25 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
                                                        wbary_high)
 
         for i in 1:n_low
+            # Contribution w_q ℓ_i^low(ξ_q) ℓ_k^low(ξ_q) to M_ik = ∫ ℓ_i^low ℓ_k^low dξ.
+            # This matrix is dense (and not diagonal as for the lumped LGL mass matrix),
+            # since the products of two low-degree basis functions are integrated exactly.
             for k in 1:n_low
                 mass_low[i, k] += poly_low[i] * poly_low[k] * gauss_weights[q]
             end
+            # Contribution w_q ℓ_i^low(ξ_q) ℓ_j^high(ξ_q) to B_ij = ∫ ℓ_i^low ℓ_j^high dξ.
+            # Applied to the nodal values of `u_high`, B gives the right-hand side
+            # ∫ u_high ℓ_i^low dξ of the projection.
             for j in 1:n_high
                 mass_mixed[i, j] += poly_low[i] * poly_high[j] * gauss_weights[q]
             end
         end
     end
 
+    # Solve M P = B for the projection matrix P, i.e., P = M^{-1} B.
+    # Then `u_low = P * u_high` satisfies M u_low = B u_high, which is the discrete form
+    # of the projection condition ∫ u_low ℓ_i^low dξ = ∫ u_high ℓ_i^low dξ.
+    # M is small (`n_low x n_low`), symmetric, and positive definite.
     return mass_low \ mass_mixed
 end
 end # @muladd
