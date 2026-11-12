@@ -335,7 +335,6 @@ end
     end
     @synchronize
 
-    u_node = get_node_vars(u_local, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -409,7 +408,6 @@ end
     end
     @synchronize
 
-    u_node = get_node_vars(u_local, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -481,6 +479,9 @@ end
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
     for ii in 1:NNODES
         # pull the contravariant vectors and compute the average
         Ja1_avg = 0.5f0 * (Ja1_node +
@@ -494,7 +495,6 @@ end
         du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
 
-    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     for jj in 1:NNODES
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
@@ -505,7 +505,6 @@ end
         du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
 
-    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
     for kk in 1:NNODES
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
@@ -544,6 +543,9 @@ end
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
     for ii in 1:NNODES
         Ja1_avg = 0.5f0 * (Ja1_node +
                    get_contravariant_vector(1, contravariant_vectors,
@@ -555,7 +557,6 @@ end
         du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
 
-    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     for jj in 1:NNODES
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
@@ -567,7 +568,6 @@ end
         du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
 
-    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
     for kk in 1:NNODES
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
@@ -662,8 +662,6 @@ end
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
-
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -800,8 +798,6 @@ end
         turbo_local[v, i, j, k] = turbo_node[v]
     end
     @synchronize
-
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
 
     # pull the contravariant vectors in each coordinate direction
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -955,10 +951,12 @@ end
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
     for ii in 1:NNODES
         # pull the contravariant vectors and compute the average
         Ja1_avg = 0.5f0 * (Ja1_node +
@@ -976,7 +974,6 @@ end
                    derivative_split[i, ii] * fluxtilde1
     end
 
-    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     for jj in 1:NNODES
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
@@ -991,7 +988,6 @@ end
                    derivative_split[j, jj] * fluxtilde2
     end
 
-    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
     for kk in 1:NNODES
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
@@ -1043,10 +1039,12 @@ end
     end
     @synchronize
 
-    turbo_node = get_node_turbo(turbo_local, Val(NAUX), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
     for ii in 1:NNODES
         # pull the contravariant vectors and compute the average
         Ja1_avg = 0.5f0 * (Ja1_node +
@@ -1065,7 +1063,6 @@ end
                    fluxtilde1_left
     end
 
-    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     for jj in 1:NNODES
         Ja2_avg = 0.5f0 * (Ja2_node +
                    get_contravariant_vector(2, contravariant_vectors,
@@ -1081,7 +1078,6 @@ end
                    fluxtilde2_left
     end
 
-    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
     for kk in 1:NNODES
         Ja3_avg = 0.5f0 * (Ja3_node +
                    get_contravariant_vector(3, contravariant_vectors,
