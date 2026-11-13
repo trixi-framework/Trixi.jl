@@ -7,7 +7,9 @@ using Trixi
 elixir_file = "elixir_advection_extended.jl"
 restart_file = "restart_000000020.h5"
 
-trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
+# Disable the in-situ visualization of the base elixir, which would open a plot window
+trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file),
+              visualization = TrivialCallback())
 
 restart_filename = joinpath("out", restart_file)
 tspan = (load_time(restart_filename), 2.0)
