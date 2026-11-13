@@ -7,11 +7,14 @@ using Trixi
 advection_velocity = (1.0, 0.5)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
-# Step function initial condition which is 1 on [-0.5, 0.5]^2 and zero elsewhere
+# Step function initial condition which is 1 on [-2/3, 2/3]^2 and zero elsewhere.
+# The discontinuity does not coincide with element interfaces, which lie at multiples of
+# 1/4. Otherwise, nodes would lie on the discontinuity, and whether they are set to 0 or 1
+# would depend on roundoff in the node coordinates and thus on the platform.
 function initial_condition_heaviside_step(x, t,
                                           equations::LinearScalarAdvectionEquation2D)
     x1, x2 = x
-    u = abs(x1) < 0.5f0 && abs(x2) < 0.5f0 ? one(x1) : zero(x1)
+    u = abs(x1) < 2 / 3 && abs(x2) < 2 / 3 ? one(x1) : zero(x1)
     return SVector(u)
 end
 initial_condition = initial_condition_heaviside_step
