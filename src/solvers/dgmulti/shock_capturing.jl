@@ -59,14 +59,28 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     return inverse_vandermonde
 end
 
+# Total polynomial degrees of the orthonormal modal basis functions on simplices, in
+# the order in which `StartUpDG.vandermonde` returns them. Note that this order is
+# *not* hierarchical, e.g., the degrees are (0, 1, 2, 1, 2, 2) for a triangle with N = 2.
+@inline function simplex_mode_degrees(N, ::Tri)
+    return [i + j for i in 0:N for j in 0:(N - i)]
+end
+
+@inline function simplex_mode_degrees(N, ::Tet)
+    return [i + j + k for i in 0:N for j in 0:(N - i) for k in 0:(N - i - j)]
+end
+
 # calculates the inverse of the Vandermonde matrix for shock capturing purposes.
 # This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde
 # matrix first projects from solution values at SBP nodes to degree N polynomials,
 # and then returns the modal coefficients of that projected polynomial.
+# The modal coefficients are sorted by the total degree of the corresponding basis functions,
+# so that the first `nmodes(k, element_type)` coefficients are the ones of the
+# L2 projection onto polynomials of degree `k`.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
-    (; N, element_type, r, s, VDM, wq) = basis
+    (; N, element_type, rst, VDM, wq) = basis
 
-    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
+    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, rst...) /
                                    VDM
 
     # note that this mass matrix is not necessarily diagonal
@@ -79,7 +93,11 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
 
     # invert Vandermonde matrix to recover modal coefficients from the
     # quadrature-based L2 projection matrix.
-    return VDM \ projection_matrix
+    inverse_vandermonde = VDM \ projection_matrix
+
+    # `sortperm` is stable, i.e., the order of modes of the same degree is retained
+    hierarchical_order = sortperm(simplex_mode_degrees(N, element_type))
+    return inverse_vandermonde[hierarchical_order, :]
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,

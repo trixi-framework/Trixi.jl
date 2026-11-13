@@ -100,7 +100,9 @@ Create a discontinuous Galerkin method which uses
 
 Optional:
 - `approximation_type` (default is `Polynomial()`; `SBP()` also supported for `Tri()`,
-  `Quad()`, and `Hex()` element types).
+  `Quad()`, `Tet()`, and `Hex()` element types). `SBP()` on `Tet()` elements requires
+  loading [SummationByParts.jl](https://github.com/OptimalDesignLab/SummationByParts.jl)
+  (`using SummationByParts`), which provides the SBP nodes.
 - `RefElemData_kwargs` are additional keyword arguments for `RefElemData`, such as
   `quad_rule_vol`.
 
