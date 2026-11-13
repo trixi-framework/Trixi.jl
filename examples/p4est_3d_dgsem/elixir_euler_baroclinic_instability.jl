@@ -13,7 +13,7 @@
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # Setup for the baroclinic instability test

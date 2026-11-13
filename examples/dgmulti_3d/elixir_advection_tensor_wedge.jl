@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
 
 ###############################################################################
 equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
