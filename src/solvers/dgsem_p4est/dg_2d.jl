@@ -310,7 +310,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
     # Load the array once, outside of the loop (see `calc_interface_flux!` for
     # `P4estMesh{3}`)
-    interfaces_u = cache.interfaces.u
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                                      have_nonconservative_terms,
@@ -418,7 +418,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
     # Load the array once, outside of the loop (see `calc_interface_flux!` for
     # `P4estMesh{3}`)
-    interfaces_u = cache.interfaces.u
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                                      have_nonconservative_terms,

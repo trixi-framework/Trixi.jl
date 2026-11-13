@@ -1673,6 +1673,29 @@ and solvers.
 end
 @inline static_view(u, equations, dg) = u
 
+# Return a view of the interface values `u` with dimensions
+# `[side, variable, node..., interface]` (e.g., `cache.interfaces.u`) whose sizes of all
+# but the last dimension are known at compile time for `DGSEM`, without copying, as
+# `static_view` for the solution. Returns `u` itself for other array types and solvers.
+#
+# The kernels computing the interface fluxes load these values once outside of the loop
+# over the interfaces. With more than one thread, Polyester.jl converts arrays captured
+# by the loop body to `PtrArray`s, which have static sizes only if the array has them,
+# and the kernel does not see the result of `check_axes` there.
+@inline function static_view_interfaces(u::VectorBackedArray, equations, dg::DGSEM)
+    dims = (Val(2),
+            static_dims(Val(nvariables(equations)), Val(nnodes(dg)), Val(ndims(u) - 3),
+                        size(u, ndims(u)))...)
+    # `FixedSizeArrays.wrap` only checks the length
+    node_sizes = Base.front(Base.tail(Base.tail(size(u))))
+    if !(size(u, 1) == 2 && size(u, 2) == nvariables(equations) &&
+         all(==(nnodes(dg)), node_sizes))
+        throw(DimensionMismatch(lazy"size $(size(u)) of the interface values does not match $(nvariables(equations)) variables and $(nnodes(dg)) nodes"))
+    end
+    return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(u), dims)
+end
+@inline static_view_interfaces(u, equations, dg) = u
+
 # Array types accepted by the hand-written `@turbo` kernels (e.g., specializations of
 # `flux_differencing_kernel!`). These are the CPU arrays returned by `wrap_array`:
 # - a `FixedSizeArrayDims` backed by a `Vector` (with static sizes for `DGSEM` and
