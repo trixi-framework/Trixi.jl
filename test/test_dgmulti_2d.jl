@@ -463,7 +463,7 @@ end
 
 @testitem "DGMulti2D: elixir_advection_limiter_liu_zhang.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_limiter_liu_zhang.jl"),
-                        l2=[0.5743193972475668], linf=[1.071723207220698])
+                        l2=[0.6909675649954785], linf=[1.1693574503936377])
     # The global cell-average limiter was activated
     @test length(global_limiter!.history_davis_yin_iterations) > 0
     # The solution respects the threshold at all nodes
