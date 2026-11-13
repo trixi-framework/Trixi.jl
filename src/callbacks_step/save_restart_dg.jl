@@ -97,13 +97,9 @@ function save_restart_file(u, time, dt, timestep,
     # Filename based on current time step
     filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
-    if HDF5.has_parallel()
-        save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
-                                   filename)
-    else
-        save_restart_file_on_root(u, time, dt, timestep, mesh, equations, dg, cache,
-                                  filename)
-    end
+    @assert HDF5.has_parallel()
+    save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
+                               filename)
 end
 
 function save_restart_file_parallel(u, time, dt, timestep,
@@ -146,61 +142,6 @@ function save_restart_file_parallel(u, time, dt, timestep,
             # Convert to 1D array
             var[slice] = vec(data[v, .., :])
             # Add variable name as attribute
-            attributes(var)["name"] = varnames(cons2cons, equations)[v]
-        end
-    end
-
-    return filename
-end
-
-function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{TreeMeshParallel, P4estMeshParallel,
-                                               T8codeMeshParallel},
-                                   equations, dg::DG, cache,
-                                   filename)
-
-    # Restart files always store conservative variables
-    data = u
-
-    # Calculate element and node counts by MPI rank
-    element_size = nnodes(dg)^ndims(mesh)
-    element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
-    node_counts = element_counts * Cint(element_size)
-
-    # non-root ranks only send data
-    if !mpi_isroot()
-        # Send nodal data to root
-        for v in eachvariable(equations)
-            MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
-        end
-
-        return filename
-    end
-
-    # Open file (clobber existing content)
-    h5open(filename, "w") do file
-        # Add context information as attributes
-        attributes(file)["ndims"] = ndims(mesh)
-        attributes(file)["equations"] = get_name(equations)
-        attributes(file)["polydeg"] = polydeg(dg)
-        attributes(file)["n_vars"] = nvariables(equations)
-        attributes(file)["n_elements"] = nelements(dg, cache)
-        attributes(file)["mesh_type"] = get_name(mesh)
-        attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-        attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-        attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-        attributes(file)["timestep"] = timestep
-
-        # Store each variable of the solution
-        for v in eachvariable(equations)
-            # Convert to 1D array
-            recv = Vector{eltype(data)}(undef, sum(node_counts))
-            MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts),
-                         mpi_root(), mpi_comm())
-            file["variables_$v"] = recv
-
-            # Add variable name as attribute
-            var = file["variables_$v"]
             attributes(var)["name"] = varnames(cons2cons, equations)[v]
         end
     end
