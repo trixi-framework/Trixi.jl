@@ -313,6 +313,7 @@ end
 """
     semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString;
+                   interpolate_high2low = false,
                    jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                    colorvec::Union{AbstractVector, Nothing} = nothing)
 
@@ -322,6 +323,18 @@ The initial condition etc. is taken from the `restart_file`.
 The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
+- `interpolate_high2low` applies only to the case when a simulation is restarted with a
+  lower polynomial degree than the one used in the original simulation.
+  For `interpolate_high2low = false` (default), the solution is projected with minimal
+  L2-error onto the lower-degree polynomial.
+  This results in overall smaller L2-errors, but does not preserve continuity at the cell interfaces.
+  The projection preserves the integral of the solution over each element in reference
+  coordinates, i.e., it is conservative on meshes with an element-wise constant Jacobian
+  (such as the `TreeMesh`).
+  For `interpolate_high2low = true`, the solution is interpolated from the higher-degree
+  polynomial to the lower-degree polynomial.
+  This preserves the values at the cell interfaces, thus a formerly continuous solution
+  is still continuous after the interpolation.
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
@@ -331,6 +344,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         restart_file::AbstractString;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
+                        interpolate_high2low = false,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -340,7 +354,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     end
 
     tspan = convert_tspan(semi, tspan)
-    u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
+    # Load initial condition from restart file
+    u0_ode = load_restart_file(semi, restart_file, interpolate_high2low)
     rhs_semi! = default_rhs(semi)
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using

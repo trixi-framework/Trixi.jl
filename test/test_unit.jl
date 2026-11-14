@@ -403,6 +403,63 @@ end
 end
 
 @testitem "Unit: L2 projection" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    using LinearAlgebra: I
+    @testset "polynomial_l2projection_matrix" begin
+        for polydeg_high in 2:8, polydeg_low in 1:(polydeg_high - 1)
+            nodes_high, weights_high = Trixi.gauss_lobatto_nodes_weights(polydeg_high + 1)
+            nodes_low, weights_low = Trixi.gauss_lobatto_nodes_weights(polydeg_low + 1)
+            projection = Trixi.polynomial_l2projection_matrix(nodes_high, nodes_low,
+                                                              Val(:gauss))
+
+            # All polynomials of the lower degree must be reproduced exactly,
+            # including constants and the highest degree `polydeg_low`
+            for degree in 0:polydeg_low
+                @test projection * (nodes_high .^ degree) ≈ nodes_low .^ degree
+            end
+
+            # Projection is idempotent: interpolating low -> high and projecting back
+            # yields the identity
+            interpolation = Trixi.polynomial_interpolation_matrix(nodes_low, nodes_high)
+            @test projection * interpolation ≈ I
+
+            # Conservation: the integral over the reference element is preserved.
+            # The LGL quadratures are exact for the polynomials of the respective degree.
+            @test weights_low' * projection ≈ weights_high'
+
+            # Galerkin orthogonality: the projection error of the highest-degree monomial
+            # is orthogonal to all low-degree basis functions. Integrate exactly with
+            # Gauss quadrature after interpolating both polynomials to the Gauss nodes;
+            # `polydeg_high + 1` Gauss nodes are exact for degree `2 * polydeg_high + 1`.
+            nodes_gauss, weights_gauss = Trixi.gauss_nodes_weights(polydeg_high + 1)
+            high2gauss = Trixi.polynomial_interpolation_matrix(nodes_high, nodes_gauss)
+            low2gauss = Trixi.polynomial_interpolation_matrix(nodes_low, nodes_gauss)
+            u_high = nodes_high .^ polydeg_high
+            error_gauss = high2gauss * u_high - low2gauss * (projection * u_high)
+            @test isapprox(low2gauss' * (weights_gauss .* error_gauss),
+                           zeros(polydeg_low + 1), atol = 1.0e-13)
+        end
+    end
+
+    @testset "restart_conversion_matrix" begin
+        # LGL solver: interpolation from low to high, and from high to low on request
+        nodes_2 = Trixi.gauss_lobatto_nodes_weights(3)[1]
+        nodes_3 = Trixi.gauss_lobatto_nodes_weights(4)[1]
+        solver_2 = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+        solver_3 = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        @test Trixi.restart_conversion_matrix(2, solver_3, false) ≈
+              Trixi.polynomial_interpolation_matrix(nodes_2, nodes_3)
+        @test Trixi.restart_conversion_matrix(3, solver_2, true) ≈
+              Trixi.polynomial_interpolation_matrix(nodes_3, nodes_2)
+        # L2 projection from high to low by default
+        @test Trixi.restart_conversion_matrix(3, solver_2, false) ≈
+              Trixi.polynomial_l2projection_matrix(nodes_3, nodes_2, Val(:gauss))
+
+        # Restart files do not store the nodes, thus only LGL nodes are supported
+        solver_gauss = DGSEM(GaussLegendreBasis(2), flux_lax_friedrichs)
+        @test_throws ArgumentError Trixi.restart_conversion_matrix(3, solver_gauss, false)
+        @test_throws ArgumentError Trixi.restart_conversion_matrix(1, solver_gauss, false)
+    end
+
     @testset "calc_reverse_upper for LGL" begin
         @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)),
                        [[0.25, 0.25] [0.0, 0.5]])

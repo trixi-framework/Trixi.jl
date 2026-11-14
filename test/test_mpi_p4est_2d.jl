@@ -111,6 +111,32 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 2D: elixir_euler_free_stream_restart_polydeg_higher.jl" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_restart_polydeg_higher.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            3.961882934992763e-14,
+                            1.3105062139205952e-13,
+                            2.1543119850825977e-13,
+                            9.412411926341664e-14
+                        ],
+                        linf=[
+                            9.091616348655407e-13,
+                            6.286055009852021e-12,
+                            1.2121637027462384e-11,
+                            1.13455911332494e-11
+                        ],
+                        atol=2.0e-12)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh MPI 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
     Setup,
     MPIP4estMesh2D
