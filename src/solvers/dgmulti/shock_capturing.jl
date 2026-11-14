@@ -68,7 +68,7 @@ function simplex_mode_degrees(N, ::Tri)
     mode = 1
     # Same loop structure as `NodesAndModes.basis(::Tri, N, r, s)`:
     # The basis function with index `mode` has
-    # - degree `i` in the first 
+    # - degree `i` in the first
     # - degree `j` in the second
     # (collapsed) coordinate.
     for i in 0:N
@@ -105,7 +105,7 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
     # quadrature-based L2 projection matrix.
     inverse_vandermonde = VDM \ projection_matrix
 
-    # `sortperm` is stable, i.e., the order of modes of the same degree is retained
+    # `sortperm` is stable in the sense that the existing order of modes of the same degree is retained
     hierarchical_order = sortperm(simplex_mode_degrees(N, element_type))
     return @view inverse_vandermonde[hierarchical_order, :]
 end
@@ -155,7 +155,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # 4 5 6
         # 7 8 9 10
         #
-        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
+        # The modal coefficients corresponding to degree 2 are then (1:6),
         # while the modal coefficients for degree 1 are (1:3).
         clip_1_range = 1:nmodes(N - 1, element_type)
         clip_2_range = 1:nmodes(N - 2, element_type)
