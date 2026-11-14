@@ -1068,8 +1068,7 @@ end
         # contravariant vector, using the precomputed variables of both nodes
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NTURBO),
-                                               ii, j, k)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), ii, j, k)...,
                                 Ja1_avg..., equations)
         du_local = du_local +
                    derivative_split[i, ii] * fluxtilde1
@@ -1082,8 +1081,7 @@ end
                                             i, jj, k, element))
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NTURBO),
-                                               i, jj, k)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), i, jj, k)...,
                                 Ja2_avg..., equations)
         du_local = du_local +
                    derivative_split[j, jj] * fluxtilde2
@@ -1096,8 +1094,7 @@ end
                                             i, j, kk, element))
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
-                                get_node_turbo(turbo_local, Val(NTURBO),
-                                               i, j, kk)...,
+                                get_node_turbo(turbo_local, Val(NTURBO), i, j, kk)...,
                                 Ja3_avg..., equations)
         du_local = du_local +
                    derivative_split[k, kk] * fluxtilde3
