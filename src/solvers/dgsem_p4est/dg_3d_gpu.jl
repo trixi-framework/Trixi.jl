@@ -636,8 +636,8 @@ end
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
         fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, ii, j, k,
-                                                       element),
+                                         get_node_vars(u, equations, dg,
+                                                       ii, j, k, element),
                                          aux_node...,
                                          get_aux_node_vars(aux, equations, dg,
                                                            ii, j, k, element)...,
@@ -651,8 +651,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, i, jj, k,
-                                                       element),
+                                         get_node_vars(u, equations, dg,
+                                                       i, jj, k, element),
                                          aux_node...,
                                          get_aux_node_vars(aux, equations, dg,
                                                            i, jj, k, element)...,
@@ -666,8 +666,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_node_vars(u, equations, dg, i, j, kk,
-                                                       element),
+                                         get_node_vars(u, equations, dg,
+                                                       i, j, kk, element),
                                          aux_node...,
                                          get_aux_node_vars(aux, equations, dg,
                                                            i, j, kk, element)...,
