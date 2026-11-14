@@ -461,6 +461,91 @@ end
     end
 end
 
+@testitem "DGMulti2D: elixir_advection_limiter_liu_zhang.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_limiter_liu_zhang.jl"),
+                        l2=[0.6909675649954785], linf=[1.1693574503936377])
+    # The global cell-average limiter was activated
+    @test length(global_limiter!.history_davis_yin_iterations) > 0
+    # The solution respects the threshold at all nodes
+    u = Trixi.wrap_array(sol.u[end], semi)
+    @test minimum(u[i][1] for i in eachindex(u)) > 1e-3 - 10 * eps()
+    # The limiters are conservative
+    u_initial = Trixi.wrap_array(compute_coefficients(0.0, semi), semi)
+    mass(u) = sum(mesh.md.wJq[i] * u[i][1] for i in eachindex(u))
+    @test isapprox(mass(u), mass(u_initial), rtol = 1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "DGMulti2D: get_cell_volume, set_u_mean!, and limiter_liu_zhang (SBP)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = SBP(),
+                 surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+                 volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+    cells_per_dimension = (2, 2)
+    mesh = DGMultiMesh(dg, cells_per_dimension;
+                       coordinates_min = (-1.0, -1.0), coordinates_max = (3.0, 1.0),
+                       periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, dg;
+                                        boundary_conditions = boundary_condition_periodic)
+    (; cache) = semi
+    u_ode = compute_coefficients(0.0, semi)
+    u = Trixi.wrap_array(u_ode, semi)
+
+    # The cell volumes sum up to the area of the domain
+    cell_volumes = [Trixi.get_cell_volume(element, mesh, equations, dg, cache)
+                    for element in Trixi.eachelement(mesh, dg, cache)]
+    @test all(cell_volumes .> 0)
+    @test sum(cell_volumes) ≈ 8.0
+
+    # Changing the cell average by a constant shift
+    element = 3
+    u_mean_old = Trixi.compute_u_mean(u, element, mesh, equations, dg, cache)
+    u_mean_new = u_mean_old + SVector(0.1, -0.2, 0.3, 0.4)
+    Trixi.set_u_mean!(u, u_mean_new, u_mean_old, element, mesh, equations, dg, cache)
+    @test Trixi.compute_u_mean(u, element, mesh, equations, dg, cache) ≈ u_mean_new
+
+    # The global limiter restores admissible cell averages while conserving the
+    # total mass, momentum, and energy, and the local limiter enforces nodal bounds
+    thresholds = (1.0e-8, 1.0e-8)
+    variables = (Trixi.density, pressure)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = thresholds,
+                                                         variables = variables)
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
+                                                          record_davis_yin_iterations = true)
+    # inadmissible cell average with negative density in one element
+    for i in Trixi.each_quad_node(mesh, dg, cache)
+        u[i, element] = SVector(-0.5, 0.1, -0.2, 1.0)
+    end
+    total_before = sum(cell_volumes[e] *
+                       Trixi.compute_u_mean(u, e, mesh, equations, dg, cache)
+                       for e in Trixi.eachelement(mesh, dg, cache))
+
+    global_limiter!(u_ode, nothing, semi, 0.0)
+
+    @test length(global_limiter!.history_davis_yin_iterations) == 1
+    total_after = sum(cell_volumes[e] *
+                      Trixi.compute_u_mean(u, e, mesh, equations, dg, cache)
+                      for e in Trixi.eachelement(mesh, dg, cache))
+    @test isapprox(total_after, total_before, rtol = 1.0e-12)
+    # The projection to the admissible set is exact up to an arithmetic tolerance
+    rho_floor, rho_e_floor = global_limiter!.projection_thresholds
+    arithmetic_tol = Trixi.euler_arithmetic_tol(rho_floor, rho_e_floor)
+    for e in Trixi.eachelement(mesh, dg, cache)
+        u_mean = Trixi.compute_u_mean(u, e, mesh, equations, dg, cache)
+        @test Trixi.density(u_mean, equations) >= rho_floor - arithmetic_tol
+        @test energy_internal(u_mean, equations) >= rho_e_floor - arithmetic_tol
+    end
+    for (threshold, variable) in zip(thresholds, variables)
+        @test minimum(variable(u[i], equations) for i in eachindex(u)) >=
+              threshold * (1 - 1.0e-8)
+    end
+end
+
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
