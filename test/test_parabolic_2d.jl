@@ -2025,7 +2025,7 @@ end
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 20_500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 21_000)
 end
 
 @testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl" setup=[

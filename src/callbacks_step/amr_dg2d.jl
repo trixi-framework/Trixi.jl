@@ -207,7 +207,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
 end
 
 function refine!(u_ode::AbstractVector, adaptor,
-                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
+                 mesh::Union{TreeMesh{2}, P4estMesh{2}},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine, limiter!)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
@@ -215,8 +215,9 @@ function refine!(u_ode::AbstractVector, adaptor,
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
-    @unpack parabolic_container = cache_parabolic
+    @unpack parabolic_container, gradients_at_boundaries_container = cache_parabolic
     resize!(parabolic_container, equations, dg, cache)
+    resize!(gradients_at_boundaries_container, equations, dg, cache)
 
     return nothing
 end
@@ -394,7 +395,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 end
 
 function coarsen!(u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
+                  mesh::Union{TreeMesh{2}, P4estMesh{2}},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove, limiter!)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
@@ -402,8 +403,9 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
-    @unpack parabolic_container = cache_parabolic
+    @unpack parabolic_container, gradients_at_boundaries_container = cache_parabolic
     resize!(parabolic_container, equations, dg, cache)
+    resize!(gradients_at_boundaries_container, equations, dg, cache)
 
     return nothing
 end
