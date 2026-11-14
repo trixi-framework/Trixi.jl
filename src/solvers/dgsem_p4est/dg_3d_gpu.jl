@@ -791,8 +791,7 @@ end
         fluxtilde1 = flux_turbo(numerical_flux,
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO), ii, j, k)...,
-                                Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
-                                equations)
+                                Ja1_avg..., equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
@@ -821,8 +820,7 @@ end
         fluxtilde2 = flux_turbo(numerical_flux,
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO), i, jj, k)...,
-                                Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
-                                equations)
+                                Ja2_avg..., equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
@@ -851,8 +849,7 @@ end
         fluxtilde3 = flux_turbo(numerical_flux,
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO), i, j, kk)...,
-                                Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
-                                equations)
+                                Ja3_avg..., equations)
 
         for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
@@ -1073,8 +1070,7 @@ end
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO),
                                                ii, j, k)...,
-                                Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
-                                equations)
+                                Ja1_avg..., equations)
         du_local = du_local +
                    derivative_split[i, ii] * fluxtilde1
     end
@@ -1088,8 +1084,7 @@ end
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO),
                                                i, jj, k)...,
-                                Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
-                                equations)
+                                Ja2_avg..., equations)
         du_local = du_local +
                    derivative_split[j, jj] * fluxtilde2
     end
@@ -1103,8 +1098,7 @@ end
                                 turbo_node...,
                                 get_node_turbo(turbo_local, Val(NTURBO),
                                                i, j, kk)...,
-                                Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
-                                equations)
+                                Ja3_avg..., equations)
         du_local = du_local +
                    derivative_split[k, kk] * fluxtilde3
     end
@@ -1165,8 +1159,7 @@ end
                                         turbo_node...,
                                         get_node_turbo(turbo_local, Val(NTURBO),
                                                        ii, j, k)...,
-                                        Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
-                                        equations)
+                                        Ja1_avg..., equations)
         du_local = du_local +
                    derivative_split[i, ii] *
                    fluxtilde1_left
@@ -1181,8 +1174,7 @@ end
                                         turbo_node...,
                                         get_node_turbo(turbo_local, Val(NTURBO),
                                                        i, jj, k)...,
-                                        Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
-                                        equations)
+                                        Ja2_avg..., equations)
         du_local = du_local +
                    derivative_split[j, jj] *
                    fluxtilde2_left
@@ -1197,8 +1189,7 @@ end
                                         turbo_node...,
                                         get_node_turbo(turbo_local, Val(NTURBO),
                                                        i, j, kk)...,
-                                        Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
-                                        equations)
+                                        Ja3_avg..., equations)
         du_local = du_local +
                    derivative_split[k, kk] *
                    fluxtilde3_left
