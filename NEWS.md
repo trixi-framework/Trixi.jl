@@ -8,6 +8,10 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `VolumeIntegralAdaptive` with `IndicatorEntropyCorrection` or
+  `IndicatorEntropyCorrectionShockCapturingCombined` is now supported for `DGMulti` solvers
+  with `SBP()` approximation types on affine meshes, blending `VolumeIntegralWeakForm` with
+  `VolumeIntegralPureLGLFiniteVolume` on the SBP nodes ([#3451]).
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
