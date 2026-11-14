@@ -568,6 +568,9 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                                        equations_parabolic, dg, cache)
     end
 
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin
             # Get element and side index information on the primary element
@@ -609,7 +612,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                 # We prolong the parabolic flux dotted with respect the outward normal on the
                 # primary element.
                 (parabolic_flux_normal_ll,
-                parabolic_flux_normal_rr) = get_surface_node_vars(cache.interfaces.u,
+                parabolic_flux_normal_rr) = get_surface_node_vars(interfaces_u,
                                                                   equations_parabolic,
                                                                   dg,
                                                                   i, interface)

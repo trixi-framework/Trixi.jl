@@ -1,4 +1,4 @@
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
+@inline function flux_differencing_kernel!(_du::TurboArray, u_cons::TurboArray, element,
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
                                            have_nonconservative_terms::False,
@@ -17,7 +17,7 @@ end
 
 # Generated function that writes the equivalent hand-written code as in dg_compressible_euler_3d.jl,
 # but generalizes for each number of variables and precomputed variables.
-@generated function flux_differencing_kernel_turbo!(_du::PtrArray, u_cons::PtrArray,
+@generated function flux_differencing_kernel_turbo!(_du::TurboArray, u_cons::TurboArray,
                                                     element,
                                                     MeshT::Type{<:Union{StructuredMesh{3},
                                                                         P4estMesh{3}}},
@@ -267,7 +267,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
+@inline function flux_differencing_kernel!(_du::TurboArray, u_cons::TurboArray, element,
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
                                            have_nonconservative_terms::True,
@@ -284,7 +284,7 @@ end
                                     Val(nauxvariables(equations)))
 end
 
-@generated function flux_differencing_kernel_turbo!(_du::PtrArray, u_cons::PtrArray,
+@generated function flux_differencing_kernel_turbo!(_du::TurboArray, u_cons::TurboArray,
                                                     element,
                                                     MeshT::Type{<:Union{StructuredMesh{3},
                                                                         P4estMesh{3}}},

@@ -15,34 +15,131 @@ end
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might
-    # thus otherwise be garbage collected
-    GC.@preserve u_ode du_ode begin
-        u = Trixi.wrap_array(u_ode, semi)
-        du = Trixi.wrap_array(du_ode, semi)
-        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
-                                        semi.solver.volume_integral.volume_flux,
-                                        semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+    # Call the optimized default version
+    du .= 0
+    Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral.volume_flux,
+                                    semi.solver, semi.cache, true)
+    du_specialized = du[:, :, :, 1]
 
-        # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
-        du .= 0
+    # Call the plain version - note the argument type `Function` of
+    # `semi.solver.volume_integral.volume_flux`
+    du .= 0
+    invoke(Trixi.flux_differencing_kernel!,
+           Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
+                 typeof(have_nonconservative_terms), typeof(semi.equations),
+                 Function, typeof(semi.solver), typeof(semi.cache), Bool},
+           du, u, 1, typeof(semi.mesh),
+           have_nonconservative_terms, semi.equations,
+           semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
+    du_baseline = du[:, :, :, 1]
+
+    @test du_specialized ≈ du_baseline
+end
+
+@testitem "Performance specializations 2D: TreeMesh2D, dispatch on wrapped arrays" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
+    using Trixi: PtrArray
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_ec.jl"),
+                  initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
+                  volume_flux = flux_shima_etal_turbo,
+                  surface_flux = flux_shima_etal_turbo)
+    u_ode = copy(sol.u[end])
+    have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+    volume_flux = semi.solver.volume_integral.volume_flux
+
+    function kernel_method(u)
+        return which(Trixi.flux_differencing_kernel!,
+                     Tuple{typeof(u), typeof(u), Int, Type{typeof(semi.mesh)},
+                           typeof(have_nonconservative_terms), typeof(semi.equations),
+                           typeof(volume_flux), typeof(semi.solver), typeof(semi.cache),
+                           Bool})
+    end
+    is_turbo(u) = endswith(string(kernel_method(u).file), "dg_2d_compressible_euler.jl")
+    # a `Vector`-backed `FixedSizeArrayDims` whose first dimension has a static size
+    has_static_sizes(u) = u isa Trixi.FixedSizeArrayDims{<:Any, <:Any,
+                                                   <:Tuple{Val, Vararg{Any}}, <:Vector}
+
+    # `wrap_array` of the solution vector: for `DGSEM`, a view whose sizes of the
+    # variables and nodes are known at compile time
+    u = @inferred Trixi.wrap_array(u_ode, semi)
+    @test has_static_sizes(u)
+    @test parent(u) === u_ode
+    # the plain wrapper of a `Vector` (as `wrap_array` returns for other solvers)
+    u_fixed = Trixi.wrap_storage(u_ode, size(u))
+    @test u_fixed isa Trixi.VectorBackedArray
+    # `wrap_array` of a contiguous view, e.g., a column of a matrix as in
+    # `jacobian_fd` and `linear_structure`
+    U = hcat(u_ode, u_ode)
+    u_view = Trixi.wrap_array(view(U, :, 2), semi)
+    # a `PtrArray`, as created by Polyester.jl when threading
+    GC.@preserve u_ode begin
+        u_ptr = PtrArray(u)
+        @test is_turbo(u_ptr)
+        # The `@turbo` kernels are used with all threading backends
+        @test is_turbo(u)
+        @test is_turbo(u_fixed)
+        @test is_turbo(u_view)
+
+        # `static_view` creates the view with static sizes
+        u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
+        @test has_static_sizes(u_s)
+        @test typeof(u_s) == typeof(u)
+        @test size(u_s) == size(u_fixed)
+        @test u_s == u_fixed
+        @test parent(u_s) === parent(u_fixed)
+        @test strides(u_s) == strides(u_fixed)
+        @test pointer(u_s) == pointer(u_fixed)
+        # linear indexing goes to the parent vector
+        @test IndexStyle(u_s) == IndexLinear()
+        @test u_s[17] == u_ode[17]
+        # and returns other arrays (including views with static sizes) unchanged
+        @test Trixi.static_view(u, semi.equations, semi.solver) === u
+        @test Trixi.static_view(u_view, semi.equations, semi.solver) === u_view
+        # It is created in every call of `wrap_array`, so it must not allocate. The
+        # allocation tests of the elixirs allow a few bytes and do not catch this. We use
+        # many elements since Julia does not allocate when boxing small integers.
+        u_large = Trixi.wrap_storage(zeros(length(u) * 1000),
+                                     (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
+        function static_view_allocs(u, equations, dg)
+            return @allocated Trixi.static_view(u, equations, dg)
+        end
+        static_view_allocs(u_large, semi.equations, semi.solver)
+        @test static_view_allocs(u_large, semi.equations, semi.solver) == 0
+        # Polyester.jl converts it to a `PtrArray` with static sizes
+        u_p = PtrArray(u_s)
+        @test u_p == u
+        @test Trixi.StaticArrayInterface.static_size(u_p)[1] isa Trixi.StaticInt
+
+        # All of them give the same result as the plain version
+        du_baseline = similar(u)
+        du_baseline .= 0
         invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
+               Tuple{typeof(du_baseline), typeof(u), Integer, Type{typeof(semi.mesh)},
                      typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
-               semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-        du_baseline = du[:, :, :, 1]
-
-        @test du_specialized ≈ du_baseline
+               du_baseline, u, 1, typeof(semi.mesh), have_nonconservative_terms,
+               semi.equations, volume_flux, semi.solver, semi.cache, true)
+        for u_ in (u, u_fixed, u_view, u_ptr)
+            du_ = Trixi.wrap_storage(zeros(length(u_ode)), size(u))
+            du_wrapped = u_ isa PtrArray ? PtrArray(du_) :
+                         has_static_sizes(u_) ?
+                         Trixi.static_view(du_, semi.equations, semi.solver) : du_
+            GC.@preserve du_ begin
+                Trixi.flux_differencing_kernel!(du_wrapped, u_, 1, typeof(semi.mesh),
+                                                have_nonconservative_terms, semi.equations,
+                                                volume_flux, semi.solver, semi.cache, true)
+            end
+            @test du_[:, :, :, 1] ≈ du_baseline[:, :, :, 1]
+        end
     end
 end
 
@@ -57,35 +154,31 @@ end
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might
-    # thus otherwise be garbage collected
-    GC.@preserve u_ode du_ode begin
-        u = Trixi.wrap_array(u_ode, semi)
-        du = Trixi.wrap_array(du_ode, semi)
-        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
-                                        semi.solver.volume_integral.volume_flux,
-                                        semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+    # Call the optimized default version
+    du .= 0
+    Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral.volume_flux,
+                                    semi.solver, semi.cache, true)
+    du_specialized = du[:, :, :, 1]
 
-        # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
-        du .= 0
-        invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
-                     Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
-               semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-        du_baseline = du[:, :, :, 1]
+    # Call the plain version - note the argument type `Function` of
+    # `semi.solver.volume_integral.volume_flux`
+    du .= 0
+    invoke(Trixi.flux_differencing_kernel!,
+           Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
+                 typeof(have_nonconservative_terms), typeof(semi.equations),
+                 Function, typeof(semi.solver), typeof(semi.cache), Bool},
+           du, u, 1, typeof(semi.mesh),
+           have_nonconservative_terms, semi.equations,
+           semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
+    du_baseline = du[:, :, :, 1]
 
-        @test du_specialized ≈ du_baseline
-    end
+    @test du_specialized ≈ du_baseline
 end
 
 @testitem "Performance specializations 2D: StructuredMesh2D, flux_shima_etal_turbo" setup=[
@@ -100,35 +193,31 @@ end
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might
-    # thus otherwise be garbage collected
-    GC.@preserve u_ode du_ode begin
-        u = Trixi.wrap_array(u_ode, semi)
-        du = Trixi.wrap_array(du_ode, semi)
-        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
-                                        semi.solver.volume_integral.volume_flux,
-                                        semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+    # Call the optimized default version
+    du .= 0
+    Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral.volume_flux,
+                                    semi.solver, semi.cache, true)
+    du_specialized = du[:, :, :, 1]
 
-        # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
-        du .= 0
-        invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
-                     Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
-               semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-        du_baseline = du[:, :, :, 1]
+    # Call the plain version - note the argument type `Function` of
+    # `semi.solver.volume_integral.volume_flux`
+    du .= 0
+    invoke(Trixi.flux_differencing_kernel!,
+           Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
+                 typeof(have_nonconservative_terms), typeof(semi.equations),
+                 Function, typeof(semi.solver), typeof(semi.cache), Bool},
+           du, u, 1, typeof(semi.mesh),
+           have_nonconservative_terms, semi.equations,
+           semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
+    du_baseline = du[:, :, :, 1]
 
-        @test du_specialized ≈ du_baseline
-    end
+    @test du_specialized ≈ du_baseline
 end
 
 @testitem "Performance specializations 2D: StructuredMesh2D, flux_ranocha_turbo" setup=[
@@ -142,35 +231,31 @@ end
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
 
-    # Preserve original memory since it will be `unsafe_wrap`ped and might
-    # thus otherwise be garbage collected
-    GC.@preserve u_ode du_ode begin
-        u = Trixi.wrap_array(u_ode, semi)
-        du = Trixi.wrap_array(du_ode, semi)
-        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
-        Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
-                                        semi.solver.volume_integral.volume_flux,
-                                        semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+    # Call the optimized default version
+    du .= 0
+    Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral.volume_flux,
+                                    semi.solver, semi.cache, true)
+    du_specialized = du[:, :, :, 1]
 
-        # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
-        du .= 0
-        invoke(Trixi.flux_differencing_kernel!,
-               Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
-                     Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
-               semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
-        du_baseline = du[:, :, :, 1]
+    # Call the plain version - note the argument type `Function` of
+    # `semi.solver.volume_integral.volume_flux`
+    du .= 0
+    invoke(Trixi.flux_differencing_kernel!,
+           Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
+                 typeof(have_nonconservative_terms), typeof(semi.equations),
+                 Function, typeof(semi.solver), typeof(semi.cache), Bool},
+           du, u, 1, typeof(semi.mesh),
+           have_nonconservative_terms, semi.equations,
+           semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
+    du_baseline = du[:, :, :, 1]
 
-        @test du_specialized ≈ du_baseline
-    end
+    @test du_specialized ≈ du_baseline
 end
 
 @testitem "Performance specializations 2D: P4estMesh2D, combine_conservative_and_nonconservative_fluxes" setup=[
