@@ -301,6 +301,56 @@ end
 struct Gradient end
 struct Divergence end
 
+# `boundary_condition_do_nothing` for equations with auxiliary variables. There are no
+# separate auxiliary variables outside of the boundary, so the inner ones are used.
+@inline function (::BoundaryConditionDoNothing)(u_inner, aux_inner,
+                                                outward_direction::AbstractVector,
+                                                x, t, surface_flux, equations)
+    return flux(u_inner, aux_inner, outward_direction, equations)
+end
+
+# Version for equations with auxiliary variables and nonconservative fluxes
+@inline function (::BoundaryConditionDoNothing)(u_inner, aux_inner,
+                                                outward_direction::AbstractVector,
+                                                x, t, surface_flux_functions::Tuple,
+                                                equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    return surface_flux_function(u_inner, u_inner, aux_inner, aux_inner,
+                                 outward_direction, equations),
+           nonconservative_flux_function(u_inner, u_inner, aux_inner, aux_inner,
+                                         outward_direction, equations)
+end
+
+# Versions for parabolic solvers. They assume that the gradient numerical flux at the
+# boundary is the gradient variable, which is consistent with BR1 and LDG.
+# `inner_flux_or_state` are the gradient variables, i.e., `u_inner`, in the `Gradient`
+# stage and the fluxes at the boundary, i.e., `flux_inner`, in the `Divergence` stage.
+# Some solvers pass `u_inner = nothing` in the `Divergence` stage.
+# TODO: revisit if we want more general boundary treatments.
+#
+# This version can be called by parabolic solvers passing a normal direction. It has the
+# same number of arguments as the versions with auxiliary variables above but a more
+# specific `operator_type`.
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner,
+                                                normal_direction::AbstractVector,
+                                                x, t,
+                                                operator_type::Union{Gradient,
+                                                                     Divergence},
+                                                equations)
+    return inner_flux_or_state
+end
+
+# This version can be called by parabolic solvers passing an orientation and a direction
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner,
+                                                orientation_or_normal_direction,
+                                                direction::Integer, x, t,
+                                                operator_type::Union{Gradient,
+                                                                     Divergence},
+                                                equations)
+    return inner_flux_or_state
+end
+
 """
     BoundaryConditionNeumann(boundary_normal_flux_function)
 
@@ -450,7 +500,11 @@ For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR and MPI. On GPUs, only conforming meshes are supported.
+without AMR and MPI. On GPUs, only conforming meshes and equations without
+nonconservative terms are supported, e.g., [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
+but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
+The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
+[`boundary_condition_do_nothing`](@ref) support auxiliary variables.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0

@@ -17,11 +17,12 @@ for human readability.
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
   they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
-  AMR and MPI, also with volume fluxes wrapped in `FluxTurbo`, and on conforming
-  `P4estMesh{3}`es also on GPUs (there without `FluxTurbo`). The new equations
+  AMR and MPI, also with volume fluxes wrapped in `FluxTurbo`. On GPUs, they are
+  supported on conforming `P4estMesh{3}`es for equations without nonconservative terms,
+  also with `FluxTurbo`. The new equations
   `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3396], [#3436]).
+  advection velocity ([#3239], [#3396], [#3436], [#3437]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
