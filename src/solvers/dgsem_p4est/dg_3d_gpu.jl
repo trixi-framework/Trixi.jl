@@ -755,10 +755,10 @@ end
     turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
-    # the precomputed variables
+    # The auxiliary variables are passed to `cons2turbo` as scalars after the conserved
+    # variables such that they can be part of the precomputed variables
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    turbo_node = cons2turbo(numerical_flux, vcat(u_node, aux_node...)..., equations)
     for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
@@ -894,10 +894,10 @@ end
     turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
-    # the precomputed variables
+    # The auxiliary variables are passed to `cons2turbo` as scalars after the conserved
+    # variables such that they can be part of the precomputed variables
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    turbo_node = cons2turbo(numerical_flux, vcat(u_node, aux_node...)..., equations)
     for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
@@ -1046,10 +1046,10 @@ end
     turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
-    # the precomputed variables
+    # The auxiliary variables are passed to `cons2turbo` as scalars after the conserved
+    # variables such that they can be part of the precomputed variables
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    turbo_node = cons2turbo(numerical_flux, vcat(u_node, aux_node...)..., equations)
     for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
@@ -1132,10 +1132,10 @@ end
     turbo_local = @localmem eltype(du) (NTURBO, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    # The auxiliary variables are passed to `cons2turbo` such that they can be part of
-    # the precomputed variables
+    # The auxiliary variables are passed to `cons2turbo` as scalars after the conserved
+    # variables such that they can be part of the precomputed variables
     aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
-    turbo_node = cons2turbo_node(numerical_flux, u_node, aux_node, equations)
+    turbo_node = cons2turbo(numerical_flux, vcat(u_node, aux_node...)..., equations)
     for v in 1:NTURBO
         turbo_local[v, i, j, k] = turbo_node[v]
     end
