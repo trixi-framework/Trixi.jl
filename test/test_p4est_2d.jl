@@ -270,6 +270,26 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_euler_free_stream_amr.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_amr.jl"),
+                        l2=[
+                            3.939923235772787e-15,
+                            2.4895290854259802e-14,
+                            2.7516458993078256e-14,
+                            3.697813865290969e-14
+                        ],
+                        linf=[
+                            5.440092820663267e-14,
+                            3.0002389461714074e-13,
+                            3.617939281497229e-13,
+                            5.400124791776761e-13
+                        ],
+                        atol=2.0e-12)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh2D: elixir_euler_free_stream.jl (O2 full reconstruction)" setup=[
     Setup,
     P4estMesh2D

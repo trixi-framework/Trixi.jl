@@ -78,10 +78,87 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     return nothing
 end
 
+# Compute the discrete mass `sum_{i,j} w_i w_j J_{ij} u_{ij}` of all variables and the
+# discrete volume `sum_{i,j} w_i w_j J_{ij}` of an element on a curvilinear mesh.
+# The discrete mass is the quantity conserved by the DGSEM.
+@inline function element_mass_and_volume(u, element, inverse_jacobian,
+                                         mesh::P4estMesh{2}, equations, dg::DGSEM)
+    @unpack weights = dg.basis
+    mass = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    volume = zero(eltype(inverse_jacobian))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_node = weights[i] * weights[j] / inverse_jacobian[i, j, element]
+        mass = mass + volume_node * get_node_vars(u, equations, dg, i, j, element)
+        volume = volume + volume_node
+    end
+    return mass, volume
+end
+
+# On curvilinear meshes, the solution `u` (and not `J*u`) is interpolated during refinement
+# and projected during coarsening, since this preserves constant states exactly
+# (free-stream preservation). However, the discrete mass `sum w J u` changes slightly
+# since the LGL quadrature is not exact for `J*u`. To restore exact conservation, the
+# same constant `delta = (mass_old - mass_new) / volume_new` is added to all variables
+# on all new elements of a refined/coarsened family. If the discrete volumes of the
+# family before and after adaptation agree, `delta` vanishes for constant states.
+# This holds in 2D, since the Jacobian is a polynomial of degree `2 * N_geo - 1`, which
+# is integrated exactly by the LGL quadrature for a solver polynomial degree `N >= N_geo`.
+# For smooth solutions, `delta` is of the size of the LGL quadrature error, i.e.,
+# `O(h^(2N))`, and does not reduce the order of accuracy.
+function correct_mass_refine!(u, element_id, old_u, old_element_id,
+                              old_inverse_jacobian,
+                              mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
+    @unpack inverse_jacobian = cache.elements
+    mass_parent, _ = element_mass_and_volume(old_u, old_element_id,
+                                             old_inverse_jacobian,
+                                             mesh, equations, dg)
+
+    mass_children = zero(mass_parent)
+    volume_children = zero(eltype(inverse_jacobian))
+    for m in 0:3 # loop over the children
+        mass, volume = element_mass_and_volume(u, element_id + m, inverse_jacobian,
+                                               mesh, equations, dg)
+        mass_children = mass_children + mass
+        volume_children = volume_children + volume
+    end
+
+    delta = (mass_parent - mass_children) / volume_children
+    for m in 0:3, j in eachnode(dg), i in eachnode(dg)
+        add_to_node_vars!(u, delta, equations, dg, i, j, element_id + m)
+    end
+
+    return nothing
+end
+
+# See `correct_mass_refine!`
+function correct_mass_coarsen!(u, element_id, old_u, old_element_id,
+                               old_inverse_jacobian,
+                               mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
+    @unpack inverse_jacobian = cache.elements
+    mass_parent, volume_parent = element_mass_and_volume(u, element_id,
+                                                         inverse_jacobian,
+                                                         mesh, equations, dg)
+
+    mass_children = zero(mass_parent)
+    for m in 0:3 # loop over the children
+        mass, _ = element_mass_and_volume(old_u, old_element_id + m,
+                                          old_inverse_jacobian,
+                                          mesh, equations, dg)
+        mass_children = mass_children + mass
+    end
+
+    delta = (mass_children - mass_parent) / volume_parent
+    for j in eachnode(dg), i in eachnode(dg)
+        add_to_node_vars!(u, delta, equations, dg, i, j, element_id)
+    end
+
+    return nothing
+end
+
 # Refine elements in the DG solver based on a list of cell_ids that should be refined.
-# On `P4estMesh`, if an element refines the solution scaled by the Jacobian `J*u` is interpolated
-# from the parent element into the four children elements. The solution on each child
-# element is then recovered by dividing by the new element Jacobians.
+# On `P4estMesh`, the solution `u` is interpolated from the parent element into the four
+# children elements, followed by a constant correction restoring the discrete mass
+# `sum w J u` exactly (see `correct_mass_refine!`).
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
                  equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_refine,
                  limiter!)
@@ -119,18 +196,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
             end
         end
 
-        if mesh isa P4estMesh
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element_id in 1:old_n_elements
-                for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                     old_inverse_jacobian[..,
-                                                                          old_element_id])
-                end
-            end
-        end
-
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)
         end
@@ -150,31 +215,18 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                                 adaptor, equations, dg, u_tmp1)
 
                 if mesh isa P4estMesh
-                    # Before `element_id` is incremented, divide by the new Jacobians on each
-                    # child element and save the result
-                    for m in 0:3 # loop over the children
-                        for v in eachvariable(equations)
-                            u[v, .., element_id + m] .*= (0.25f0 .*
-                                                          cache.elements.inverse_jacobian[..,
-                                                                                          element_id + m])
-                        end
-                    end
+                    # Restore the discrete mass `sum w J u` of the parent element
+                    correct_mass_refine!(u, element_id, old_u, old_element_id,
+                                         old_inverse_jacobian,
+                                         mesh, equations, dg, cache)
                 end
 
                 # Increment `element_id` on the refined mesh with the number
                 # of children, i.e., 4 in 2D
                 element_id += 2^ndims(mesh)
             else
-                if mesh isa P4estMesh
-                    # Copy old element data to new element container and remove Jacobian scaling
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
-                                                 old_inverse_jacobian[..,
-                                                                      old_element_id])
-                    end
-                else # isa TreeMesh
-                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                end
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
                 # No refinement occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
@@ -271,9 +323,9 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed.
-# On `P4estMesh`, if an element coarsens the solution scaled by the Jacobian `J*u` is projected
-# from the four children elements back onto the parent element. The solution on the parent
-# element is then recovered by dividing by the new element Jacobian.
+# On `P4estMesh`, the solution `u` is projected from the four children elements onto the
+# parent element, followed by a constant correction restoring the discrete mass
+# `sum w J u` exactly (see `correct_mass_refine!`).
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
                   equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_remove,
@@ -299,18 +351,6 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
-
-        if mesh isa P4estMesh
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element_id in 1:old_n_elements
-                for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                     old_inverse_jacobian[..,
-                                                                          old_element_id])
-                end
-            end
-        end
 
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)
@@ -343,13 +383,10 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                                   adaptor, equations, dg, u_tmp1)
 
                 if mesh isa P4estMesh
-                    # Before `element_id` is incremented, divide by the new Jacobian and save
-                    # the result in the parent element
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .*= (4 .*
-                                                  cache.elements.inverse_jacobian[..,
-                                                                                  element_id])
-                    end
+                    # Restore the discrete mass `sum w J u` of the children elements
+                    correct_mass_coarsen!(u, element_id, old_u, old_element_id,
+                                          old_inverse_jacobian,
+                                          mesh, equations, dg, cache)
                 end
 
                 # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
@@ -357,16 +394,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 element_id += 1
                 skip = 2^ndims(mesh) - 1
             else
-                if mesh isa P4estMesh
-                    # Copy old element data to new element container and remove Jacobian scaling
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
-                                                 old_inverse_jacobian[..,
-                                                                      old_element_id])
-                    end
-                else # isa TreeMesh
-                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                end
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
                 # No coarsening occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
