@@ -26,7 +26,7 @@ function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEqu
               sin(lambda_m * x2)
     end
 
-    rho = 1
+    rho = rho0
     v2 = 0
 
     return equilibrium_distribution(rho, v1, v2, equations)
