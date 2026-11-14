@@ -4,7 +4,7 @@
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations

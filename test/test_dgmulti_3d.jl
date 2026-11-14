@@ -379,6 +379,31 @@ end
                                          RealT = Float64)
 end
 
+@testitem "DGMulti3D: elixir_linearizedeuler_convergence_wedge_sbp.jl" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_convergence_wedge_sbp.jl"),
+                        l2=[
+                            0.042338716904439,
+                            0.02938678768590326,
+                            0.02938678768590165,
+                            0.05366713484796156,
+                            0.042338716904439
+                        ],
+                        linf=[
+                            0.14541529091809738,
+                            0.0803925306482336,
+                            0.08039253064821161,
+                            0.05836726520098989,
+                            0.14541529091809738
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "DGMulti3D: elixir_advection_tensor_wedge.jl (scalar polydeg)" setup=[
     Setup,
     DGMulti3D
