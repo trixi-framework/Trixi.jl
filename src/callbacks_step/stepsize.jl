@@ -202,6 +202,8 @@ end
 function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equations, dg,
                                cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
@@ -209,6 +211,7 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
                                                   equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
+                                                  aux,
                                                   element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
@@ -221,17 +224,20 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
                                dg,
                                cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
 
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
-    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
-                                                    init, neutral) do element
+    max_scaled_speed = mapreduce_accelerated(Base.max, 1:num_elements, backend;
+                                             init, neutral) do element
         max_scaled_speed_per_element(u, MeshT, constant_speed,
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
+                                     aux,
                                      element)
     end
 

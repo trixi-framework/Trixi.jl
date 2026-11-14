@@ -2999,6 +2999,77 @@ end
     end
 end
 
+@testitem "Type stability: Linear Scalar Advection 3D with auxiliary variables" setup=[
+    Setup,
+    TypeStability
+] tags=[:misc_part1] begin
+    for RealT in (Float32, Float64)
+        equations_conservative = @inferred ConservativeLinearScalarAdvectionEquation3D()
+        equations_nonconservative = @inferred NonconservativeLinearScalarAdvectionEquation3D()
+
+        x = SVector(zero(RealT), zero(RealT), zero(RealT))
+        t = zero(RealT)
+        u = u_ll = u_rr = u_inner = SVector(one(RealT))
+        aux = aux_ll = aux_rr = aux_inner = SVector(one(RealT), RealT(0.5), -RealT(0.5))
+        orientations = [1, 2, 3]
+        normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
+
+        boundary_value(x, t, equations) = SVector(one(eltype(x)))
+        boundary_condition = BoundaryConditionDirichlet(boundary_value)
+
+        for equations in (equations_conservative, equations_nonconservative)
+            for orientation in orientations
+                @test eltype(@inferred flux(u, aux, orientation, equations)) == RealT
+                @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                                     orientation, equations)) == RealT
+                @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                           orientation, equations)) ==
+                      RealT
+            end
+
+            @test eltype(@inferred flux(u, aux, normal_direction, equations)) == RealT
+            @test typeof(@inferred max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                                 normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                                       normal_direction, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, aux, equations)) == RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+
+        equations = equations_conservative
+        @test eltype(@inferred boundary_condition(u_inner, aux_inner, normal_direction,
+                                                  x, t, flux_lax_friedrichs,
+                                                  equations)) == RealT
+
+        equations = equations_nonconservative
+        for orientation in orientations
+            @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                                orientation, equations)) ==
+                  RealT
+        end
+        @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                            normal_direction, equations)) ==
+              RealT
+        surface_flux_functions = (flux_lax_friedrichs, flux_nonconservative_central)
+        flux_, noncons_flux = @inferred boundary_condition(u_inner, aux_inner,
+                                                           normal_direction, x, t,
+                                                           surface_flux_functions,
+                                                           equations)
+        @test eltype(flux_) == RealT
+        @test eltype(noncons_flux) == RealT
+    end
+
+    for equations in (ConservativeLinearScalarAdvectionEquation3D(),
+                      NonconservativeLinearScalarAdvectionEquation3D())
+        @test @inferred(Trixi.trixi_adapt(Array, Float32, equations)) === equations
+    end
+end
+
 @testitem "Type stability: Polytropic Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
     for RealT in (Float32, Float64)
         equations1 = @inferred PolytropicEulerEquations2D(RealT(1),

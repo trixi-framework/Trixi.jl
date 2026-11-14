@@ -392,9 +392,10 @@ Base.@propagate_inbounds function fvO2_kernel!(du, u,
 end
 
 # Compute the normal flux for the FV method on cartesian subcells, see
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+# [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+# [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                                fstar3_L, fstar3_R,
                                                u, ::Type{<:TreeMesh{3}},
@@ -1608,24 +1609,33 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+# The type parameter `Source` forces Julia to specialize on `source_terms`. Otherwise,
+# Julia v1.10 cannot infer the call of `source_terms` with the splatted auxiliary variables
+# below, which allocates.
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Source,
+                       equations::AbstractEquations{3}, dg::DG, cache) where {Source}
     @unpack node_coordinates = cache.elements
+
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, Val(3), equations, dg, cache)
         check_axes(du, Val(3), equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_aux(aux, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_local = get_node_vars(u, equations, dg, i, j, k, element)
+                aux_local = get_aux_node_vars(aux, equations, dg,
+                                              i, j, k, element)
                 x_local = get_node_coords(node_coordinates, equations, dg,
                                           i, j, k, element)
-                du_local = source_terms(u_local, x_local, t, equations)
+                du_local = source_terms(u_local, aux_local..., x_local, t, equations)
                 add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
             end
         end

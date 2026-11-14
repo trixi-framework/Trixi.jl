@@ -825,6 +825,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
+    # Auxiliary variables are evaluated once for a fixed mesh, so adaptation would
+    # require re-initializing (and resizing) their container.
+    if haskey(cache, :aux_vars)
+        throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
+    end
+
     return nothing
 end
 
@@ -1120,8 +1126,15 @@ end
 
 # Build a reduced cache which can be passed to GPU kernels
 @inline function kernel_filter_cache(cache)
-    return (;
-            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
+    elements = (; contravariant_vectors = cache.elements.contravariant_vectors)
+    # The auxiliary variables are only stored for equations with auxiliary variables,
+    # see `get_aux_vars`
+    if haskey(cache, :aux_vars)
+        aux_vars = (; aux = cache.aux_vars.aux)
+        return (; elements, aux_vars)
+    else
+        return (; elements)
+    end
 end
 
 include("containers_2d.jl")

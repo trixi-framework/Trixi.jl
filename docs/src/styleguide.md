@@ -40,11 +40,11 @@ conventions, we apply and enforce automated source code formatting
     (e.g., when trying to find all flux functions).
 
 ## [Automated source code formatting](@id automated-source-code-formatting)
-We use [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) to format the
+We use [JuliaFormatter.jl](https://github.com/JuliaEditorSupport/JuliaFormatter.jl) to format the
 source code of Trixi.jl, which will also enforce *some* of the [Conventions](@ref) listed
 above (e.g., line length or indentation with 4 spaces are automatically handled, while
 capitalization of names is not). Our format is mostly based on the
-[SciML](https://domluna.github.io/JuliaFormatter.jl/stable/sciml_style/)-style formatting
+[SciML](https://juliaeditorsupport.github.io/JuliaFormatter.jl/stable/sciml_style/)-style formatting
 rules. For more details you can have a look at the current
 [`.JuliaFormatter.toml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.JuliaFormatter.toml)
 file that holds the configuration options we use for JuliaFormatter.jl.
@@ -74,7 +74,7 @@ You can get more information about using the convenience script by running it wi
 ### Checking formatting before committing
 It can be convenient to check the formatting of source code automatically before each commit.
 We use git-hooks for it and provide a `pre-commit` script in the `utils` folder. The script uses
-[JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) just like formatting script that
+[JuliaFormatter.jl](https://github.com/JuliaEditorSupport/JuliaFormatter.jl) just like formatting script that
 runs over the whole Trixi.jl directory.
 You can copy the `pre-commit`-script into `.git/hooks/pre-commit` and it will check your formatting
 before each commit. If errors are found the commit is aborted and you can add the corrections via
