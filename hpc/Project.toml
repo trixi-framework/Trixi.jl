@@ -1,0 +1,71 @@
+# Benchmark dependencies added to the prepared test environment.
+[deps]
+ThreadPinning = "811555cd-349b-4f26-b7bc-1f208b848042"
+
+[compat]
+ThreadPinning = "1"
+
+[extras]
+CUDA_Compiler_jll = "d1e2174e-dfdc-576e-b43e-73b79eb1aca8"
+CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+HDF5_jll = "0234f1f7-429e-5d53-9886-15a909be8d59"
+MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+OpenMPI_jll = "fe0851c0-eecd-5654-98d4-656369965a5c"
+P4est = "7d669430-f675-4ae7-b43e-fab78ec5a902"
+P4est_jll = "6b5a15aa-cf52-5330-8376-5e5d90283449"
+T8code = "d0cc0030-9a40-4274-8435-baadcfd54fa1"
+t8code_jll = "4ee9bed8-4011-53f7-90c2-22363c2f500d"
+
+[preferences.CUDA_Compiler_jll]
+local = true
+version = "12.8"
+
+[preferences.CUDA_Runtime_jll]
+local = true
+version = "12.8"
+
+[preferences.HDF5]
+libhdf5 = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5.so"
+libhdf5_hl = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_hl.so"
+
+[preferences.HDF5_jll]
+libhdf5_cpp_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_cpp.so"
+libhdf5_fortran_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_fortran.so"
+libhdf5_hl_cpp_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_hl_cpp.so"
+libhdf5_hl_fortran_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_hl_fortran.so"
+libhdf5_hl_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5_hl.so"
+libhdf5_path = "/opt/software/pc2/EB-SW/software/HDF5/1.14.6-gompi-2025a/lib/libhdf5.so"
+
+[preferences.MPIPreferences]
+_format = "1.0"
+abi = "OpenMPI"
+binary = "system"
+libmpi = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/lib/libmpi.so"
+mpiexec = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/bin/mpiexec"
+preloads = []
+
+[preferences.OpenMPI_jll]
+libmpi_mpifh_path = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/lib/libmpi_mpifh.so"
+libmpi_path = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/lib/libmpi.so"
+libmpi_usempi_ignore_tkr_path = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/lib/libmpi_usempi_ignore_tkr.so"
+libmpi_usempif08_path = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/lib/libmpi_usempif08.so"
+mpiexec_path = "/opt/software/pc2/EB-SW/software/OpenMPI/5.0.7-GCC-14.2.0/bin/mpiexec"
+
+[preferences.P4est]
+libp4est = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/p4est/lib/libp4est.so"
+libsc = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/p4est/lib/libsc.so"
+
+[preferences.P4est_jll]
+libp4est_path = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/p4est/lib/libp4est.so"
+libsc_path = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/p4est/lib/libsc.so"
+
+[preferences.T8code]
+libp4est = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libp4est.so"
+libsc = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libsc.so"
+libt8 = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libt8.so"
+
+[preferences.t8code_jll]
+libp4est_path = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libp4est.so"
+libsc_path = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libsc.so"
+libt8_path = "/scratch/hpc-prf-cobentx/depot/native/otus-foss-2025a-v2/t8code/lib/libt8.so"

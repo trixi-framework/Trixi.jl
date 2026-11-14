@@ -312,6 +312,16 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
+@testitem "Threaded P4estMesh: elixir_advection_basic.jl" setup=[Setup, ThreadedExamples] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        l2=[8.311947673061856e-6],
+                        linf=[6.627000273229378e-5])
+
+    # Thread scheduling contributes allocations to the RHS call.
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
+end
+
 @testitem "Threaded P4estMesh: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
     Setup,
     ThreadedExamples
@@ -359,6 +369,16 @@ end
                             0.004793821195083758
                         ],
                         tspan=(0.0, 0.1))
+end
+
+@testitem "Threaded T8codeMesh: elixir_advection_basic.jl" setup=[Setup, ThreadedExamples] tags=[:threaded] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "t8code_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        l2=[8.311947673061856e-6],
+                        linf=[6.627000273229378e-5])
+
+    # Thread scheduling contributes allocations to the RHS call.
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded T8codeMesh: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[

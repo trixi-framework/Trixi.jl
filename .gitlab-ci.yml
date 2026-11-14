@@ -1,0 +1,350 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $EXPECTED_COMMIT_SHA == $CI_COMMIT_SHA'
+
+stages: [prepare, check, benchmark, scaling]
+
+variables:
+  GIT_DEPTH: "1"
+  # Selected checks, benchmarks and Julia versions, all, none or single values joined by +, GitHub triggers override them.
+  HPC_CHECKS: all
+  HPC_BENCHMARKS: none
+  HPC_JULIA: all
+
+default:
+  tags: [otus-slurm]
+  id_tokens:
+    CI_JOB_JWT:
+      aud: https://git.uni-paderborn.de
+  # Jobs receive the artifacts of the jobs they need, so each job uploads only its own results.
+  artifacts:
+    when: always
+    paths: [results/$CHECK/$JULIA_VERSION/]
+    expire_in: 4 weeks
+  before_script:
+    - set -euo pipefail
+    - source hpc/env.sh "$JULIA_VERSION"
+    - export RESULTS="$CI_PROJECT_DIR/results/$CHECK/$JULIA_VERSION"
+    - mkdir -p "$RESULTS"
+    - |
+      if [[ $CHECK == prepare ]]; then
+        export JULIA_PKG_OFFLINE=false
+      else
+        export JULIA_PKG_OFFLINE=true
+        sacct -X -j "$SLURM_JOB_ID" --format=JobID,Submit,Start,State --noheader
+      fi
+      project="$CI_PROJECT_DIR/run_hpc/$JULIA_VERSION/test"
+      julia_args=(--startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes "--project=$project")
+      bench_args=("${julia_args[@]/--check-bounds=yes/--check-bounds=auto}")
+      set_backend() { julia "${julia_args[@]}" --threads=1 -e 'using Trixi; Trixi.set_threading_backend!(Symbol(ARGS[1]))' "$1"; }
+
+.prepare:
+  stage: prepare
+  tags: [otus-shell]
+  timeout: 4 hours
+  resource_group: prepare-$JULIA_VERSION
+  variables:
+    CHECK: prepare
+    JULIA_NUM_THREADS: "8"
+  script:
+    - |
+      # Slurm jobs are submitted before they can source env.sh, so these come from GitLab project variables.
+      for name in HPC_ACCOUNT CPU_PARTITION GPU_PARTITION; do
+        [[ -n ${!name:-} ]] || { echo "Set the GitLab project variable $name for the Slurm requests." >&2; exit 1; }
+      done
+      mkdir -p "$CI_DEPOT_ROOT/$JULIA_VERSION"
+      exec 8>"$CI_DEPOT_ROOT/$JULIA_VERSION/prepare.lock"
+      flock 8
+      bash hpc/install_libraries.sh 2>&1 | tee "$RESULTS/native.log"
+      julia --startup-file=no -C "$JULIA_CPU_TARGET" --check-bounds=yes --project=hpc hpc/ci/prepare.jl 2>&1 | tee "$RESULTS/resolve.log"
+      for backend in polyester kernelabstractions; do
+        set_backend "$backend"
+        julia "${julia_args[@]}" -e 'using Pkg; Pkg.precompile()' 2>&1 | tee "$RESULTS/precompile-$backend.log"
+      done
+      set_backend polyester
+      if [[ $HPC_BENCHMARKS != none ]]; then
+        julia "${bench_args[@]}" -e 'using Pkg; Pkg.precompile()' 2>&1 | tee "$RESULTS/precompile-benchmark.log"
+      fi
+      julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/check.log"
+  artifacts:
+    when: always
+    paths:
+      - results/$CHECK/$JULIA_VERSION/
+      - run_hpc/$JULIA_VERSION/test/
+    expire_in: 4 weeks
+
+.compute:
+  stage: check
+  timeout: 7 days
+  variables:
+    JACAMAR_SCHEDULER_JOB_PREFIX: "trixi-${CI_JOB_NAME_SLUG}"
+
+.cpu:
+  extends: .compute
+  variables:
+    CHECK: cpu
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 1 -c 4 --mem=32G -t 00:15:00"
+  script:
+    - |
+      julia "${julia_args[@]}" --threads=1 hpc/check_environment.jl "$JULIA_VERSION" 2>&1 | tee "$RESULTS/serial.log"
+      julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl polyester 2>&1 | tee "$RESULTS/threaded.log"
+      set_backend kernelabstractions
+      julia "${julia_args[@]}" --threads=3 hpc/ci/validate.jl kernelabstractions 2>&1 | tee "$RESULTS/kernelabstractions.log"
+      set_backend polyester
+
+.mpi:
+  extends: .compute
+  variables:
+    CHECK: mpi
+    UCX_LOG_LEVEL: info
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 2 -n 2 --ntasks-per-node=1 -c 1 --mem=32G -t 00:15:00"
+  script:
+    - |
+      julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl mpi 2>&1 | tee "$RESULTS/mpi.log"
+
+.gpu:
+  extends: .compute
+  variables:
+    CHECK: gpu
+    OMPI_MCA_opal_cuda_support: "1"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 4 --mem=64G -t 00:15:00"
+  script:
+    - |
+      julia "${julia_args[@]}" --threads=4 hpc/ci/validate.jl cuda 2>&1 | tee "$RESULTS/cuda.log"
+      julia "${julia_args[@]}" --threads=1 hpc/ci/mpi.jl cuda_mpi 2>&1 | tee "$RESULTS/cuda-mpi.log"
+
+# Each scaling point runs as its own matrix job, the job names end with the count of threads, ranks or GPUs.
+# CPU points reserve whole nodes, so no other job shares the memory bandwidth, and fill the cores of the first socket in order.
+.bench:
+  extends: .compute
+  stage: benchmark
+  variables:
+    CPU_CASE: benchmark/scaling/euler_source_terms.jl
+    GPU_CASE: benchmark/scaling/taylor_green_vortex_cuda.jl
+
+.bench-threads:
+  extends: .bench
+  variables:
+    CHECK: bench-threads
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N 1 -n 1 -c 192 --exclusive --mem=0 -t 00:15:00"
+  parallel:
+    matrix:
+      - COUNT: ["1", "8", "24", "48", "96"]
+  script:
+    - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
+    - julia "${bench_args[@]}" --threads=$COUNT -e 'using ThreadPinning; pinthreads(:cores); threadinfo(); include("benchmark/scaling/run.jl")' "$CPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+
+.bench-mpi:
+  extends: .bench
+  variables:
+    CHECK: bench-mpi
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $CPU_PARTITION -N $NODES --ntasks-per-node=96 -c 1 --exclusive --mem=0 -t 00:15:00"
+  parallel:
+    matrix:
+      - COUNT: ["1", "8", "24", "96"]
+        NODES: "1"
+      - COUNT: "192"
+        NODES: "2"
+  script:
+    - lscpu | grep -E '^(Model name|Socket|Core|NUMA)'
+    - mpiexec --map-by core --bind-to core --report-bindings -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/scaling/run.jl "$CPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+
+.bench-gpu:
+  extends: .bench
+  variables:
+    CHECK: bench-gpu
+    OMPI_MCA_opal_cuda_support: "1"
+    SCHEDULER_PARAMETERS: "-A $HPC_ACCOUNT -p $GPU_PARTITION --gres=gpu:h100:2 -N 1 -n 2 -c 24 --mem=180G -t 00:15:00"
+  parallel:
+    matrix:
+      - COUNT: ["1", "2"]
+  script:
+    - mpiexec --map-by slot:PE=24 --bind-to core -n $COUNT julia "${bench_args[@]}" --threads=1 benchmark/scaling/run.jl "$GPU_CASE" "$RESULTS/pid-$COUNT.txt" 2>&1 | tee "$RESULTS/pid-$COUNT.log"
+
+# Combines the points of one series into the benchmark files read by the GitHub benchmark suites.
+.scaling:
+  stage: scaling
+  tags: [otus-shell]
+  before_script:
+    - set -euo pipefail
+    - source hpc/env.sh "$JULIA_VERSION"
+    - export RESULTS="$CI_PROJECT_DIR/results/$CHECK/$JULIA_VERSION"
+  script:
+    - julia --startup-file=no benchmark/scaling/combine.jl "$SERIES" "$RESULTS" "$BASELINE"
+
+prepare:1.10:
+  extends: .prepare
+  rules:
+    - if: ($HPC_CHECKS != "none" || $HPC_BENCHMARKS != "none") && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  variables:
+    JULIA_VERSION: "1.10"
+
+prepare:1.13:
+  extends: .prepare
+  rules:
+    - if: ($HPC_CHECKS != "none" || $HPC_BENCHMARKS != "none") && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  variables:
+    JULIA_VERSION: "1.13"
+
+cpu:1.10:
+  extends: .cpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|cpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+cpu:1.13:
+  extends: .cpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|cpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+mpi:1.10:
+  extends: .mpi
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+mpi:1.13:
+  extends: .mpi
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+gpu:1.10:
+  extends: .gpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+gpu:1.13:
+  extends: .gpu
+  rules:
+    - if: $HPC_CHECKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+bench-threads:1.10:
+  extends: .bench-threads
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|threads)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+scaling-threads:1.10:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|threads)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["bench-threads:1.10"]
+  variables:
+    CHECK: bench-threads
+    SERIES: euler_source_terms/threads
+    BASELINE: "8"
+    JULIA_VERSION: "1.10"
+
+bench-threads:1.13:
+  extends: .bench-threads
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|threads)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+scaling-threads:1.13:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|threads)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["bench-threads:1.13"]
+  variables:
+    CHECK: bench-threads
+    SERIES: euler_source_terms/threads
+    BASELINE: "8"
+    JULIA_VERSION: "1.13"
+
+bench-mpi:1.10:
+  extends: .bench-mpi
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+scaling-mpi:1.10:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["bench-mpi:1.10"]
+  variables:
+    CHECK: bench-mpi
+    SERIES: euler_source_terms/ranks
+    BASELINE: "8"
+    JULIA_VERSION: "1.10"
+
+bench-mpi:1.13:
+  extends: .bench-mpi
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+scaling-mpi:1.13:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|mpi)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["bench-mpi:1.13"]
+  variables:
+    CHECK: bench-mpi
+    SERIES: euler_source_terms/ranks
+    BASELINE: "8"
+    JULIA_VERSION: "1.13"
+
+bench-gpu:1.10:
+  extends: .bench-gpu
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["prepare:1.10"]
+  variables:
+    JULIA_VERSION: "1.10"
+
+scaling-gpu:1.10:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.10)(\+|$)/
+  needs: ["bench-gpu:1.10"]
+  variables:
+    CHECK: bench-gpu
+    SERIES: taylor_green_vortex/gpus
+    BASELINE: "1"
+    JULIA_VERSION: "1.10"
+
+bench-gpu:1.13:
+  extends: .bench-gpu
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["prepare:1.13"]
+  variables:
+    JULIA_VERSION: "1.13"
+
+scaling-gpu:1.13:
+  extends: .scaling
+  rules:
+    - if: $HPC_BENCHMARKS =~ /(^|\+)(all|gpu)(\+|$)/ && $HPC_JULIA =~ /(^|\+)(all|1\.13)(\+|$)/
+  needs: ["bench-gpu:1.13"]
+  variables:
+    CHECK: bench-gpu
+    SERIES: taylor_green_vortex/gpus
+    BASELINE: "1"
+    JULIA_VERSION: "1.13"
