@@ -1069,10 +1069,13 @@ end
         GC.@preserve u_ode du_ode begin
             u = Trixi.wrap_array(u_ode, semi)
             du = Trixi.wrap_array(du_ode, semi)
-            Trixi.calc_volume_integral!(Trixi.trixi_backend(u), du, u, mesh,
-                                        Trixi.have_nonconservative_terms(equations),
-                                        equations, semi.solver.volume_integral,
-                                        semi.solver, semi.cache)
+            Trixi.calc_volume_integral!(Trixi.trixi_backend(u), du, u,
+                                        semi.mesh,
+                                        Trixi.have_nonconservative_terms(semi.equations),
+                                        semi.equations,
+                                        semi.solver.volume_integral,
+                                        semi.solver,
+                                        semi.cache)
         end
         return Array(du_ode)
     end
