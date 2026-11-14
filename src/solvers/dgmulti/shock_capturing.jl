@@ -59,10 +59,34 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     return inverse_vandermonde
 end
 
-# calculates the inverse of the Vandermonde matrix for shock capturing purposes.
+# Total polynomial degrees of the orthonormal modal basis functions on triangles, in
+# the order used by NodesAndModes.jl (whose `vandermonde` is reused by StartUpDG.jl).
+# Note that this order is *not* hierarchical, e.g., the degrees are (0, 1, 2, 1, 2, 2)
+# for N = 2.
+function simplex_mode_degrees(N, ::Tri)
+    degrees = Vector{Int}(undef, nmodes(N, Tri()))
+    mode = 1
+    # Same loop structure as `NodesAndModes.basis(::Tri, N, r, s)`:
+    # The basis function with index `mode` has
+    # - degree `i` in the first
+    # - degree `j` in the second
+    # (collapsed) coordinate.
+    for i in 0:N
+        for j in 0:(N - i)
+            degrees[mode] = i + j
+            mode += 1
+        end
+    end
+    return degrees
+end
+
+# calculates the inverse of the Vandermonde matrix for shock capturing purposes (only!).
 # This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde
 # matrix first projects from solution values at SBP nodes to degree N polynomials,
 # and then returns the modal coefficients of that projected polynomial.
+# The modal coefficients are sorted by the total degree of the corresponding basis
+# functions, so that the first `nmodes(k, element_type)` coefficients are the ones of
+# the L2 projection onto polynomials of degree `k`.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
     (; N, element_type, r, s, VDM, wq) = basis
 
@@ -79,7 +103,11 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
 
     # invert Vandermonde matrix to recover modal coefficients from the
     # quadrature-based L2 projection matrix.
-    return VDM \ projection_matrix
+    inverse_vandermonde = VDM \ projection_matrix
+
+    # `sortperm` is stable in the sense that the existing order of modes of the same degree is retained
+    hierarchical_order = sortperm(simplex_mode_degrees(N, element_type))
+    return @view inverse_vandermonde[hierarchical_order, :]
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
@@ -127,7 +155,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # 4 5 6
         # 7 8 9 10
         #
-        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
+        # The modal coefficients corresponding to degree 2 are then (1:6),
         # while the modal coefficients for degree 1 are (1:3).
         clip_1_range = 1:nmodes(N - 1, element_type)
         clip_2_range = 1:nmodes(N - 2, element_type)

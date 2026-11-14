@@ -137,6 +137,12 @@ for human readability.
   threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
+- `IndicatorHennemannGassner` for `DGMulti` solvers with `SBP()` approximation types on
+  triangles now sorts the modal coefficients by their total degree. Previously, the
+  energies of the highest modes were computed from the wrong modal coefficients, e.g.,
+  resulting in nonzero energies of the highest modes for polynomials of lower degree.
+  This changes the blending factors and thus the results of shock capturing simulations
+  on triangles.
 - `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
   `IndicatorMax` throw a `DimensionMismatch` if their basis has a different number of
   nodes than the one of the solver. Previously, `IndicatorMax` silently returned wrong
