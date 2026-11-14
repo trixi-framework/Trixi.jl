@@ -5390,6 +5390,56 @@ end
     @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
+@testitem "Unit: load_mesh_serial reconstructs StructuredMesh mapping" setup=[
+    Setup, UnitTests] tags=[:misc_part1] begin
+    mktempdir() do dir
+        # Mapping stored as a function definition with an arbitrary name, as
+        # obtained from `mapping2string` for named mapping functions (e.g.
+        # `mapping_left` in `elixir_lbm_eulerpolytropic_coupled.jl`). Here,
+        # `mapping_as_string` is passed explicitly since `CodeTracking` cannot
+        # resolve function definitions in local scopes.
+        mapping_as_string = """
+        function mapping_left(xi, eta)
+            return SVector(2 * xi - 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test size(loaded) == size(mesh)
+        @test loaded.periodicity == mesh.periodicity
+        # Call through `invokelatest` since the reconstructed mapping was just eval'ed
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a function named `mapping` (the classic standard case)
+        mapping_as_string = """
+        function mapping(xi, eta)
+            return SVector(2 * xi + 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi + 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, -0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a code string assigning the mapping to a variable,
+        # as created for `transfinite_mapping` or `coordinates2mapping`
+        mesh = StructuredMesh((2, 2), (-2.0, -1.0), (0.0, 1.0),
+                              periodicity = (false, true))
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.0, 0.0) ≈ SVector(-1.0, 0.0)
+        @test Base.invokelatest(loaded.mapping, -1.0, -1.0) ≈ SVector(-2.0, -1.0)
+    end
+end
+
 @testitem "Unit: calc_depressed_cubic_roots three-root branch" setup=[Setup, UnitTests] tags=[
     :misc_part1
 ] begin
