@@ -163,8 +163,8 @@ end
 @testitem "elixir_advection_uncertainty.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
     using Measurements: Measurements, ±
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_uncertainty.jl"),
-                        l2=[0.0012576893000440965 ± 0.017581020765034417],
-                        linf=[0.004425204509676317 ± 0.0633672486044246])
+                        l2=[0.0008620826796608379 ± 0.012435238949481793],
+                        linf=[0.0030390588815580877 ± 0.04215039135177997])
     # Elements of type `Measurement` store heap-allocated derivatives. Trigger a full
     # garbage collection to detect references to freed objects in long-lived buffers,
     # which crash the garbage collector.
