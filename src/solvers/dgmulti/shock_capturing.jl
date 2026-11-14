@@ -80,7 +80,7 @@ function simplex_mode_degrees(N, ::Tri)
     return degrees
 end
 
-# calculates the inverse of the Vandermonde matrix for shock capturing purposes.
+# calculates the inverse of the Vandermonde matrix for shock capturing purposes (only!).
 # This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde
 # matrix first projects from solution values at SBP nodes to degree N polynomials,
 # and then returns the modal coefficients of that projected polynomial.
