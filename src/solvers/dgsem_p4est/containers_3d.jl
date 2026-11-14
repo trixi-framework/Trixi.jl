@@ -500,8 +500,8 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMeshSerial{3}, equation
         end
 
         # Buffers to copy the auxiliary variables of the large element face in the
-        # correct orientation before interpolating. This is done only once, so we do not
-        # need pre-allocated buffers.
+        # correct orientation before interpolating. This is only done during the
+        # initialization, so we do not need pre-allocated buffers.
         aux_buffer = similar(aux, nauxvariables(equations), nnodes(solver),
                              nnodes(solver))
         aux_tmp = similar(aux_buffer)

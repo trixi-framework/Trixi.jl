@@ -449,8 +449,8 @@ be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](
 For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR and MPI. On GPUs, only conforming meshes are supported.
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D and 3D,
+without AMR and MPI. On GPUs, only conforming meshes in 3D are supported.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0
@@ -727,7 +727,9 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("conservative_linear_scalar_advection_2d.jl")
 include("conservative_linear_scalar_advection_3d.jl")
+include("nonconservative_linear_scalar_advection_2d.jl")
 include("nonconservative_linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers

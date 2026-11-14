@@ -1552,24 +1552,32 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       equations::AbstractEquations{2}, dg::DG, cache)
+# The type parameter `Source` forces Julia to specialize on `source_terms`. Otherwise,
+# Julia v1.10 cannot infer the call of `source_terms` with the splatted auxiliary variables
+# below, which allocates.
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Source,
+                       equations::AbstractEquations{2}, dg::DG, cache) where {Source}
     @unpack node_coordinates = cache.elements
+
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, Val(2), equations, dg, cache)
         check_axes(du, Val(2), equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
+        check_axes_aux(aux, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
             for j in eachnode(dg), i in eachnode(dg)
                 u_local = get_node_vars(u, equations, dg, i, j, element)
+                aux_local = get_aux_node_vars(aux, equations, dg, i, j, element)
                 x_local = get_node_coords(node_coordinates, equations, dg,
                                           i, j, element)
-                du_local = source_terms(u_local, x_local, t, equations)
+                du_local = source_terms(u_local, aux_local..., x_local, t, equations)
                 add_to_node_vars!(du, du_local, equations, dg, i, j, element)
             end
         end

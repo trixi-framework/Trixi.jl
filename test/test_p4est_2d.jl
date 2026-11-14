@@ -1295,3 +1295,84 @@ end
     @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_nonstiff!, semi, sol, 1000)
 end
+
+@testitem "P4estMesh2D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        l2=[0.00538396786215058],
+                        linf=[0.021196710151645703])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0063968890644693814],
+                        linf=[0.042584955404490143])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_advectionconservative_source_terms_nonconforming.jl (flux differencing)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        l2=[0.0063968890644693814],
+                        linf=[0.042584955404490143])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # In 2D, `FluxTurbo` falls back to the wrapped flux, also with auxiliary variables
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        l2=[0.0063968890644693814],
+                        linf=[0.042584955404490143])
+end
+
+@testitem "P4estMesh2D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0020945051403072766],
+                        linf=[0.01650967141933235])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        l2=[3.303220339577821e-16],
+                        linf=[3.9968028886505635e-15])
+    # The velocity is discontinuous at interfaces and mortars
+    (; aux_interface, aux_mortar) = semi.cache.aux_vars
+    @test !(aux_interface[1, :, :, :] ≈ aux_interface[2, :, :, :])
+    @test !(aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
