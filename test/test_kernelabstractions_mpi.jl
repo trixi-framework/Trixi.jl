@@ -128,6 +128,7 @@ end
                         # Expected errors are exactly the same as with the regular CPU code!
                         l2=[0.00519048662880307],
                         linf=[0.026769982125784075])
+    # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
     @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,

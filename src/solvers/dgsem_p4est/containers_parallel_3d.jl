@@ -243,6 +243,8 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
     index_range = eachnode(solver)
 
     @threaded for interface in eachmpiinterface(solver, cache)
+        # Copy the auxiliary variables from the local element using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
         local_side = mpi_interfaces.local_sides[interface]
         local_element = mpi_interfaces.local_neighbor_ids[interface]
         local_indices = mpi_interfaces.node_indices[interface]
@@ -297,6 +299,8 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
         local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
         local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
+        # Get start value and step size for indices on both sides to get the correct face
+        # and orientation
         small_indices = node_indices[1, mortar]
         i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
                                                                                index_range)
@@ -362,6 +366,7 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
                                         mortar_l2.forward_upper,
                                         aux_buffer, aux_tmp)
             else # position in (1, 2, 3, 4) -> small element
+                # Copy the auxiliary variables from the small elements
                 i_small = i_small_start
                 j_small = j_small_start
                 k_small = k_small_start
