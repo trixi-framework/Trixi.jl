@@ -474,13 +474,39 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Set the auxiliary variables of each element to its MPI rank and check that the
+    # values of the remote elements are received at the MPI interfaces and MPI mortars
+    rank = Trixi.mpi_rank()
+    fill!(semi.cache.aux_vars.aux, rank)
+    Trixi.init_aux_surface_node_vars!(semi.cache.aux_vars, mesh, equations, solver,
+                                      semi.cache)
+    (; mpi_interfaces, mpi_mortars) = semi.cache
+    @test all(Trixi.eachmpiinterface(solver, semi.cache)) do interface
+        local_side = mpi_interfaces.local_sides[interface]
+        return all(==(rank), aux_mpi_interface[local_side, :, :, :, interface]) &&
+               all(!=(rank), aux_mpi_interface[3 - local_side, :, :, :, interface])
+    end
+    # The values of the large element are interpolated to the small elements
+    @test all(Trixi.eachmpimortar(solver, semi.cache)) do mortar
+        local_positions = mpi_mortars.local_neighbor_positions[mortar]
+        small_ok = all(1:4) do position
+            aux_small = aux_mpi_mortar[1, :, position, :, :, mortar]
+            return position in local_positions ? all(==(rank), aux_small) :
+                   all(!=(rank), aux_small)
+        end
+        aux_large = aux_mpi_mortar[2, :, :, :, :, mortar]
+        large_ok = 5 in local_positions ? all(x -> isapprox(x, rank), aux_large) :
+                   all(x -> !isapprox(x, rank), aux_large)
+        return small_ok && large_ok
+    end
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
     Setup,
     MPIP4estMesh3D
 ] tags=[:mpi, :mpi_skip_windows] begin
-    # The velocity is discontinuous, also at MPI interfaces and MPI mortars
+    # The constant state is preserved also at MPI interfaces and MPI mortars
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
                         l2=[8.879258369319651e-16],
