@@ -455,7 +455,7 @@ end
     MPIP4estMesh3D
 ] tags=[:mpi, :mpi_skip_windows] begin
     # Auxiliary variables at MPI interfaces, MPI mortars, boundaries, and in the source
-    # terms. With more trees, the refined regions and thus the mortars are on both ranks.
+    # terms. With more trees, there are MPI mortars for 2 and 3 MPI ranks.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         # Expected errors are exactly the same as in serial
