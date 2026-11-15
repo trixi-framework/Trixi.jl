@@ -366,6 +366,101 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "DGMulti2D: elixir_euler_sedov_limiter_zhang_shu.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_limiter_zhang_shu.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.16906557897176536,
+                            0.08579365926514393,
+                            0.08584265938577701,
+                            0.19587697788747033
+                        ],
+                        linf=[
+                            1.0131292684388953,
+                            0.5695348810659132,
+                            0.5697136119108724,
+                            0.8158653341066084
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # The limiter is applied after every Runge-Kutta stage, so the final solution
+    # satisfies the bounds at all nodes
+    u = Trixi.wrap_array(sol.u[end], semi)
+    for (threshold, variable) in zip(limiter!.thresholds, limiter!.variables)
+        @test minimum(variable(u[i], equations) for i in eachindex(u)) >=
+              threshold * (1 - 1.0e-8)
+    end
+end
+
+@testitem "DGMulti2D: compute_u_mean and limiter_zhang_shu! (SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    thresholds = (1.0e-8, 1.0e-8)
+    variables = (Trixi.density, pressure)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = thresholds,
+                                                   variables = variables)
+
+    # Flux differencing SBP solvers store the solution as `Matrix{SVector}`,
+    # weak form solvers as `StructArray`
+    for volume_integral in (VolumeIntegralFluxDifferencing(flux_ranocha),
+                            VolumeIntegralWeakForm())
+        dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = SBP(),
+                     surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+                     volume_integral = volume_integral)
+        mesh = DGMultiMesh(dg, (2, 2); periodicity = true)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        (; cache) = semi
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+
+        # The mean of a constant state is the state itself
+        u_constant = u[1, 1]
+        for element in Trixi.eachelement(mesh, dg, cache)
+            @test Trixi.compute_u_mean(u, element, mesh, equations, dg, cache) ≈
+                  u_constant
+        end
+
+        # The mean of a non-constant state is the volume-weighted average of the
+        # nodal values
+        (; wJq, xq, yq) = mesh.md
+        for element in Trixi.eachelement(mesh, dg, cache)
+            for i in Trixi.each_quad_node(mesh, dg, cache)
+                u[i, element] = u_constant *
+                                (1 + 0.25 * xq[i, element] - 0.5 * yq[i, element])
+            end
+            u_mean_expected = sum(wJq[i, element] * u[i, element]
+                                  for i in Trixi.each_quad_node(mesh, dg, cache)) /
+                              sum(view(wJq, :, element))
+            @test Trixi.compute_u_mean(u, element, mesh, equations, dg, cache) ≈
+                  u_mean_expected
+        end
+
+        # Make the density and the pressure negative at one node of one element and
+        # check that the limiter restores the bounds while preserving the cell average
+        element = 2
+        u[1, element] = SVector(-0.1, 0.1, -0.1, -0.5)
+        @test Trixi.density(u[1, element], equations) < 0
+        @test pressure(u[1, element], equations) < 0
+        u_mean_before = Trixi.compute_u_mean(u, element, mesh, equations, dg, cache)
+        u_other_before = copy(u[:, 1])
+
+        limiter!(u_ode, nothing, semi, 0.0)
+
+        @test isapprox(Trixi.compute_u_mean(u, element, mesh, equations, dg, cache),
+                       u_mean_before, atol = 1.0e-14)
+        for (threshold, variable) in zip(thresholds, variables)
+            @test minimum(variable(u[i, element], equations)
+                          for i in Trixi.each_quad_node(mesh, dg, cache)) >=
+                  threshold * (1 - 1.0e-8)
+        end
+        # Elements without bound violations are not changed
+        @test u[:, 1] == u_other_before
+    end
+end
+
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),

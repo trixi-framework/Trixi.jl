@@ -19,7 +19,8 @@ trees_per_dimension = (1, 1, 1)
 
 # Note that it is not necessary to use mesh polydeg lower than the solver polydeg
 # on a Cartesian mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 mesh = T8codeMesh(trees_per_dimension, polydeg = 1,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 4,

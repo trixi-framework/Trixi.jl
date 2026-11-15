@@ -92,6 +92,7 @@ An Alfvén wave as smooth initial condition used for convergence tests.
 See for reference section 4.2 in
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016)
   A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
+  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations1D)
@@ -114,12 +115,15 @@ end
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
 
 A weak blast wave adapted from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations1D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     RealT = eltype(x)
@@ -168,6 +172,7 @@ Entropy conserving two-point flux by
 - Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
+  [arXiv: 1711.06269](https://arxiv.org/abs/1711.06269)
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
 @inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer,

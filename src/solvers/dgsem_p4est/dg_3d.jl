@@ -954,8 +954,8 @@ function calc_mortar_flux!(surface_flux_values,
                         # Auxiliary variables on the small (primary) and the large
                         # (secondary) side, cf. `init_aux_mortar_node_vars!`
                         aux_node = get_aux_surface_node_vars(aux_mortar, equations,
-                                                             typeof(dg), position, i, j,
-                                                             mortar)
+                                                             typeof(dg),
+                                                             position, i, j, mortar)
 
                         calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                                           have_nonconservative_terms, equations,

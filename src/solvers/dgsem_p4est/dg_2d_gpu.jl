@@ -67,19 +67,16 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
-function prolong2mortars!(backend::Backend, cache, u,
-                          mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
+# P4estMeshView on GPU is untested and missing some kernels
+function prolong2mortars!(backend::Backend, cache, u, mesh::P4estMeshView{2},
                           equations, mortar, dg)
     @assert isempty(eachmortar(dg, cache))
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
 function calc_mortar_flux!(backend::Backend, surface_flux_values,
-                           mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
-                           have_nonconservative_terms, equations, mortar,
-                           surface_integral, dg, cache)
+                           mesh::P4estMeshView{2}, have_nonconservative_terms,
+                           equations, mortar, surface_integral, dg, cache)
     @assert isempty(eachmortar(dg, cache))
     return nothing
 end
@@ -747,14 +744,6 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
                                                                    index_range, mortar,
                                                                    node,
                                                                    ::Val{nvars}) where {nvars}
-    large_element = neighbor_ids[3, mortar]
-    large_indices = node_indices[2, mortar]
-    large_direction = indices2direction(large_indices)
-
-    # Note that the index of the small sides will always run forward but
-    # the index of the large side might need to run backwards for flipped sides.
-    large_node_index = :i_backward in large_indices ? last(index_range) + 1 - node :
-                       node
 
     # Get index information on the small elements
     small_indices = node_indices[1, mortar]
@@ -794,6 +783,16 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
             j_small += j_small_step
         end
     end
+
+    # Copy interpolated flux values to the large element face in the correct
+    # orientation.
+    # Note that the index of the small sides will always run forward but
+    # the index of the large side might need to run backwards for flipped sides.
+    large_element = neighbor_ids[3, mortar]
+    large_indices = node_indices[2, mortar]
+    large_direction = indices2direction(large_indices)
+    large_node_index = :i_backward in large_indices ? last(index_range) + 1 - node :
+                       node
 
     # The flux is calculated in the outward direction of the small elements,
     # so the sign must be switched to get the flux in outward direction
@@ -930,24 +929,29 @@ end
                                                                                   element]),
                                                     _zero)),
                                   Val(nvariables(equations))))
-    source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
-                                         equations, dg, i, j, element)
+    source_node = calc_source_terms_node(u, get_aux_vars(cache), t, source_terms,
+                                         node_coordinates, equations, dg,
+                                         i, j, element)
     jacobian_factor = inverse_jacobian[i, j, element]
     du_local = get_node_vars(du, equations, dg, i, j, element) + factor * surface_node
     du_node = source_node - jacobian_factor * du_local
     set_node_vars!(du, du_node, equations, dg, i, j, element)
 end
 
-Base.@propagate_inbounds function calc_source_terms_node(u, t, source_terms,
+# `aux` is the array of auxiliary variables or `nothing` for equations without auxiliary
+# variables, see `get_aux_vars`
+Base.@propagate_inbounds function calc_source_terms_node(u, aux, t,
+                                                         source_terms,
                                                          node_coordinates,
                                                          equations, dg::DG, indices...)
     u_local = get_node_vars(u, equations, dg, indices...)
+    aux_local = get_aux_node_vars(aux, equations, dg, indices...)
     x_local = get_node_coords(node_coordinates, equations, dg, indices...)
 
-    return source_terms(u_local, x_local, t, equations)
+    return source_terms(u_local, aux_local..., x_local, t, equations)
 end
 
-@inline function calc_source_terms_node(u, t, source_terms::Nothing,
+@inline function calc_source_terms_node(u, aux, t, source_terms::Nothing,
                                         node_coordinates,
                                         equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})
