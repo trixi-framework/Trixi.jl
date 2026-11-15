@@ -100,7 +100,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     return nothing
 end
 # Entropy correction for `DGMulti` solvers with diagonal-norm SBP operators
-# (`DGMultiEntropyCorrectionSBP`, see `types.jl`): the weak form volume integral is blended
+# (`DGMultiEntropyCorrectionSBP`, see `types.jl`): the default volume integral (weak form or
+# flux differencing, e.g., with a kinetic energy preserving volume flux) is blended
 # elementwise with the entropy stable algebraic low-order method on the SBP nodes
 # (`volume_integral_low_order.jl`) such that the volume integral does not produce entropy.
 # The `volume_integral_kernel!` and `calc_volume_integral!` methods below mirror the ones
@@ -109,7 +110,13 @@ end
 # values of the entropy potential are read directly from the volume nodes (`Fmask`, see
 # `surface_integral_reference_element` in `callbacks_step/analysis_dgmulti.jl`). The
 # solution is stored as a `StructArray` as for `VolumeIntegralWeakForm`, so the weak form
-# kernel can be used without changes.
+# kernel can be used without changes. The flux differencing kernel for SBP operators only
+# accesses single nodes and thus also works with this storage format. For a flux
+# differencing default, the cache of a `DGMultiFluxDiffSBP` solver is used (see
+# `create_cache` below), which stores the arrays of its `solution_container` as arrays of
+# `SVector`s instead. Mixing both storage formats works for SBP operators, since all methods
+# using both `u` and these arrays either access single nodes or copy the arrays
+# (`Vq = Pq = I`, see `apply_to_each_field`).
 
 # this method is used when the indicator is constructed as for entropy correction
 # volume integrals
@@ -134,11 +141,10 @@ end
 function create_cache(mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
                       dg::DGMultiEntropyCorrectionSBP, RealT, uEltype) where {NDIMS}
     (; volume_integral_default, volume_integral_stabilized) = dg.volume_integral
-    if !(volume_integral_default isa VolumeIntegralWeakForm)
-        throw(ArgumentError("Entropy correction for `DGMulti` requires " *
-                            "`VolumeIntegralWeakForm` as `volume_integral_default`, got " *
-                            "$(nameof(typeof(volume_integral_default)))."))
-    end
+
+    # Supported `volume_integral_default`s are `VolumeIntegralWeakForm` and
+    # `VolumeIntegralFluxDifferencing`, whose storage is created by the `create_cache` of
+    # the corresponding `DGMultiWeakForm` or `DGMultiFluxDiffSBP` solver below.
     if !(volume_integral_stabilized isa VolumeIntegralPureLGLFiniteVolume)
         throw(ArgumentError("Entropy correction for `DGMulti` requires " *
                             "`VolumeIntegralPureLGLFiniteVolume` as " *
@@ -146,16 +152,18 @@ function create_cache(mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
                             "$(nameof(typeof(volume_integral_stabilized)))."))
     end
 
-    # Reuse the cache of the weak form solver, which also contains the containers used by
-    # the generic `rhs_hyperbolic!` of `DGMulti`, e.g., for the surface integral.
-    dg_WF = DG(dg.basis, dg.mortar, dg.surface_integral, volume_integral_default)
-    cache_WF = create_cache(mesh, equations, dg_WF, RealT, uEltype)
+    # Reuse the cache of the solver with the default volume integral, i.e., of a
+    # `DGMultiWeakForm` or `DGMultiFluxDiffSBP` solver. It contains the storage of the
+    # default volume integral and the containers used by the generic `rhs_hyperbolic!` of
+    # `DGMulti`, e.g., for the surface integral.
+    dg_default = DG(dg.basis, dg.mortar, dg.surface_integral, volume_integral_default)
+    cache_default = create_cache(mesh, equations, dg_default, RealT, uEltype)
 
     # sparse operators of the low-order method
     cache_low_order = create_cache(mesh, equations, volume_integral_stabilized, dg,
                                    RealT, uEltype)
 
-    cache = (; cache_WF..., cache_low_order...)
+    cache = (; cache_default..., cache_low_order...)
 
     # The blending factors of `VolumeIntegralEntropyCorrection` are stored in its indicator
     # and are sized by the same method as for `DGSEM` (see
@@ -262,10 +270,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
                                dg::DGMultiEntropyCorrectionSBP, cache) where {NDIMS}
     check_axes(volume_integral.indicator.cache.alpha, (eachelement(mesh, dg, cache),))
 
-    # interpolate to quadrature points (a copy for SBP), required by the weak form kernel
-    rd = dg.basis
-    (; u_values) = cache.solution_container
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+    # The weak form kernel reads the solution at the volume quadrature points from
+    # `u_values`, i.e., a copy of `u` for SBP operators. Flux differencing and the source
+    # terms (see `calc_sources!` in `flux_differencing.jl`) read `u` directly.
+    if volume_integral.volume_integral_default isa VolumeIntegralWeakForm
+        apply_to_each_field(mul_by!(dg.basis.Vq), cache.solution_container.u_values, u)
+    end
 
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
@@ -300,10 +310,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:Affine},
     RealT = eltype(alpha_shock_capturing)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
-    # interpolate to quadrature points (a copy for SBP), required by the weak form kernel
-    rd = dg.basis
-    (; u_values) = cache.solution_container
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
+    # The weak form kernel reads the solution at the volume quadrature points from
+    # `u_values`, i.e., a copy of `u` for SBP operators. Flux differencing and the source
+    # terms (see `calc_sources!` in `flux_differencing.jl`) read `u` directly.
+    if volume_integral_default isa VolumeIntegralWeakForm
+        apply_to_each_field(mul_by!(dg.basis.Vq), cache.solution_container.u_values, u)
+    end
 
     @threaded for element in eachelement(mesh, dg, cache)
         # run default volume integral

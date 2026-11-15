@@ -615,6 +615,43 @@ end
     @test maximum(indicator_sc.cache.alpha) > 0
 end
 
+@testitem "DGMulti2D: elixir_euler_weakform.jl (SBP, entropy correction with flux differencing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    # Entropy correction of flux differencing with a kinetic energy preserving but not
+    # entropy conservative volume flux. This elixir also uses source terms, which are
+    # evaluated directly at the SBP nodes.
+    equations = CompressibleEulerEquations2D(1.4)
+    surface_flux = flux_lax_friedrichs
+    basis = DGMultiBasis(Tri(), 3, approximation_type = SBP())
+    # The names differ from the ones in the elixir, which are overwritten by `trixi_include`
+    indicator_ec = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_ec = VolumeIntegralAdaptive(indicator_ec,
+                                                VolumeIntegralFluxDifferencing(flux_shima_etal),
+                                                VolumeIntegralPureLGLFiniteVolume(surface_flux))
+    dg_ec = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                    volume_integral = volume_integral_ec)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+                        dg=dg_ec, cells_per_dimension=(4, 4),
+                        l2=[
+                            0.0038279004897085016,
+                            0.0027681616023258067,
+                            0.0027681616023408134,
+                            0.007535300280592164
+                        ],
+                        linf=[
+                            0.01893328873932254,
+                            0.014474783280037373,
+                            0.014474783279706305,
+                            0.03554924646477442
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test maximum(indicator_ec.cache.alpha) > 0
+end
+
 @testitem "DGMulti2D: VolumeIntegralAdaptive with IndicatorEntropyCorrection (SBP)" setup=[
     Setup,
     DGMulti2D
@@ -635,10 +672,15 @@ end
         return prim2cons(SVector(rho, v1, v2, p), equations)
     end
 
-    for scaling in (true, 2)
+    # Flux differencing with a kinetic energy preserving but not entropy conservative
+    # volume flux produces entropy as well
+    for volume_integral_default in (VolumeIntegralWeakForm(),
+                                    VolumeIntegralFluxDifferencing(flux_shima_etal)),
+        scaling in (true, 2)
+
         indicator = IndicatorEntropyCorrection(equations, basis; scaling)
         volume_integral = VolumeIntegralAdaptive(indicator,
-                                                 VolumeIntegralWeakForm(),
+                                                 volume_integral_default,
                                                  VolumeIntegralPureLGLFiniteVolume(surface_flux))
         dg = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
                      volume_integral = volume_integral)
@@ -687,6 +729,44 @@ end
             @test dS_volume_integral - dS_true <= 1.0e-12
         end
     end
+
+    # For an entropy conservative volume flux, the default volume integral does not
+    # produce entropy. Thus, the entropy correction is not active beyond round-off errors
+    # and the result agrees with the one of pure flux differencing.
+    volume_integral_fd = VolumeIntegralFluxDifferencing(flux_ranocha)
+    indicator_ec = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_ec = VolumeIntegralAdaptive(indicator_ec, volume_integral_fd,
+                                                VolumeIntegralPureLGLFiniteVolume(surface_flux))
+    du_odes = map((volume_integral_ec, volume_integral_fd)) do volume_integral_
+        dg = DGMulti(basis, surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                     volume_integral = volume_integral_)
+        mesh = DGMultiMesh(dg, (4, 4); coordinates_min = (-2.0, -2.0),
+                           coordinates_max = (2.0, 2.0), periodicity = true)
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuous, dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        return du_ode
+    end
+    # The comparison is elementwise; some entries vanish up to round-off errors.
+    @test maximum(indicator_ec.cache.alpha) < 1.0e-10
+    @test isapprox(du_odes[1], du_odes[2]; atol = 1.0e-10)
+
+    # Unsupported stabilized volume integral
+    indicator_unsupported = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_unsupported = VolumeIntegralAdaptive(indicator_unsupported,
+                                                         VolumeIntegralWeakForm(),
+                                                         VolumeIntegralFluxDifferencing(flux_ranocha))
+    dg_unsupported = DGMulti(basis,
+                             surface_integral = SurfaceIntegralWeakForm(surface_flux),
+                             volume_integral = volume_integral_unsupported)
+    mesh = DGMultiMesh(dg_unsupported, (2, 2); periodicity = true)
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                            initial_condition_constant,
+                                                            dg_unsupported;
+                                                            boundary_conditions = boundary_condition_periodic)
 end
 
 @testitem "DGMulti2D: elixir_euler_rayleigh_taylor_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
