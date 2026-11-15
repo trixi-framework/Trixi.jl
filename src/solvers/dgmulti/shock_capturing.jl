@@ -61,16 +61,15 @@ end
 
 # Total polynomial degrees of the orthonormal modal basis functions on triangles, in
 # the order used by NodesAndModes.jl (whose `vandermonde` is reused by StartUpDG.jl).
-# Note that this order is *not* hierarchical, e.g., the degrees are (0, 1, 2, 1, 2, 2)
-# for N = 2.
+# Note that this order is *not* hierarchical, e.g.,
+# the degrees are (0, 1, 2, 1, 2, 2) for N = 2.
 @inline function simplex_mode_degrees(N, ::Tri)
     degrees = Vector{Int}(undef, nmodes(N, Tri()))
     mode = 1
     # Same loop structure as `NodesAndModes.basis(::Tri, N, r, s)`:
     # The basis function with index `mode` has
-    # - degree `i` in the first
-    # - degree `j` in the second
-    # (collapsed) coordinate.
+    # - degree `i` in the collapsed coordinate `a = 2 * (1 + r) / (1 - s) - 1`
+    # - degree `j` in the coordinate `b = s` (which is not collapsed).
     for i in 0:N
         for j in 0:(N - i)
             degrees[mode] = i + j
@@ -80,8 +79,27 @@ end
     return degrees
 end
 
+# Total polynomial degrees of the orthonormal modal basis functions on tetrahedra, in
+# the order used by NodesAndModes.jl (whose `vandermonde` is reused by StartUpDG.jl).
+# As on triangles, this order is *not* hierarchical, e.g.,
+# the degrees are (0, 1, 2, 1, 2, 2, 1, 2, 2, 2) for N = 2.
 @inline function simplex_mode_degrees(N, ::Tet)
-    return [i + j + k for i in 0:N for j in 0:(N - i) for k in 0:(N - i - j)]
+    degrees = Vector{Int}(undef, nmodes(N, Tet()))
+    mode = 1
+    # Same loop structure as `NodesAndModes.basis(::Tet, N, r, s, t)`:
+    # The basis function with index `mode` has
+    # - degree `i` in the collapsed coordinate `a = 2 * (1 + r) / (-s - t) - 1`
+    # - degree `j` in the collapsed coordinate `b = 2 * (1 + s) / (1 - t) - 1`
+    # - degree `k` in the coordinate `c = t` (which is not collapsed).
+    for i in 0:N
+        for j in 0:(N - i)
+            for k in 0:(N - i - j)
+                degrees[mode] = i + j + k
+                mode += 1
+            end
+        end
+    end
+    return degrees
 end
 
 # calculates the inverse of the Vandermonde matrix for shock capturing purposes (only!).
