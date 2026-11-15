@@ -27,6 +27,17 @@ ode = semidiscretize(semi, tspan, restart_filename)
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 @reset save_solution.condition.save_initial_solution = false
 
+# Re-initialize the `AnalysisCallback` for the new semidiscretization, which may differ
+# from the one used to create the restart file (e.g., a different polynomial degree)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback,
+                        save_restart,
+                        save_solution,
+                        stepsize_callback)
+
 integrator = init(ode,
                   CarpenterKennedy2N54(williamson_condition = false,
                                        thread = Trixi.Threaded());

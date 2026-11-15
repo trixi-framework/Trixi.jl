@@ -133,22 +133,18 @@ end
                                                                 surface_flux = flux_lax_friedrichs),
                                                           source_terms = source_terms,
                                                           boundary_conditions = boundary_conditions),
-                        # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the
-                        # semidiscretization. This, however, leads in the test environment to a confusing error
-                        # report, as the error report from the simulation is different from the one from the test environment.
-                        # Thus, we do not exchange the `AnalysisCallback` here.
                         l2=[
-                            0.000917673507518412,
-                            0.0008372575675532226,
-                            0.000873731846411516,
-                            0.002520052679741056
+                            0.0006686191870474832,
+                            0.000576329493854189,
+                            0.0005823885530005755,
+                            0.0008979916543444841
                         ],
                         linf=[
-                            0.0035175224058798804,
-                            0.0038347324347283163,
-                            0.0038531892827382563,
-                            0.012228059313844852
-                        ],)
+                            0.0032837605140083603,
+                            0.0024675348201217417,
+                            0.0028616161119012773,
+                            0.004595929104344698
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
