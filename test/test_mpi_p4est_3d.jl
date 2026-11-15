@@ -500,17 +500,31 @@ end
                    all(x -> !isapprox(x, rank), aux_large)
         return small_ok && large_ok
     end
+
+    # Mesh adaptation is not supported with auxiliary variables. With MPI, the AMR
+    # callback re-initializes the containers on all ranks, so all of them throw.
+    amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                          base_level = 2,
+                                          med_level = 3, med_threshold = 0.1,
+                                          max_level = 4, max_threshold = 0.6)
+    amr_callback = AMRCallback(semi, amr_controller,
+                               interval = 5,
+                               adapt_initial_condition = true)
+    @test_throws ArgumentError solve(ode,
+                                     CarpenterKennedy2N54(williamson_condition = false);
+                                     dt = 1.0e-3, callback = CallbackSet(amr_callback))
 end
 
-@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
     Setup,
     MPIP4estMesh3D
 ] tags=[:mpi, :mpi_skip_windows] begin
-    # The constant state is preserved also at MPI interfaces and MPI mortars
+    # Nonconservative terms with auxiliary variables at MPI interfaces and MPI mortars
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
-                        l2=[8.879258369319651e-16],
-                        linf=[1.6298074001497298e-13],
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.00013126106205317068],
+                        linf=[0.0010576440539005194],
                         trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
     @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
                               Trixi.mpi_comm()) > 0

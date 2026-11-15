@@ -245,6 +245,9 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
     @threaded for interface in eachmpiinterface(solver, cache)
         # Copy the auxiliary variables from the local element using "delayed indexing"
         # with a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
         local_side = mpi_interfaces.local_sides[interface]
         local_element = mpi_interfaces.local_neighbor_ids[interface]
         local_indices = mpi_interfaces.node_indices[interface]
