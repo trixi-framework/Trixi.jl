@@ -104,6 +104,16 @@ function resize_volume_integral_cache!(cache, mesh,
     return nothing
 end
 
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralEntropyCorrection,
+                                    dg::DGSEM, cache)
+    (; indicator) = volume_integral
+    check_axes(indicator.cache.alpha, (eachelement(dg, cache),))
+    check_axes_volume_integral_values_threaded(indicator, mesh, equations, dg)
+
+    return nothing
+end
+
 # `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction
 # indicator with a heuristic shock capturing indicator.
 const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
@@ -113,6 +123,50 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                 dg, cache)
     # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
+    return nothing
+end
+
+# The blending factors of `indicator_shock_capturing` are resized lazily when the
+# indicator is called and are checked in `calc_volume_integral!` afterward. The
+# blending factors of `indicator_entropy_correction` are not used.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                    dg::DGSEM, cache)
+    (; indicator_entropy_correction) = volume_integral.indicator
+    check_axes_volume_integral_values_threaded(indicator_entropy_correction,
+                                               mesh, equations, dg)
+
+    return nothing
+end
+
+# The entropy correction volume integrals store the result of `volume_integral_default`
+# in the thread-local buffers `volume_integral_values_threaded` of their
+# `IndicatorEntropyCorrection` while computing `volume_integral_stabilized`. These
+# buffers are created with the indicator, i.e., without knowing the mesh, and have the
+# shape of `du` for a single element with the number of spatial dimensions of the
+# equations. Thus, the mesh must have the same number of spatial dimensions.
+function create_cache(mesh, equations,
+                      volume_integral::Union{VolumeIntegralEntropyCorrection,
+                                             VolumeIntegralEntropyCorrectionShockCapturingCombined},
+                      dg::DGSEM, cache_containers, uEltype)
+    if ndims(mesh) != ndims(equations)
+        throw(ArgumentError("`VolumeIntegralAdaptive` with an `IndicatorEntropyCorrection` " *
+                            "or `IndicatorEntropyCorrectionShockCapturingCombined` " *
+                            "requires the mesh and the equations to have the same " *
+                            "number of spatial dimensions, but got " *
+                            "ndims(mesh) = $(ndims(mesh)) and " *
+                            "ndims(equations) = $(ndims(equations))."))
+    end
+
+    return NamedTuple()
+end
+
+function check_axes_volume_integral_values_threaded(indicator::IndicatorEntropyCorrection,
+                                                    mesh, equations, dg::DGSEM)
+    check_axes_threaded(indicator.cache.volume_integral_values_threaded,
+                        (eachvariable(equations),
+                         ntuple(_ -> eachnode(dg), Val(ndims(mesh)))...))
+
     return nothing
 end
 end # @muladd
