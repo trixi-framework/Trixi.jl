@@ -33,9 +33,9 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
 
     validate_boundary_conditions(boundary_conditions, cache)
 
-    boundary_indices, boundary_symbol_indices = initialize_boundary_data(boundary_conditions,
-                                                                         boundary_condition_types,
-                                                                         cache)
+    boundary_indices, boundary_symbol_indices = init_boundary_data(boundary_conditions,
+                                                                   boundary_condition_types,
+                                                                   cache)
 
     return UnstructuredSortedBoundaryTypes{n_boundary_types,
                                            typeof(boundary_condition_types),
@@ -94,16 +94,16 @@ function validate_boundary_conditions(boundary_conditions::NamedTuple, cache)
             error("Mesh connectivity identified boundary $index (neighbor element $neighbor_element) as boundary element/non-connected - check your mesh!")
         elseif !(boundary_name in keys(boundary_conditions))
             neighbor_element = get_boundary_element(cache.boundaries, index)
-            @warn "Boundary condition for boundary type $(repr(boundary_name)) of boundary $index (neighbor element $neighbor_element) not found in boundary conditions!"
+            error("No boundary condition specified for boundary type $(repr(boundary_name)) of boundary $index (neighbor element $neighbor_element)!")
         end
     end
 
     return nothing
 end
 
-function initialize_boundary_data(boundary_conditions::NamedTuple,
-                                  boundary_condition_types,
-                                  cache)
+function init_boundary_data(boundary_conditions::NamedTuple,
+                            boundary_condition_types,
+                            cache)
     boundary_names = cache.boundaries.name
 
     # pull and sort the indexing for each boundary type
@@ -132,12 +132,12 @@ end
 
 # This is called after AMR, i.e., when the mesh has changed and the boundary indices need to be re-initialized.
 # Note that at this point no validation of the boundary condition names is necessary.
-function reinitialize!(boundary_types_container::UnstructuredSortedBoundaryTypes,
-                       cache)
+function reinit!(boundary_types_container::UnstructuredSortedBoundaryTypes,
+                 cache)
     @unpack boundary_conditions, boundary_condition_types = boundary_types_container
-    boundary_indices, boundary_symbol_indices = initialize_boundary_data(boundary_conditions,
-                                                                         boundary_condition_types,
-                                                                         cache)
+    boundary_indices, boundary_symbol_indices = init_boundary_data(boundary_conditions,
+                                                                   boundary_condition_types,
+                                                                   cache)
 
     boundary_types_container.boundary_indices = boundary_indices
     boundary_types_container.boundary_symbol_indices = boundary_symbol_indices

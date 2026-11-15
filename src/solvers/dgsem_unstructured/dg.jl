@@ -25,7 +25,7 @@ end
 include("mappings_geometry_curved_2d.jl")
 include("mappings_geometry_straight_2d.jl")
 include("containers_2d.jl")
-include("sort_boundary_conditions.jl")
+include("unstructured_sorted_boundary_types.jl")
 include("dg_2d.jl")
 include("indicators_2d.jl")
 end # @muladd
