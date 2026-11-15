@@ -88,8 +88,8 @@ function calc_max_scaled_speed_for_c_h(backend::Backend, mesh::MeshT, dg,
                                                         eltype(inverse_jacobian))
 
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
-    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
-                                                    init, neutral) do element
+    max_scaled_speed = mapreduce_accelerated(Base.max, 1:num_elements, backend;
+                                             init, neutral) do element
         max_scaled_speed_for_c_h_per_element(MeshT, dg,
                                              contravariant_vectors,
                                              inverse_jacobian,

@@ -102,6 +102,26 @@ macro trixi_timeit_ext(backend, timer_output, label, expr)
     return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
 end
 
+# Compatibility shim for `AcceleratedKernels.mapreduce`, which takes the `backend` as
+# positional argument in AcceleratedKernels.jl v0.4 but as keyword argument in v0.5.
+# We support both versions since AcceleratedKernels.jl v0.5 is required for
+# KernelAbstractions.jl v0.10, while some GPU backends still require
+# KernelAbstractions.jl v0.9 (as of October 2026) and thus AcceleratedKernels.jl v0.4.
+# Since `f` and `op` are only passed through, Julia would not specialize on them
+# without the type parameters `F` and `Op`.
+# TODO: Remove this shim once we require AcceleratedKernels.jl v0.5.
+@static if pkgversion(AcceleratedKernels) >= v"0.5"
+    @inline function mapreduce_accelerated(f::F, op::Op, src, backend;
+                                           kwargs...) where {F, Op}
+        return AcceleratedKernels.mapreduce(f, op, src; backend, kwargs...)
+    end
+else
+    @inline function mapreduce_accelerated(f::F, op::Op, src, backend;
+                                           kwargs...) where {F, Op}
+        return AcceleratedKernels.mapreduce(f, op, src, backend; kwargs...)
+    end
+end
+
 """
     examples_dir()
 
