@@ -195,7 +195,8 @@ end
 
 # Filling the interface and mortar values requires information about the coupling of the
 # elements and is thus implemented for each mesh type separately, currently only for
-# serial `P4estMesh{3}`es in `dgsem_p4est/containers_3d.jl`.
+# `P4estMesh{3}`es in `dgsem_p4est/containers_3d.jl` and
+# `dgsem_p4est/containers_parallel_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     throw(ArgumentError("auxiliary variables are not implemented for $(typeof(mesh)) " *
                         "with $(typeof(solver))"))
