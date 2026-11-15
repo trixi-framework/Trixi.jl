@@ -779,7 +779,7 @@ function exchange_normal_directions!(mpi_mortars::P4estMPIMortarContainer, mpi_c
     return nothing
 end
 
-# Exchange the auxiliary variables at the MPI interfaces and MPI mortars once after
+# Exchange the auxiliary variables at the MPI interfaces and MPI mortars after
 # initializing the values of the local elements, see `init_aux_mpi_surface_node_vars!`.
 # The data layout of the buffers is the same as for the solution, see `start_mpi_send!`
 # and `finish_mpi_receive!`, with the auxiliary variables instead of the conservative

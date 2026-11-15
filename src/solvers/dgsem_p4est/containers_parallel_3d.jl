@@ -235,7 +235,7 @@ end
 # Auxiliary variables at the MPI interface and MPI mortar nodes, cf.
 # `prolong2mpiinterfaces!` and `prolong2mpimortars!`. The values of the local elements are
 # copied (and interpolated to the small elements for large elements at MPI mortars) and
-# afterwards exchanged with the neighbor ranks once, see `exchange_aux_mpi!`.
+# afterwards exchanged with the neighbor ranks, see `exchange_aux_mpi!`.
 function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
                                          equations, solver, cache)
     @unpack aux, aux_mpi_interface = aux_vars
