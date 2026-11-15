@@ -522,7 +522,7 @@ end
     # Nonconservative terms with auxiliary variables at MPI interfaces and MPI mortars
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
-                        # Expected errors are exactly the same as in serial
+                        # Expected errors are the same as in serial up to round-off
                         l2=[0.00013126106205317068],
                         linf=[0.0010576440539005194],
                         trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))

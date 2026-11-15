@@ -823,7 +823,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     init_normal_directions!(interfaces, dg.basis, elements)
 
     # Auxiliary variables are only computed when the semidiscretization is created,
-    # so mesh adaptation would require re-evaluating (and resizing) their container.
+    # so mesh adaptation would require re-evaluating them and resizing their container.
     if haskey(cache, :aux_vars)
         throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
     end
