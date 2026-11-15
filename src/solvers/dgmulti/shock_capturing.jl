@@ -63,7 +63,7 @@ end
 # the order used by NodesAndModes.jl (whose `vandermonde` is reused by StartUpDG.jl).
 # Note that this order is *not* hierarchical, e.g., the degrees are (0, 1, 2, 1, 2, 2)
 # for N = 2.
-function simplex_mode_degrees(N, ::Tri)
+@@inline function simplex_mode_degrees(N, ::Tri)
     degrees = Vector{Int}(undef, nmodes(N, Tri()))
     mode = 1
     # Same loop structure as `NodesAndModes.basis(::Tri, N, r, s)`:
