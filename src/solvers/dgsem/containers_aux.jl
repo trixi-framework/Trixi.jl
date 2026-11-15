@@ -17,8 +17,8 @@ struct AuxVarsContainer{NDIMS, uEltype <: Real,
     aux::Aux                     # [var, i, j, k, element] in 3D
     aux_interface::AuxInterface  # [leftright, var, i, j, interface] in 3D
     aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar] in 3D
-    # Same as `aux_interface` and `aux_mortar` for the MPI interfaces and MPI mortars of
-    # parallel meshes. For serial meshes, there are no MPI interfaces and MPI mortars.
+    # Same as `aux_interface` and `aux_mortar` for the MPI interfaces and MPI mortars,
+    # which are empty for serial meshes
     aux_mpi_interface::AuxMPIInterface # [leftright, var, i, j, mpi_interface] in 3D
     aux_mpi_mortar::AuxMPIMortar       # [leftright, var, position, i, j, mpi_mortar] in 3D
 

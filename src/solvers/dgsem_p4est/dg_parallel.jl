@@ -855,9 +855,11 @@ function exchange_aux_mpi!(aux_vars, mpi_interfaces::P4estMPIInterfaceContainer,
         for (i, interface) in enumerate(mpi_neighbor_interfaces[data])
             first = (i - 1) * data_size + 1
             last = (i - 1) * data_size + data_size
-            # The remote element is on the other side of the interface
-            remote_side = 3 - mpi_interfaces.local_sides[interface]
-            @views vec(aux_mpi_interface[remote_side, .., interface]) .= recv_buffer[first:last]
+            if mpi_interfaces.local_sides[interface] == 1 # local element on primary side
+                @views vec(aux_mpi_interface[2, .., interface]) .= recv_buffer[first:last]
+            else # local element at secondary side
+                @views vec(aux_mpi_interface[1, .., interface]) .= recv_buffer[first:last]
+            end
         end
 
         interfaces_data_size = length(mpi_neighbor_interfaces[data]) * data_size
@@ -867,8 +869,8 @@ function exchange_aux_mpi!(aux_vars, mpi_interfaces::P4estMPIInterfaceContainer,
             indices = buffer_mortar_indices(mesh, index_base, data_size)
 
             for position in 1:n_positions
-                # Skip if no data has been sent for `position` since the corresponding
-                # element is not on the neighbor rank
+                # Skip if received data for `position` is NaN as no real data has been
+                # sent for the corresponding element
                 if isnan(recv_buffer[Base.first(indices[position])])
                     continue
                 end
