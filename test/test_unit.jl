@@ -1432,6 +1432,21 @@ end
         @test flux(u, orientation, equations) ≈
               boundary_condition_do_nothing(u, orientation, direction, x, t,
                                             surface_flux, equations)
+
+        # Parabolic solvers get the inner gradients or fluxes back
+        equations_parabolic = LaplaceDiffusion2D(0.1, equations)
+        flux_inner = SVector(1.0, 2.0, 3.0, 4.0)
+        for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+            @test boundary_condition_do_nothing(flux_inner, u, outward_direction, x, t,
+                                                operator_type, equations_parabolic) ==
+                  flux_inner
+            @test boundary_condition_do_nothing(flux_inner, nothing, orientation,
+                                                direction, x, t, operator_type,
+                                                equations_parabolic) == flux_inner
+        end
+
+        # Unsupported arguments are not silently accepted
+        @test_throws MethodError boundary_condition_do_nothing(u, x, t, equations)
     end
 end
 
@@ -6559,6 +6574,64 @@ end
     aux_mortar = semi_polynomial.cache.aux_vars.aux_mortar
     @test !any(isnan, aux_mortar)
     @test aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :]
+end
+
+@testitem "Unit: boundary_condition_do_nothing with auxiliary variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    equations_noncons = NonconservativeLinearScalarAdvectionEquation3D()
+    u = SVector(2.0)
+    aux = SVector(3.0, -1.0, 0.5)
+    outward_direction = SVector(0.2, -0.3, 0.4)
+    x = SVector(0.1, 0.2, 0.3)
+    t = 0.5
+
+    @test boundary_condition_do_nothing(u, aux, outward_direction, x, t,
+                                        flux_lax_friedrichs, equations) ≈
+          flux(u, aux, outward_direction, equations)
+
+    surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_central)
+    flux_cons, flux_noncons = boundary_condition_do_nothing(u, aux, outward_direction,
+                                                            x, t, surface_fluxes,
+                                                            equations_noncons)
+    @test flux_cons ≈ flux_lax_friedrichs(u, u, aux, aux, outward_direction,
+                              equations_noncons)
+    @test flux_noncons ≈ flux_nonconservative_central(u, u, aux, aux,
+                                       outward_direction,
+                                       equations_noncons)
+
+    # Parabolic boundary conditions with the same number of arguments return the inner
+    # gradients or fluxes
+    equations_parabolic = LaplaceDiffusion3D(0.1, equations)
+    flux_inner = SVector(5.0)
+    @test boundary_condition_do_nothing(flux_inner, u, outward_direction, x, t,
+                                        Trixi.Gradient(), equations_parabolic) ==
+          flux_inner
+    @test boundary_condition_do_nothing(flux_inner, nothing, outward_direction, x, t,
+                                        Trixi.Divergence(), equations_parabolic) ==
+          flux_inner
+
+    # A constant state is preserved for a constant velocity
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+    initial_condition_constant(x, t, equations) = SVector(1.0)
+    aux_field(x, equations) = SVector(1.0, 0.5, 0.25)
+    solvers = (DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs),
+               DGSEM(polydeg = 2, surface_flux = surface_fluxes,
+                     volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                       flux_nonconservative_central))))
+    for (equations_, solver) in zip((equations, equations_noncons), solvers)
+        semi = SemidiscretizationHyperbolic(mesh, equations_, initial_condition_constant,
+                                            solver;
+                                            boundary_conditions = boundary_condition_do_nothing,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        @test maximum(abs, du_ode) < 1.0e-12
+    end
 end
 
 @testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation3D" setup=[

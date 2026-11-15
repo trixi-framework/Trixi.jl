@@ -35,7 +35,11 @@ end
     @test u0 ≈ ode.u0
 
     # test "do nothing" BC just returns first argument
-    @test boundary_condition_do_nothing(u0, nothing) == u0
+    for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+        @test boundary_condition_do_nothing(u0, u0, SVector(1.0, 0.0), SVector(0.0, 0.0),
+                                            0.0, operator_type,
+                                            semi.equations_parabolic) == u0
+    end
 
     (; cache, cache_parabolic, equations_parabolic) = semi
     (; gradients) = cache_parabolic
