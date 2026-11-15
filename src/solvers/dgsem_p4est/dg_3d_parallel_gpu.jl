@@ -115,8 +115,7 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values, u,
 
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, mpi_recv_buffer, get_aux_mpi_interface_vars(cache),
-            typeof(mesh),
-            have_nonconservative_terms, equations, surface_integral, dg,
+            typeof(mesh), have_nonconservative_terms, equations, surface_integral, dg,
             local_neighbor_ids, node_indices, local_sides,
             mpi_interfaces_buffer_offsets, normal_directions, index_range,
             ndrange = (nnodes(dg), nnodes(dg), nmpiinterfaces(dg, cache)))
