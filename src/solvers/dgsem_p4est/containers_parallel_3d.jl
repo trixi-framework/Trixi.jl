@@ -280,9 +280,8 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
                                    cache)
 
     # Get the auxiliary variables of the remote elements from the neighbor ranks
-    exchange_aux_mpi!(aux_vars, cache.mpi_interfaces, cache.mpi_mortars,
-                      cache.mpi_cache,
-                      mesh, equations, nnodes(solver))
+    exchange_aux_mpi!(aux_vars, mpi_interfaces, cache.mpi_mortars,
+                      cache.mpi_cache, mesh, equations, nnodes(solver))
 
     return nothing
 end
@@ -329,7 +328,10 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
                 for j in eachnode(solver)
                     for i in eachnode(solver)
                         for v in eachauxvariable(equations)
-                            aux_buffer[v, i, j] = aux[v, i_large, j_large, k_large,
+                            aux_buffer[v, i, j] = aux[v,
+                                                      i_large,
+                                                      j_large,
+                                                      k_large,
                                                       element]
                         end
                         i_large += i_large_step_i

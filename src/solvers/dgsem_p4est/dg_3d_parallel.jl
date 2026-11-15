@@ -186,8 +186,8 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache), equations, dg,
-                                     cache)
+        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache),
+                                     equations, dg, cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
@@ -349,8 +349,8 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     # (note the `-` for the `else` case).
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
-        noncons_flux_ = nonconservative_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                             equations)
+        noncons_flux_ = nonconservative_flux(u_ll, u_rr, aux_node...,
+                                             normal_direction, equations)
     else # local_side == 2
         flux_ = -surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
         noncons_flux_ = -nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
@@ -397,8 +397,8 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
     # (note the `-` for the `else` case).
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                         equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
     if local_side == 1
         flux_ = flux_left
     else # local_side == 2

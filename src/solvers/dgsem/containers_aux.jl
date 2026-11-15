@@ -81,8 +81,8 @@ end
 
 @inline check_axes_aux_mpi_interface(::Nothing, equations, solver, cache) = nothing
 
-@inline function check_axes_aux_mpi_interface(aux_mpi_interface, equations, solver,
-                                              cache)
+@inline function check_axes_aux_mpi_interface(aux_mpi_interface, equations,
+                                              solver, cache)
     # [leftright, var, i, j, mpi_interface] in 3D
     surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_interface) - 3))
     return check_axes(aux_mpi_interface,

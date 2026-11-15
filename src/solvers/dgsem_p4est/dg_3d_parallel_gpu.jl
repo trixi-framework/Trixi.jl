@@ -109,8 +109,8 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values, u,
         checkbounds(mpi_recv_buffer,
                     1:(nvariables(equations) * nnodes(dg)^2 *
                        nmpiinterfaces(dg, cache)))
-        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache), equations, dg,
-                                     cache)
+        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache),
+                                     equations, dg, cache)
     end
 
     kernel! = calc_mpi_interface_flux_KAkernel!(backend)
@@ -201,8 +201,9 @@ end
     calc_mpi_interface_flux_per_node!(surface_flux_values, MeshT,
                                       have_nonconservative_terms, equations,
                                       surface_integral, u_ll, u_rr, aux_node,
-                                      normal_direction, local_side, i_surface,
-                                      j_surface, local_direction, local_element)
+                                      normal_direction, local_side,
+                                      i_surface, j_surface,
+                                      local_direction, local_element)
 end
 
 # Inlined version of the interface flux computation for conservation laws
@@ -287,8 +288,8 @@ Base.@propagate_inbounds function calc_mpi_interface_flux_per_node!(surface_flux
     # Compute the flux including the non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
     # (note the `-` for the `else` case).
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                         equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
     if local_side == 1
         flux_ = flux_left
     else # local_side == 2
