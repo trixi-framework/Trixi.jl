@@ -234,8 +234,7 @@ end
 
 # Auxiliary variables at the MPI interface and MPI mortar nodes, cf.
 # `prolong2mpiinterfaces!` and `prolong2mpimortars!`. The values of the local elements are
-# copied (and interpolated to the small elements for large elements at MPI mortars) and
-# afterwards exchanged with the neighbor ranks once, see `exchange_aux_mpi!`.
+# copied and afterwards exchanged with the neighbor ranks, see `exchange_aux_mpi!`.
 function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
                                          equations, solver, cache)
     @unpack aux, aux_mpi_interface = aux_vars
@@ -243,6 +242,11 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
     index_range = eachnode(solver)
 
     @threaded for interface in eachmpiinterface(solver, cache)
+        # Copy the auxiliary variables from the local element using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
         local_side = mpi_interfaces.local_sides[interface]
         local_element = mpi_interfaces.local_neighbor_ids[interface]
         local_indices = mpi_interfaces.node_indices[interface]
@@ -280,13 +284,14 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
                                    cache)
 
     # Get the auxiliary variables of the remote elements from the neighbor ranks
-    exchange_aux_mpi!(aux_vars, cache.mpi_interfaces, cache.mpi_mortars,
-                      cache.mpi_cache,
-                      mesh, equations, nnodes(solver))
+    exchange_aux_mpi!(aux_vars, mpi_interfaces, cache.mpi_mortars,
+                      cache.mpi_cache, mesh, equations, nnodes(solver))
 
     return nothing
 end
 
+# The auxiliary variables are treated as the solution in `prolong2mpimortars!`, as in
+# `init_aux_mortar_node_vars!`.
 function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, equations,
                                         mortar_l2::LobattoLegendreMortarL2, solver,
                                         cache)
@@ -298,6 +303,8 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
         local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
         local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
+        # Get start value and step size for indices on both sides to get the correct face
+        # and orientation
         small_indices = node_indices[1, mortar]
         i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
                                                                                index_range)
@@ -329,7 +336,10 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
                 for j in eachnode(solver)
                     for i in eachnode(solver)
                         for v in eachauxvariable(equations)
-                            aux_buffer[v, i, j] = aux[v, i_large, j_large, k_large,
+                            aux_buffer[v, i, j] = aux[v,
+                                                      i_large,
+                                                      j_large,
+                                                      k_large,
                                                       element]
                         end
                         i_large += i_large_step_i
@@ -360,6 +370,7 @@ function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, eq
                                         mortar_l2.forward_upper,
                                         aux_buffer, aux_tmp)
             else # position in (1, 2, 3, 4) -> small element
+                # Copy the auxiliary variables from the small elements
                 i_small = i_small_start
                 j_small = j_small_start
                 k_small = k_small_start

@@ -455,7 +455,7 @@ end
     MPIP4estMesh3D
 ] tags=[:mpi, :mpi_skip_windows] begin
     # Auxiliary variables at MPI interfaces, MPI mortars, boundaries, and in the source
-    # terms. With more trees, the refined regions and thus the mortars are on both ranks.
+    # terms. With more trees, there are MPI mortars for 2 and 3 MPI ranks.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         # Expected errors are exactly the same as in serial
@@ -474,17 +474,57 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Set the auxiliary variables of each element to its MPI rank and check that the
+    # values of the remote elements are received at the MPI interfaces and MPI mortars
+    rank = Trixi.mpi_rank()
+    fill!(semi.cache.aux_vars.aux, rank)
+    Trixi.init_aux_surface_node_vars!(semi.cache.aux_vars, mesh, equations, solver,
+                                      semi.cache)
+    (; mpi_interfaces, mpi_mortars) = semi.cache
+    @test all(Trixi.eachmpiinterface(solver, semi.cache)) do interface
+        local_side = mpi_interfaces.local_sides[interface]
+        return all(==(rank), aux_mpi_interface[local_side, :, :, :, interface]) &&
+               all(!=(rank), aux_mpi_interface[3 - local_side, :, :, :, interface])
+    end
+    # The values of the large element are interpolated to the small elements
+    @test all(Trixi.eachmpimortar(solver, semi.cache)) do mortar
+        local_positions = mpi_mortars.local_neighbor_positions[mortar]
+        small_ok = all(1:4) do position
+            aux_small = aux_mpi_mortar[1, :, position, :, :, mortar]
+            return position in local_positions ? all(==(rank), aux_small) :
+                   all(!=(rank), aux_small)
+        end
+        aux_large = aux_mpi_mortar[2, :, :, :, :, mortar]
+        large_ok = 5 in local_positions ? all(x -> isapprox(x, rank), aux_large) :
+                   all(x -> !isapprox(x, rank), aux_large)
+        return small_ok && large_ok
+    end
+
+    # Mesh adaptation is not supported with auxiliary variables. With MPI, the AMR
+    # callback re-initializes the containers on all ranks, so all of them throw.
+    amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                          base_level = 2,
+                                          med_level = 3, med_threshold = 0.1,
+                                          max_level = 4, max_threshold = 0.6)
+    amr_callback = AMRCallback(semi, amr_controller,
+                               interval = 5,
+                               adapt_initial_condition = true)
+    @test_throws ArgumentError solve(ode,
+                                     CarpenterKennedy2N54(williamson_condition = false);
+                                     dt = 1.0e-3, callback = CallbackSet(amr_callback))
 end
 
-@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
     Setup,
     MPIP4estMesh3D
 ] tags=[:mpi, :mpi_skip_windows] begin
-    # The velocity is discontinuous, also at MPI interfaces and MPI mortars
+    # Nonconservative terms with auxiliary variables at MPI interfaces and MPI mortars
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
-                        l2=[8.879258369319651e-16],
-                        linf=[1.6298074001497298e-13],
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.00013126106205317068],
+                        linf=[0.0010576440539005194],
                         trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
     @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
                               Trixi.mpi_comm()) > 0

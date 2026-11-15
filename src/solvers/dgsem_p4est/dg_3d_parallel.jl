@@ -186,8 +186,8 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache), equations, dg,
-                                     cache)
+        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache),
+                                     equations, dg, cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
@@ -261,15 +261,14 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
+    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
+                                         typeof(dg),
+                                         interface_i_node_index, interface_j_node_index,
+                                         interface_index)
 
     # `normal_direction` is the normal direction of the primary element.
     # The flux entering the primary element leaves the secondary element
     # (note the `-` for the `else` case).
-    # Auxiliary variables on both sides of the MPI interface
-    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg), interface_i_node_index,
-                                         interface_j_node_index, interface_index)
-
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     else # local_side == 2
@@ -339,20 +338,19 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
+    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
+                                         typeof(dg),
+                                         interface_i_node_index, interface_j_node_index,
+                                         interface_index)
 
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element.
     # The flux entering the primary element leaves the secondary element
     # (note the `-` for the `else` case).
-    # Auxiliary variables on both sides of the MPI interface
-    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg), interface_i_node_index,
-                                         interface_j_node_index, interface_index)
-
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
-        noncons_flux_ = nonconservative_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                             equations)
+        noncons_flux_ = nonconservative_flux(u_ll, u_rr, aux_node...,
+                                             normal_direction, equations)
     else # local_side == 2
         flux_ = -surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
         noncons_flux_ = -nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
@@ -391,17 +389,16 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
-
-    # Auxiliary variables on both sides of the MPI interface
     aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg), interface_i_node_index,
-                                         interface_j_node_index, interface_index)
+                                         typeof(dg),
+                                         interface_i_node_index, interface_j_node_index,
+                                         interface_index)
 
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
     # (note the `-` for the `else` case).
-    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node..., normal_direction,
-                                         equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
     if local_side == 1
         flux_ = flux_left
     else # local_side == 2
@@ -588,8 +585,8 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                         # Auxiliary variables on the small (primary) and the large
                         # (secondary) side, cf. `init_aux_mpi_mortar_node_vars!`
                         aux_node = get_aux_surface_node_vars(aux_mpi_mortar, equations,
-                                                             typeof(dg), position, i, j,
-                                                             mortar)
+                                                             typeof(dg),
+                                                             position, i, j, mortar)
 
                         calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                                               have_nonconservative_terms, equations,
