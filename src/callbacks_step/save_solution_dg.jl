@@ -36,9 +36,21 @@ function save_solution_file(u, time, dt, timestep,
         # result as a plain array of floating point numbers. The element type of
         # the result is determined by `solution_variables` and can differ from
         # `eltype(u)`, e.g., if `equations` use a different real type than `u`.
+        # The auxiliary variables are passed after the conservative variables for
+        # equations with auxiliary variables, see `nauxvariables`.
+        aux = get_aux_vars(cache)
+        if aux === nothing
+            aux_vectors = ()
+        else
+            if trixi_backend(aux) !== nothing
+                aux = Array(aux)
+            end
+            aux_vectors = (reinterpret(SVector{nauxvariables(equations), eltype(aux)},
+                                       aux),)
+        end
         data_vectors = solution_variables.(reinterpret(SVector{nvariables(equations),
                                                                eltype(u)}, u),
-                                           Ref(equations))
+                                           aux_vectors..., Ref(equations))
         data = Array(reinterpret(eltype(eltype(data_vectors)), data_vectors))
 
         # Find out variable count by looking at output from `solution_variables` function
