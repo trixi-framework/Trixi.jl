@@ -317,19 +317,15 @@ Base.@propagate_inbounds function entropy_change_reference_element(du, u, elemen
                                                                    equations, dg::DGSEM,
                                                                    cache, args...)
     # Not a `do` block since `Base.@propagate_inbounds` cannot be applied to it
-    Base.@propagate_inbounds function integrand(u, i, j, k, element, equations, dg, du,
-                                                aux)
+    Base.@propagate_inbounds function integrand(u, i, j, k, element, equations, dg, du)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
-        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
-        return dot(cons2entropy(u_node, aux_node..., equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
 
-    # `nothing` if the equations do not have auxiliary variables
-    aux = get_aux_vars(cache)
     return integrate_reference_element(integrand, u, element, MeshT, equations, dg,
-                                       cache, du, aux)
+                                       cache, du)
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.

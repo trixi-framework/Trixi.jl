@@ -271,7 +271,13 @@ end
 # - Otherwise, use `cons2cons`, which is defined for all systems of equations
 digest_solution_variables(equations, solution_variables) = solution_variables
 function digest_solution_variables(equations, solution_variables::Nothing)
-    if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
+    # Equations with auxiliary variables use `cons2prim(u, aux, equations)`
+    if nauxvariables(equations) > 0
+        argument_types = Tuple{AbstractVector, AbstractVector, typeof(equations)}
+    else
+        argument_types = Tuple{AbstractVector, typeof(equations)}
+    end
+    if hasmethod(cons2prim, argument_types)
         return cons2prim
     else
         return cons2cons
@@ -525,7 +531,10 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         # `nothing` if the equations do not have auxiliary variables
         aux = get_aux_vars(cache)
         if aux !== nothing
-            aux = reshape(Array(aux), nauxvariables(equations), :)
+            if trixi_backend(aux) !== nothing
+                aux = Array(aux)
+            end
+            aux = reshape(aux, nauxvariables(equations), :)
         end
         n_vars = length(solution_variables(get_node_vars(u, equations, solver),
                                            get_aux_node_vars(aux, equations, solver,
@@ -1283,20 +1292,24 @@ function unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Get the number of variables after applying the transformation to solution variables.
     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
-    var_node = solution_variables(u_node, equations)
+    aux_node = get_aux_node_vars(aux, equations, solver, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, aux_node..., equations)
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
     nodes = cache.elements.node_coordinates
-    interpolation_cache = get_value_at_point_3d_cache(u)
+    interpolation_cache = get_value_at_point_3d_cache(u, aux)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
         get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
-                               nodes, u, equations, solver;
+                               nodes, u, aux, equations, solver;
                                cache = interpolation_cache)
     end
 
@@ -1391,7 +1404,7 @@ function squared_distances_from_single_point!(distances, nodes, point)
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point_3d_cache(u)
+function get_value_at_point_3d_cache(u, aux)
     n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(u)
     @assert n_x_nodes == n_y_nodes == n_z_nodes
     n_nodes = n_x_nodes
@@ -1399,17 +1412,23 @@ function get_value_at_point_3d_cache(u)
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
+    # `nothing` if the equations do not have auxiliary variables
+    if aux === nothing
+        aux_tetrahedron = nothing
+    else
+        aux_tetrahedron = Array{eltype(aux)}(undef, size(aux, 1), 4)
+    end
 
-    cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
+    cache = (; distances, coordinates_tetrahedron, value_tetrahedron, aux_tetrahedron)
     return cache
 end
 
 function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variables,
-                                nodes, u, equations, solver;
-                                cache = get_value_at_point_3d_cache(u))
+                                nodes, u, aux, equations, solver;
+                                cache = get_value_at_point_3d_cache(u, aux))
     # Set up data structures.
     n_variables = size(u, 1)
-    (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
+    (; distances, coordinates_tetrahedron, value_tetrahedron, aux_tetrahedron) = cache
 
     maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
                                                                       point)
@@ -1425,7 +1444,9 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
     if nodes_at_index == point
         u_node = get_node_vars(u, equations, solver,
                                index[1], index[2], index[3], index[4])
-        data_on_curve_at_point .= solution_variables(u_node, equations)
+        aux_node = get_aux_node_vars(aux, equations, solver,
+                                     index[1], index[2], index[3], index[4])
+        data_on_curve_at_point .= solution_variables(u_node, aux_node..., equations)
         return data_on_curve_at_point
     end
 
@@ -1449,6 +1470,13 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
                 value_tetrahedron[v, i] = u[v,
                                             index[1], index[2], index[3],
                                             closest_element]
+            end
+            if aux !== nothing
+                for v in eachauxvariable(equations)
+                    aux_tetrahedron[v, i] = aux[v,
+                                                index[1], index[2], index[3],
+                                                closest_element]
+                end
             end
 
             # Look for another point if current tetrahedron is not valid.
@@ -1476,10 +1504,14 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
     u2 = get_node_vars(value_tetrahedron, equations, solver, 2)
     u3 = get_node_vars(value_tetrahedron, equations, solver, 3)
     u4 = get_node_vars(value_tetrahedron, equations, solver, 4)
-    val1 = solution_variables(u1, equations)
-    val2 = solution_variables(u2, equations)
-    val3 = solution_variables(u3, equations)
-    val4 = solution_variables(u4, equations)
+    aux1 = get_aux_node_vars(aux_tetrahedron, equations, solver, 1)
+    aux2 = get_aux_node_vars(aux_tetrahedron, equations, solver, 2)
+    aux3 = get_aux_node_vars(aux_tetrahedron, equations, solver, 3)
+    aux4 = get_aux_node_vars(aux_tetrahedron, equations, solver, 4)
+    val1 = solution_variables(u1, aux1..., equations)
+    val2 = solution_variables(u2, aux2..., equations)
+    val3 = solution_variables(u3, aux3..., equations)
+    val4 = solution_variables(u4, aux4..., equations)
     for v in eachindex(val1)
         values = SVector(val1[v],
                          val2[v],

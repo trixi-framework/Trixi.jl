@@ -493,10 +493,11 @@ flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquation
 ```
 Similar patterns are used for source terms etc. Functions of the conservative variables
 used for analysis and output, e.g., [`cons2prim`](@ref), [`cons2entropy`](@ref),
-`entropy`, or the `solution_variables` of the [`SaveSolutionCallback`](@ref), also get
-the auxiliary variables, e.g., `cons2prim(u, aux, equations::MyEquations)`. The defaults
-of the [`AnalysisCallback`](@ref) and the [`SaveSolutionCallback`](@ref) require
-`cons2prim` and `cons2entropy` with this signature.
+[`entropy`](@ref), or the `solution_variables` of the [`SaveSolutionCallback`](@ref) and
+of plots, also get the auxiliary variables, e.g.,
+`cons2prim(u, aux, equations::MyEquations)`.
+With their default settings, the [`AnalysisCallback`](@ref) requires `cons2entropy` and
+the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
 
 The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
@@ -549,12 +550,12 @@ default_analysis_integrals(::AbstractEquations) = (entropy_timederivative,)
 
 """
     cons2cons(u, equations)
+    cons2cons(u, aux, equations)
 
 Return the conserved variables `u`. While this function is as trivial as `identity`,
 it is also as useful.
 """
 @inline cons2cons(u, ::AbstractEquations) = u
-# Version for equations with auxiliary variables, see `nauxvariables`
 @inline cons2cons(u, aux, ::AbstractEquations) = u
 
 @inline Base.first(u, ::AbstractEquations) = first(u)
