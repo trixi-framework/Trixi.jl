@@ -14,13 +14,13 @@ struct AuxVarsContainer{NDIMS, uEltype <: Real,
                         AuxMortar <: AbstractArray{uEltype},
                         AuxMPIInterface <: AbstractArray{uEltype},
                         AuxMPIMortar <: AbstractArray{uEltype}, AuxField}
-    aux::Aux                     # [var, i, j, k, element] in 3D
-    aux_interface::AuxInterface  # [leftright, var, i, j, interface] in 3D
-    aux_mortar::AuxMortar        # [leftright, var, position, i, j, mortar] in 3D
+    aux::Aux                            # [var, i, j, k, element] in 3D
+    aux_interface::AuxInterface         # [leftright, var, i, j, interface] in 3D
+    aux_mortar::AuxMortar               # [leftright, var, position, i, j, mortar] in 3D
     # Same as `aux_interface` and `aux_mortar` for the MPI interfaces and MPI mortars,
     # which are empty for serial meshes
-    aux_mpi_interface::AuxMPIInterface # [leftright, var, i, j, mpi_interface] in 3D
-    aux_mpi_mortar::AuxMPIMortar       # [leftright, var, position, i, j, mpi_mortar] in 3D
+    aux_mpi_interface::AuxMPIInterface  # [leftright, var, i, j, mpi_interface] in 3D
+    aux_mpi_mortar::AuxMPIMortar        # [leftright, var, position, i, j, mpi_mortar] in 3D
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
