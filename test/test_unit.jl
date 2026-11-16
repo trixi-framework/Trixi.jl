@@ -6632,6 +6632,23 @@ end
         Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
         @test maximum(abs, du_ode) < 1.0e-12
     end
+
+    # The same holds in 2D
+    mesh_2d = P4estMesh((2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0),
+                        coordinates_max = (1.0, 1.0), periodicity = false)
+    aux_field_2d(x, equations) = SVector(1.0, 0.5)
+    equations_2d = (ConservativeLinearScalarAdvectionEquation2D(),
+                    NonconservativeLinearScalarAdvectionEquation2D())
+    for (equations_, solver) in zip(equations_2d, solvers)
+        semi = SemidiscretizationHyperbolic(mesh_2d, equations_,
+                                            initial_condition_constant, solver;
+                                            boundary_conditions = boundary_condition_do_nothing,
+                                            aux_field = aux_field_2d)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        @test maximum(abs, du_ode) < 1.0e-12
+    end
 end
 
 @testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation3D" setup=[

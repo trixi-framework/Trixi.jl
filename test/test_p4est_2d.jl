@@ -1337,14 +1337,23 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
 
-    # In 2D, `FluxTurbo` falls back to the wrapped flux, also with auxiliary variables
+@testitem "P4estMesh2D: elixir_advectionconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # In 2D, `FluxTurbo` falls back to the wrapped flux, also with auxiliary variables,
+    # and results in the same discretization as the plain `flux_central`, see the test above
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
                                      volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
                         l2=[0.0063968890644693814],
                         linf=[0.042584955404490143])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
@@ -1353,6 +1362,22 @@ end
 ] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0020945051403072766],
+                        linf=[0.01650967141933235])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_advectionnonconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # In 2D, `FluxTurbo` falls back to the wrapped fluxes, also with auxiliary variables,
+    # and results in the same discretization as the plain tuple of fluxes, see the test above
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        volume_flux=FluxTurbo(flux_central, flux_nonconservative_central),
                         l2=[0.0020945051403072766],
                         linf=[0.01650967141933235])
     # Ensure that we do not have excessive memory allocations
