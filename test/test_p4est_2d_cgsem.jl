@@ -4,6 +4,8 @@
                  nnodes_unique, local_nodes_of, eachinterface, index_to_start_step_2d
 
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_cgsem")
+    # Some test items run DGSEM elixirs with `solver = CGSEM(...)`
+    EXAMPLES_DIR_DGSEM = joinpath(examples_dir(), "p4est_2d_dgsem")
 
     # Maximum absolute difference between the values of `u` on the two sides of an
     # interface, over all variables, nodes, and interfaces in `cache.interfaces`. It is
@@ -422,11 +424,14 @@ end
     @test haskey(element_variables, :indicator_shock_capturing)
 end
 
-@testitem "CGSEM 2D (P4estMesh): elixir_advection_diffusion_periodic.jl" setup=[
+@testitem "CGSEM 2D (P4estMesh): elixir_advection_diffusion_periodic_curved.jl" setup=[
     Setup,
     P4estMesh2DCGSEM
 ] tags=[:p4est_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_diffusion_periodic.jl"),
+    # The DGSEM elixir with CGSEM on a periodic curved mesh
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM,
+                                 "elixir_advection_diffusion_periodic_curved.jl"),
+                        solver=CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs),
                         initial_refinement_level=1, tspan=(0.0, 0.5),
                         l2=[0.00048714345020574876], linf=[0.002413067509416944])
 
@@ -444,8 +449,11 @@ end
 
     # Observed order of convergence of the parabolic terms with element-local gradients
     eocs, _ = convergence_test(@__MODULE__,
-                               joinpath(EXAMPLES_DIR,
-                                        "elixir_advection_diffusion_periodic.jl"), 3;
+                               joinpath(EXAMPLES_DIR_DGSEM,
+                                        "elixir_advection_diffusion_periodic_curved.jl"),
+                               3;
+                               solver = CGSEM(polydeg = 3,
+                                              surface_flux = flux_lax_friedrichs),
                                initial_refinement_level = 0, tspan = (0.0, 0.2))
     mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2], [3.9117512698919903], rtol = 0.05)
@@ -506,20 +514,21 @@ end
     Setup,
     P4estMesh2DCGSEM
 ] tags=[:p4est_part1] begin
-    # No-slip, adiabatic walls on a curved mesh
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_convergence.jl"),
+    # The DGSEM elixir with CGSEM: manufactured solution with no-slip, adiabatic walls
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM, "elixir_navierstokes_convergence.jl"),
+                        solver=CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
-                            0.0010723575357238638,
-                            0.0023927230541633845,
-                            0.0018700082922674423,
-                            0.005202062997156307
+                            0.00046248537702963614,
+                            0.0005980774767103366,
+                            0.000879120672364965,
+                            0.0015139835650366178
                         ],
                         linf=[
-                            0.007968903108504177,
-                            0.0365286720856107,
-                            0.010985728195173655,
-                            0.03341099293062033
+                            0.0022041858295689387,
+                            0.008290255068034165,
+                            0.00401140096396746,
+                            0.013479280507835867
                         ])
 
     # Ensure that we do not have excessive memory allocations
@@ -537,16 +546,18 @@ end
 ] tags=[:p4est_part1] begin
     # Observed order of convergence of the compressible Navier-Stokes equations
     eocs, _ = convergence_test(@__MODULE__,
-                               joinpath(EXAMPLES_DIR,
+                               joinpath(EXAMPLES_DIR_DGSEM,
                                         "elixir_navierstokes_convergence.jl"), 3;
+                               solver = CGSEM(polydeg = 3,
+                                              surface_flux = flux_lax_friedrichs),
                                initial_refinement_level = 0, tspan = (0.0, 0.1))
     mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [
-                       3.4953814368539544,
-                       3.3015078929050974,
-                       3.638147241603277,
-                       3.8701677960623666
+                       3.2456391652701724,
+                       3.373945414898823,
+                       3.1852665490312164,
+                       3.66317725355332
                    ], rtol = 0.05)
 end
 
@@ -554,9 +565,13 @@ end
     Setup,
     P4estMesh2DCGSEM
 ] tags=[:p4est_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    # The DGSEM elixir with CGSEM. CGSEM has no interface dissipation, so an
+    # entropy-conservative flux differencing volume integral is used for robustness.
+    solver = CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM,
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
-                        initial_refinement_level=1, tspan=(0.0, 0.5),
+                        solver=solver, initial_refinement_level=1, tspan=(0.0, 0.5),
                         l2=[
                             0.0002628162008678956,
                             0.0488360717350896,
