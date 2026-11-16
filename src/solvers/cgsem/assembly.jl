@@ -102,6 +102,9 @@ struct AssemblyCGSEM{NDIMSP1, RealT <: Real}
     inverse_sum_jacobian::Vector{RealT}
 end
 
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(AssemblyCGSEM)
+
 function AssemblyCGSEM(mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
     if !(dg.basis isa LobattoLegendreBasis)
         throw(ArgumentError("CGSEM requires a `LobattoLegendreBasis`, " *
