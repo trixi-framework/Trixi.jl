@@ -1498,6 +1498,13 @@ Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
     return aux_ll, aux_rr
 end
 
+# As above but dispatches on the solver instead of its type
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface, equations,
+                                                            solver::DG, indices...)
+    return get_aux_surface_node_vars(aux_interface, equations, typeof(solver),
+                                     indices...)
+end
+
 Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
                                                  indices...)
     for v in eachvariable(equations)

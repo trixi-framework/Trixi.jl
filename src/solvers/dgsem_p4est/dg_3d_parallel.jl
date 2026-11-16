@@ -218,7 +218,7 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                     normal_direction = get_normal_direction(cache.mpi_interfaces,
                                                             i, j, interface)
                     aux_node = get_aux_surface_node_vars(aux_mpi_interface, equations,
-                                                         typeof(dg), i, j, interface)
+                                                         dg, i, j, interface)
 
                     calc_mpi_interface_flux!(surface_flux_values, mesh,
                                              have_nonconservative_terms, equations,
@@ -581,7 +581,7 @@ function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                         # Auxiliary variables on the small (primary) and the large
                         # (secondary) side, cf. `init_aux_mpi_mortar_node_vars!`
                         aux_node = get_aux_surface_node_vars(aux_mpi_mortar, equations,
-                                                             typeof(dg),
+                                                             dg,
                                                              position, i, j, mortar)
 
                         calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
