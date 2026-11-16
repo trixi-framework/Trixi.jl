@@ -40,13 +40,25 @@ Supported are
 - weakly imposed boundary conditions as in DGSEM, which are the only place where
   `surface_flux` enters,
 - source terms, which are added before the assembly,
-- the [`AnalysisCallback`](@ref), the [`StepsizeCallback`](@ref) (using the DGSEM
-  estimate of the maximal time step), the [`SaveSolutionCallback`](@ref), and the
-  plotting functions.
+- parabolic terms of a [`SemidiscretizationHyperbolicParabolic`](@ref) with
+  [`ParabolicFormulationBassiRebay1`](@ref) and parabolic source terms (see below),
+- the [`AnalysisCallback`](@ref), the [`StepsizeCallback`](@ref) (hyperbolic time step
+  restriction only, using the DGSEM estimate), the [`SaveSolutionCallback`](@ref), and
+  the plotting functions.
 
 Everything else, e.g., nonconforming meshes and AMR, MPI-parallel meshes, GPU
-backends, parabolic terms, restart files, and the stage limiters of DGSEM, is not
-supported and fails with an error instead of silently running the DGSEM code.
+backends, restart files, and the stage limiters of DGSEM, is not supported and fails
+with an error instead of silently running the DGSEM code.
+
+The gradients of the parabolic terms are computed element-locally from the continuous
+solution with the strong form derivative, i.e., they are discontinuous across element
+faces and are not assembled. Data of Dirichlet-type boundary conditions enters the
+gradients via the lift ``M^{-1} B (u_{bc} - u) n`` on the boundary faces, as in the BR1
+scheme of DGSEM, and Neumann data enters via the boundary flux of the divergence. The
+divergence of the parabolic fluxes uses the weak form of DGSEM and is assembled by
+[`assemble_and_apply_jacobian_parabolic!`](@ref). The parabolic formulation of DGSEM
+only determines interface fluxes, which CGSEM does not compute, so only the default
+[`ParabolicFormulationBassiRebay1`](@ref) is accepted.
 
 Since no interface dissipation is present, CGSEM is a central scheme in the interior
 of the domain; [`VolumeIntegralFluxDifferencing`](@ref) with an entropy-conservative
@@ -166,6 +178,17 @@ function create_cache_hyperbolic(mesh::P4estMeshSerial{2}, equations::AbstractEq
     return (; cache..., assembly)
 end
 
+# The parabolic cache is the one of DGSEM (element-local gradient variables, gradients,
+# and parabolic fluxes). The parabolic right-hand side shares `surface_flux_values` and
+# the boundary container with the hyperbolic one in `cache`, whose interior interface
+# entries stay zero (see `create_cache`).
+function create_cache_parabolic(mesh::P4estMesh{2},
+                                equations_hyperbolic::AbstractEquations,
+                                solver::CGSEM, n_elements, uEltype)
+    return create_cache_parabolic(mesh, equations_hyperbolic, solver.dg, n_elements,
+                                  uEltype)
+end
+
 function compute_coefficients!(backend::Nothing, u, func, t, mesh::P4estMesh{2},
                                equations, solver::CGSEM, cache)
     (; dg) = solver
@@ -183,9 +206,10 @@ end
 # CGSEM uses the element-local storage of DGSEM, so everything that only reads the
 # element-local data (array layout, quadrature, analysis, time step estimate, solution
 # files) is delegated to `solver.dg`. Functionality that is not listed here (e.g., AMR,
-# stage limiters, parabolic terms, MPI, GPU backends, restart files) fails with a
-# `MethodError` instead of silently running the DGSEM code. The plotting entry points
-# are forwarded in `src/visualization/types.jl`, where the plot data types are defined.
+# stage limiters, parabolic time step estimates, MPI, GPU backends, restart files) fails
+# with a `MethodError` instead of silently running the DGSEM code. The plotting entry
+# points are forwarded in `src/visualization/types.jl`, where the plot data types are
+# defined.
 
 # Core
 @inline Base.real(solver::CGSEM) = real(solver.dg)

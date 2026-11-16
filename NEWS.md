@@ -103,7 +103,8 @@ for human readability.
   solver `CGSEM`, which reuses the DGSEM kernels and assembles the element-local
   residuals at shared nodes. It supports conforming `P4estMesh`es in 2D with the weak
   form, flux differencing, pure LGL finite volume, and Hennemann-Gassner shock-capturing
-  volume integrals, weakly imposed boundary conditions, and source terms, see
+  volume integrals, weakly imposed boundary conditions, source terms, and parabolic
+  terms of a `SemidiscretizationHyperbolicParabolic` (with element-local gradients), see
   `examples/p4est_2d_cgsem/` ([#3469]).
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
