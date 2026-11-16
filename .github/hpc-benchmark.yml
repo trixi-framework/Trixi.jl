@@ -1,0 +1,15 @@
+# Thresholds of the benchmark suites that the scaling jobs of .gitlab-ci.yml write to hpc-benchmarks/.
+# The first rule that fits a suite name applies, the suite names are the keys of the recorded history on the branch.
+mode: pages
+branch: hpc-results
+suites:
+  - match: "GPU * PID"
+    alert_threshold: 120%
+    fail_threshold: 200%
+  - match: "* PID"
+    alert_threshold: 130%
+    fail_threshold: 200%
+  - match: "* efficiency"
+    tool: customBiggerIsBetter
+    alert_threshold: 125%
+    fail_threshold: 150%

@@ -58,6 +58,7 @@ The setup provides three short validation jobs.
 [benchmark/scaling](../benchmark/scaling) holds the scaling benchmarks.
 Its `run.jl` measures the [performance index (PID)](../docs/src/performance.md) of a case, a file that names an existing elixir and its `trixi_include` overrides.
 Each scaling point runs as its own job, `combine.jl` then writes `benchmark.json` with the PIDs and `efficiency.json` with the parallel efficiency relative to the baseline.
+The scaling job publishes both as benchmark suites by copying them to `hpc-benchmarks/<suite name>.json`, for example `Threads 1.10 PID`.
 Benchmarks run with `--check-bounds=auto` instead of the `yes` of the checks.
 
 | Series | Points | Baseline | Allocation |
@@ -78,7 +79,7 @@ The published metrics are the PID for every core count and an efficiency based o
 
 The history of the default branch is recorded on the `hpc-results` branch and the dashboard is deployed to GitHub Pages under `/bench/`.
 
-The workflow defines alert and failure thresholds per suite, PR runs compare with the history without recording.
+The [benchmark configuration](../.github/hpc-benchmark.yml) assigns the alert and failure thresholds to the suites by their names, PR runs compare with the history without recording.
 
 ## Setup
 
