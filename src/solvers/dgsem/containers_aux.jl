@@ -101,13 +101,10 @@ end
                        eachmpimortar(solver, cache)))
 end
 
-# Number of MPI interfaces and MPI mortars, which only exist for parallel meshes
-@inline function nmpiinterfaces_aux(cache)
-    return haskey(cache, :mpi_interfaces) ? nmpiinterfaces(cache.mpi_interfaces) : 0
-end
-@inline function nmpimortars_aux(cache)
-    return haskey(cache, :mpi_mortars) ? nmpimortars(cache.mpi_mortars) : 0
-end
+# Number of MPI interfaces and MPI mortars, which only exist for parallel meshes,
+# see `dgsem_p4est/containers_parallel.jl`
+@inline nmpiinterfaces_aux(mesh, cache) = 0
+@inline nmpimortars_aux(mesh, cache) = 0
 
 # Create and initialize the container of auxiliary variables
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
@@ -134,10 +131,10 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     # Same for the MPI interfaces and MPI mortars, which are empty for serial meshes
     aux_mpi_interface = fill(nan_uEltype,
                              (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
-                              nmpiinterfaces_aux(cache)))
+                              nmpiinterfaces_aux(mesh, cache)))
     aux_mpi_mortar = fill(nan_uEltype,
                           (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
-                           nmpimortars_aux(cache)))
+                           nmpimortars_aux(mesh, cache)))
 
     aux_vars = AuxVarsContainer{NDIMS, uEltype, typeof(aux),
                                 typeof(aux_interface), typeof(aux_mortar),

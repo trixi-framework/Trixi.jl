@@ -39,6 +39,11 @@ end
 end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
+# Number of MPI interfaces for the auxiliary variables, see `init_aux_vars`
+@inline function nmpiinterfaces_aux(mesh::P4estMeshParallel, cache)
+    return nmpiinterfaces(cache.mpi_interfaces)
+end
+
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     @unpack _u, _normal_directions, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
@@ -206,6 +211,11 @@ end
     return length(mpi_mortars.local_neighbor_ids)
 end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where {NDIMS} = NDIMS
+
+# Number of MPI mortars for the auxiliary variables, see `init_aux_vars`
+@inline function nmpimortars_aux(mesh::P4estMeshParallel, cache)
+    return nmpimortars(cache.mpi_mortars)
+end
 
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     @unpack _u, _node_indices, _normal_directions = mpi_mortars
