@@ -182,12 +182,14 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     index_range = eachnode(dg)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux_mpi_interface = get_aux_mpi_interface_vars(cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mpi_interfaces, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux_mpi_interface(get_aux_mpi_interface_vars(cache),
-                                     equations, dg, cache)
+        check_axes_aux_mpi_interface(aux_mpi_interface, equations, dg, cache)
     end
 
     @threaded for interface in eachmpiinterface(dg, cache)
@@ -215,11 +217,13 @@ function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                     # numerical flux, as in the serial `calc_interface_flux!`.
                     normal_direction = get_normal_direction(cache.mpi_interfaces,
                                                             i, j, interface)
+                    aux_node = get_aux_surface_node_vars(aux_mpi_interface, equations,
+                                                         typeof(dg), i, j, interface)
 
                     calc_mpi_interface_flux!(surface_flux_values, mesh,
                                              have_nonconservative_terms, equations,
                                              surface_integral, dg, cache,
-                                             interface, normal_direction,
+                                             interface, normal_direction, aux_node,
                                              i, j, local_side,
                                              i_surface, j_surface, local_direction,
                                              local_element)
@@ -248,6 +252,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            cache,
                                                            interface_index,
                                                            normal_direction,
+                                                           aux_node,
                                                            interface_i_node_index,
                                                            interface_j_node_index,
                                                            local_side,
@@ -261,10 +266,6 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
-    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg),
-                                         interface_i_node_index, interface_j_node_index,
-                                         interface_index)
 
     # `normal_direction` is the normal direction of the primary element.
     # The flux entering the primary element leaves the secondary element
@@ -293,6 +294,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            cache,
                                                            interface_index,
                                                            normal_direction,
+                                                           aux_node,
                                                            interface_i_node_index,
                                                            interface_j_node_index,
                                                            local_side,
@@ -307,7 +309,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                                              equations),
                              equations,
                              surface_integral, dg, cache,
-                             interface_index, normal_direction,
+                             interface_index, normal_direction, aux_node,
                              interface_i_node_index,
                              interface_j_node_index, local_side,
                              surface_i_node_index, surface_j_node_index,
@@ -325,6 +327,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            cache,
                                                            interface_index,
                                                            normal_direction,
+                                                           aux_node,
                                                            interface_i_node_index,
                                                            interface_j_node_index,
                                                            local_side,
@@ -338,10 +341,6 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
-    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg),
-                                         interface_i_node_index, interface_j_node_index,
-                                         interface_index)
 
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element.
@@ -376,6 +375,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
                                                            cache,
                                                            interface_index,
                                                            normal_direction,
+                                                           aux_node,
                                                            interface_i_node_index,
                                                            interface_j_node_index,
                                                            local_side,
@@ -389,10 +389,6 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
                                        interface_index)
-    aux_node = get_aux_surface_node_vars(get_aux_mpi_interface_vars(cache), equations,
-                                         typeof(dg),
-                                         interface_i_node_index, interface_j_node_index,
-                                         interface_index)
 
     # Compute flux and non-conservative term for this side of the interface.
     # `normal_direction` is the normal direction of the primary element
