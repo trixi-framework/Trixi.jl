@@ -7,13 +7,20 @@ using Trixi
 equations = IdealGlmMhdEquations2D(5 / 3)
 
 # Vortex parameters in Heaviside-Lorentz units, see the docstring below.
-# Note that the pressure must stay positive, i.e., `p_0()` must be
-# large enough for the chosen vortex strengths.
-vortex_kappa() = 1.0           # strength of the velocity perturbation
-vortex_mu() = 1.0              # strength of the magnetic perturbation
+
+# Strength of the velocity perturbation
+vortex_kappa() = 1.0
+# Strength of the magnetic perturbation
+vortex_mu() = 1.0
 advection_velocity() = (1.0, 1.0)
-p_0() = 1.0                    # background pressure
-domain_length() = 5.0
+
+# Background pressure - must be large enough to ensure that the pressure stays positive.
+p_0() = 1.0
+
+# Balsara (2004) uses a domain of size 10x10 - for the high-order DGSEM scheme,
+# this domain is too small to conduct e.g. a convergence study,
+# as the Gaussian is not small enough in comparison to the discretization error
+domain_length() = 20.0
 
 @doc raw"""
     initial_condition_vortex_balsara(x, t, equations::IdealGlmMhdEquations2D)
@@ -47,16 +54,17 @@ function initial_condition_vortex_balsara(x, t, equations::IdealGlmMhdEquations2
 
     r2 = x1^2 + x2^2
     g = exp(0.5f0 * (1 - r2))
-    a = convert(RealT, vortex_kappa()) / (2 * convert(RealT, pi))
-    b = convert(RealT, vortex_mu()) / (2 * convert(RealT, pi))
+    a = convert(RealT, vortex_kappa()) / (2 * convert(RealT, pi)) # cf. eq. (6.1)
+    b = convert(RealT, vortex_mu()) / (2 * convert(RealT, pi)) # cf. eq. (6.2)
 
     rho = one(RealT)
-    v1 = u0[1] - a * g * x2
-    v2 = u0[2] + a * g * x1
+    v1 = u0[1] - a * g * x2 # cf. eq. (6.1)
+    v2 = u0[2] + a * g * x1 # cf. eq. (6.1)
     v3 = zero(RealT)
-    B1 = -b * g * x2
-    B2 = b * g * x1
+    B1 = -b * g * x2 # cf. eq. (6.2)
+    B2 = b * g * x1  # cf. eq. (6.2)
     B3 = zero(RealT)
+    # cf. eq. (6.5)
     p = (convert(RealT, p_0()) -
          0.5f0 * exp(1 - r2) * (a^2 + b^2 * (r2 - 1)))
     psi = zero(RealT)
@@ -80,7 +88,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_condition_periodic)
 
-tspan = (0.0, 10.0) # one pass of the vortex through the periodic domain
+tspan = (0.0, 20.0) # one pass of the vortex through the periodic domain
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
