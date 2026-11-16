@@ -500,8 +500,8 @@ For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D
-(also with MPI), without AMR. On GPUs, only conforming meshes without MPI are supported,
-and only equations without nonconservative terms, e.g.,
+(also with MPI), without AMR. On GPUs, only conforming meshes (also with MPI) are
+supported, and only equations without nonconservative terms, e.g.,
 [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
 but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
