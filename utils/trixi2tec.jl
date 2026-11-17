@@ -93,6 +93,6 @@ end
 
 # Convenience function to allow calling `trixi2tec` with, e.g., the initial condition
 function trixi2tec(u_ode::Vector{<:Real}, semi, filename; kwargs...)
-    u = Trixi.wrap_array_native(u_ode, semi)
+    u = Trixi.wrap_array(u_ode, semi)
     return trixi2tec(u, semi, filename; kwargs...)
 end

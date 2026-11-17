@@ -21,59 +21,54 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     old_n_elements = nelements(dg, cache)
     old_cell_ids = copy(cache.elements.cell_ids)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
-        # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
-        # nicely with non-base array types
-        old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+
+    resize!(u_ode,
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    # Get new list of leaf cells
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+    @trixi_timeit timer() "exchange data" begin
+        # Collect MPI requests for MPI_Waitall
+        requests = Vector{MPI.Request}()
+
+        # Find elements that will change their rank and send their data to the new rank
+        for old_element_id in 1:old_n_elements
+            cell_id = old_cell_ids[old_element_id]
+            if !(cell_id in leaf_cell_ids)
+                # Send element data to new rank, use cell_id as tag (non-blocking)
+                dest = mesh.tree.mpi_ranks[cell_id]
+                request = MPI.Isend(@view(old_u[:, .., old_element_id]), dest,
+                                    cell_id, mpi_comm())
+                push!(requests, request)
+            end
         end
 
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array_native(u_ode, mesh, equations, dg, cache)
-
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        @trixi_timeit timer() "exchange data" begin
-            # Collect MPI requests for MPI_Waitall
-            requests = Vector{MPI.Request}()
-
-            # Find elements that will change their rank and send their data to the new rank
-            for old_element_id in 1:old_n_elements
-                cell_id = old_cell_ids[old_element_id]
-                if !(cell_id in leaf_cell_ids)
-                    # Send element data to new rank, use cell_id as tag (non-blocking)
-                    dest = mesh.tree.mpi_ranks[cell_id]
-                    request = MPI.Isend(@view(old_u[:, .., old_element_id]), dest,
-                                        cell_id, mpi_comm())
-                    push!(requests, request)
-                end
+        # Loop over all elements in new container and either copy them from old container
+        # or receive them with MPI
+        for element in eachelement(dg, cache)
+            cell_id = cache.elements.cell_ids[element]
+            if cell_id in old_cell_ids
+                old_element_id = searchsortedfirst(old_cell_ids, cell_id)
+                # Copy old element data to new element container
+                @views u[:, .., element] .= old_u[:, .., old_element_id]
+            else
+                # Receive old element data
+                src = old_mpi_ranks_per_cell[cell_id]
+                request = MPI.Irecv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
+                push!(requests, request)
             end
-
-            # Loop over all elements in new container and either copy them from old container
-            # or receive them with MPI
-            for element in eachelement(dg, cache)
-                cell_id = cache.elements.cell_ids[element]
-                if cell_id in old_cell_ids
-                    old_element_id = searchsortedfirst(old_cell_ids, cell_id)
-                    # Copy old element data to new element container
-                    @views u[:, .., element] .= old_u[:, .., old_element_id]
-                else
-                    # Receive old element data
-                    src = old_mpi_ranks_per_cell[cell_id]
-                    request = MPI.Irecv!(@view(u[:, .., element]), src, cell_id,
-                                         mpi_comm())
-                    push!(requests, request)
-                end
-            end
-
-            # Wait for all non-blocking MPI send/receive operations to finish
-            MPI.Waitall(requests, MPI.Status)
         end
-    end # GC.@preserve old_u_ode
+
+        # Wait for all non-blocking MPI send/receive operations to finish
+        MPI.Waitall(requests, MPI.Status)
+    end
 
     return nothing
 end
@@ -103,89 +98,85 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
-    GC.@preserve old_u_ode old_inverse_jacobian begin
-        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Compute mean values for the elements to be refined
-        # Only if limiter was passed
-        if limiter! !== nothing
-            @trixi_timeit timer() "limiter!" begin
-                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
-                                                                          elements_to_refine,
-                                                                          mesh,
-                                                                          equations, dg,
-                                                                          cache)
-            end
+    # Compute mean values for the elements to be refined
+    # Only if limiter was passed
+    if limiter! !== nothing
+        @trixi_timeit timer() "limiter!" begin
+            u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                      elements_to_refine,
+                                                                      mesh,
+                                                                      equations,
+                                                                      dg,
+                                                                      cache)
         end
+    end
 
-        if mesh isa P4estMesh
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element_id in 1:old_n_elements
-                for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                     old_inverse_jacobian[..,
-                                                                          old_element_id])
-                end
-            end
-        end
-
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
-        end
-
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array(u_ode, mesh, equations, dg, cache)
-
-        # Loop over all elements in old container and either copy them or refine them
-        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
-                                     nnodes(dg))
-        element_id = 1
+    if mesh isa P4estMesh
+        # Loop over all elements in old container and scale the old solution by the Jacobian
+        # prior to projection
         for old_element_id in 1:old_n_elements
-            if needs_refinement[old_element_id]
-                # Refine element and store solution directly in new data structure
-                refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg, u_tmp1)
-
-                if mesh isa P4estMesh
-                    # Before `element_id` is incremented, divide by the new Jacobians on each
-                    # child element and save the result
-                    for m in 0:3 # loop over the children
-                        for v in eachvariable(equations)
-                            u[v, .., element_id + m] .*= (0.25f0 .*
-                                                          cache.elements.inverse_jacobian[..,
-                                                                                          element_id + m])
-                        end
-                    end
-                end
-
-                # Increment `element_id` on the refined mesh with the number
-                # of children, i.e., 4 in 2D
-                element_id += 2^ndims(mesh)
-            else
-                if mesh isa P4estMesh
-                    # Copy old element data to new element container and remove Jacobian scaling
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+            for v in eachvariable(equations)
+                old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
                                                  old_inverse_jacobian[..,
                                                                       old_element_id])
-                    end
-                else # isa TreeMesh
-                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                end
-                # No refinement occurred, so increment `element_id` on the new mesh by one
-                element_id += 1
             end
         end
-        # If everything is correct, we should have processed all elements.
-        # Depending on whether the last element processed above had to be refined or not,
-        # the counter `element_id` can have two different values at the end.
-        @assert element_id ==
-                nelements(dg, cache) +
-                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode old_inverse_jacobian
+    end
+
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+
+    resize!(u_ode,
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    # Loop over all elements in old container and either copy them or refine them
+    u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg), nnodes(dg))
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+        if needs_refinement[old_element_id]
+            # Refine element and store solution directly in new data structure
+            refine_element!(u, element_id, old_u, old_element_id,
+                            adaptor, equations, dg, u_tmp1)
+
+            if mesh isa P4estMesh
+                # Before `element_id` is incremented, divide by the new Jacobians on each
+                # child element and save the result
+                for m in 0:3 # loop over the children
+                    for v in eachvariable(equations)
+                        u[v, .., element_id + m] .*= (0.25f0 .*
+                                                      cache.elements.inverse_jacobian[..,
+                                                                                      element_id + m])
+                    end
+                end
+            end
+
+            # Increment `element_id` on the refined mesh with the number
+            # of children, i.e., 4 in 2D
+            element_id += 2^ndims(mesh)
+        else
+            if mesh isa P4estMesh
+                # Copy old element data to new element container and remove Jacobian scaling
+                for v in eachvariable(equations)
+                    u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+                                             old_inverse_jacobian[.., old_element_id])
+                end
+            else # isa TreeMesh
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+            end
+            # No refinement occurred, so increment `element_id` on the new mesh by one
+            element_id += 1
+        end
+    end
+    # If everything is correct, we should have processed all elements.
+    # Depending on whether the last element processed above had to be refined or not,
+    # the counter `element_id` can have two different values at the end.
+    @assert element_id ==
+            nelements(dg, cache) +
+            1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
@@ -296,84 +287,80 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
-    GC.@preserve old_u_ode old_inverse_jacobian begin
-        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        if mesh isa P4estMesh
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element_id in 1:old_n_elements
-                for v in eachvariable(equations)
-                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                     old_inverse_jacobian[..,
-                                                                          old_element_id])
-                end
-            end
-        end
-
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
-        end
-
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array(u_ode, mesh, equations, dg, cache)
-
-        # Loop over all elements in old container and either copy them or coarsen them
-        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
-                                     nnodes(dg))
-        skip = 0
-        element_id = 1
+    if mesh isa P4estMesh
+        # Loop over all elements in old container and scale the old solution by the Jacobian
+        # prior to projection
         for old_element_id in 1:old_n_elements
-            # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
-            if skip > 0
-                skip -= 1
-                continue
-            end
-
-            if to_be_removed[old_element_id]
-                # If an element is to be removed, sanity check if the following elements
-                # are also marked - otherwise there would be an error in the way the
-                # cells/elements are sorted
-                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
-
-                # Coarsen elements and store solution directly in new data structure
-                coarsen_elements!(u, element_id, old_u, old_element_id,
-                                  adaptor, equations, dg, u_tmp1)
-
-                if mesh isa P4estMesh
-                    # Before `element_id` is incremented, divide by the new Jacobian and save
-                    # the result in the parent element
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .*= (4 .*
-                                                  cache.elements.inverse_jacobian[..,
-                                                                                  element_id])
-                    end
-                end
-
-                # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
-                # because 4 children elements become 1 parent element
-                element_id += 1
-                skip = 2^ndims(mesh) - 1
-            else
-                if mesh isa P4estMesh
-                    # Copy old element data to new element container and remove Jacobian scaling
-                    for v in eachvariable(equations)
-                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+            for v in eachvariable(equations)
+                old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
                                                  old_inverse_jacobian[..,
                                                                       old_element_id])
-                    end
-                else # isa TreeMesh
-                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                end
-                # No coarsening occurred, so increment `element_id` on the new mesh by one
-                element_id += 1
             end
         end
-        # If everything is correct, we should have processed all elements.
-        @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode old_inverse_jacobian
+    end
+
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+
+    resize!(u_ode,
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    # Loop over all elements in old container and either copy them or coarsen them
+    u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg), nnodes(dg))
+    skip = 0
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the
+        # following elements
+        if skip > 0
+            skip -= 1
+            continue
+        end
+
+        if to_be_removed[old_element_id]
+            # If an element is to be removed, sanity check if the following elements
+            # are also marked - otherwise there would be an error in the way the
+            # cells/elements are sorted
+            @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+
+            # Coarsen elements and store solution directly in new data structure
+            coarsen_elements!(u, element_id, old_u, old_element_id,
+                              adaptor, equations, dg, u_tmp1)
+
+            if mesh isa P4estMesh
+                # Before `element_id` is incremented, divide by the new Jacobian and save
+                # the result in the parent element
+                for v in eachvariable(equations)
+                    u[v, .., element_id] .*= (4 .*
+                                              cache.elements.inverse_jacobian[..,
+                                                                              element_id])
+                end
+            end
+
+            # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
+            # because 4 children elements become 1 parent element
+            element_id += 1
+            skip = 2^ndims(mesh) - 1
+        else
+            if mesh isa P4estMesh
+                # Copy old element data to new element container and remove Jacobian scaling
+                for v in eachvariable(equations)
+                    u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+                                             old_inverse_jacobian[.., old_element_id])
+                end
+            else # isa TreeMesh
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+            end
+            # No coarsening occurred, so increment `element_id` on the new mesh by one
+            element_id += 1
+        end
+    end
+    # If everything is correct, we should have processed all elements.
+    @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
@@ -486,104 +473,100 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
 
-    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
-    GC.@preserve old_u_ode begin
-        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Compute mean values for the elements to be refined
-        # Only if limiter was passed
-        if limiter! !== nothing
-            @trixi_timeit timer() "limiter!" begin
-                elements_to_refine = findall(difference .> 0)
-                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
-                                                                          elements_to_refine,
-                                                                          mesh,
-                                                                          equations, dg,
-                                                                          cache)
-            end
+    # Compute mean values for the elements to be refined
+    # Only if limiter was passed
+    if limiter! !== nothing
+        @trixi_timeit timer() "limiter!" begin
+            elements_to_refine = findall(difference .> 0)
+            u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                      elements_to_refine,
+                                                                      mesh,
+                                                                      equations,
+                                                                      dg,
+                                                                      cache)
         end
+    end
 
-        # Loop over all elements in old container and scale the old solution by the Jacobian
-        # prior to interpolation or projection
-        for old_element_id in 1:old_nelems
+    # Loop over all elements in old container and scale the old solution by the Jacobian
+    # prior to interpolation or projection
+    for old_element_id in 1:old_nelems
+        for v in eachvariable(equations)
+            old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
+                                             old_inverse_jacobian[.., old_element_id])
+        end
+    end
+
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+
+    resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg), nnodes(dg))
+
+    while old_index <= old_nelems && new_index <= new_nelems
+        if difference[old_index] > 0 # Refine.
+
+            # Refine element and store solution directly in new data structure.
+            refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg,
+                            u_tmp1)
+
+            # Before indices are incremented divide by the new Jacobians on each
+            # child element and save the result
+            for m in 0:3 # loop over the children
+                for v in eachvariable(equations)
+                    u[v, .., new_index + m] .*= (0.25f0 .*
+                                                 cache.elements.inverse_jacobian[..,
+                                                                                 new_index + m])
+                end
+            end
+
+            # Increment `old_index` on the original mesh and the `new_index`
+            # on the refined mesh with the number of children, i.e., T8_CHILDREN = 4
+            old_index += 1
+            new_index += T8_CHILDREN
+
+        elseif difference[old_index] < 0 # Coarsen.
+
+            # If an element is to be removed, sanity check if the following elements
+            # are also marked - otherwise there would be an error in the way the
+            # cells/elements are sorted.
+            @assert all(difference[old_index:(old_index + T8_CHILDREN - 1)] .< 0) "bad cell/element order"
+
+            # Coarsen elements and store solution directly in new data structure.
+            coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
+                              dg, u_tmp1)
+
+            # Before the indices are incremented divide by the new Jacobian and save
+            # the result again in the parent element
             for v in eachvariable(equations)
-                old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-                                                 old_inverse_jacobian[..,
-                                                                      old_element_id])
+                u[v, .., new_index] .*= (4 .*
+                                         cache.elements.inverse_jacobian[.., new_index])
             end
-        end
 
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
-        end
+            # Increment `old_index` on the original mesh with the number of children
+            # (T8_CHILDREN = 4 in 2D) and the `new_index` by one for the single
+            # coarsened element
+            old_index += T8_CHILDREN
+            new_index += 1
 
-        resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
-        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        else # No changes.
 
-        u_tmp1 = Array{eltype(u), 3}(undef, nvariables(equations), nnodes(dg),
-                                     nnodes(dg))
-
-        while old_index <= old_nelems && new_index <= new_nelems
-            if difference[old_index] > 0 # Refine.
-
-                # Refine element and store solution directly in new data structure.
-                refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg,
-                                u_tmp1)
-
-                # Before indices are incremented divide by the new Jacobians on each
-                # child element and save the result
-                for m in 0:3 # loop over the children
-                    for v in eachvariable(equations)
-                        u[v, .., new_index + m] .*= (0.25f0 .*
-                                                     cache.elements.inverse_jacobian[..,
-                                                                                     new_index + m])
-                    end
-                end
-
-                # Increment `old_index` on the original mesh and the `new_index`
-                # on the refined mesh with the number of children, i.e., T8_CHILDREN = 4
-                old_index += 1
-                new_index += T8_CHILDREN
-
-            elseif difference[old_index] < 0 # Coarsen.
-
-                # If an element is to be removed, sanity check if the following elements
-                # are also marked - otherwise there would be an error in the way the
-                # cells/elements are sorted.
-                @assert all(difference[old_index:(old_index + T8_CHILDREN - 1)] .< 0) "bad cell/element order"
-
-                # Coarsen elements and store solution directly in new data structure.
-                coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
-                                  dg, u_tmp1)
-
-                # Before the indices are incremented divide by the new Jacobian and save
-                # the result again in the parent element
-                for v in eachvariable(equations)
-                    u[v, .., new_index] .*= (4 .* cache.elements.inverse_jacobian[..,
-                                                                             new_index])
-                end
-
-                # Increment `old_index` on the original mesh with the number of children
-                # (T8_CHILDREN = 4 in 2D) and the `new_index` by one for the single
-                # coarsened element
-                old_index += T8_CHILDREN
-                new_index += 1
-
-            else # No changes.
-
-                # Copy old element data to new element container and remove Jacobian scaling
-                for v in eachvariable(equations)
-                    u[v, .., new_index] .= (old_u[v, .., old_index] .*
-                                            old_inverse_jacobian[.., old_index])
-                end
-
-                # No refinement / coarsening occurred, so increment element index
-                # on each mesh by one
-                old_index += 1
-                new_index += 1
+            # Copy old element data to new element container and remove Jacobian scaling
+            for v in eachvariable(equations)
+                u[v, .., new_index] .= (old_u[v, .., old_index] .*
+                                        old_inverse_jacobian[.., old_index])
             end
-        end # while
-    end # GC.@preserve old_u_ode old_inverse_jacobian
+
+            # No refinement / coarsening occurred, so increment element index
+            # on each mesh by one
+            old_index += 1
+            new_index += 1
+        end
+    end # while
 
     # Apply the positivity limiter to the solution
     if limiter! !== nothing

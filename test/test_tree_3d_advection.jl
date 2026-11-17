@@ -109,7 +109,7 @@ end
                                  "elixir_advection_limiter_liu_zhang.jl"),
                         l2=[0.39212005674820044],
                         linf=[1.3569114615249689])
-    u = Trixi.wrap_array_native(sol.u[end], semi)
+    u = Trixi.wrap_array(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

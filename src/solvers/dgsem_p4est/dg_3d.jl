@@ -198,6 +198,11 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    # Load the array once, outside of the loop: the container is mutable and stores
+    # the array (including its size) inline, so that reading the field in the loop
+    # body reloads the size for every interface. See `static_view_interfaces` for
+    # the static sizes.
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
@@ -219,7 +224,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, aux_interface,
+                                                     interfaces_u, aux_interface,
                                                      neighbor_ids,
                                                      node_indices,
                                                      contravariant_vectors, index_range,

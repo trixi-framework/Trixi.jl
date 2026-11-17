@@ -20,51 +20,50 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
-        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Compute mean values for the elements to be refined
-        # Only if limiter was passed
-        if limiter! !== nothing
-            @trixi_timeit timer() "limiter!" begin
-                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
-                                                                          elements_to_refine,
-                                                                          mesh,
-                                                                          equations, dg,
-                                                                          cache)
-            end
+    # Compute mean values for the elements to be refined
+    # Only if limiter was passed
+    if limiter! !== nothing
+        @trixi_timeit timer() "limiter!" begin
+            u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                      elements_to_refine,
+                                                                      mesh,
+                                                                      equations,
+                                                                      dg,
+                                                                      cache)
         end
+    end
 
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+    @assert nelements(dg, cache) > old_n_elements
+
+    resize!(u_ode,
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    # Loop over all elements in old container and either copy them or refine them
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+        if needs_refinement[old_element_id]
+            # Refine element and store solution directly in new data structure
+            refine_element!(u, element_id, old_u, old_element_id,
+                            adaptor, equations, dg)
+            element_id += 2^ndims(mesh)
+        else
+            # Copy old element data to new element container
+            @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+            element_id += 1
         end
-        @assert nelements(dg, cache) > old_n_elements
-
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array(u_ode, mesh, equations, dg, cache)
-
-        # Loop over all elements in old container and either copy them or refine them
-        element_id = 1
-        for old_element_id in 1:old_n_elements
-            if needs_refinement[old_element_id]
-                # Refine element and store solution directly in new data structure
-                refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg)
-                element_id += 2^ndims(mesh)
-            else
-                # Copy old element data to new element container
-                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                element_id += 1
-            end
-        end
-        # If everything is correct, we should have processed all elements.
-        # Depending on whether the last element processed above had to be refined or not,
-        # the counter `element_id` can have two different values at the end.
-        @assert element_id ==
-                nelements(dg, cache) +
-                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode
+    end
+    # If everything is correct, we should have processed all elements.
+    # Depending on whether the last element processed above had to be refined or not,
+    # the counter `element_id` can have two different values at the end.
+    @assert element_id ==
+            nelements(dg, cache) +
+            1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
 
     # Sanity check
     if isperiodic(mesh.tree)
@@ -146,48 +145,47 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
-        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+    @trixi_timeit timer() "reinitialize data structures" begin
+        reinitialize_containers!(mesh, equations, dg, cache)
+    end
+    @assert nelements(dg, cache) < old_n_elements
+
+    resize!(u_ode,
+            nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+    # Loop over all elements in old container and either copy them or coarsen them
+    skip = 0
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+        # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the
+        # following elements
+        if skip > 0
+            skip -= 1
+            continue
         end
-        @assert nelements(dg, cache) < old_n_elements
 
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        if to_be_removed[old_element_id]
+            # If an element is to be removed, sanity check if the following elements
+            # are also marked - otherwise there would be an error in the way the
+            # cells/elements are sorted
+            @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
 
-        # Loop over all elements in old container and either copy them or coarsen them
-        skip = 0
-        element_id = 1
-        for old_element_id in 1:old_n_elements
-            # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
-            if skip > 0
-                skip -= 1
-                continue
-            end
-
-            if to_be_removed[old_element_id]
-                # If an element is to be removed, sanity check if the following elements
-                # are also marked - otherwise there would be an error in the way the
-                # cells/elements are sorted
-                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
-
-                # Coarsen elements and store solution directly in new data structure
-                coarsen_elements!(u, element_id, old_u, old_element_id,
-                                  adaptor, equations, dg)
-                element_id += 1
-                skip = 2^ndims(mesh) - 1
-            else
-                # Copy old element data to new element container
-                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                element_id += 1
-            end
+            # Coarsen elements and store solution directly in new data structure
+            coarsen_elements!(u, element_id, old_u, old_element_id,
+                              adaptor, equations, dg)
+            element_id += 1
+            skip = 2^ndims(mesh) - 1
+        else
+            # Copy old element data to new element container
+            @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+            element_id += 1
         end
-        # If everything is correct, we should have processed all elements.
-        @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode
+    end
+    # If everything is correct, we should have processed all elements.
+    @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
 
     # Sanity check
     if isperiodic(mesh.tree)

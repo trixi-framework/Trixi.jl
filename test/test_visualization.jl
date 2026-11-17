@@ -101,10 +101,7 @@ end
                 end
                 scalar_data = StructArrays.component(u, 1)
             else
-                # There are some issues with `PtrArray`s returned by default
-                # by `Trixi.wrap_array`, see
-                # https://github.com/trixi-framework/Trixi.jl/issues/2797
-                u = Trixi.wrap_array_native(sol.u[end], semi)
+                u = Trixi.wrap_array(sol.u[end], semi)
                 scalar_data = u[1, :, :, :]
             end
 
@@ -1645,7 +1642,7 @@ end
     @test_throws ArgumentError Trixi.PlotData2DTriangulated(sol)
     @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol)
     @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol; nvisnodes = 4)
-    u_fv = Trixi.wrap_array_native(sol.u[end], semi)
+    u_fv = Trixi.wrap_array(sol.u[end], semi)
     @test_throws ArgumentError ScalarPlotData2D(u_fv[1, :, :, :], semi)
     @test_throws "polydeg = 0" ScalarPlotData2D(u_fv[1, :, :, :], semi)
 

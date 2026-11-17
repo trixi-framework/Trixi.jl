@@ -22,7 +22,7 @@ end
                                        periodicity = true),
                         l2=[0.3917747509079011],
                         linf=[1.3569114615249707])
-    u = Trixi.wrap_array_native(sol.u[end], semi)
+    u = Trixi.wrap_array(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
     # Ensure that we do not have excessive memory allocations

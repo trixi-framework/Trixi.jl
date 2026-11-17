@@ -205,6 +205,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::BlockFV, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    # Load the array once, outside of the loop (see `calc_interface_flux!` for
+    # `P4estMesh{3}`)
+    interfaces_u = cache.interfaces.u
     @unpack normal_x, normal_y = cache
     index_range = eachnode(dg)
     index_end = last(index_range)
@@ -246,7 +249,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
-                                 cache.interfaces.u, interface,
+                                 interfaces_u, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
                                  node_secondary,
