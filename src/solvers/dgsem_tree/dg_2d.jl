@@ -211,8 +211,8 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, u, mesh,
-                          have_nonconservative_terms(equations), equations,
+        calc_mortar_flux!(cache.elements.surface_flux_values, u,
+                          mesh, have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -1187,10 +1187,12 @@ Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
     # Convert entropy variables back to conservative variables
     for j in eachnode(dg)
         set_node_vars!(u_upper,
-                       entropy2cons(get_node_vars(u_upper, equations, dg, j), equations),
+                       entropy2cons(get_node_vars(u_upper, equations, dg, j),
+                                    equations),
                        equations, dg, j)
         set_node_vars!(u_lower,
-                       entropy2cons(get_node_vars(u_lower, equations, dg, j), equations),
+                       entropy2cons(get_node_vars(u_lower, equations, dg, j),
+                                    equations),
                        equations, dg, j)
     end
 
