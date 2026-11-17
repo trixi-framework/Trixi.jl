@@ -456,12 +456,17 @@ end
 ] tags=[:mpi, :mpi_skip_windows] begin
     # Auxiliary variables at MPI interfaces, MPI mortars, boundaries, and in the source
     # terms. With more trees, there are MPI mortars for 2 and 3 MPI ranks.
+    # The errors of the primitive variables call `cons2prim(u, aux, equations)`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advectionconservative_source_terms_nonconforming.jl"),
                         # Expected errors are exactly the same as in serial
                         l2=[0.00032966706996308975],
                         linf=[0.00233523138610936],
-                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
+                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1),
+                        analysis_callback=AnalysisCallback(semi,
+                                                           interval = analysis_interval,
+                                                           extra_analysis_errors = (:l2_error_primitive,
+                                                                                    :linf_error_primitive)))
     @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
                               Trixi.mpi_comm()) > 0
     @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
