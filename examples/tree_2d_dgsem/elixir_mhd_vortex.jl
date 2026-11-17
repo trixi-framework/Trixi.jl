@@ -9,9 +9,9 @@ equations = IdealGlmMhdEquations2D(5 / 3)
 # Vortex parameters in Heaviside-Lorentz units, see the docstring below.
 
 # Strength of the velocity perturbation
-vortex_kappa() = 1.0
+kappa() = 1.0
 # Strength of the magnetic perturbation
-vortex_mu() = 1.0
+mu() = 1.0
 advection_velocity() = (1.0, 1.0)
 
 # Background pressure - must be large enough to ensure that the pressure stays positive.
@@ -54,19 +54,21 @@ function initial_condition_vortex_balsara(x, t, equations::IdealGlmMhdEquations2
 
     r2 = x1^2 + x2^2
     g = exp(0.5f0 * (1 - r2))
-    a = convert(RealT, vortex_kappa()) / (2 * convert(RealT, pi)) # cf. eq. (6.1)
-    b = convert(RealT, vortex_mu()) / (2 * convert(RealT, pi)) # cf. eq. (6.2)
+
+    # Rescale parameters
+    kappa_ = convert(RealT, kappa()) / (2 * convert(RealT, pi)) # cf. eq. (6.1)
+    mu_ = convert(RealT, mu()) / (2 * convert(RealT, pi)) # cf. eq. (6.2)
 
     rho = one(RealT)
-    v1 = u0[1] - a * g * x2 # cf. eq. (6.1)
-    v2 = u0[2] + a * g * x1 # cf. eq. (6.1)
+    v1 = u0[1] - kappa_ * g * x2 # cf. eq. (6.1)
+    v2 = u0[2] + kappa_ * g * x1 # cf. eq. (6.1)
     v3 = zero(RealT)
-    B1 = -b * g * x2 # cf. eq. (6.2)
-    B2 = b * g * x1  # cf. eq. (6.2)
+    B1 = -mu_ * g * x2 # cf. eq. (6.2)
+    B2 = mu_ * g * x1  # cf. eq. (6.2)
     B3 = zero(RealT)
     # cf. eq. (6.5)
     p = (convert(RealT, p_0()) -
-         0.5f0 * exp(1 - r2) * (a^2 + b^2 * (r2 - 1)))
+         0.5f0 * exp(1 - r2) * (kappa_^2 + mu_^2 * (r2 - 1)))
     psi = zero(RealT)
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
