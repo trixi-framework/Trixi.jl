@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Based on the TreeMesh example `elixir_acoustics_gaussian_source.jl`.
@@ -21,7 +21,7 @@ function source_terms_gauss(u, x, t, equations::LinearizedEulerEquations2D)
 end
 
 function initial_condition_zero(x, t, equations::LinearizedEulerEquations2D)
-    SVector(0.0, 0.0, 0.0, 0.0)
+    return SVector(0.0, 0.0, 0.0, 0.0)
 end
 
 ###############################################################################
@@ -50,8 +50,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = true, initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_gauss,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -81,6 +82,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -9,12 +9,12 @@
     TrafficFlowLWREquations1D
 
 The classic Lighthill-Witham Richards (LWR) model for 1D traffic flow.
-The car density is denoted by $u \in [0, 1]$ and 
+The car density is denoted by $u \in [0, 1]$ and
 the maximum possible speed (e.g. due to speed limits) is $v_{\text{max}}$.
 ```math
 \partial_t u + v_{\text{max}} \partial_1 [u (1 - u)] = 0
 ```
-For more details see e.g. Section 11.1 of 
+For more details see e.g. Section 11.1 of
 - Randall LeVeque (2002)
 Finite Volume Methods for Hyperbolic Problems
 [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
@@ -23,8 +23,17 @@ struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquatio
     v_max::RealT
 
     function TrafficFlowLWREquations1D(v_max = 1.0)
-        new{typeof(v_max)}(v_max)
+        return new{typeof(v_max)}(v_max)
     end
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::TrafficFlowLWREquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return TrafficFlowLWREquations1D(convert(NewRealT, equations.v_max))
 end
 
 varnames(::typeof(cons2cons), ::TrafficFlowLWREquations1D) = ("car-density",)
@@ -52,6 +61,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::TrafficFlowLWREquations1D)
@@ -68,7 +85,7 @@ Source terms used for convergence tests in combination with
     return SVector(du)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
     return SVector(equations.v_max * u[1] * (1 - u[1]))
 end
@@ -94,7 +111,7 @@ end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    return min_max_speed_naive(u_ll, u_rr, orientation, equations)
 end
 
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
@@ -107,11 +124,18 @@ end
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(u, equations::TrafficFlowLWREquations1D)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
                                                                              equations)

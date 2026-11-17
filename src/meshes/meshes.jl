@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+@inline Base.ndims(::Type{<:AbstractMesh{NDIMS}}) where {NDIMS} = NDIMS
+
 include("tree_mesh.jl")
 include("structured_mesh.jl")
 include("structured_mesh_view.jl")
@@ -13,7 +15,8 @@ include("unstructured_mesh.jl")
 include("face_interpolant.jl")
 include("transfinite_mappings_3d.jl")
 include("p4est_mesh.jl")
+include("p4est_mesh_view.jl")
 include("t8code_mesh.jl")
-include("mesh_io.jl")
 include("dgmulti_meshes.jl")
+include("mesh_io.jl")
 end # @muladd

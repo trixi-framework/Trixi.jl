@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using LinearAlgebra: dot
 using Trixi
 
@@ -8,7 +8,7 @@ using Trixi
 rho_0 = 1.0
 v_0 = 1.0
 c_0 = 1.0
-equations = LinearizedEulerEquations1D(rho_0, v_0, c_0)
+equations = LinearizedEulerEquations1D(v_0, c_0, rho_0)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -16,7 +16,8 @@ coordinates_min = (0.0,) # minimum coordinate
 coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (64,)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 # For eigensystem of the linearized Euler equations see e.g.
 # https://www.nas.nasa.gov/assets/nas/pdf/ams/2018/introtocfd/Intro2CFD_Lecture1_Pulliam_Euler_WaveEQ.pdf
@@ -78,7 +79,8 @@ end
 
 initial_condition = initial_condition_char_vars
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -102,6 +104,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

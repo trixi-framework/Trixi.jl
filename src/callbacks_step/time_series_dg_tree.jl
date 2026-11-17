@@ -114,6 +114,8 @@ function record_state_at_points!(point_data, u, solution_variables,
             end
         end
     end
+
+    return nothing
 end
 
 # Record the solution variables at each given point for the 2D case
@@ -147,6 +149,8 @@ function record_state_at_points!(point_data, u, solution_variables,
             end
         end
     end
+
+    return nothing
 end
 
 # Record the solution variables at each given point for the 3D case
@@ -181,5 +185,7 @@ function record_state_at_points!(point_data, u, solution_variables,
             end
         end
     end
+
+    return nothing
 end
 end # @muladd

@@ -11,7 +11,7 @@
 Terminates the integration when the [`residual_steady_state(du, equations)`](@ref)
 falls below the threshold specified by `abstol, reltol`.
 """
-mutable struct SteadyStateCallback{RealT <: Real}
+struct SteadyStateCallback{RealT <: Real}
     abstol::RealT
     reltol::RealT
 end
@@ -20,8 +20,8 @@ function SteadyStateCallback(; abstol = 1.0e-8, reltol = 1.0e-6)
     abstol, reltol = promote(abstol, reltol)
     steady_state_callback = SteadyStateCallback(abstol, reltol)
 
-    DiscreteCallback(steady_state_callback, steady_state_callback,
-                     save_positions = (false, false))
+    return DiscreteCallback(steady_state_callback, steady_state_callback,
+                            save_positions = (false, false))
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
@@ -30,6 +30,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
     steady_state_callback = cb.affect!
     print(io, "SteadyStateCallback(abstol=", steady_state_callback.abstol, ", ",
           "reltol=", steady_state_callback.reltol, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -60,9 +61,12 @@ function (steady_state_callback::SteadyStateCallback)(u_ode, t, integrator)
     du = wrap_array(get_du(integrator), semi)
     terminate = steady_state_callback(du, u, semi)
     if mpi_isparallel()
-        # MPI.jl doesn't seem to have MPI_C_BOOL
+        # MPI.jl doesn't seem to have MPI_C_BOOL.
+        # Terminate only if all ranks have reached the steady state.
+        # Base.min instead of min needed, see comment in src/auxiliary/math.jl
         terminate_integer = Int(terminate)
-        terminate = !iszero(MPI.Allreduce!(Ref(terminate_integer), +, mpi_comm())[])
+        terminate = isone(MPI.Allreduce!(Ref(terminate_integer), Base.min,
+                                         mpi_comm())[])
     end
     if mpi_isroot() && terminate
         @info "  Steady state tolerance reached" steady_state_callback t
@@ -72,7 +76,7 @@ end
 
 function (steady_state_callback::SteadyStateCallback)(du, u,
                                                       semi::AbstractSemidiscretization)
-    steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
+    return steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
 end
 
 include("steady_state_dg1d.jl")

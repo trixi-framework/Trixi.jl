@@ -1,12 +1,13 @@
 using Trixi
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
 ###############################################################################
 # setup the GSBP DG discretization that uses the Gauss operators from
 # Chan, Del Rey Fernandez, Carpenter (2019).
-# [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
+# [arXiv: 1809.01178](https://arxiv.org/abs/1809.01178)
+# [DOI: 10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ec
@@ -40,8 +41,8 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 
 semi = SemidiscretizationHyperbolic(mesh,
                                     equations,
-                                    initial_condition_convergence_test,
-                                    dg)
+                                    initial_condition_convergence_test, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
@@ -53,16 +54,23 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
+
+# SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
 
 # handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, ode_default_options()..., callback = callbacks);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);

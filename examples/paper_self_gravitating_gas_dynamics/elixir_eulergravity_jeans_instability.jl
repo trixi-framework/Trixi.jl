@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 """
@@ -7,30 +7,33 @@ using Trixi
                                                          HyperbolicDiffusionEquations2D})
 
 The classical Jeans instability taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
   [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
-- Flash manual https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
+- Flash manual https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
 in CGS (centimeter, gram, second) units.
 """
 function initial_condition_jeans_instability(x, t,
                                              equations::CompressibleEulerEquations2D)
     # Jeans gravitational instability test case
-    # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
-    # OBS! this uses cgs (centimeter, gram, second) units
+    # see Derigs et al. https://arxiv.org/abs/1605.03572
+    # (DOI: https://doi.org/10.1016/j.jcp.2016.04.048); Sec. 4.6
+    # Note: this uses cgs (centimeter, gram, second) units
     # periodic boundaries
     # domain size [0,L]^2 depends on the wave number chosen for the perturbation
-    # OBS! Be very careful here L must be chosen such that problem is periodic
+    # Note: Be very careful here L must be chosen such that problem is periodic
     # typical final time is T = 5
     # gamma = 5/3
     dens0 = 1.5e7 # g/cm^3
     pres0 = 1.5e7 # dyn/cm^2
     delta0 = 1e-3
     # set wave vector values for perturbation (units 1/cm)
-    # see FLASH manual: https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+    # see FLASH manual: https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
     kx = 2.0 * pi / 0.5 # 2π/λ_x, λ_x = 0.5
     ky = 0.0   # 2π/λ_y, λ_y = 1e10
     k_dot_x = kx * x[1] + ky * x[2]
@@ -47,7 +50,7 @@ function initial_condition_jeans_instability(x, t,
                                              equations::HyperbolicDiffusionEquations2D)
     # gravity equation: -Δϕ = -4πGρ
     # Constants taken from the FLASH manual
-    # https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node189.html#SECTION010131000000000000000
+    # https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node186.html#SECTION010131000000000000000
     rho0 = 1.5e7
     delta0 = 1e-3
 
@@ -71,20 +74,29 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000)
+                periodicity = true)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
-                                          solver_euler)
+                                          solver_euler;
+                                          boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
                                             solver_gravity,
-                                            source_terms = source_terms_harmonic)
+                                            source_terms = source_terms_harmonic,
+                                            boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # combining both semidiscretizations for Euler + self-gravity
@@ -132,10 +144,9 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
                                               u_gravity) do u, i, j, element,
                                                             equations_euler, dg,
                                                             equations_gravity, u_gravity
-        u_euler_local = Trixi.get_node_vars(u_euler, equations_euler, dg, i, j, element)
-        u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
-                                              element)
-        # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
+        u_euler_local = get_node_vars(u_euler, equations_euler, dg, i, j, element)
+        u_gravity_local = get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
+        # Note: subtraction is specific to Jeans instability test where rho0 = 1.5e7
         # For formula of potential energy see
         # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
         return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
@@ -157,7 +168,7 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

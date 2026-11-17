@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -72,8 +72,9 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
     # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
     return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
+# We can either pass periodic boundary conditions in x direction or not,
+# but we need to pass non-periodic boundary conditions in y-direction
+boundary_conditions = (;
                        y_neg = boundary_condition_noslip_wall,
                        y_pos = boundary_condition_couette)
 
@@ -83,10 +84,9 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = (true, false),
-                n_cells_max = 10_000)
+                periodicity = (true, false))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -108,11 +108,11 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     rho, v1, v2, p = macroscopic
 
     # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
-    convert(typeof(macroscopic), (rho, v1 / equations.u0, v2 / equations.u0, p))
+    return convert(typeof(macroscopic), (rho, v1 / equations.u0, v2 / equations.u0, p))
 end
 function Trixi.varnames(::typeof(macroscopic_normalized),
                         equations::LatticeBoltzmannEquations2D)
-    ("rho", "v1_normalized", "v2_normalized", "p")
+    return ("rho", "v1_normalized", "v2_normalized", "p")
 end
 
 save_solution = SaveSolutionCallback(interval = 1000,
@@ -133,6 +133,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

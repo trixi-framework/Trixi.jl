@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -61,7 +61,7 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
     # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
     return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (x_neg = boundary_condition_noslip_wall,
+boundary_conditions = (; x_neg = boundary_condition_noslip_wall,
                        x_pos = boundary_condition_noslip_wall,
                        y_neg = boundary_condition_noslip_wall,
                        y_pos = boundary_condition_lid_driven_cavity)
@@ -72,10 +72,9 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = false,
-                n_cells_max = 10_000)
+                periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -109,6 +108,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

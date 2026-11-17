@@ -1,6 +1,5 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
 
 ###############################################################################
 equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
@@ -23,7 +22,7 @@ mesh = DGMultiMesh(dg,
                    coordinates_max = (1.0, 1.0, 1.0),
                    periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
@@ -35,18 +34,23 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
-                        stepsize_callback)
+                        stepsize_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0;
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -1,21 +1,9 @@
-module TestExamplesDGMulti3D
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "dgmulti_3d")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "DGMulti 3D" begin
-#! format: noindent
+@testsnippet DGMulti3D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_3d")
+end
 
 # 3d tet/hex tests
-@trixi_testset "elixir_euler_weakform.jl" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         l2=[
                             0.000354593110864001, 0.00041301573702385284,
@@ -29,15 +17,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl (EC)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -58,15 +41,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (Hexahedral elements)" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl (Hexahedral elements)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         element_type=Hex(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -87,15 +68,43 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" begin
+@testitem "DGMulti3D: elixir_euler_freestream.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
+    # @test_trixi_include errors due to an @info call by StartUpDG.jl during
+    # Gmsh file parsing. To avoid this, we directly call trixi_include.
+    # We pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @testitem block.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_freestream.jl"),
+                  tspan = (0.0, 0.25))
+    l2, linf = analysis_callback(sol)
+    @test isapprox(l2,
+                   [
+                       1.0434176815721138e-14,
+                       5.937118560513734e-14,
+                       6.418715956754907e-14,
+                       9.943321647688689e-14,
+                       1.2303475435124671e-13
+                   ], atol = 1e-12)
+    @test isapprox(linf,
+                   [
+                       9.192646643896296e-14,
+                       4.597433544972773e-13,
+                       4.331535130575048e-13,
+                       6.818989817247711e-13,
+                       1.0746958878371515e-12
+                   ], atol = 1e-12)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         l2=[
                             0.0019393929700612259,
@@ -113,15 +122,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" begin
+@testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
                         l2=[
@@ -136,15 +143,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         l2=[
                             0.00036475807571383924, 0.00043404536371780537,
@@ -158,15 +160,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         element_type=Hex(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -187,15 +187,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         element_type=Hex(),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -218,15 +216,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
+@testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         polydeg=3, tspan=(0.0, 1.0), cells_per_dimension=(2, 2, 2),
                         l2=[
@@ -245,15 +238,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_taylor_green_vortex.jl (GaussSBP)" begin
+@testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl (GaussSBP)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         polydeg=3, approximation_type=GaussSBP(), tspan=(0.0, 1.0),
                         cells_per_dimension=(2, 2, 2),
@@ -273,15 +264,11 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 2,
@@ -307,15 +294,14 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP, EC)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 2,
@@ -343,15 +329,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+@testitem "DGMulti3D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         N=8,
                         l2=[
@@ -370,30 +351,89 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Test spectral analysis postprocessing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        2.9990297742578704,
+        2.268161833677494e-31,
+        0.0009716043949720252,
+        2.2476478160620453e-7,
+        3.257756218102617e-30,
+        1.0540654523593192e-7
+    ] rtol=1.0e-12
 end
 
-@trixi_testset "elixir_advection_tensor_wedge.jl" begin
+@testitem "DGMulti3D: elixir_advection_tensor_wedge.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
-                        l2=[2.30487910e-04],
-                        linf=[6.31795281e-04])
+                        l2=[0.00019628065112031162],
+                        linf=[0.0005420629601815552],
+                        tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         RealT = Float64)
 end
 
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
+@testitem "DGMulti3D: elixir_linearizedeuler_convergence_wedge_sbp.jl" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_convergence_wedge_sbp.jl"),
+                        l2=[
+                            0.042338716904439,
+                            0.02938678768590326,
+                            0.02938678768590165,
+                            0.05366713484796156,
+                            0.042338716904439
+                        ],
+                        linf=[
+                            0.14541529091809738,
+                            0.0803925306482336,
+                            0.08039253064821161,
+                            0.05836726520098989,
+                            0.14541529091809738
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
 
-end # module
+@testitem "DGMulti3D: elixir_advection_tensor_wedge.jl (scalar polydeg)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
+                        polydeg=3,
+                        tspan=(0.0, 0.25),
+                        l2=[0.0001980989159518296],
+                        linf=[0.0005822780561473007],
+                        atol=1e-10) # MacOS and Ubuntu differ here
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         RealT = Float64)
+end
+
+@testitem "DGMulti3D: elixir_euler_shockcapturing.jl (Hex, GaussSBP)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
+                        l2=[1.33894396e-02, 7.62751979e-03, 7.62751979e-03,
+                            7.62751979e-03, 4.93582917e-02],
+                        linf=[2.18776976e-01, 1.04524872e-01, 1.04524872e-01,
+                            1.04524872e-01, 8.01212059e-01])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -13,6 +13,7 @@ Extended version of the test of Shu and Osher for one dimensional ideal MHD equa
 Taken from Section 4.1 of
 - Derigs et al. (2016)
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver withGuaranteed Positive Pressure
+  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
@@ -80,10 +81,9 @@ coordinates_min = -5.0
 coordinates_max = 5.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000,
                 periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -131,6 +131,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

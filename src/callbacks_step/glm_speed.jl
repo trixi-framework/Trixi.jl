@@ -11,7 +11,7 @@
 Update the divergence cleaning wave speed `c_h` according to the time step
 computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations, the multi-component
 GLM-MHD equations, and the multi-ion GLM-MHD equations.
-The `cfl` number should be set to the same value as for the time step size calculation. 
+The `cfl` number should be set to the same value as for the time step size calculation.
 As for standard [`StepsizeCallback`](@ref) `cfl` can be either set to a `Real` number or
 a function of time `t` returning a `Real` number.
 
@@ -38,6 +38,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
     print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=",
           semi_indices, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -58,21 +59,22 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
+function GlmSpeedCallback(; glm_scale = 0.5f0, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
-    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale,
-                                                                          cfl,
-                                                                          semi_indices)
+    cfl_function = isa(cfl, Real) ? Returns(cfl) : cfl
+    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl_function)}(glm_scale,
+                                                                                   cfl_function,
+                                                                                   semi_indices)
 
-    DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition, Affect! <: GlmSpeedCallback}
-    cb.affect!(integrator)
+    return cb.affect!(integrator)
 end
 
 # this method is called to determine whether the callback should be activated
@@ -84,18 +86,20 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     @unpack glm_scale, cfl = glm_speed_callback
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-    if cfl isa Real # Case for constant CFL
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
-    else # Variable CFL
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
-    end
+    c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
     # We use @reset here since the equations are immutable (to work on GPUs etc.).
     # Thus, we need to modify the equations field of the semidiscretization.
-    @reset equations.c_h = glm_scale * c_h_deltat / dt
+    # When using `real_type = Float32` in `trixi_adapt`, the `equations`
+    # are converted correctly. However, callbacks are not adapted. To make it
+    # easier for people to use the code without having to pay attention to the
+    # types of `glm_scale` and `cfl` when constructing the `GlmSpeedCallback`,
+    # we `convert` the numbers here for convenience. This is also done internally
+    # for the `integrator` when updating `dt` via the `StepsizeCallback`.
+    RealT = typeof(equations.c_h)
+    @reset equations.c_h = convert(RealT, glm_scale * c_h_deltat) / dt
     semi.equations = equations
 
     return semi
@@ -111,7 +115,7 @@ end
     update_cleaning_speed!(semi, glm_speed_callback, dt, integrator.t)
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
 
     return nothing
 end

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using Plots
 
@@ -24,9 +24,10 @@ coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000)
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -49,7 +50,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval = 20, clims = (0, 1))
+visualization = VisualizationCallback(semi; interval = 20, clims = (0, 1))
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
                                       base_level = 3,
@@ -70,6 +71,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

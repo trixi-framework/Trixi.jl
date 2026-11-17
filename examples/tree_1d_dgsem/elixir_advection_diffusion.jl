@@ -1,5 +1,6 @@
 using OrdinaryDiffEqSDIRK, ADTypes
 using Trixi
+import LinearSolve: LUFactorization
 
 ###############################################################################
 # semidiscretization of the linear advection diffusion equation
@@ -18,7 +19,6 @@ coordinates_max = convert(Float64, pi) # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 function x_trans_periodic(x, domain_length = SVector(oftype(x[1], 2 * pi)),
@@ -87,6 +87,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-10
 time_abs_tol = 1.0e-10
-sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
+# This is an IMEX SDIRK method
+ode_alg = KenCarp4(autodiff = AutoFiniteDiff(), linsolve = LUFactorization())
+sol = solve(ode, ode_alg;
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

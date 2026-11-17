@@ -9,8 +9,10 @@
     HyperbolicDiffusionEquations3D
 
 The linear hyperbolic diffusion equations in three space dimensions.
-A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
-The book is freely available at [http://www.cfdbooks.com/](http://www.cfdbooks.com/) and further analysis can be found in
+A description of this system can be found in Sec. 2.5 of the book "I do like CFD, VOL.1".
+The book is freely available at
+[ResearchGate](https://www.researchgate.net/publication/315378648_I_do_like_CFD_VOL1_Governing_Equations_and_Exact_Solutions)
+and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
 struct HyperbolicDiffusionEquations3D{RealT <: Real} <:
@@ -22,17 +24,28 @@ end
 
 function HyperbolicDiffusionEquations3D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::HyperbolicDiffusionEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return HyperbolicDiffusionEquations3D(convert(NewRealT, equations.Lr),
+                                          convert(NewRealT, equations.inv_Tr),
+                                          convert(NewRealT, equations.nu))
 end
 
 function varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D)
-    ("phi", "q1", "q2", "q3")
+    return ("phi", "q1", "q2", "q3")
 end
 function varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations3D)
-    ("phi", "q1", "q2", "q3")
+    return ("phi", "q1", "q2", "q3")
 end
 function default_analysis_errors(::HyperbolicDiffusionEquations3D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 """
@@ -42,7 +55,7 @@ Used to determine the termination criterion of a [`SteadyStateCallback`](@ref).
 For hyperbolic diffusion, this checks convergence of the potential ``\\phi``.
 """
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations3D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -132,9 +145,10 @@ end
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations3D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_harmonic`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
@@ -156,7 +170,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1, q2, q3)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
@@ -189,8 +203,7 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
-                 equations::HyperbolicDiffusionEquations3D)
+    flux_godunov(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations3D)
 
 Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
 """
@@ -214,7 +227,7 @@ Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
         f2 = 0.5f0 * (f_ll[2] + f_rr[2])
         f3 = 0.5f0 * (f_ll[3] + f_rr[3]) - 0.5f0 * λ_max * (q2_rr - q2_ll)
         f4 = 0.5f0 * (f_ll[4] + f_rr[4])
-    else # y-direction
+    else # z-direction
         f2 = 0.5f0 * (f_ll[2] + f_rr[2])
         f3 = 0.5f0 * (f_ll[3] + f_rr[3])
         f4 = 0.5f0 * (f_ll[4] + f_rr[4]) - 0.5f0 * λ_max * (q3_rr - q3_ll)
@@ -223,6 +236,15 @@ Godunov (upwind) flux for the 3D hyperbolic diffusion equations.
     return SVector(f1, f2, f3, f4)
 end
 
+"""
+    have_constant_speed(::HyperbolicDiffusionEquations3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::HyperbolicDiffusionEquations3D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations3D)
@@ -233,7 +255,7 @@ end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equations::HyperbolicDiffusionEquations3D) = u
 
-# Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
+# Convert conservative variables to entropy found in "I do like CFD, VOL.1"
 @inline function cons2entropy(u, equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
     w1 = phi
@@ -246,12 +268,12 @@ end
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline function entropy(u, equations::HyperbolicDiffusionEquations3D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations3D)
-    # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
+    # energy function as found in equation (2.5.12) in the book "I do like CFD, VOL.1"
     phi, q1, q2, q3 = u
     return 0.5f0 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2 + q3^2))
 end

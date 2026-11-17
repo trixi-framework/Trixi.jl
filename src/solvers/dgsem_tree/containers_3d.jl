@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct ElementContainer3D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
     surface_flux_values::Array{uEltype, 5} # [variables, i, j, direction, elements]
@@ -16,16 +17,12 @@ mutable struct ElementContainer3D{RealT <: Real, uEltype <: Real} <: AbstractCon
     _surface_flux_values::Vector{uEltype}
 end
 
-nvariables(elements::ElementContainer3D) = size(elements.surface_flux_values, 1)
-nnodes(elements::ElementContainer3D) = size(elements.node_coordinates, 2)
-Base.eltype(elements::ElementContainer3D) = eltype(elements.surface_flux_values)
-
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(elements::ElementContainer3D, capacity)
+function Base.resize!(elements::TreeElementContainer3D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
     @unpack _node_coordinates, _surface_flux_values,
@@ -47,9 +44,9 @@ function Base.resize!(elements::ElementContainer3D, capacity)
     return nothing
 end
 
-function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
-                                            n_nodes) where {RealT <: Real,
-                                                            uEltype <: Real}
+function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                n_nodes) where {RealT <: Real,
+                                                                uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -67,23 +64,25 @@ function ElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return ElementContainer3D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values, cell_ids,
-                                              _node_coordinates, _surface_flux_values)
+    return TreeElementContainer3D{RealT, uEltype}(inverse_jacobian, node_coordinates,
+                                                  surface_flux_values, cell_ids,
+                                                  _node_coordinates,
+                                                  _surface_flux_values)
 end
 
-# Return number of elements
-nelements(elements::ElementContainer3D) = length(elements.cell_ids)
-# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
-"""
-    eachelement(elements::ElementContainer3D)
-
-Return an iterator over the indices that specify the location in relevant data structures
-for the elements in `elements`. 
-In particular, not the elements themselves are returned.
-"""
-@inline eachelement(elements::ElementContainer3D) = Base.OneTo(nelements(elements))
-@inline Base.real(elements::ElementContainer3D) = eltype(elements.node_coordinates)
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
+    check_axes(elements.cell_ids, (eachelement(solver, cache),))
+    check_axes_surface_flux_values(elements.surface_flux_values, Val(3), equations,
+                                   solver, cache)
+    return nothing
+end
 
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
@@ -92,8 +91,8 @@ function init_elements(cell_ids, mesh::TreeMesh3D,
                        ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
-    elements = ElementContainer3D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                  nnodes(basis))
+    elements = TreeElementContainer3D{RealT, uEltype}(n_elements, nvariables(equations),
+                                                      nnodes(basis))
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements
@@ -148,7 +147,8 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
 end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
+               AbstractTreeInterfaceContainer
     u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
     neighbor_ids::Matrix{Int} # [leftright, interfaces]
     orientations::Vector{Int} # [interfaces]
@@ -157,12 +157,8 @@ mutable struct InterfaceContainer3D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(interfaces::InterfaceContainer3D) = size(interfaces.u, 2)
-nnodes(interfaces::InterfaceContainer3D) = size(interfaces.u, 3)
-Base.eltype(interfaces::InterfaceContainer3D) = eltype(interfaces.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(interfaces::InterfaceContainer3D, capacity)
+function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     n_nodes = nnodes(interfaces)
     n_variables = nvariables(interfaces)
     @unpack _u, _neighbor_ids, orientations = interfaces
@@ -180,8 +176,8 @@ function Base.resize!(interfaces::InterfaceContainer3D, capacity)
     return nothing
 end
 
-function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
-                                       n_nodes) where {uEltype <: Real}
+function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -195,21 +191,30 @@ function InterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return InterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
-                                         _u, _neighbor_ids)
+    return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
+                                             _u, _neighbor_ids)
 end
 
-# Return number of interfaces
-ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer3D, equations, solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.neighbor_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.orientations, (eachinterface(solver, cache),))
+    return nothing
+end
 
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh3D,
-                         elements::ElementContainer3D)
+                         elements::TreeElementContainer3D)
     # Initialize container
     n_interfaces = count_required_interfaces(mesh, cell_ids)
-    interfaces = InterfaceContainer3D{eltype(elements)}(n_interfaces,
-                                                        nvariables(elements),
-                                                        nnodes(elements))
+    interfaces = TreeInterfaceContainer3D{eltype(elements)}(n_interfaces,
+                                                            nvariables(elements),
+                                                            nnodes(elements))
 
     # Connect elements with interfaces
     init_interfaces!(interfaces, elements, mesh)
@@ -302,7 +307,8 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh3D)
 end
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-mutable struct BoundaryContainer3D{RealT <: Real, uEltype <: Real} <: AbstractContainer
+mutable struct TreeBoundaryContainer3D{RealT <: Real, uEltype <: Real} <:
+               AbstractTreeBoundaryContainer
     u::Array{uEltype, 5}              # [leftright, variables, i, j, boundaries]
     neighbor_ids::Vector{Int}         # [boundaries]
     orientations::Vector{Int}         # [boundaries]
@@ -314,12 +320,8 @@ mutable struct BoundaryContainer3D{RealT <: Real, uEltype <: Real} <: AbstractCo
     _node_coordinates::Vector{RealT}
 end
 
-nvariables(boundaries::BoundaryContainer3D) = size(boundaries.u, 2)
-nnodes(boundaries::BoundaryContainer3D) = size(boundaries.u, 3)
-Base.eltype(boundaries::BoundaryContainer3D) = eltype(boundaries.u)
-
 # See explanation of Base.resize! for the element container
-function Base.resize!(boundaries::BoundaryContainer3D, capacity)
+function Base.resize!(boundaries::TreeBoundaryContainer3D, capacity)
     n_nodes = nnodes(boundaries)
     n_variables = nvariables(boundaries)
     @unpack _u, _node_coordinates,
@@ -342,9 +344,9 @@ function Base.resize!(boundaries::BoundaryContainer3D, capacity)
     return nothing
 end
 
-function BoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
-                                             n_nodes) where {RealT <: Real,
-                                                             uEltype <: Real}
+function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
+                                                 n_nodes) where {RealT <: Real,
+                                                                 uEltype <: Real}
     nan_RealT = convert(RealT, NaN)
     nan_uEltype = convert(uEltype, NaN)
 
@@ -365,27 +367,41 @@ function BoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0, 0, 0)
 
-    return BoundaryContainer3D{RealT, uEltype}(u, neighbor_ids, orientations,
-                                               neighbor_sides,
-                                               node_coordinates,
-                                               n_boundaries_per_direction,
-                                               _u, _node_coordinates)
+    return TreeBoundaryContainer3D{RealT, uEltype}(u, neighbor_ids, orientations,
+                                                   neighbor_sides,
+                                                   node_coordinates,
+                                                   n_boundaries_per_direction,
+                                                   _u, _node_coordinates)
 end
 
-# Return number of boundaries
-nboundaries(boundaries::BoundaryContainer3D) = length(boundaries.orientations)
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, cache)
+    check_axes(boundaries.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
+    check_axes(boundaries.orientations, (eachboundary(solver, cache),))
+    check_axes(boundaries.neighbor_sides, (eachboundary(solver, cache),))
+    return nothing
+end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh3D,
-                         elements::ElementContainer3D)
+                         elements::TreeElementContainer3D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
-    boundaries = BoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
-                                                                       nvariables(elements),
-                                                                       nnodes(elements))
+    boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
+                                                                           nvariables(elements),
+                                                                           nnodes(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -415,14 +431,14 @@ function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
 end
 
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh3D, basis)
     # Reset boundaries count
     count = 0
 
     # Initialize boundary counts
     counts_per_direction = MVector(0, 0, 0, 0, 0, 0)
 
-    # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+    # Note: Iterate over directions first, then over elements, and count boundaries in each direction
     # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
     #            obviating the need to store the boundary condition to be applied explicitly.
     # Loop over directions
@@ -519,7 +535,7 @@ end
 #
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
-mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
+mutable struct TreeL2MortarContainer3D{uEltype <: Real} <: AbstractTreeL2MortarContainer
     u_upper_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
     u_upper_right::Array{uEltype, 5} # [leftright, variables, i, j, mortars]
     u_lower_left::Array{uEltype, 5}  # [leftright, variables, i, j, mortars]
@@ -536,12 +552,13 @@ mutable struct L2MortarContainer3D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(mortars::L2MortarContainer3D) = size(mortars.u_upper_left, 2)
-nnodes(mortars::L2MortarContainer3D) = size(mortars.u_upper_left, 3)
-Base.eltype(mortars::L2MortarContainer3D) = eltype(mortars.u_upper_left)
+# Return number of equation variables
+nvariables(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 2)
+# Return number of mortar nodes (L2 mortars are only h-adaptive, not p-adaptive)
+nnodes(mortars::TreeL2MortarContainer3D) = size(mortars.u_upper_left, 3)
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(mortars::L2MortarContainer3D, capacity)
+function Base.resize!(mortars::TreeL2MortarContainer3D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper_left, _u_upper_right, _u_lower_left, _u_lower_right,
@@ -574,8 +591,8 @@ function Base.resize!(mortars::L2MortarContainer3D, capacity)
     return nothing
 end
 
-function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
-                                      n_nodes) where {uEltype <: Real}
+function TreeL2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
+                                          n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -603,19 +620,16 @@ function L2MortarContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return L2MortarContainer3D{uEltype}(u_upper_left, u_upper_right,
-                                        u_lower_left, u_lower_right,
-                                        neighbor_ids, large_sides, orientations,
-                                        _u_upper_left, _u_upper_right,
-                                        _u_lower_left, _u_lower_right,
-                                        _neighbor_ids)
+    return TreeL2MortarContainer3D{uEltype}(u_upper_left, u_upper_right,
+                                            u_lower_left, u_lower_right,
+                                            neighbor_ids, large_sides, orientations,
+                                            _u_upper_left, _u_upper_right,
+                                            _u_lower_left, _u_lower_right,
+                                            _neighbor_ids)
 end
 
-# Return number of L2 mortars
-nmortars(l2mortars::L2MortarContainer3D) = length(l2mortars.orientations)
-
 # Allow printing container contents
-function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer3D)
+function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer3D)
     @nospecialize c # reduce precompilation time
 
     println(io, '*'^20)
@@ -635,16 +649,46 @@ function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer3D)
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
+    return nothing
+end
+
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver), eachnode(solver),
+                     eachmortar(solver, cache))
+    check_axes(mortars.u_lower_left, u_mortar_axes)
+    check_axes(mortars.u_lower_right, u_mortar_axes)
+    check_axes(mortars.u_upper_left, u_mortar_axes)
+    check_axes(mortars.u_upper_right, u_mortar_axes)
+    check_axes(mortars.neighbor_ids, (Base.OneTo(5), eachmortar(solver, cache)))
+    check_axes(mortars.large_sides, (eachmortar(solver, cache),))
+    check_axes(mortars.orientations, (eachmortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp1_threaded, fstar_axes)
+    return nothing
 end
 
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh3D,
-                      elements::ElementContainer3D,
+                      elements::TreeElementContainer3D,
                       mortar::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = L2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                    nnodes(elements))
+    mortars = TreeL2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                        nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
@@ -811,5 +855,169 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
 
     @assert count==nmortars(mortars) ("Actual mortar count ($count) does not match "*
                                       "expectations $(nmortars(mortars))")
+end
+
+mutable struct ContainerAntidiffusiveFlux3D{uEltype <: Real} <:
+               AbstractContainerAntidiffusiveFlux
+    antidiffusive_flux1_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux1_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux2_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_L::Array{uEltype, 5} # [variables, i, j, k, elements]
+    antidiffusive_flux3_R::Array{uEltype, 5} # [variables, i, j, k, elements]
+    # internal `resize!`able storage
+    _antidiffusive_flux1_L::Vector{uEltype}
+    _antidiffusive_flux1_R::Vector{uEltype}
+    _antidiffusive_flux2_L::Vector{uEltype}
+    _antidiffusive_flux2_R::Vector{uEltype}
+    _antidiffusive_flux3_L::Vector{uEltype}
+    _antidiffusive_flux3_R::Vector{uEltype}
+end
+
+function ContainerAntidiffusiveFlux3D{uEltype}(capacity::Integer, n_variables,
+                                               n_nodes) where {uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _antidiffusive_flux1_L = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * n_nodes *
+                                  capacity)
+    antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                        (n_variables, n_nodes + 1, n_nodes, n_nodes,
+                                         capacity))
+    _antidiffusive_flux1_R = fill(nan_uEltype,
+                                  n_variables * (n_nodes + 1) * n_nodes * n_nodes *
+                                  capacity)
+    antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                        (n_variables, n_nodes + 1, n_nodes, n_nodes,
+                                         capacity))
+
+    _antidiffusive_flux2_L = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * n_nodes *
+                                  capacity)
+    antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                        (n_variables, n_nodes, n_nodes + 1, n_nodes,
+                                         capacity))
+    _antidiffusive_flux2_R = fill(nan_uEltype,
+                                  n_variables * n_nodes * (n_nodes + 1) * n_nodes *
+                                  capacity)
+    antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                        (n_variables, n_nodes, n_nodes + 1, n_nodes,
+                                         capacity))
+
+    _antidiffusive_flux3_L = fill(nan_uEltype,
+                                  n_variables * n_nodes * n_nodes * (n_nodes + 1) *
+                                  capacity)
+    antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+                                        (n_variables, n_nodes, n_nodes, n_nodes + 1,
+                                         capacity))
+    _antidiffusive_flux3_R = fill(nan_uEltype,
+                                  n_variables * n_nodes * n_nodes * (n_nodes + 1) *
+                                  capacity)
+    antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+                                        (n_variables, n_nodes, n_nodes, n_nodes + 1,
+                                         capacity))
+
+    reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                antidiffusive_flux2_L, antidiffusive_flux2_R,
+                                antidiffusive_flux3_L, antidiffusive_flux3_R)
+
+    return ContainerAntidiffusiveFlux3D{uEltype}(antidiffusive_flux1_L,
+                                                 antidiffusive_flux1_R,
+                                                 antidiffusive_flux2_L,
+                                                 antidiffusive_flux2_R,
+                                                 antidiffusive_flux3_L,
+                                                 antidiffusive_flux3_R,
+                                                 _antidiffusive_flux1_L,
+                                                 _antidiffusive_flux1_R,
+                                                 _antidiffusive_flux2_L,
+                                                 _antidiffusive_flux2_R,
+                                                 _antidiffusive_flux3_L,
+                                                 _antidiffusive_flux3_R)
+end
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
+    n_nodes = nnodes(fluxes)
+    n_variables = nvariables(fluxes)
+
+    @unpack _antidiffusive_flux1_L, _antidiffusive_flux1_R, _antidiffusive_flux2_L, _antidiffusive_flux2_R, _antidiffusive_flux3_L, _antidiffusive_flux3_R = fluxes
+
+    resize!(_antidiffusive_flux1_L,
+            n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux1_R,
+            n_variables * (n_nodes + 1) * n_nodes * n_nodes * capacity)
+    fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
+                                               (n_variables,
+                                                n_nodes + 1, n_nodes, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux2_L,
+            n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
+                                                capacity))
+    resize!(_antidiffusive_flux2_R,
+            n_variables * n_nodes * (n_nodes + 1) * n_nodes * capacity)
+    fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
+                                               (n_variables,
+                                                n_nodes, n_nodes + 1, n_nodes,
+                                                capacity))
+
+    resize!(_antidiffusive_flux3_L,
+            n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux3_L = unsafe_wrap(Array, pointer(_antidiffusive_flux3_L),
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
+                                                capacity))
+    resize!(_antidiffusive_flux3_R,
+            n_variables * n_nodes * n_nodes * (n_nodes + 1) * capacity)
+    fluxes.antidiffusive_flux3_R = unsafe_wrap(Array, pointer(_antidiffusive_flux3_R),
+                                               (n_variables,
+                                                n_nodes, n_nodes, n_nodes + 1,
+                                                capacity))
+
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R,
+                                fluxes.antidiffusive_flux3_L,
+                                fluxes.antidiffusive_flux3_R)
+
+    return nothing
+end
+
+function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                     antidiffusive_flux2_L, antidiffusive_flux2_R,
+                                     antidiffusive_flux3_L, antidiffusive_flux3_R)
+    uEltype = eltype(antidiffusive_flux1_L)
+    @threaded for element in axes(antidiffusive_flux1_L, 5)
+        antidiffusive_flux1_L[:, 1, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_L[:, end, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, 1, :, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, end, :, :, element] .= zero(uEltype)
+
+        antidiffusive_flux2_L[:, :, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux2_L[:, :, end, :, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, end, :, element] .= zero(uEltype)
+
+        antidiffusive_flux3_L[:, :, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux3_L[:, :, :, end, element] .= zero(uEltype)
+        antidiffusive_flux3_R[:, :, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux3_R[:, :, :, end, element] .= zero(uEltype)
+    end
+
+    return nothing
 end
 end # @muladd

@@ -44,12 +44,22 @@ struct PolytropicEulerEquations2D{RealT <: Real} <:
 
     function PolytropicEulerEquations2D(gamma, kappa)
         gamma_, kappa_ = promote(gamma, kappa)
-        new{typeof(gamma_)}(gamma_, kappa_)
+        return new{typeof(gamma_)}(gamma_, kappa_)
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::PolytropicEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return PolytropicEulerEquations2D(convert(NewRealT, equations.gamma),
+                                      convert(NewRealT, equations.kappa))
+end
+
 function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)
-    ("rho", "rho_v1", "rho_v2")
+    return ("rho", "rho_v1", "rho_v2")
 end
 varnames(::typeof(cons2prim), ::PolytropicEulerEquations2D) = ("rho", "v1", "v2")
 
@@ -72,11 +82,17 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
-
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
     RealT = eltype(u)
     h = 8 + cospi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
@@ -100,12 +116,15 @@ end
     initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquations2D)
 
 A weak blast wave adapted from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Set up polar coordinates
     inicenter = (0, 0)
     x_norm = x[1] - inicenter[1]
@@ -122,7 +141,7 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     return prim2cons(SVector(rho, v1, v2), equations)
 end
 
-# Calculate 2D flux for a single point in the normal direction
+# Calculate 1D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::PolytropicEulerEquations2D)
@@ -137,7 +156,7 @@ end
     return SVector(f1, f2, f3)
 end
 
-# Calculate 2D flux for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::PolytropicEulerEquations2D)
     _, v1, v2 = cons2prim(u, equations)
     p = pressure(u, equations)
@@ -170,6 +189,7 @@ For details see Section 3.2 of the following reference
 - Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
   Entropy stable numerical approximations for the isothermal and polytropic
   Euler equations
+  [arXiv: 1907.03287](https://arxiv.org/abs/1907.03287)
   [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
 """
 @inline function flux_winters_etal(u_ll, u_rr, normal_direction::AbstractVector,
@@ -443,8 +463,17 @@ end
     return v
 end
 
+@doc raw"""
+    pressure(u, equations::PolytropicEulerEquations2D)
+
+Computes the pressure for an ideal equation of state with
+isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
+```math
+p = \kappa \rho^\gamma
+```
+"""
 @inline function pressure(u, equations::PolytropicEulerEquations2D)
-    rho, rho_v1, rho_v2 = u
+    rho, _, _ = u
     p = equations.kappa * rho^equations.gamma
     return p
 end

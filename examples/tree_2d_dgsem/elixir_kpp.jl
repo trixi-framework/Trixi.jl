@@ -1,6 +1,6 @@
 using Trixi
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
-using LinearAlgebra
+using OrdinaryDiffEqSSPRK
+using LinearAlgebra: norm
 
 ###############################################################################
 # Definition of the 2D scalar "KPP equation"
@@ -98,12 +98,12 @@ coordinates_max = (2.0, 2.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                periodicity = true,
-                n_cells_max = 500_000)
+                periodicity = true)
 
 ###############################################################################
 # Create the semi discretization object
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_kpp, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_kpp, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # Set up adaptive mesh refinement
@@ -149,4 +149,5 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(); ode_default_options()..., callback = callbacks)
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            ode_default_options()..., callback = callbacks)

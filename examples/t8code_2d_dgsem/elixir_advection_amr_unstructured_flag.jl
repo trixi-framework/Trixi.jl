@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 initial_condition = initial_condition_gauss
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition,)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -37,7 +37,7 @@ mesh = T8codeMesh(mesh_file, 2;
                   mapping = mapping_flag, polydeg = 3,
                   initial_refinement_level = 1)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -69,14 +69,7 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           dynamic_load_balancing = false)
-# We disable `dynamic_load_balancing` for now, since t8code does not support
-# partitioning for coarsening yet. That is, a complete family of elements always
-# stays on rank and is not split up due to partitioning. Without this feature
-# dynamic AMR simulations are not perfectly deterministic regarding to
-# convergent tests. Once this feature is available in t8code load balancing is
-# enabled again.
+                           adapt_initial_condition_only_refine = true)
 
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
@@ -88,6 +81,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # Run the simulation.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

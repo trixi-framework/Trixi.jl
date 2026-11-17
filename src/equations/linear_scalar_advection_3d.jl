@@ -15,16 +15,25 @@ The linear scalar advection equation
 in three space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{3, 1}
+       AbstractLinearScalarAdvectionEquation{3}
     advection_velocity::SVector{3, RealT}
 end
 
 function LinearScalarAdvectionEquation3D(a::NTuple{3, <:Real})
-    LinearScalarAdvectionEquation3D(SVector(a))
+    return LinearScalarAdvectionEquation3D(SVector(a))
 end
 
 function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
-    LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
+    return LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearScalarAdvectionEquation3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearScalarAdvectionEquation3D(SVector{3, NewRealT}(equations.advection_velocity))
 end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar",)
@@ -37,10 +46,7 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
-    # Store translated coordinate for easy use of exact solution
     RealT = eltype(x)
-    x_trans = x - equation.advection_velocity * t
-
     return SVector(RealT(2))
 end
 
@@ -130,7 +136,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     a = equation.advection_velocity[orientation]
@@ -159,14 +165,14 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction,
                  equations::LinearScalarAdvectionEquation3D)
 
 Godunov (upwind) flux for the 3D linear scalar advection equation.
 Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -178,8 +184,8 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -191,25 +197,37 @@ function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
     end
 end
 
+"""
+    have_constant_speed(::LinearScalarAdvectionEquation3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = True()
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
     return abs.(equation.advection_velocity)
 end
 
-# Convert conservative variables to primitive
+# Convert conservative variables to primitive and vice-versa
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
+@inline prim2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
+# Convert entropy variables to conservative variables
+@inline entropy2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
-# Calculate entropy for a conservative state `cons`
+# Calculate entropy for a conservative state `u`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

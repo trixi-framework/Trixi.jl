@@ -5,32 +5,47 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
 end
 
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{1}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
+# Check whether the thread-local storage of `indicator_hg` has the axes we assume in
+# `calc_indicator_hennemann_gassner!`. The size of this storage is determined by the
+# basis passed when constructing the indicator, which may differ from the one of `dg`.
+function check_axes_indicator_hennemann_gassner(indicator_hg, mesh::AbstractMesh{1},
+                                                dg)
+    @unpack indicator_threaded, modal_threaded = indicator_hg.cache
+    expected_axes = (eachnode(dg),)
+    check_axes_threaded(indicator_threaded, expected_axes)
+    check_axes_threaded(modal_threaded, expected_axes)
+    return nothing
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
+#
+# The caller checks the axes of `u` and of the thread-local storage and resizes `alpha`
+# to the number of elements. Thus, this kernel accesses `u` and `alpha` with
+# `@inbounds`. The thread-local storage has a static size, so the compiler proves that
+# the accesses to it are in bounds. Annotating these accesses with `@inbounds` as well,
+# e.g., via `Base.@propagate_inbounds`, can make the threaded loop calling this kernel
+# slower.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u,
-                                                   element, mesh::AbstractMesh{1},
+                                                   u, element, mesh::AbstractMesh{1},
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
@@ -40,7 +55,7 @@ end
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
-        u_local = get_node_vars(u, equations, dg, i, element)
+        u_local = @inbounds get_node_vars(u, equations, dg, i, element)
         indicator[i] = indicator_hg.variable(u_local, equations)
     end
 
@@ -48,19 +63,13 @@ end
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                    indicator)
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for i in 1:nnodes(dg)
-        total_energy += modal[i]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for i in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[i]^2
-    end
+    # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     for i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i]^2
     end
+    total_energy_clip1 = total_energy_clip2 + modal[nnodes(dg) - 1]^2
+    total_energy = total_energy_clip1 + modal[nnodes(dg)]^2
 
     # Calculate energy in higher modes
     if !(iszero(total_energy))
@@ -88,42 +97,50 @@ end
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
+    @inbounds alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-function apply_smoothing!(mesh::Union{TreeMesh{1}, P4estMesh{1}}, alpha, alpha_tmp, dg,
-                          cache)
+function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_tmp .= alpha
 
+    @unpack neighbor_ids = cache.interfaces
+    # Explicit bounds check, which allows us to assume inbounds access below.
+    # The neighbor ids are element ids taken from the mesh connectivity.
+    @boundscheck begin
+        check_axes(alpha, (eachelement(dg, cache),))
+        check_axes(alpha_tmp, (eachelement(dg, cache),))
+        check_axes(neighbor_ids, (Base.OneTo(2), eachinterface(dg, cache)))
+    end
+
     # Loop over interfaces
-    for interface in eachinterface(dg, cache)
+    @inbounds for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left = neighbor_ids[1, interface]
+        right = neighbor_ids[2, interface]
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
         alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
+
+    return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{1},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
@@ -159,23 +176,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
     return alpha
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-    return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{1},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
-end
-
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
@@ -183,16 +183,58 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
     resize!(alpha, nelements(dg, cache))
     indicator_variable = indicator_max.variable
 
+    # Explicit bounds check, which allows us to assume inbounds access to `u` below.
+    # `maximum(indicator)` reads all entries of the thread-local storage, so its axes
+    # must match the nodes of `dg`.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_threaded(indicator_threaded, (eachnode(dg),))
+    end
+
+    # The thread-local storage has a static size, so the compiler proves that the
+    # accesses to it are in bounds. Thus, only the accesses to `u` and `alpha` use
+    # `@inbounds`.
     @threaded for element in eachelement(dg, cache)
         indicator = indicator_threaded[Threads.threadid()]
 
         # Calculate indicator variables at Gauss-Lobatto nodes
         for i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, element)
+            u_local = @inbounds get_node_vars(u, equations, dg, i, element)
             indicator[i] = indicator_variable(u_local, equations)
         end
 
-        alpha[element] = maximum(indicator)
+        @inbounds alpha[element] = maximum(indicator)
+    end
+
+    return alpha
+end
+
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            estimate = typemin(eltype(alpha))
+            for i in eachnode(dg)
+                u_nodal = get_node_vars(u, equations, dg, i, element)
+                x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                          i, element)
+                estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
+            end
+            alpha[element] = estimate
+        end
     end
 
     return alpha

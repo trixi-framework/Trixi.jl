@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -40,7 +40,7 @@ See the developer comments about `Trixi.analyze`, `Trixi.pretty_form_utf`, and
 
 In addition, the analysis callback records and outputs a number of quantities that are useful for
 evaluating the computational performance, such as the total runtime, the performance index
-(time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
+(time/DOF/RHS), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals,
@@ -49,15 +49,15 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     start_time_last_analysis::Float64
     ncalls_rhs_last_analysis::Int
     start_gc_time::Float64
-    interval::Int
-    save_analysis::Bool
-    output_directory::String
-    analysis_filename::String
-    analyzer::Analyzer
-    analysis_errors::Vector{Symbol}
-    analysis_integrals::AnalysisIntegrals
+    const interval::Int
+    const save_analysis::Bool
+    const output_directory::String
+    const analysis_filename::String
+    const analyzer::Analyzer
+    const analysis_errors::Vector{Symbol}
+    const analysis_integrals::AnalysisIntegrals
     initial_state_integrals::InitialStateIntegrals
-    cache::Cache
+    const cache::Cache
 end
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature
@@ -94,7 +94,7 @@ end
 # This is the convenience constructor that gets called from the elixirs
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    AnalysisCallback(mesh, equations, solver, cache; kwargs...)
+    return AnalysisCallback(mesh, equations, solver, cache; kwargs...)
 end
 
 # This is the actual constructor
@@ -110,7 +110,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           analysis_integrals = union(default_analysis_integrals(equations),
                                                      extra_analysis_integrals),
                           RealT = real(solver),
-                          uEltype = eltype(cache.elements),
+                          uEltype = solution_eltype(solver, cache),
                           kwargs...)
     # Decide when the callback is activated.
     # With error-based step size control, some steps can be rejected. Thus,
@@ -134,9 +134,9 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                                         Val(nvariables(equations)))),
                                          cache_analysis)
 
-    DiscreteCallback(condition, analysis_callback,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, analysis_callback,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # This method gets called from OrdinaryDiffEq's `solve(...)`
@@ -144,7 +144,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
-    initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    return initialize!(cb, u_ode, du_ode, t, integrator, semi)
 end
 
 # This is the actual initialization method
@@ -202,6 +202,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
             end
 
             println(io)
+            return nothing
         end
     end
 
@@ -211,7 +212,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     # Record current time for performance index computation
     analysis_callback.start_time_last_analysis = time_ns()
 
-    # Record current number of `rhs!` calls for performance index computation
+    # Record current number of RHS evaluations for performance index computation
     analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
     # Record total time spent in garbage collection so far using a high-resolution clock
@@ -227,7 +228,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi)
+    return analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
@@ -247,7 +248,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
     # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks
-    # and threads) and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up 
+    # and threads) and per RHS evaluation is required. MPI-aware means that it essentially adds up
     # the time spent on each computing unit. Thus, in an ideally parallelized program, the PID should be constant
     # independent of the number of MPI ranks or threads used, since, e.g., using 4x the number of ranks should
     # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
@@ -265,10 +266,10 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Compute the total runtime since the analysis callback has been initialized, in seconds
     runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-    # Compute the relative runtime per thread as time spent in `rhs!` divided by the number of calls 
-    # to `rhs!` and the number of local degrees of freedom
-    # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
-    #      will reset the number of calls to `rhs!`
+    # Compute the relative runtime per thread as time spent in the RHS evaluation divided by the
+    # number of RHS evaluations and the number of local degrees of freedom
+    # Note: This computation must happen *after* the PID computation above, since `take!(...)`
+    #      will reset the number of RHS evaluations
     runtime_relative = 1.0e-9 * take!(semi.performance_counter) * Threads.nthreads() /
                        ndofs(semi)
 
@@ -290,6 +291,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     #        release, just delete this analysis quantity from the callback.
     # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
     memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
+    device_memory_use = trixi_device_memory_use(trixi_backend(u_ode))
+    if device_memory_use !== nothing
+        device_memory_use /= 2^20 # bytes -> MiB
+    else
+        device_memory_use = 0.0
+    end
 
     @trixi_timeit timer() "analyze solution" begin
         # General information
@@ -307,7 +314,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
         mpi_println(rpad(" sim. time:      " *
                          @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
-                    " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+                    " time/DOF/RHS:   " * @sprintf("%10.8e s", runtime_relative))
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
@@ -315,7 +322,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)) *
+                    "               " *
+                    " device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
 
         # Level information (only for AMR and/or non-uniform `TreeMesh`es)
         print_level_information(integrator.opts.callback, mesh, solver, cache)
@@ -333,7 +342,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         end
 
         # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-        # `integrator.f` is usually just a call to `rhs!`
+        # `integrator.f` is usually just a call to the semidiscretization RHS
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
@@ -357,7 +366,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
 
     # Reset performance measurements
     analysis_callback.start_time_last_analysis = time_ns()
@@ -523,7 +532,7 @@ function print_level_information(callbacks, mesh::TreeMesh, solver, cache)
         end
         print_level_information(mesh, solver, cache, min_level, max_level)
         # Special check for `TreeMesh`es without AMR.
-        # These meshes may still be non-uniform due to `refinement_patches`, see 
+        # These meshes may still be non-uniform due to `refinement_patches`, see
         # `refine_box!`, `coarsen_box!`, and `refine_sphere!`.
     elseif minimum_level(mesh.tree) != maximum_level(mesh.tree)
         min_level = minimum_level(mesh.tree)
@@ -595,7 +604,7 @@ end
 
 # terminate the type-stable iteration over tuples
 function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
-    nothing
+    return nothing
 end
 
 # used for error checks and EOC analysis
@@ -609,7 +618,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
 
     l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
                                             cache_analysis)
-    (; l2 = l2_error, linf = linf_error)
+    return (; l2 = l2_error, linf = linf_error)
 end
 
 # some common analysis_integrals
@@ -617,10 +626,10 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, solver, cache)
+    return analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
-    integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
+    return integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
 end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
@@ -634,13 +643,13 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     cache_parabolic = semi.cache_parabolic
     # We do not apply `enstrophy` directly here because we might later have different `quantity`s
     # that we wish to integrate, which can share this routine.
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
-            cache_parabolic)
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
 end
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                  cache, cache_parabolic)
-    integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
-              cache_parabolic, normalize = true)
+    return integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
+                     cache_parabolic, normalize = true)
 end
 
 function entropy_timederivative end
@@ -678,37 +687,53 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 pretty_form_utf(::typeof(lake_at_rest_error)) = "∑|H₀-(h+b)|"
 pretty_form_ascii(::typeof(lake_at_rest_error)) = "|H0-(h+b)|"
+
+# Return a zero of the inferred return type of `func` for arguments of the types
+# `argtypes`. This is used to initialize local results, e.g., of integrals, without
+# evaluating `func`. This is required if the data is stored on a GPU or if the current
+# MPI rank has no elements so that the solution and other arrays are empty.
+# The inferred type must be concrete to match the type of the actual results.
+# See https://github.com/trixi-framework/Trixi.jl/issues/1096 and
+# https://github.com/trixi-framework/Trixi.jl/issues/1973.
+function zero_return_type(func::Func, argtypes...) where {Func}
+    T = Base.promote_op(func, argtypes...)
+    if !isconcretetype(T)
+        error("The inferred return type `$T` of `$func` is not concrete.")
+    end
+    return zero(T)
+end
 end # @muladd
 
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
+include("analysis_blockfv_1d.jl")
 include("analysis_dg2d.jl")
-include("analysis_surface_integral_2d.jl")
+include("analysis_blockfv_2d.jl")
+include("analysis_surface_integral.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
 
 # This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
-# `semi` to be passed along to retrieve the current boundary indices, which are non-static 
+# `semi` to be passed along to retrieve the current boundary indices, which are non-static
 # in the case of AMR.
 function analyze(quantity::AnalysisSurfaceIntegral, du, u, t,
                  semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
+    return analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
 end
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
-# have `VariableViscous` available.
+# have `VariableParabolic` available.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
-                 semi::SemidiscretizationHyperbolicParabolic) where {
-                                                                     Variable <:
-                                                                     VariableViscous}
+                 semi::SemidiscretizationHyperbolicParabolic) where {Variable <:
+                                                                     VariableParabolic}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, semi,
-            cache_parabolic)
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+                   semi, cache_parabolic)
 end

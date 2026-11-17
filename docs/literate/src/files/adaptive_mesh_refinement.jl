@@ -33,7 +33,8 @@
 # example.
 
 # `IndicatorHennemannGassner`, also used as a shock-capturing indicator, was developed by
-# [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935) and is explained in detail
+# [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)) and is explained in detail
 # in the [tutorial about shock-capturing](@ref shock_capturing). It can be constructed as follows.
 # ````julia
 # amr_indicator = IndicatorHennemannGassner(semi,
@@ -117,9 +118,10 @@ coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
@@ -149,7 +151,7 @@ callbacks = CallbackSet(amr_callback, stepsize_callback);
 
 # Running the simulation.
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 # We plot the solution and add the refined mesh at the end of the simulation.
@@ -176,7 +178,8 @@ plot!(getmesh(pd))
 #   * Source: https://www.youtube.com/watch?v=dxgzgteJdOA
 #   * Authors: Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor Gassner
 #   * Setup described in detail in: A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics,
-#     Journal of Computational Physics (2021),(https://doi.org/10.1016/j.jcp.2021.110467).
+#     Journal of Computational Physics (2021), https://arxiv.org/abs/2008.10593
+#     (DOI: https://doi.org/10.1016/j.jcp.2021.110467).
 #   * Obtain responsive code by inserting link on https://embedresponsively.com
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/dxgzgteJdOA' frameborder='0' allowfullscreen></iframe></div>

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -13,14 +13,19 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:inside => boundary_condition,
-                           :outside => boundary_condition)
+boundary_conditions = (; inside = boundary_condition,
+                       outside = boundary_condition)
 
-mesh = Trixi.T8codeMeshCubedSphere(5, 3, 0.5, 0.5;
-                                   polydeg = 3, initial_refinement_level = 0)
+trees_per_face_dimension = 5 # Number of trees per patch in longitudinal and latitudinal direction
+layers = 3 # Number of layers of the shell
+inner_radius = 0.5 # Radius of the inner side of the shell
+thickness = 0.5 # Thickness of the shell. The outer radius will be `inner_radius + thickness`
+mesh = Trixi.T8codeMeshCubedSphere(trees_per_face_dimension, layers,
+                                   inner_radius, thickness;
+                                   polydeg = 3)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -52,6 +57,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

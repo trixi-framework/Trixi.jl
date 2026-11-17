@@ -2,8 +2,8 @@
 # For optimal results consider increasing the resolution to 16x16x8 trees per cube face.
 #
 # Note that this elixir can take several hours to run.
-# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
-# and `check-bounds=no`, this elixirs takes about one hour to run.
+# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further),
+# this elixir takes about one hour to run.
 # With 16x16x8 trees per cube face on the same machine, it takes about 28 hours.
 #
 # References:
@@ -11,9 +11,9 @@
 #   A proposed baroclinic wave test case for deep- and shallow-atmosphere dynamical cores
 #   https://doi.org/10.1002/qj.2241
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # Setup for the baroclinic instability test
@@ -217,8 +217,8 @@ end
 
 initial_condition = initial_condition_baroclinic_instability
 
-boundary_conditions = Dict(:inside => boundary_condition_slip_wall,
-                           :outside => boundary_condition_slip_wall)
+boundary_conditions = (; inside = boundary_condition_slip_wall,
+                       outside = boundary_condition_slip_wall)
 
 # This is a good estimate for the speed of sound in this example.
 # Other values between 300 and 400 should work as well.
@@ -229,8 +229,10 @@ solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
 
 # For optimal results, use (16, 8) here
 trees_per_cube_face = (8, 4)
-mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
-                                  polydeg = 5, initial_refinement_level = 0)
+inner_radius = 6.371229e6
+thickness = 30000.0 # thickness of the spherical shell, outer radius is `inner_radius + thickness`
+mesh = P4estMeshCubedSphere(trees_per_cube_face..., inner_radius, thickness,
+                            polydeg = 5)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_baroclinic_instability,
@@ -253,11 +255,11 @@ u_steady_state = compute_coefficients(steady_state_baroclinic_instability, tspan
 # Use a `let` block for performance (otherwise du_steady_state will be a global variable)
 let du_steady_state = similar(u_steady_state)
     # Save RHS of the steady state
-    Trixi.rhs!(du_steady_state, u_steady_state, semi, tspan[1])
+    Trixi.rhs_hyperbolic!(du_steady_state, u_steady_state, semi, tspan[1])
 
     global function corrected_rhs!(du, u, semi, t)
         # Normal RHS evaluation
-        Trixi.rhs!(du, u, semi, t)
+        Trixi.rhs_hyperbolic!(du, u, semi, t)
         # Correct by subtracting the steady-state RHS
         Trixi.@trixi_timeit Trixi.timer() "rhs correction" begin
             # Use Trixi.@threaded for threaded performance
@@ -292,6 +294,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

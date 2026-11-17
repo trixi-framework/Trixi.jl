@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterCodeBlocks: CodeBlocks
 import Pkg
 using Changelog: Changelog
 
@@ -90,6 +91,7 @@ files = [
     "Adding a non-conservative equation" => "adding_nonconservative_equation.jl",
     "Parabolic terms" => "parabolic_terms.jl",
     "Adding new parabolic terms" => "adding_new_parabolic_terms.jl",
+    "Adding parabolic source terms" => "parabolic_source_terms.jl",
     # Topic: meshes
     "Adaptive mesh refinement" => "adaptive_mesh_refinement.jl",
     "Structured mesh with curvilinear mapping" => "structured_mesh_mapping.jl",
@@ -133,8 +135,10 @@ makedocs(
                                   # Explicitly add favicon as asset
                                   assets = ["assets/favicon.ico"],
                                   # Set canonical URL to GitHub pages URL
-                                  canonical = "https://trixi-framework.github.io/Trixi.jl/stable",
+                                  canonical = "https://trixi-framework.github.io/TrixiDocumentation/stable",
                                   size_threshold_ignore = ["reference-trixi.md"]),
+         # Improve code blocks in the documentation by using DocumenterCodeBlocks.jl
+         plugins = [CodeBlocks()],
          # Explicitly specify documentation structure
          pages = [
              "Home" => "index.md",
@@ -150,7 +154,9 @@ makedocs(
                      "Structured mesh" => joinpath("meshes", "structured_mesh.md"),
                      "Unstructured mesh" => joinpath("meshes", "unstructured_quad_mesh.md"),
                      "P4est-based mesh" => joinpath("meshes", "p4est_mesh.md"),
-                     "DGMulti mesh" => joinpath("meshes", "dgmulti_mesh.md")
+                     "DGMulti mesh" => joinpath("meshes", "dgmulti_mesh.md"),
+                     "Mesh constructor comparison" => joinpath("meshes",
+                                                               "mesh_constructor_comparison.md")
                  ],
                  "Time integration" => "time_integration.md",
                  "Callbacks" => "callbacks.md",
@@ -163,7 +169,8 @@ makedocs(
                  "Style guide" => "styleguide.md",
                  "Testing" => "testing.md",
                  "Performance" => "performance.md",
-                 "Parallelization" => "parallelization.md"
+                 "Parallelization" => "parallelization.md",
+                 "Heterogeneous" => "heterogeneous.md"
              ],
              "Troubleshooting and FAQ" => "troubleshooting.md",
              "Reference" => [
@@ -179,5 +186,9 @@ makedocs(
          ])
 
 deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+           deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
            devbranch = "main",
-           push_preview = true)
+           # Only push previews if all the relevant environment variables are non-empty.
+           push_preview = all(!isempty,
+                              (get(ENV, "GITHUB_TOKEN", ""),
+                               get(ENV, "DOCUMENTER_KEY", ""))))

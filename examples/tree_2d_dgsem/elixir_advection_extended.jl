@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -12,8 +12,6 @@ initial_condition = initial_condition_convergence_test
 # you can either use a single function to impose the BCs weakly in all
 # 1*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
 boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -25,11 +23,10 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -74,8 +71,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-alg = CarpenterKennedy2N54(williamson_condition = false)
+alg = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 sol = solve(ode, alg;
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks,
             ode_default_options()...);

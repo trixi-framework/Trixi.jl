@@ -1,5 +1,6 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using Accessors: @reset
 
 ###############################################################################
 # create a restart file
@@ -24,9 +25,11 @@ dt = load_dt(restart_filename)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
-save_solution.condition.save_initial_solution = false
+@reset save_solution.condition.save_initial_solution = false
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false);
+integrator = init(ode,
+                  CarpenterKennedy2N54(williamson_condition = false,
+                                       thread = Trixi.Threaded());
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks, maxiters = 100_000);
 

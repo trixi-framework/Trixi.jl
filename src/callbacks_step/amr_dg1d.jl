@@ -7,7 +7,7 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         return
@@ -20,16 +20,24 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            @trixi_timeit timer() "limiter!" begin
+                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                          elements_to_refine,
+                                                                          mesh,
+                                                                          equations, dg,
+                                                                          cache)
+            end
+        end
 
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) > old_n_elements
 
         resize!(u_ode,
@@ -58,19 +66,19 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    end
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after refinement
+        element_ids_new = compute_new_ids_refined_elements(elements_to_refine, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new,
+                                                  u_mean_refined_elements)
     end
 
     return nothing
@@ -78,21 +86,14 @@ end
 
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                  equations, dg::DGSEM, cache, cache_parabolic,
-                 elements_to_refine)
+                 elements_to_refine, limiter!)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the refined cells
-    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
+    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -120,31 +121,19 @@ function refine_element!(u::AbstractArray{<:Any, 3}, element_id,
     end
 
     # Interpolate to left element
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
-                   forward_lower[i, k]
-        end
-        set_node_vars!(u, acc, equations, dg, i, left_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, left_id), forward_lower,
+                            view(old_u, :, :, old_element_id))
 
     # Interpolate to right element
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, old_element_id) *
-                   forward_upper[i, k]
-        end
-        set_node_vars!(u, acc, equations, dg, i, right_id)
-    end
+    multiply_dimensionwise!(view(u, :, :, right_id), forward_upper,
+                            view(old_u, :, :, old_element_id))
 
     return nothing
 end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         return
@@ -157,16 +146,12 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) < old_n_elements
 
         resize!(u_ode,
@@ -204,19 +189,18 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+    end
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after coarsening
+        element_ids_new = compute_new_ids_coarsened_elements(elements_to_remove, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new)
     end
 
     return nothing
@@ -224,21 +208,14 @@ end
 
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                   equations, dg::DGSEM, cache, cache_parabolic,
-                  elements_to_remove)
+                  elements_to_remove, limiter!)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the coarsened cells
-    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
+    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
-    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
-
-    # Sanity check
-    @unpack interfaces = cache_parabolic
-    if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache_parabolic) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
-    end
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -265,35 +242,11 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
         @assert size(u, 3) >= element_id
     end
 
-    for i in eachnode(dg)
-        acc = zero(get_node_vars(u, equations, dg, i, element_id))
+    # Project from left and right elements
+    multiply_dimensionwise!(view(u, :, :, element_id),
+                            reverse_lower, view(old_u, :, :, left_id),
+                            reverse_upper, view(old_u, :, :, right_id))
 
-        # Project from lower left element
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, left_id) * reverse_lower[i, k]
-        end
-
-        # Project from lower right element
-        for k in eachnode(dg)
-            acc += get_node_vars(old_u, equations, dg, k, right_id) *
-                   reverse_upper[i, k]
-        end
-
-        # Update value
-        set_node_vars!(u, acc, equations, dg, i, element_id)
-    end
-end
-
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations,
-                      dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh,
-                      equations, dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
+    return nothing
 end
 end # @muladd

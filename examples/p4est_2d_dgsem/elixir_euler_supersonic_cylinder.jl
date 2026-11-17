@@ -9,11 +9,12 @@
 # For complete details on the problem setup see Section 5.7 of the paper:
 # - Jean-Luc Guermond, Murtazo Nazarov, Bojan Popov, and Ignacio Tomas (2018)
 #   Second-Order Invariant Domain Preserving Approximation of the Euler Equations using Convex Limiting.
+#   [arXiv: 1710.00417](https://arxiv.org/abs/1710.00417)
 #   [DOI: 10.1137/17M1149961](https://doi.org/10.1137/17M1149961)
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -42,9 +43,7 @@ initial_condition = initial_condition_mach3_flow
                                                       x, t, surface_flux_function,
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach3_flow(x, t, equations)
-    flux = Trixi.flux(u_boundary, normal_direction, equations)
-
-    return flux
+    return flux(u_boundary, normal_direction, equations)
 end
 
 # Supersonic outflow boundary condition.
@@ -53,19 +52,24 @@ end
 @inline function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
                                             surface_flux_function,
                                             equations::CompressibleEulerEquations2D)
-    flux = Trixi.flux(u_inner, normal_direction, equations)
-
-    return flux
+    return flux(u_inner, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Circle => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_supersonic_inflow)
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Circle = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -86,7 +90,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 
 mesh = P4estMesh{2}(mesh_file)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -109,6 +113,12 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# positivity limiter necessary for this example with strong shocks. Very sensitive
+# to the order of the limiter variables, pressure must come first.
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
+                                                         variables = (pressure,
+                                                                      Trixi.density))
+
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
@@ -116,22 +126,21 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level = 3, med_threshold = 0.05,
                                       max_level = 5, max_threshold = 0.1)
 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
                         amr_callback)
 
-# positivity limiter necessary for this example with strong shocks. Very sensitive
-# to the order of the limiter variables, pressure must come first.
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
-                                                     variables = (pressure, Trixi.density))
-
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode,
+            SSPRK43(; stage_limiter! = positivity_limiter, thread = Trixi.Threaded());
             ode_default_options()..., callback = callbacks);

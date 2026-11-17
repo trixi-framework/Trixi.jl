@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -33,12 +33,20 @@ function initial_condition_colliding_flow_astro(x, t,
 end
 initial_condition = initial_condition_colliding_flow_astro
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
+boundary_conditions = (;
+                       x_neg = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
                        x_pos = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
 
-surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive) # HLLC needs more shock capturing (alpha_max)
 volume_flux = flux_ranocha # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -59,9 +67,8 @@ coordinates_max = (64.0, 64.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                periodicity = (false, true))
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -82,6 +89,11 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# positivity limiter necessary for this tough example
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 # Simulation also feasible without AMR: AMR reduces CPU time by a factor of about 2
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 1.0,
@@ -95,21 +107,20 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               max_level = 8, max_threshold = 0.003,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         amr_callback, save_solution)
 
-# positivity limiter necessary for this tough example
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter! = positivity_limiter, thread = Trixi.Threaded());
             ode_default_options()..., callback = callbacks);

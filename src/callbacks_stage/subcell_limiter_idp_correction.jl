@@ -19,9 +19,11 @@ called with [`VolumeIntegralSubcellLimiting`](@ref).
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
   Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [arXiv: 2202.00576](https://arxiv.org/abs/2202.00576)
   [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
-- Pazner (2020)
+- Pazner (2021)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [arXiv: 2004.08503](https://arxiv.org/abs/2004.08503)
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct SubcellLimiterIDPCorrection end
@@ -30,14 +32,19 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode,
                                                  integrator::Trixi.SimpleIntegratorSSP,
                                                  stage)
     semi = integrator.p
-    limiter!(u_ode, semi, integrator.t, integrator.dt,
-             semi.solver.volume_integral)
+    return limiter!(u_ode, semi, integrator.t, integrator.dt,
+                    semi.solver.volume_integral)
 end
 
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
                                                  volume_integral::VolumeIntegralSubcellLimiting)
     @trixi_timeit timer() "a posteriori limiter" limiter!(u_ode, semi, t, dt,
                                                           volume_integral.limiter)
+end
+function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
+                                                 volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return limiter!(u_ode, semi, t, dt, volume_integral_stabilized)
 end
 
 function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
@@ -49,13 +56,27 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     # Calculate blending factor alpha in [0,1]
     # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
     #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
-    @trixi_timeit timer() "blending factors" solver.volume_integral.limiter(u, semi,
-                                                                            solver, t,
-                                                                            dt)
+    @trixi_timeit timer() "blending factors" limiter(u, semi, equations, solver,
+                                                     t, dt)
 
-    perform_idp_correction!(u, dt, mesh, equations, solver, cache)
+    perform_idp_correction!(u, dt, mesh, equations, solver,
+                            solver.volume_integral, cache)
 
     return nothing
+end
+
+function perform_idp_correction!(u, dt,
+                                 mesh, equations, dg,
+                                 volume_integral::VolumeIntegralSubcellLimiting, cache)
+    return perform_idp_correction!(u, dt, mesh, equations, dg,
+                                   volume_integral.limiter, cache)
+end
+function perform_idp_correction!(u, dt,
+                                 mesh, equations, dg,
+                                 volume_integral::VolumeIntegralAdaptive, cache)
+    @unpack volume_integral_stabilized = volume_integral
+    return perform_idp_correction!(u, dt, mesh, equations, dg,
+                                   volume_integral_stabilized, cache)
 end
 
 init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
@@ -63,4 +84,5 @@ init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 finalize_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
 include("subcell_limiter_idp_correction_2d.jl")
+include("subcell_limiter_idp_correction_3d.jl")
 end # @muladd

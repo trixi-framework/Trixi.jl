@@ -1,5 +1,6 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using Accessors: @reset
 
 ###############################################################################
 # create a restart file
@@ -18,7 +19,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 restart_filename = joinpath("out", restart_file)
 mesh = load_mesh(restart_filename)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 tspan = (load_time(restart_filename), 2.0)
@@ -26,7 +27,7 @@ dt = load_dt(restart_filename)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
-save_solution.condition.save_initial_solution = false
+@reset save_solution.condition.save_initial_solution = false
 
 # Add AMR callback
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
@@ -39,7 +40,9 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false);
+integrator = init(ode,
+                  CarpenterKennedy2N54(williamson_condition = false,
+                                       thread = Trixi.Threaded());
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks_ext, maxiters = 100_000);
 

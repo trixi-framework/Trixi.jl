@@ -11,13 +11,13 @@
 A view on a structured curved mesh.
 """
 mutable struct StructuredMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
-    parent::StructuredMesh{NDIMS, RealT}
-    cells_per_dimension::NTuple{NDIMS, Int}
-    mapping::Any # Not relevant for performance
-    mapping_as_string::String
+    const parent::StructuredMesh{NDIMS, RealT}
+    const cells_per_dimension::NTuple{NDIMS, Int}
+    const mapping::Any # Not relevant for performance
+    const mapping_as_string::String
     current_filename::String
-    indices_min::NTuple{NDIMS, Int}
-    indices_max::NTuple{NDIMS, Int}
+    const indices_min::NTuple{NDIMS, Int}
+    const indices_max::NTuple{NDIMS, Int}
     unsaved_changes::Bool
 end
 
@@ -105,6 +105,8 @@ function calc_node_coordinates!(node_coordinates, element,
         node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx / 2 * nodes[i],
                                                       cell_y_offset + dy / 2 * nodes[j])
     end
+
+    return nothing
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
@@ -125,6 +127,7 @@ function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["size"] = collect(size(mesh))
         attributes(file)["mapping"] = mesh.mapping_as_string
+        return nothing
     end
 
     return filename

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -9,8 +9,8 @@ equations = CompressibleEulerEquations1D(1.4)
 """
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
-The Sedov blast wave setup based on Flash
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+The Sedov blast wave setup based on example 35.1.4 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
     # Set up polar coordinates
@@ -19,7 +19,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     x_norm = x[1] - inicenter[1]
     r = abs(x_norm)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
+    # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     # r0 = 0.5 # = more reasonable setup
     E = 1
@@ -36,7 +36,14 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 end
 initial_condition = initial_condition_sedov_blast_wave
 
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -53,9 +60,10 @@ coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000)
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -75,16 +83,31 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# Positivity limiter as described in Remark 3 of the paper:
+# - Arpit Babbar, Praveen Chandrashekar (2025)
+#   Lax-Wendroff flux reconstruction on adaptive curvilinear meshes with
+#   error based time stepping for hyperbolic conservation laws
+#   [arXiv: 2402.11926](https://arxiv.org/abs/2402.11926)
+#   [DOI: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 amr_indicator = IndicatorLöhner(semi,
                                 variable = density_pressure)
+
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
                                       med_level = 0, med_threshold = 0.1, # med_level = current level
                                       max_level = 6, max_threshold = 0.3)
+
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 2,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
@@ -93,12 +116,11 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(; stage_limiter! = positivity_limiter,
+                                 williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

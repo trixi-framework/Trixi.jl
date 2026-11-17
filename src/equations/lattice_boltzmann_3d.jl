@@ -91,14 +91,14 @@ The corresponding opposite directions are:
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
    nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
-   [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
+   [DOI: 10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
-   [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
+   [DOI: 10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
 4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
-   [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
+   [DOI: 10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations3D{RealT <: Real, CollisionOp} <:
        AbstractLatticeBoltzmannEquations{3, 27}
@@ -182,19 +182,58 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
                                   -c, c, -c, 0, 0, -c, c, -c, c,
                                   c, -c, -c, c, c, -c, c, -c, 0)
 
-    LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
-                                weights, v_alpha1, v_alpha2, v_alpha3,
-                                collision_op)
+    return LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
+                                       weights, v_alpha1, v_alpha2, v_alpha3,
+                                       collision_op)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LatticeBoltzmannEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LatticeBoltzmannEquations3D{NewRealT,
+                                       typeof(equations.collision_op)}(convert(NewRealT,
+                                                                               equations.c),
+                                                                       convert(NewRealT,
+                                                                               equations.c_s),
+                                                                       convert(NewRealT,
+                                                                               equations.rho0),
+                                                                       convert(NewRealT,
+                                                                               equations.Ma),
+                                                                       convert(NewRealT,
+                                                                               equations.u0),
+                                                                       convert(NewRealT,
+                                                                               equations.Re),
+                                                                       convert(NewRealT,
+                                                                               equations.L),
+                                                                       convert(NewRealT,
+                                                                               equations.nu),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.weights),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha1),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha2),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha3),
+                                                                       equations.collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D)
-    ntuple(v -> "pdf" * string(v), Val(nvariables(equations)))
+    return ntuple(v -> "pdf" * string(v), Val(nvariables(equations)))
 end
 function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
-    varnames(cons2cons, equations)
+    return varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
@@ -202,7 +241,7 @@ end
     return SVector(rho, v1, v2, v3, p)
 end
 function varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D)
-    ("rho", "v1", "v2", "v3", "p")
+    return ("rho", "v1", "v2", "v3", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -223,7 +262,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1
@@ -236,7 +275,7 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation, 
+    flux_godunov(u_ll, u_rr, orientation,
                  equations::LatticeBoltzmannEquations3D)
 
 Godunov (upwind) flux for the 3D Lattice-Boltzmann equations.
@@ -295,18 +334,21 @@ Calculate the macroscopic velocity vector from the particle distribution functio
                    dot(v_alpha3, u) / rho)
 end
 
-"""
+@doc raw"""
     pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
     pressure(u, equations::LatticeBoltzmannEquations3D)
 
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
-`u`.
+`u` as
+```math
+p = \rho c_s^2
+```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
-    pressure(density(u, equations), equations)
+    return pressure(density(u, equations), equations)
 end
 
 """
@@ -379,6 +421,15 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
+"""
+    have_constant_speed(::LatticeBoltzmannEquations3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)

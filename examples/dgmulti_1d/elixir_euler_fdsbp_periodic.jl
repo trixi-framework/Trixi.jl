@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(element_type = Line(),
@@ -16,8 +16,9 @@ source_terms = source_terms_convergence_test
 mesh = DGMultiMesh(dg, coordinates_min = (-1.0,),
                    coordinates_max = (1.0,))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
@@ -25,7 +26,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback,
                         analysis_callback)
@@ -33,7 +34,8 @@ callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 0.5 * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);

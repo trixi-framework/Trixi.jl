@@ -115,10 +115,10 @@ The original paper is
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the PERK method.
-- `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
+- `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing
     monomial coefficients of the stability polynomial of PERK method.
     The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
-- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown.
     In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
 - `tspan`: Time span of the simulation.
 - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
@@ -132,7 +132,7 @@ The original paper is
 
 !!! note
     To use this integrator, the user must import the
-    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and
     [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
     unless the coefficients are provided in a `gamma_<num_stages>.txt` file.
 """
@@ -188,9 +188,10 @@ end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
-# https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
+# https://docs.sciml.ai/DiffEqDocs/stable/basics/integrator/#Handling-Integrators
 # which are used in Trixi.
-mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType <: AbstractVector,
+                                           Params, Sol, F,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
@@ -203,12 +204,12 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # PairedExplicitRK2
+    const f::F # right-hand side of the semidiscretization
+    const alg::PairedExplicitRK2
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
-    dtchangeable::Bool
-    force_stepfail::Bool
+    const dtchangeable::Bool
+    const force_stepfail::Bool
     # Additional PERK register
     k1::uType
 end
@@ -221,11 +222,12 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
 
     k1 = zero(u0) # Additional PERK register
 
-    t0 = first(ode.tspan)
+    t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
 
-    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t0, tdir, dt, dt, iter,
+    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t, tdir, dt, dt, iter,
                                              ode.p,
                                              (prob = ode,), ode.f, alg,
                                              PairedExplicitRKOptions(callback,
@@ -234,15 +236,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
                                              false, true, false,
                                              k1)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
-        end
-        for cb in callback.discrete_callbacks
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -260,12 +254,7 @@ function step!(integrator::PairedExplicitRK2Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
         # First and second stage are identical across all single/standalone PERK methods
@@ -287,22 +276,10 @@ function step!(integrator::PairedExplicitRK2Integrator)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 end # @muladd

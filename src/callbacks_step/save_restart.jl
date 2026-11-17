@@ -12,7 +12,7 @@
 
 Save the current numerical solution in a restart file every `interval` time steps.
 """
-mutable struct SaveRestartCallback
+struct SaveRestartCallback
     interval::Int
     save_final_restart::Bool
     output_directory::String
@@ -23,6 +23,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
 
     restart_callback = cb.affect!
     print(io, "SaveRestartCallback(interval=", restart_callback.interval, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -50,9 +51,9 @@ function SaveRestartCallback(; interval = 0,
     restart_callback = SaveRestartCallback(interval, save_final_restart,
                                            output_directory)
 
-    DiscreteCallback(restart_callback, restart_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(restart_callback, restart_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -62,13 +63,9 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
     mpi_isroot() && mkpath(restart_callback.output_directory)
 
     semi = integrator.p
-    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
     @trixi_timeit timer() "I/O" begin
-        if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh,
-                                                   restart_callback.output_directory)
-            mesh.unsaved_changes = false
-        end
+        save_mesh(semi, restart_callback.output_directory)
     end
 
     return nothing
@@ -93,34 +90,34 @@ function (restart_callback::SaveRestartCallback)(integrator)
     @unpack t, dt = integrator
     iter = integrator.stats.naccept
     semi = integrator.p
-    mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
     @trixi_timeit timer() "I/O" begin
-        if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh,
-                                                   restart_callback.output_directory,
-                                                   iter)
-            mesh.unsaved_changes = false
-        end
-
+        save_mesh(semi, restart_callback.output_directory, iter)
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
-            save_adaptive_time_integrator(integrator, integrator.opts.controller,
-                                          restart_callback)
+            save_adaptive_time_integrator(integrator, restart_callback)
         end
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
 @inline function save_restart_file(u_ode, t, dt, iter,
                                    semi::AbstractSemidiscretization, restart_callback)
+    # TODO GPU currently on CPU
+    backend = trixi_backend(u_ode)
+    if backend !== nothing
+        u_ode = Array(u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-    save_restart_file(u, t, dt, iter, mesh, equations, solver, cache, restart_callback)
+    # See the matching comment in `save_solution_file` (save_solution.jl): `u_ode`
+    # must stay alive for as long as `u`, an unsafe alias into its memory, is used.
+    return GC.@preserve u_ode save_restart_file(u, t, dt, iter, mesh, equations, solver,
+                                                cache, restart_callback)
 end
 
 """
@@ -130,7 +127,7 @@ Load the time saved in a `restart_file`.
 """
 function load_time(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["time"])
+        return read(attributes(file)["time"])
     end
 end
 
@@ -141,7 +138,7 @@ Load the time step number (`iter` in OrdinaryDiffEq.jl) saved in a `restart_file
 """
 function load_timestep(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["timestep"])
+        return read(attributes(file)["timestep"])
     end
 end
 
@@ -154,7 +151,7 @@ number and and the number of accepted steps
 """
 function load_timestep!(integrator, restart_file::AbstractString)
     integrator.iter = load_timestep(restart_file)
-    integrator.stats.naccept = integrator.iter
+    return integrator.stats.naccept = integrator.iter
 end
 
 """
@@ -164,12 +161,12 @@ Load the time step size (`dt` in OrdinaryDiffEq.jl) saved in a `restart_file`.
 """
 function load_dt(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["dt"])
+        return read(attributes(file)["dt"])
     end
 end
 
 function load_restart_file(semi::AbstractSemidiscretization, restart_file)
-    load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
+    return load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
 end
 
 """
@@ -179,28 +176,36 @@ Load the context information for time integrators with error-based step size con
 saved in a `restart_file`.
 """
 function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that the necessary information was saved
-        if !("time_integrator_qold" in keys(attributes(file))) ||
-           !("time_integrator_dtpropose" in keys(attributes(file))) ||
-           (hasproperty(controller, :err) &&
-            !("time_integrator_controller_err" in keys(attributes(file))))
+        if !("time_integrator_dtpropose" in keys(attributes(file)))
             error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
-        # Load data that is required both for PIController and PIDController
-        integrator.qold = read(attributes(file)["time_integrator_qold"])
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
         integrator.accept_step = true
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
-        # Load additional parameters for PIDController
-        if hasproperty(controller, :err) # Distinguish PIDController from PIController
-            controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
-        end
+
+        load_controller!(integrator, file)
     end
+end
+
+function load_controller!(integrator, file)
+    return load_controller!(integrator, get_controller_cache(integrator), file)
+end
+
+function load_controller!(integrator, controller, file)
+    return error("Loading of controller $(typeof(controller)) not implemented.")
+end
+
+function store_controller!(file, integrator)
+    return store_controller!(file, get_controller_cache(integrator), integrator)
+end
+
+function store_controller!(file, controller, integrator)
+    return error("Storing of controller $(typeof(controller)) not implemented.")
 end
 
 include("save_restart_dg.jl")

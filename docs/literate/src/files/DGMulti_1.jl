@@ -1,7 +1,7 @@
 #src # DG schemes via `DGMulti` solver
 
-# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex elements. The basic idea and
-# implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
+# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex (triangles, tetrahedra) elements.
+# The basic idea and implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
 # Here, we want to give some examples and a quick overview about the options with `DGMulti`.
 
 # We start with a simple example we already used in the [tutorial about flux differencing](@ref fluxDiffExample).
@@ -41,7 +41,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 # Run the simulation with the same time integration algorithm as before.
@@ -58,7 +58,7 @@ plot!(getmesh(pd))
 # This simulation is not as fast as the equivalent with `TreeMesh` since no special optimizations for
 # quads (for instance tensor product structure) have been implemented. Figure 4 in ["Efficient implementation of modern entropy stable
 # and kinetic energy preserving discontinuous Galerkin methods for conservation laws"](https://arxiv.org/abs/2112.10517)
-# (2021) provides a nice runtime comparison between the different mesh types. On the other hand,
+# ([DOI](https://doi.org/10.1145/3625559)) (2023) provides a nice runtime comparison between the different mesh types. On the other hand,
 # the functions are more general and thus we have more option we can choose from.
 
 # ## Simulation with Gauss nodes
@@ -90,7 +90,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
@@ -130,7 +130,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
@@ -172,8 +172,8 @@ meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole());
 mesh = DGMultiMesh(dg, meshIO, Dict(:outer_boundary => 1, :inner_boundary => 2))
 #-
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :outer_boundary => boundary_condition_convergence_test,
-                       :inner_boundary => boundary_condition_convergence_test)
+boundary_conditions = (; outer_boundary = boundary_condition_convergence_test,
+                       inner_boundary = boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,
@@ -183,7 +183,7 @@ tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 20)
-analysis_callback = AnalysisCallback(semi, interval = 200, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 200)
 callbacks = CallbackSet(alive_callback, analysis_callback);
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);

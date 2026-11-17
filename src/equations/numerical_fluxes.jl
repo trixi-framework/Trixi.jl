@@ -24,6 +24,18 @@ DG method (except floating point errors).
     return 0.5f0 * (f_ll + f_rr)
 end
 
+# Central flux for equations with auxiliary variables
+@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                              orientation_or_normal_direction,
+                              equations::AbstractEquations)
+    # Calculate regular 1D fluxes
+    f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
+    f_rr = flux(u_rr, aux_rr, orientation_or_normal_direction, equations)
+
+    # Average regular fluxes
+    return 0.5f0 * (f_ll + f_rr)
+end
+
 """
     FluxPlusDissipation(numerical_flux, dissipation)
 
@@ -44,8 +56,22 @@ end
             dissipation(u_ll, u_rr, orientation_or_normal_direction, equations))
 end
 
+# Same as above for equations with auxiliary variables
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, aux_ll, aux_rr,
+                                                orientation_or_normal_direction,
+                                                equations)
+    @unpack numerical_flux, dissipation = numflux
+
+    return (numerical_flux(u_ll, u_rr, aux_ll, aux_rr,
+                           orientation_or_normal_direction, equations)
+            +
+            dissipation(u_ll, u_rr, aux_ll, aux_rr,
+                        orientation_or_normal_direction, equations))
+end
+
 function Base.show(io::IO, f::FluxPlusDissipation)
     print(io, "FluxPlusDissipation(", f.numerical_flux, ", ", f.dissipation, ")")
+    return nothing
 end
 
 """
@@ -151,21 +177,22 @@ end
 
 function Base.show(io::IO, d::DissipationGlobalLaxFriedrichs)
     print(io, "DissipationGlobalLaxFriedrichs(", d.λ, ")")
+    return nothing
 end
 
 """
-    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
 is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref).
+defaulting to [`max_abs_speed`](@ref).
 """
 struct DissipationLocalLaxFriedrichs{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
+DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed)
 
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
                                                               orientation_or_normal_direction,
@@ -175,8 +202,19 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_na
     return -0.5f0 * λ * (u_rr - u_ll)
 end
 
+# Same as above for equations with auxiliary variables
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              aux_ll, aux_rr,
+                                                              orientation_or_normal_direction,
+                                                              equations)
+    lambda = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                                       orientation_or_normal_direction, equations)
+    return -0.5f0 * lambda * (u_rr - u_ll)
+end
+
 function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
     print(io, "DissipationLocalLaxFriedrichs(", d.max_abs_speed, ")")
+    return nothing
 end
 
 """
@@ -188,6 +226,8 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Slightly more diffusive/overestimating than [`max_abs_speed`](@ref).
 """
 function max_abs_speed_naive end
 
@@ -206,34 +246,38 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 Less diffusive, i.e., overestimating than [`max_abs_speed_naive`](@ref).
 
 In particular, `max_abs_speed(u, u, i, equations)` gives the same result as `max_abs_speeds(u, equations)[i]`,
-i.e., the wave speeds used in `max_dt` which computes the maximum stable time step size through the 
+i.e., the wave speeds used in `max_dt` which computes the maximum stable time step size through the
 [`StepsizeCallback`](@ref).
 
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+
+Defaults to [`min_max_speed_naive`](@ref) if no specialized version for the 'equations` at hand is available.
 """
 @inline function max_abs_speed(u_ll, u_rr,
                                orientation_or_normal_direction,
                                equations::AbstractEquations)
-    # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
-    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
+    # Use naive version as "backup" if no specialized version for the equations at hand is available
+    return max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
                                                            DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
-    FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+    FluxLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Local Lax-Friedrichs (Rusanov) flux with maximum wave speed estimate provided by
 `max_abs_speed`, cf. [`DissipationLocalLaxFriedrichs`](@ref) and
 [`max_abs_speed_naive`](@ref).
 """
-function FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)
-    FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
+function FluxLaxFriedrichs(max_abs_speed = max_abs_speed)
+    return FluxPlusDissipation(flux_central,
+                               DissipationLocalLaxFriedrichs(max_abs_speed))
 end
 
 function Base.show(io::IO, f::FluxLaxFriedrichs)
     print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
+    return nothing
 end
 
 """
@@ -244,10 +288,10 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 @doc raw"""
-    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
-must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
+must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield
 an entropy-stable surface flux. The surface flux function can be initialized as:
 ```julia
 flux_es = FluxPlusDissipation(flux_ec, DissipationLaxFriedrichsEntropyVariables())
@@ -257,9 +301,9 @@ In particular, the numerical flux has the form
 ```math
 f^{\mathrm{ES}} = f^{\mathrm{EC}} - \frac{1}{2} \lambda_{\mathrm{max}} H (w_r - w_l),
 ```
-where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}`` 
+where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}``
 is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+defaulting to [`max_abs_speed`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
 depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
 Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is consistent with the local
 Lax-Friedrichs dissipation.
@@ -271,24 +315,26 @@ which must be specialized for each equation.
 For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
 struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed)
 
 function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
     print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
+    return nothing
 end
 
 @doc raw"""
     DissipationMatrixWintersEtal()
 
 Creates the Roe-like entropy-stable matrix dissipation operator from Winters et al. (2017). This operator
-must be used together with an entropy-conservative two-point flux function 
-(e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield 
+must be used together with an entropy-conservative two-point flux function
+(e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield
 an entropy-stable surface flux. The surface flux function can be initialized as:
 ```julia
 flux_es = FluxPlusDissipation(flux_ec, DissipationMatrixWintersEtal())
@@ -297,7 +343,7 @@ The 1D and 2D implementations are adapted from the [Atum.jl library](https://git
 The 3D implementation is adapted from the [FLUXO library](https://github.com/project-fluxo/fluxo)
 
 For the derivation of the matrix dissipation operator, see:
-- A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
+- A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator
   for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
 """
@@ -456,7 +502,7 @@ increase runtime efficiency on modern hardware.
 """
 @inline function flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction,
                                        equations)
-    flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+    return flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 """
@@ -469,53 +515,69 @@ increase runtime efficiency on modern hardware.
 """
 @inline function flux_ranocha_turbo(u_ll, u_rr, orientation_or_normal_direction,
                                     equations)
-    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
+    return flux_ranocha(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 """
-    FluxHydrostaticReconstruction(numerical_flux, hydrostatic_reconstruction)
+    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
+Total energy conservative (mathematical entropy for shallow water equations) split form.
+When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
 
-Allow for some kind of hydrostatic reconstruction of the solution state prior to the
-surface flux computation. This is a particular strategy to ensure that the method remains
-well-balanced for the shallow water equations, see [`ShallowWaterEquations1D`](@ref)
-or [`ShallowWaterEquations2D`](@ref).
-
-For example, the hydrostatic reconstruction from Audusse et al. is implemented
-in one and two spatial dimensions, see [`hydrostatic_reconstruction_audusse_etal`](@ref) or
-the original paper
-- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
-  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
-  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
-
-Other hydrostatic reconstruction techniques are available, particularly to handle wet / dry
-fronts. A good overview of the development and application of hydrostatic reconstruction can be found in
-- Guoxian Chen and Sebastian Noelle
-  A unified surface-gradient and hydrostatic reconstruction scheme for the shallow water equations (2021)
-  [RWTH Aachen preprint](https://www.igpm.rwth-aachen.de/forschung/preprints/517)
-- Andreas Buttinger-Kreuzhuber, Zsolt Horváth, Sebastian Noelle, Günter Blöschl and Jürgen Waser (2019)
-  A fast second-order shallow water scheme on two-dimensional structured grids over abrupt topography
-  [DOI: 10.1016/j.advwatres.2019.03.010](https://doi.org/10.1016/j.advwatres.2019.03.010)
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
-struct FluxHydrostaticReconstruction{NumericalFlux, HydrostaticReconstruction}
-    numerical_flux::NumericalFlux
-    hydrostatic_reconstruction::HydrostaticReconstruction
-end
+function flux_wintermeyer_etal end
 
-@inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr,
-                                                          orientation_or_normal_direction,
-                                                          equations::AbstractEquations)
-    @unpack numerical_flux, hydrostatic_reconstruction = numflux
+"""
+    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 
-    # Create the reconstructed left/right solution states in conservative form
-    u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
+Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography for the shallow water equations.
 
-    # Use the reconstructed states to compute the numerical surface flux
-    return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction,
-                          equations)
-end
+Gives entropy conservation and well-balancedness on both the volume and surface when combined with
+[`flux_wintermeyer_etal`](@ref).
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function flux_nonconservative_wintermeyer_etal end
+
+"""
+    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
+is nonzero this should only be used as a surface flux otherwise the scheme will not be well-balanced.
+For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function flux_fjordholm_etal end
+
+"""
+    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
+that contains the gradient of the bottom topography for the shallow water equations.
+
+This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces to ensure entropy
+conservation and well-balancedness.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function flux_nonconservative_fjordholm_etal end
 
 """
     FluxUpwind(splitting)
@@ -552,4 +614,142 @@ end
 end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
+
+"""
+    FluxTurbo(numerical_flux)
+
+Create a numerical flux equivalent to the given `numerical_flux`
+except that it may use specialized methods, e.g., when used with
+[`VolumeIntegralFluxDifferencing`](@ref). These specialized methods
+may enable better use of SIMD instructions to increase runtime efficiency
+on modern hardware, e.g., using
+[LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+
+The following specialization works by default for all numerical fluxes,
+enabling SIMD instructions. However, for some systems, it is even better
+to precompute some variables (e.g., primitive variables or logarithms of certain variables)
+and then compute the numerical fluxes.
+This optimization can be enabled by defining three ingredients:
+- the number of precomputed variables `Trixi.nturbovars`;
+- the transformation from conservative to precomputed variables `Trixi.cons2turbo`
+- and the  `flux_turbo(flux_turbo::typeof(numerical_flux), ...)`,
+  that computes the numerical flux in terms of the precomputed variables.
+
+For equations with auxiliary variables (see [`nauxvariables`](@ref)), `Trixi.cons2turbo`
+receives the auxiliary variables of the node as additional scalars after the conserved
+variables, and the default precomputed variables are the conserved variables followed by
+the auxiliary variables.
+
+See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
+"""
+struct FluxTurbo{NumericalFlux}
+    numerical_flux::NumericalFlux
+end
+
+function FluxTurbo(flux_conservative, flux_nonconservative)
+    numerical_flux = (flux_conservative, flux_nonconservative)
+    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
+end
+
+# As a fallback method, the wrapped flux is called.
+@inline function (f::FluxTurbo)(args...)
+    return f.numerical_flux(args...)
+end
+
+# When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
+# we need to be able to extract the conservative and nonconservative fluxes
+# like in `symmetric_flux, nonconservative_flux = volume_flux::FluxTurbo`.
+# Thus, we specialize `iterate` (forward it to the wrapped tuple).
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}})
+    return iterate(volume_flux.numerical_flux)
+end
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}}, state)
+    return iterate(volume_flux.numerical_flux, state)
+end
+Base.length(::FluxTurbo{<:NTuple{2, Any}}) = 2
+
+# By default the turbo flux has the same number of precomputed variables
+# as the number of variables and auxiliary variables.
+@inline function nturbovars(numerical_flux, equations)
+    return Val(nvariables(equations) + nauxvariables(equations))
+end
+
+# Transform the conserved variables in precomputed variables to speed up the computation
+# of the numerical flux. When no specialization is given, this gives cons2cons.
+# Note that the conserved variables are passed as scalars instead of a vector
+# to enable optimizations by LoopVectorization.jl. Thus, we use
+# `conserved_and_equations...` instead of `cons, equations`. For equations with auxiliary
+# variables, the auxiliary variables of the node are passed as additional scalars after
+# the conserved variables, i.e., `conserved_and_equations` is
+# `(u_1, ..., u_nvariables, aux_1, ..., aux_nauxvariables, equations)`, and the default
+# precomputed variables are the conserved variables followed by the auxiliary variables.
+@inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
+
+# Extract the conserved and auxiliary variables of both nodes from the default precomputed
+# variables of `cons2turbo`, i.e., the conserved variables followed by the auxiliary
+# variables of each node. The auxiliary variables are returned as the tuple
+# `(aux_ll, aux_rr)`, which is empty for equations without auxiliary variables, such that
+# the fluxes are called as `numerical_flux(u_ll, u_rr, aux..., normal_direction, equations)`.
+@inline function turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
+    n = nvariables(equations)
+    m = nauxvariables(equations)
+    # This condition is resolved at compile time, so the check is free at runtime.
+    length(turbovars_and_normals_and_equations) == 2 * (n + m) + 4 ||
+        throw(ArgumentError("the default `flux_turbo` requires the default layout of " *
+                            "`cons2turbo`, i.e., `nvariables(equations) + " *
+                            "nauxvariables(equations)` precomputed variables per node"))
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + m + v], Val(n)))
+    aux = turbo2aux(Val(m), n, turbovars_and_normals_and_equations)
+    return u_ll, u_rr, aux
+end
+
+@inline turbo2aux(::Val{0}, n, turbovars_and_normals_and_equations) = ()
+
+@inline function turbo2aux(::Val{M}, n, turbovars_and_normals_and_equations) where {M}
+    aux_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(M)))
+    aux_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[2 * n + M + v],
+                            Val(M)))
+    return (aux_ll, aux_rr)
+end
+
+# Numerical volume flux that recalls the plain volume flux when no specialization is given.
+@inline function flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
+    flux_turbo(numerical_flux, have_nonconservative_terms(equations),
+               turbovars_and_normals_and_equations...)
+end
+
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::False,
+                            turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
+    u_ll, u_rr, aux = turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
+    return numerical_flux(u_ll, u_rr, aux..., normal_direction, equations)
+end
+
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
+                            turbovars_and_normals_and_equations...)
+    flux_conservative, flux_nonconservative = numerical_flux
+    equations = last(turbovars_and_normals_and_equations)
+    u_ll, u_rr, aux = turbo2cons_and_aux(turbovars_and_normals_and_equations, equations)
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
+    flux = flux_conservative(u_ll, u_rr, aux..., normal_direction, equations)
+    noncons_left = flux_nonconservative(u_ll, u_rr, aux..., normal_direction, equations)
+    noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)...,
+                                         normal_direction, equations)
+    flux_left = flux + 0.5f0 * noncons_left
+    flux_right = flux + 0.5f0 * noncons_right
+    return flux_left, flux_right
+end
+
+# Allow LoopVectorization.jl to use SIMD instructions on volume_flux_turbo and cons2turbo
+LoopVectorization.can_turbo(::typeof(flux_turbo), ::Val) = true
+LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
+
+Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
 end # @muladd

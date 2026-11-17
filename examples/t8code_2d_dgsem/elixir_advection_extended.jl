@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -9,12 +9,12 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-# BCs must be passed as Dict
+# Boundary conditions are specified as a NamedTuple
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:x_neg => boundary_condition,
-                           :x_pos => boundary_condition,
-                           :y_neg => boundary_condition,
-                           :y_pos => boundary_condition)
+boundary_conditions = (; x_neg = boundary_condition,
+                       x_pos = boundary_condition,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -31,7 +31,7 @@ mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -76,6 +76,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

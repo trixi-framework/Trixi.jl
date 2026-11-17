@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,14 +11,15 @@ initial_condition = initial_condition_weak_blast_wave
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = flux_ranocha
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux = flux_ranocha)
 solver = DGSEM(polydeg = 4, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral = volume_integral)
 
 ###############################################################################
 # Get the curved quad mesh from a mapping function
 
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580), but reduced to 2D
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5
@@ -36,12 +37,13 @@ end
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -71,6 +73,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

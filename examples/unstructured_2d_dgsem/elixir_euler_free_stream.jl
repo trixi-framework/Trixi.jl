@@ -1,5 +1,6 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using TrixiData # for the mesh file
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -9,13 +10,13 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_constant
 
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:Body => boundary_condition_free_stream,
-                           :Button1 => boundary_condition_free_stream,
-                           :Button2 => boundary_condition_free_stream,
-                           :Eye1 => boundary_condition_free_stream,
-                           :Eye2 => boundary_condition_free_stream,
-                           :Smile => boundary_condition_free_stream,
-                           :Bowtie => boundary_condition_free_stream)
+boundary_conditions = (; Body = boundary_condition_free_stream,
+                       Button1 = boundary_condition_free_stream,
+                       Button2 = boundary_condition_free_stream,
+                       Eye1 = boundary_condition_free_stream,
+                       Eye2 = boundary_condition_free_stream,
+                       Smile = boundary_condition_free_stream,
+                       Bowtie = boundary_condition_free_stream)
 
 ###############################################################################
 # Get the DG approximation space
@@ -23,16 +24,15 @@ boundary_conditions = Dict(:Body => boundary_condition_free_stream,
 solver = DGSEM(polydeg = 6, surface_flux = flux_hll)
 
 ###############################################################################
-# Get the curved quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/2c6440b5f8a57db131061ad7aa78ee2b/raw/1f89fdf2c874ff678c78afb6fe8dc784bdfd421f/mesh_gingerbread_man.mesh",
-                           joinpath(@__DIR__, "mesh_gingerbread_man.mesh"))
+# Get the curved quad mesh from a file (downloaded by TrixiData.jl if not available locally)
+mesh_file = mesh_gingerbread_man()
 
 mesh = UnstructuredMesh2D(mesh_file)
 
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -60,6 +60,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

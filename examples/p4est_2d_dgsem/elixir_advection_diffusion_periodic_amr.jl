@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,7 +18,8 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,
@@ -40,7 +41,9 @@ initial_condition = initial_condition_diffusive_convergence_test
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -76,5 +79,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, amr
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

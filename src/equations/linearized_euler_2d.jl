@@ -6,7 +6,8 @@
 #! format: noindent
 
 @doc raw"""
-    LinearizedEulerEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+    LinearizedEulerEquations2D(v_mean_global, c_mean_global::Real, rho_mean_global::Real)
+    LinearizedEulerEquations2D(; v_mean_global, c_mean_global::Real, rho_mean_global::Real)
 
 Linearized Euler equations in two space dimensions. The equations are given by
 ```math
@@ -29,7 +30,9 @@ Linearized Euler equations in two space dimensions. The equations are given by
     0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables, i.e., the velocity
+``(\bar{v_1}, \bar{v_2})`` (`v_mean_global`) and the density ``\bar{\rho} > 0`` (`rho_mean_global`).
+The constant speed of sound is ``c > 0`` (`c_mean_global`).
 The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations2D{RealT <: Real} <:
@@ -37,31 +40,50 @@ struct LinearizedEulerEquations2D{RealT <: Real} <:
     v_mean_global::SVector{2, RealT}
     c_mean_global::RealT
     rho_mean_global::RealT
-end
 
-function LinearizedEulerEquations2D(v_mean_global::NTuple{2, <:Real},
-                                    c_mean_global::Real, rho_mean_global::Real)
-    if rho_mean_global < 0
-        throw(ArgumentError("rho_mean_global must be non-negative"))
-    elseif c_mean_global < 0
-        throw(ArgumentError("c_mean_global must be non-negative"))
+    function LinearizedEulerEquations2D{RealT}(v_mean_global, c_mean_global,
+                                               rho_mean_global) where {RealT <: Real}
+        if !(rho_mean_global > 0)
+            throw(ArgumentError("rho_mean_global must be positive"))
+        elseif !(c_mean_global > 0)
+            throw(ArgumentError("c_mean_global must be positive"))
+        end
+
+        return new{RealT}(v_mean_global, c_mean_global, rho_mean_global)
     end
-
-    return LinearizedEulerEquations2D(SVector(v_mean_global), c_mean_global,
-                                      rho_mean_global)
 end
 
-function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
+function LinearizedEulerEquations2D(v_mean_global,
+                                    c_mean_global::Real, rho_mean_global::Real)
+    v_mean_global = SVector{2}(v_mean_global)
+    RealT = promote_type(eltype(v_mean_global), typeof(c_mean_global),
+                         typeof(rho_mean_global))
+    return LinearizedEulerEquations2D{RealT}(v_mean_global, c_mean_global,
+                                             rho_mean_global)
+end
+
+function LinearizedEulerEquations2D(; v_mean_global,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations2D(v_mean_global, c_mean_global,
                                       rho_mean_global)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearizedEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearizedEulerEquations2D(SVector{2, NewRealT}(equations.v_mean_global),
+                                      convert(NewRealT, equations.c_mean_global),
+                                      convert(NewRealT, equations.rho_mean_global))
+end
+
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations2D)
-    ("rho_prime", "v1_prime", "v2_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end
 function varnames(::typeof(cons2prim), ::LinearizedEulerEquations2D)
-    ("rho_prime", "v1_prime", "v2_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end
 
 """
@@ -144,6 +166,15 @@ end
     return SVector(f1, f2, f3, f4)
 end
 
+"""
+    have_constant_speed(::LinearizedEulerEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearizedEulerEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations2D)
@@ -356,12 +387,12 @@ end
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
+    return min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::LinearizedEulerEquations2D)
-    min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
+    return min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

@@ -5,8 +5,10 @@
 # introduction to the idea and implementation of subcell shock capturing approaches in Trixi.jl,
 # which is also based on the DGSEM scheme in flux differencing formulation.
 # Trixi.jl contains the a-posteriori invariant domain-preserving (IDP) limiter which was
-# introduced by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
-# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627).
+# introduced by [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://arxiv.org/abs/2202.00576)
+# ([DOI](https://doi.org/10.1016/j.compfluid.2022.105627)).
 # It is a flux-corrected transport-type (FCT) limiter and is implemented using [`SubcellLimiterIDP`](@ref)
 # and [`VolumeIntegralSubcellLimiting`](@ref).
 # Since it is an a-posteriori limiter you have to apply a correction stage after each Runge-Kutta
@@ -30,7 +32,7 @@
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
 # ````julia
-# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)
+# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...);
 # ````
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
@@ -38,8 +40,10 @@
 
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
-# is based on [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
-# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627).
+# is based on [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://arxiv.org/abs/2202.00576)
+# ([DOI](https://doi.org/10.1016/j.compfluid.2022.105627)).
 # It supports several types of limiting which are enabled by passing parameters individually.
 
 # ### [Global bounds](@id global_bounds)
@@ -58,7 +62,8 @@
 # Additionally, there is the parameter
 # `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
 # of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
-# as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
+# as it was shown by [Pazner (2021)](https://arxiv.org/abs/2004.08503)
+# ([DOI](https://doi.org/10.1016/j.cma.2021.113876)) [Section 4.2.2.]
 # that this value guarantees the fulfillment of bounds for a forward-Euler increment.
 
 # Very small non-negative values can be an issue as well. That's why we use an additional
@@ -115,8 +120,8 @@ local_twosided_variables_cons = ["rho"]
 
 # To limit non-linear variables locally, pass the variable function combined with the requested
 # bound (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified
-# specific entropy [`Trixi.entropy_guermond_etal`](@ref), use
-local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
+# specific entropy [`entropy_guermond_etal`](@ref), use
+local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
@@ -129,7 +134,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     ## Set up polar coordinates
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
@@ -170,6 +175,17 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
+# Alternatively, you can also pass a pre-defined low-order volume integral to the subcell limiting volume integral:
+volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg = volume_flux,
+                                                volume_integral_low_order = volume_integral_low_order)
+# This also allows to use a second-order FV scheme with
+# ```julia
+# volume_integral_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+#                                                                 reconstruction_mode = reconstruction_O2_inner,
+#                                                                 volume_flux_fv = surface_flux)
+# ```
 
 # Then, the volume integral is passed to `solver` as it is done for the standard flux-differencing
 # DG scheme or the element-wise limiting.
@@ -179,9 +195,10 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000)
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
@@ -196,7 +213,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 
@@ -214,7 +232,7 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 # SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
 # routine.
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
 
 # ## Visualization
@@ -224,7 +242,8 @@ using Plots
 plot(sol)
 
 # To get an additional look at the amount of limiting that is used, you can use the visualization
-# approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
+# approach using the [`SaveSolutionCallback`](@ref) by passing `(:limiting_coefficient,)` as
+# `extra_node_variables`, [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
 #-

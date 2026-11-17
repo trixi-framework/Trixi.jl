@@ -52,14 +52,14 @@ The corresponding opposite directions are:
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
    nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
-   [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
+   [DOI: 10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
-   [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
+   [DOI: 10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
 4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
-   [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
+   [DOI: 10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations2D{RealT <: Real, CollisionOp} <:
        AbstractLatticeBoltzmannEquations{2, 9}
@@ -101,7 +101,7 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
     # `c` depends on the used phase space discretization, and is valid for D2Q9 (and others). For
     # details, see, e.g., [3] in the docstring above.
-    # c_s = c / sqrt(3) 
+    # c_s = c / sqrt(3)
 
     # Calculate missing quantities
     if isnothing(Ma)
@@ -128,19 +128,56 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     v_alpha1 = SVector{9, RealT}(c, 0, -c, 0, c, -c, -c, c, 0)
     v_alpha2 = SVector{9, RealT}(0, c, 0, -c, c, c, -c, -c, 0)
 
-    LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
-                                weights, v_alpha1, v_alpha2,
-                                collision_op)
+    return LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
+                                       weights, v_alpha1, v_alpha2,
+                                       collision_op)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LatticeBoltzmannEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LatticeBoltzmannEquations2D{NewRealT,
+                                       typeof(equations.collision_op)}(convert(NewRealT,
+                                                                               equations.c),
+                                                                       convert(NewRealT,
+                                                                               equations.c_s),
+                                                                       convert(NewRealT,
+                                                                               equations.rho0),
+                                                                       convert(NewRealT,
+                                                                               equations.Ma),
+                                                                       convert(NewRealT,
+                                                                               equations.u0),
+                                                                       convert(NewRealT,
+                                                                               equations.Re),
+                                                                       convert(NewRealT,
+                                                                               equations.L),
+                                                                       convert(NewRealT,
+                                                                               equations.nu),
+                                                                       SVector{9,
+                                                                               NewRealT}(equations.weights),
+                                                                       SVector{9,
+                                                                               NewRealT}(equations.v_alpha1),
+                                                                       SVector{9,
+                                                                               NewRealT}(equations.v_alpha2),
+                                                                       equations.collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D)
-    ntuple(v -> "pdf" * string(v), nvariables(equations))
+    return ntuple(v -> "pdf" * string(v), nvariables(equations))
 end
 function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D)
-    varnames(cons2cons, equations)
+    return varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
     rho = density(u, equations)
     v1, v2 = velocity(u, equations)
@@ -148,7 +185,7 @@ end
     return SVector(rho, v1, v2, p)
 end
 function varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D)
-    ("rho", "v1", "v2", "p")
+    return ("rho", "v1", "v2", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -235,7 +272,7 @@ No-slip wall boundary condition using the bounce-back approach.
     return flux
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations2D)
     if orientation == 1
         v_alpha = equations.v_alpha1
@@ -246,7 +283,7 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation, 
+    flux_godunov(u_ll, u_rr, orientation,
                  equations::LatticeBoltzmannEquations2D)
 
 Godunov (upwind) flux for the 2D Lattice-Boltzmann equations.
@@ -300,18 +337,21 @@ Calculate the macroscopic velocity vector from the particle distribution functio
                    dot(v_alpha2, u) / rho)
 end
 
-"""
+@doc raw"""
     pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     pressure(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
-`u`.
+`u` as
+```math
+p = \rho c_s^2
+```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations2D)
-    pressure(density(u, equations), equations)
+    return pressure(density(u, equations), equations)
 end
 
 """
@@ -366,6 +406,15 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
+"""
+    have_constant_speed(::LatticeBoltzmannEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LatticeBoltzmannEquations2D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations2D)

@@ -8,7 +8,7 @@ equations = HyperbolicDiffusionEquations1D(nu = 1.25)
 """
     initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
 
-A non-priodic harmonic function used in combination with
+A non-periodic harmonic function used in combination with
 [`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
 
 !!! note
@@ -39,10 +39,9 @@ coordinates_min = -1.0
 coordinates_max = 2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 30_000,
                 periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions,
                                     source_terms = source_terms_harmonic)
 
@@ -78,5 +77,5 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52();
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

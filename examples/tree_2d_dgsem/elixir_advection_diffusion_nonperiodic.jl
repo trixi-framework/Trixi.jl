@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -15,11 +15,9 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
 coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -30,7 +28,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 function initial_condition_eriksson_johnson(x, t, equations)
     RealT = eltype(x)
     l = 4
-    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     r1 = (1 + sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
@@ -52,6 +50,7 @@ boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -81,5 +80,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

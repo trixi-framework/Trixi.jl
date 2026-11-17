@@ -76,6 +76,24 @@ set via the keywords
   documented with a docstring (but maybe with comments using `#`).
 
 
+## Structure of the `solver` directory
+
+If some functionality is shared by multiple combinations of meshes/solvers,
+it is defined in the directory of the most basic mesh and solver type.
+An example is `rhs_hyperbolic!`, whose lower-level methods define the sequence of operations used
+to evaluate the hyperbolic right-hand side provided to the ODE integrator.
+Since this general "recipe" can be unified for different meshes of a certain dimension,
+a shared implementation is used to minimize code duplication.
+
+The most basic (in the sense that it is most tested and developed) solver type in Trixi.jl is
+[`DGSEM`](@ref) due to historic reasons and background of the main contributors.
+We consider the [`TreeMesh`](@ref) to be the most basic mesh type since it is Cartesian
+and was the first mesh in Trixi.jl.
+Thus, shared implementations for more advanced meshes such as the [`P4estMesh`](@ref) can be found in
+the `src/solvers/dgsem_tree/` directory, while only necessary specifics are actually placed in
+`src/solvers/dgsem_p4est/`.
+
+
 ## Array types and wrapping
 
 To allow adaptive mesh refinement efficiently when using time integrators from
@@ -107,7 +125,17 @@ based on the following rules.
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
 
-## Numeric types and type stability
+### Usage of statically sized arrays
+
+Trixi.jl employs statically sized vectors and arrays from the
+[StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl) package, i.e.,
+`SVector, SMatrix` for the immutable versions and `MVector, MMatrix` for the mutable variants.
+These types are preferred for "small" (StaticArrays.jl [recommends as a rule of thumb about 100 entries](https://juliaarrays.github.io/StaticArrays.jl/stable/#When-Static-Arrays-may-be-useful)) arrays with a size known at compile time.
+Inspired by this recommendation, Trixi.jl uses the static size `SVector` most notably for numerical fluxes and initial/boundary conditions.
+The mutable statically sized `MArray` type is used for **arrays up to two dimensions** which show up in mortars, indicators, and certain volume integrals.
+For arrays of higher dimensions (mostly three and four) we use standard Julia `Array` types.
+
+## [Numeric types and type stability](@id numeric-types)
 
 In Trixi.jl, we use generic programming to support custom data types to store the numerical simulation data, including standard floating point types and automatic differentiation types.
 Specifically, `Float32` and `Float64` types are fully supported, including the ability to run Trixi.jl on hardware that only supports `Float32` types.
@@ -169,3 +197,17 @@ In general, in the case of integer numbers, our developers should apply a case-b
 1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.
 2. If `u` is not passed as an argument but a vector of coordinates `x` such as `initial_condition(x, t, equations)`, use `eltype(x)` instead.
 3. Choose an appropriate argument to determine the real type otherwise.
+
+### Initial time step size with a `StepsizeCallback`
+
+When using a time stepping method together with a [`StepsizeCallback`](@ref)
+for CFL-based step size control, `solve` requires a dummy initial `dt` that is immediately
+overwritten by the callback. Use an integer value rather than a `Float64` literal to avoid
+a type mismatch when the ODE state vector uses `Float32`:
+
+```julia
+sol = solve(ode, alg; dt = 1, callback = callbacks)  # use `1`, not `1.0`
+```
+
+The integer `1` is promoted to whatever real type the state vector uses, whereas `1.0` is
+always `Float64`.

@@ -4,7 +4,7 @@ plot(Shape([(-1.2, 4), (1.2, 4), (1.2, 3), (-1.2, 3)]), linecolor = "black",
      grid = false, xlim = (-2.6, 2.6), ylim = (-21.5, 4.5))
 annotate!(0, 3.5, ("semidiscretize(semi, tspan; reset_threads)", 10, :black, :center))
 annotate!(0, 2.5,
-          ("creates and returns an ODEProblem object, initialized using rhs!, u0_ode, tspan and semi",
+          ("creates and returns an ODEProblem object, initialized using default_rhs(semi), u0_ode, tspan and semi",
            9, :black, :center))
 plot!([0, 0], [2, 0.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([0, -0.2], [2, 0.5], arrow = true, color = :black, linewidth = 2, label = "")
@@ -21,7 +21,7 @@ plot!([0, 0], [-0.5, -2], arrow = true, color = :black, linewidth = 2, label = "
 plot!(Shape([(-1.3, -2), (1.3, -2), (1.3, -3), (-1.3, -3)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
 annotate!(0, -2.5,
-          ("compute_coefficients(initial_conditions, t, semi)", 10, :black, :center))
+          ("compute_coefficients(initial_condition, t, semi)", 10, :black, :center))
 plot!([0, 0.2], [-3, -4.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([0, -0.87], [-3, -9.5], arrow = true, color = :black, linewidth = 2, label = "")
 
@@ -38,7 +38,7 @@ by OrdinaryDiffEq.jl to keep a solution", 9, :black, :left))
 plot!(Shape([(-2.5, -9.5), (0.05, -9.5), (0.05, -11.5), (-2.5, -11.5)]),
       linecolor = "black", fillcolor = "white", label = false, linewidth = 2)
 annotate!(-2.45, -10.5,
-          ("compute_coefficients!(u_ode, initial_conditions,
+          ("compute_coefficients!(u_ode, initial_condition,
                       t, semi)", 10, :black, :left))
 plot!([-2.4, -2.4], [-11.5, -18.5], arrow = false, color = :black, linewidth = 2,
       label = "")
@@ -55,11 +55,11 @@ plot!([-2.4, -2.2], [-13.5, -13.5], arrow = true, color = :black, linewidth = 2,
 plot!(Shape([(-1.1, -17.5), (1.7, -17.5), (1.7, -19.5), (-1.1, -19.5)]),
       linecolor = "black", fillcolor = "white", label = false, linewidth = 2)
 annotate!(-1.05, -18.5,
-          ("compute_coefficients!(u, initial_conditions, t, mesh,
-                      equations, solver, cache)", 10, :black, :left))
+          ("compute_coefficients!(backend, u, initial_condition, t,
+                      mesh, equations, solver, cache)", 9, :black, :left))
 annotate!(-1.1, -20.5,
-          ("applies an initial conditions to each node of each element for each variable,
-saves in the wrapped u_ode", 9, :black, :left))
+          ("applies the initial condition at each node and stores the result in u,
+which shares storage with u_ode", 9, :black, :left))
 plot!([-2.4, -1.1], [-18.5, -18.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([-2.4, -1.1], [-18.5, -17.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([-2.4, -1.1], [-18.5, -19.5], arrow = true, color = :black, linewidth = 2, label = "")

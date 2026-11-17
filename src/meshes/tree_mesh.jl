@@ -29,44 +29,40 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     tree::TreeType
     current_filename::String
     unsaved_changes::Bool
+    # These are needed for distributed memory (i.e., MPI) parallelization
     first_cell_by_rank::OffsetVector{Int, Vector{Int}}
     n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
-    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer) where {NDIMS,
-                                                                           TreeType <:
-                                                                           AbstractTree{NDIMS},
-                                                                           RealT <:
-                                                                           Real}
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
+    function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer) where {NDIMS,
+                                                                        TreeType <:
+                                                                        AbstractTree{NDIMS},
+                                                                        RealT <:
+                                                                        Real}
+        tree = TreeType(capacity)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 
-    # TODO: Taal refactor, order of important arguments, use of n_cells_max?
-    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+    function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer,
                                               domain_center::AbstractArray{RealT},
                                               domain_length::RealT,
-                                              periodicity = true) where {NDIMS,
-                                                                         TreeType <:
-                                                                         AbstractTree{NDIMS},
-                                                                         RealT <: Real}
-        @assert NDIMS isa Integer && NDIMS > 0
+                                              periodicity = false) where {NDIMS,
+                                                                          TreeType <:
+                                                                          AbstractTree{NDIMS},
+                                                                          RealT <: Real}
+        tree = TreeType(capacity, domain_center, domain_length, periodicity)
+        current_filename = ""
+        unsaved_changes = true
+        first_cell_by_rank = OffsetVector(Int[], 0)
+        n_cells_by_rank = OffsetVector(Int[], 0)
 
-        # Create mesh
-        m = new()
-        m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
-        m.current_filename = ""
-        m.unsaved_changes = true
-        m.first_cell_by_rank = OffsetVector(Int[], 0)
-        m.n_cells_by_rank = OffsetVector(Int[], 0)
-
-        return m
+        return new(tree, current_filename, unsaved_changes,
+                   first_cell_by_rank, n_cells_by_rank)
     end
 end
 
@@ -74,52 +70,69 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
-const SerialTreeMesh{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
-const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
+const TreeMeshSerial{NDIMS} = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const TreeMeshParallel{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 
-@inline mpi_parallel(mesh::SerialTreeMesh) = False()
-@inline mpi_parallel(mesh::ParallelTreeMesh) = True()
+@inline mpi_parallel(mesh::TreeMeshSerial) = False()
+@inline mpi_parallel(mesh::TreeMeshParallel) = True()
 
-partition!(mesh::SerialTreeMesh) = nothing
+partition!(mesh::TreeMeshSerial) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
 function TreeMesh(::Type{TreeType}, args...;
                   RealT = Float64) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
-    TreeMesh{NDIMS, TreeType, RealT}(args...)
+    return TreeMesh{NDIMS, TreeType, RealT}(args...)
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function TreeMesh{1, TreeType, RealT}(n::Int, center::RealT, len::RealT,
-                                      periodicity = true) where {
-                                                                 TreeType <:
-                                                                 AbstractTree{1},
-                                                                 RealT <: Real}
+                                      periodicity = false) where {
+                                                                  TreeType <:
+                                                                  AbstractTree{1},
+                                                                  RealT <: Real}
     return TreeMesh{1, TreeType, RealT}(n, SVector{1, RealT}(center), len, periodicity)
 end
 
-function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer,
                                           domain_center::NTuple{NDIMS, RealT},
                                           domain_length::RealT,
-                                          periodicity = true) where {NDIMS,
-                                                                     TreeType <:
-                                                                     AbstractTree{NDIMS},
-                                                                     RealT <: Real}
-    TreeMesh{NDIMS, TreeType, RealT}(n_cells_max, SVector{NDIMS, RealT}(domain_center),
-                                     domain_length, periodicity)
+                                          periodicity = false) where {NDIMS,
+                                                                      TreeType <:
+                                                                      AbstractTree{NDIMS},
+                                                                      RealT <: Real}
+    return TreeMesh{NDIMS, TreeType, RealT}(capacity,
+                                            SVector{NDIMS, RealT}(domain_center),
+                                            domain_length, periodicity)
 end
 
+"""
+    TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+             coordinates_max::NTuple{NDIMS, Real};
+             periodicity = false,
+             initial_refinement_level,
+             refinement_patches = (),
+             coarsening_patches = (),
+             RealT = Float64) where {NDIMS}
+
+Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the domain defined by
+`coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
+refinement to the specified `initial_refinement_level`. Further refinement and
+coarsening patches can be specified using `refinement_patches` and
+`coarsening_patches`, respectively.
+The periodicity in each dimension can be specified using the
+`periodicity` argument (default: non-periodic in all dimensions). If it is a single
+`Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
+`Bool`s of length `NDIMS` must be provided. Note that the domain must be a hypercube, i.e.,
+all dimensions must have the same length.
+"""
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
-                  n_cells_max,
-                  periodicity = true,
+                  periodicity = false,
                   initial_refinement_level,
                   refinement_patches = (),
                   coarsening_patches = (),
                   RealT = Float64) where {NDIMS}
     # check arguments
-    if !(n_cells_max isa Integer && n_cells_max > 0)
-        throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
-    end
     if !(initial_refinement_level isa Integer && initial_refinement_level >= 0)
         throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
     end
@@ -155,8 +168,12 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         TreeType = SerialTree{NDIMS, RealT}
     end
 
+    # Compute initial tree capacity for uniform refinement to the given `initial_refinement_level`.
+    # This is only the initial storage size: the tree grows it when required (e.g., AMR, restart).
+    capacity = sum((2^NDIMS)^l for l in 0:initial_refinement_level)
+
     # Create mesh
-    mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
+    mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(capacity,
                                                                              domain_center,
                                                                              domain_length,
                                                                              periodicity)
@@ -203,11 +220,51 @@ end
 
 function TreeMesh(coordinates_min::Real, coordinates_max::Real;
                   kwargs...)
-    TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
+    return TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
+end
+
+"""
+    TreeMesh(; coordinates_min, coordinates_max, refinement_level,
+               periodicity = false, refinement_patches = (),
+               coarsening_patches = (), RealT = Float64)
+
+Create a [`TreeMesh`](@ref) using keyword arguments only, for easy mesh-type swapping
+with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
+
+# Arguments
+- `coordinates_min`: coordinates of the low corner of the domain as a tuple,
+  e.g. `(-1.0, -1.0)` for 2D.
+- `coordinates_max`: coordinates of the high corner of the domain as a tuple.
+  Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: number of uniform refinements;
+  yields `2^refinement_level` cells per dimension.
+- `periodicity`: either a `Bool` applied to all dimensions or an `NTuple{NDIMS, Bool}`
+  specifying periodicity per dimension. Default: `false`.
+- `refinement_patches`: regions to additionally refine. Default: `()`.
+- `coarsening_patches`: regions to coarsen. Default: `()`.
+- `RealT`: floating-point type for coordinates. Default: `Float64`.
+"""
+function TreeMesh(; coordinates_min,
+                  coordinates_max,
+                  refinement_level,
+                  periodicity = false,
+                  refinement_patches = (),
+                  coarsening_patches = (),
+                  RealT = Float64)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    return TreeMesh(coordinates_min, coordinates_max;
+                    initial_refinement_level = refinement_level,
+                    periodicity = periodicity,
+                    refinement_patches = refinement_patches,
+                    coarsening_patches = coarsening_patches,
+                    RealT = RealT)
 end
 
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
     print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -221,7 +278,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
             "#leaf-cells" => count_leaf_cells(mesh.tree),
-            "maximum #cells" => mesh.tree.capacity
+            "current capacity" => mesh.tree.capacity
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
                     setup)
@@ -239,10 +296,16 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
     mesh_file = ""
     h5open(restart_filename, "r") do file
         mesh_file = read(attributes(file)["mesh_file"])
+        return nothing
     end
 
     # Construct and return filename
     return joinpath(dirname, mesh_file)
+end
+
+@inline function get_cell_volume(element, mesh::TreeMesh{NDIMS}, equations, dg,
+                                 cache) where {NDIMS}
+    return 2^NDIMS * volume_jacobian(element, mesh, cache)
 end
 
 function total_volume(mesh::TreeMesh)
@@ -251,6 +314,10 @@ end
 
 isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
 isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
+
+Base.real(::TreeMesh{NDIMS, TreeType, RealT}) where {NDIMS, TreeType, RealT} = RealT
+
+@inline ncells(mesh::TreeMesh) = length(local_leaf_cells(mesh.tree))
 
 include("parallel_tree_mesh.jl")
 end # @muladd

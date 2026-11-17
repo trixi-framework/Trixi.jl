@@ -23,11 +23,11 @@ coordinates_max = one(RealT) # maximum coordinate
 # i.e., is not inferred from the coordinates.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
-                RealT = RealT)
+                RealT = RealT, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -52,7 +52,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, DP8();
+sol = solve(ode, DP8(thread = Trixi.Threaded());
             # Turn off adaptivity to avoid setting very small tolerances
             adaptive = false,
             dt = 42, # `dt` does not need to be in higher precision

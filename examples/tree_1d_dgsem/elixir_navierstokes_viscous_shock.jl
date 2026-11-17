@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # This is the classic 1D viscous shock wave problem with analytical solution
@@ -96,29 +96,24 @@ coordinates_max = domain_length / 2
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
-function boundary_condition_inflow(u_inner, orientation::Integer, normal_direction, x, t,
+function boundary_condition_inflow(u_inner, orientation::Integer, direction, x, t,
                                    surface_flux_function,
                                    equations::CompressibleEulerEquations1D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
-    flux = Trixi.flux(u_cons, orientation, equations)
-
-    return flux
+    return flux(u_cons, orientation, equations)
 end
 
 # Completely free outflow
-function boundary_condition_outflow(u_inner, orientation::Integer, normal_direction, x, t,
+function boundary_condition_outflow(u_inner, orientation::Integer, direction, x, t,
                                     surface_flux_function,
                                     equations::CompressibleEulerEquations1D)
     # Calculate the boundary flux entirely from the internal solution state
-    flux = Trixi.flux(u_inner, orientation, equations)
-
-    return flux
+    return flux(u_inner, orientation, equations)
 end
 
 boundary_conditions = (; x_neg = boundary_condition_inflow,
@@ -127,17 +122,13 @@ boundary_conditions = (; x_neg = boundary_condition_inflow,
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
 velocity_bc = NoSlip() do x, t, equations_parabolic
-    Trixi.velocity(initial_condition_viscous_shock(x,
-                                                   t,
-                                                   equations_parabolic),
-                   equations_parabolic)
+    return velocity(initial_condition_viscous_shock(x, t, equations_parabolic),
+                    equations_parabolic)
 end
 
 heat_bc = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition_viscous_shock(x,
-                                                      t,
-                                                      equations_parabolic),
-                      equations_parabolic)
+    return temperature(initial_condition_viscous_shock(x, t, equations_parabolic),
+                       equations_parabolic)
 end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
@@ -145,6 +136,12 @@ boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, he
 boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
+# We use by default the Bassi-Rebay 1 scheme.
+# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence.
+# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes.
+# The LDG scheme can be used by specifying the keyword
+# solver_parabolic = ParabolicFormulationLocalDG()
+# in the semidiscretization call below.
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
@@ -170,5 +167,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             dt = 1e-3, ode_default_options()..., callback = callbacks)

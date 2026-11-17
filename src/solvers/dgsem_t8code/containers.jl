@@ -1,8 +1,13 @@
 function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container.
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     count_required_surfaces!(mesh)
 
@@ -47,7 +52,8 @@ function count_required_surfaces(mesh::T8codeMesh)
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_interfaces!(interfaces, mesh::T8codeMesh)
+function init_interfaces!(interfaces, elements,
+                          mesh::T8codeMesh, basis)
     # Already computed. Do nothing.
     return nothing
 end

@@ -6,7 +6,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# ## Splitting a system into hyperbolic and parabolic parts.
+# ## Splitting a system into hyperbolic and parabolic parts
 
 # For a mixed hyperbolic-parabolic system, we represent the hyperbolic and parabolic
 # parts of the system  separately. We first define the hyperbolic (advection) part of
@@ -60,7 +60,7 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = false, n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = false)
 
 initial_condition = (x, t, equations) -> SVector(0.0);
 

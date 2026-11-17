@@ -6,12 +6,13 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
-struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real}
-    node_coordinates::Array{RealT, 4}   # [ndims, nnodes, nnodes, nelement]
-    jacobian_matrix::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
-    inverse_jacobian::Array{RealT, 3}   # [nnodes, nnodes, nelement]
-    contravariant_vectors::Array{RealT, 5}   # [ndims, ndims, nnodes, nnodes, nelement]
-    normal_directions::Array{RealT, 4}   # [ndims, nnodes, local sides, nelement]
+struct UnstructuredElementContainer2D{RealT <: Real, uEltype <: Real} <:
+       AbstractElementContainer
+    node_coordinates::Array{RealT, 4}      # [ndims, nnodes, nnodes, nelement]
+    jacobian_matrix::Array{RealT, 5}       # [ndims, ndims, nnodes, nnodes, nelement]
+    inverse_jacobian::Array{RealT, 3}      # [nnodes, nnodes, nelement]
+    contravariant_vectors::Array{RealT, 5} # [ndims, ndims, nnodes, nnodes, nelement]
+    normal_directions::Array{RealT, 4}     # [ndims, nnodes, local sides, nelement]
     surface_flux_values::Array{uEltype, 4} # [variables, nnodes, local sides, elements]
 end
 
@@ -39,7 +40,7 @@ function UnstructuredElementContainer2D{RealT, uEltype}(capacity::Integer, n_var
 end
 
 @inline function nelements(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 4)
+    return size(elements.surface_flux_values, 4)
 end
 """
     eachelement(elements::UnstructuredElementContainer2D)
@@ -49,24 +50,59 @@ for the elements in `elements`.
 In particular, not the elements themselves are returned.
 """
 @inline function eachelement(elements::UnstructuredElementContainer2D)
-    Base.OneTo(nelements(elements))
+    return Base.OneTo(nelements(elements))
 end
 
 @inline function nvariables(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 1)
+    return size(elements.surface_flux_values, 1)
 end
 @inline function nnodes(elements::UnstructuredElementContainer2D)
-    size(elements.surface_flux_values, 2)
+    return size(elements.surface_flux_values, 2)
 end
 
 Base.real(elements::UnstructuredElementContainer2D) = eltype(elements.node_coordinates)
 function Base.eltype(elements::UnstructuredElementContainer2D)
-    eltype(elements.surface_flux_values)
+    return eltype(elements.surface_flux_values)
 end
 
-@inline function get_surface_normal(vec, indices...)
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::UnstructuredElementContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.jacobian_matrix,
+               (Base.OneTo(2), Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian,
+               (eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.contravariant_vectors,
+               (Base.OneTo(2), Base.OneTo(2),
+                eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.normal_directions,
+               (Base.OneTo(2),
+                eachnode(solver),
+                Base.OneTo(4),
+                eachelement(solver, cache)))
+    check_axes(elements.surface_flux_values,
+               (eachvariable(equations),
+                eachnode(solver),
+                Base.OneTo(4),
+                eachelement(solver, cache)))
+    return nothing
+end
+
+Base.@propagate_inbounds function get_surface_normal(vec, indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(vec, 1:2, indices...)
+    # Assume inbounds access now
     # way to extract the normal vector at the surfaces without allocating
-    surface_vector = SVector(ntuple(j -> vec[j, indices...], 2))
+    surface_vector = SVector(ntuple(@inline(j->@inbounds vec[j, indices...]), 2))
     return surface_vector
 end
 
@@ -117,12 +153,13 @@ function init_element!(elements, element, basis::LobattoLegendreBasis,
 end
 
 # generic container for the interior interfaces of an unstructured mesh
-struct UnstructuredInterfaceContainer2D{uEltype <: Real}
-    u::Array{uEltype, 4} # [primary/secondary, variables, i, interfaces]
-    start_index::Vector{Int}       # [interfaces]
-    index_increment::Vector{Int}       # [interfaces]
-    element_ids::Array{Int, 2}     # [primary/secondary, interfaces]
-    element_side_ids::Array{Int, 2}     # [primary/secondary, interfaces]
+struct UnstructuredInterfaceContainer2D{uEltype <: Real} <:
+       AbstractInterfaceContainer
+    u::Array{uEltype, 4}            # [primary/secondary, variables, i, interfaces]
+    start_index::Vector{Int}        # [interfaces]
+    index_increment::Vector{Int}    # [interfaces]
+    element_ids::Array{Int, 2}      # [primary/secondary, interfaces]
+    element_side_ids::Array{Int, 2} # [primary/secondary, interfaces]
 end
 
 # Construct an empty curved interface container to be filled later with neighbour
@@ -142,9 +179,25 @@ function UnstructuredInterfaceContainer2D{uEltype}(capacity::Integer, n_variable
 end
 
 @inline function ninterfaces(interfaces::UnstructuredInterfaceContainer2D)
-    length(interfaces.start_index)
+    return length(interfaces.start_index)
 end
 @inline nnodes(interfaces::UnstructuredInterfaceContainer2D) = size(interfaces.u, 3)
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::UnstructuredInterfaceContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.start_index, (eachinterface(solver, cache),))
+    check_axes(interfaces.index_increment, (eachinterface(solver, cache),))
+    check_axes(interfaces.element_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.element_side_ids,
+               (Base.OneTo(2), eachinterface(solver, cache)))
+    return nothing
+end
 
 function init_interfaces(mesh::UnstructuredMesh2D,
                          elements::UnstructuredElementContainer2D)
@@ -255,12 +308,13 @@ end
 
 # TODO: Clean-up meshes. Find a better name since it's also used for other meshes
 # generic container for the boundary interfaces of an unstructured mesh
-struct UnstructuredBoundaryContainer2D{RealT <: Real, uEltype <: Real}
-    u::Array{uEltype, 3} # [variables, i, boundaries]
-    element_id::Vector{Int}       # [boundaries]
-    element_side_id::Vector{Int}       # [boundaries]
-    node_coordinates::Array{RealT, 3}   # [ndims, nnodes, boundaries]
-    name::Vector{Symbol}    # [boundaries]
+struct UnstructuredBoundaryContainer2D{RealT <: Real, uEltype <: Real} <:
+       AbstractBoundaryContainer
+    u::Array{uEltype, 3}              # [variables, i, boundaries]
+    element_id::Vector{Int}           # [boundaries]
+    element_side_id::Vector{Int}      # [boundaries]
+    node_coordinates::Array{RealT, 3} # [ndims, nnodes, boundaries]
+    name::Vector{Symbol}              # [boundaries]
 end
 
 # construct an empty curved boundary container to be filled later with neighbour
@@ -284,7 +338,25 @@ function UnstructuredBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_va
 end
 
 @inline function nboundaries(boundaries::UnstructuredBoundaryContainer2D)
-    length(boundaries.name)
+    return length(boundaries.name)
+end
+
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::UnstructuredBoundaryContainer2D, equations,
+                    solver::DG, cache)
+    check_axes(boundaries.u,
+               (eachvariable(equations),
+                eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.element_id, (eachboundary(solver, cache),))
+    check_axes(boundaries.element_side_id, (eachboundary(solver, cache),))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(2),
+                eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.name, (eachboundary(solver, cache),))
+    return nothing
 end
 
 function init_boundaries(mesh::UnstructuredMesh2D,

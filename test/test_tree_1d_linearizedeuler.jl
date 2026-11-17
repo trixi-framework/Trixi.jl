@@ -1,15 +1,11 @@
+@testsnippet TreeMesh1DLinearizedEuler begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
-
-@testset "Linearized Euler Equations 1D" begin
-#! format: noindent
-
-@trixi_testset "elixir_linearizedeuler_convergence.jl" begin
+@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_convergence.jl" setup=[
+    Setup,
+    TreeMesh1DLinearizedEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_convergence.jl"),
                         l2=[
                             0.00010894927270421941,
@@ -23,15 +19,13 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_linearizedeuler_gauss_wall.jl" begin
+@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_gauss_wall.jl" setup=[
+    Setup,
+    TreeMesh1DLinearizedEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gauss_wall.jl"),
                         l2=[0.650082087850354, 0.2913911415488769, 0.650082087850354],
                         linf=[
@@ -41,11 +35,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

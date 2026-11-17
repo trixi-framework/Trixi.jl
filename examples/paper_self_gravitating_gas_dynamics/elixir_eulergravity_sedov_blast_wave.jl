@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -10,18 +10,19 @@ equations_euler = CompressibleEulerEquations2D(gamma)
     initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEulerEquations2D)
     # Set up polar coordinates
     r = sqrt(x[1]^2 + x[2]^2)
 
-    # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+    # Setup based on example 35.1.4.1 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
     E = 1.0
     p_inner = (equations.gamma - 1) * E / (pi * r0^2)
@@ -54,11 +55,12 @@ initial_condition = initial_condition_sedov_self_gravity
                                           equations::CompressibleEulerEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
 function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
@@ -102,7 +104,6 @@ coordinates_min = (-4.0, -4.0)
 coordinates_max = (4.0, 4.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
@@ -117,11 +118,12 @@ equations_gravity = HyperbolicDiffusionEquations2D()
     initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
 function initial_condition_sedov_self_gravity(x, t,
@@ -139,11 +141,12 @@ end
                                           equations::HyperbolicDiffusionEquations2D)
 
 Adaptation of the Sedov blast wave with self-gravity taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-based on
-- https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114100000000000000
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
+based on example 35.1.4.1 from Flash
+- https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
 function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
@@ -161,7 +164,14 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
     return flux
 end
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver_gravity = DGSEM(polydeg, FluxLaxFriedrichs(max_abs_speed_naive))
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition,
                                             solver_gravity,
@@ -222,7 +232,7 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

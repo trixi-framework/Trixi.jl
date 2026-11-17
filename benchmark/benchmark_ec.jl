@@ -33,16 +33,17 @@ function benchmark_euler(; initial_refinement_level = 1, polydeg = 3)
     coordinates_max = (2.0, 2.0)
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = initial_refinement_level,
-                    n_cells_max = 100_000)
+                    periodicity = true)
 
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_weak_blast_wave,
-                                        solver)
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
 
     t0 = 0.0
     u0 = compute_coefficients(t0, semi)
     du = similar(u0)
 
-    @benchmark Trixi.rhs!($du, $u0, $semi, $t0)
+    @benchmark Trixi.rhs_hyperbolic!($du, $u0, $semi, $t0)
 end
 
 # versioninfo(verbose=true)

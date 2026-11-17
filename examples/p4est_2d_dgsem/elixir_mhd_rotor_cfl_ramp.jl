@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,7 +11,8 @@ equations = IdealGlmMhdEquations2D(1.4)
 The classical MHD rotor test case. Here, the setup is taken from
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+  [arXiv: 1708.03537](https://arxiv.org/abs/1708.03537)
+  [DOI: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
 """
 function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
@@ -43,7 +44,14 @@ function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
 end
 initial_condition = initial_condition_rotor
 
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
@@ -60,6 +68,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 # Affine type mapping to take the [-1,1]^2 domain from the mesh file
 # and put it onto the rotor domain [0,1]^2 and then warp it with a mapping
 # as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping_twist(xi, eta)
     y = 0.5 * (eta + 1.0) +
         0.05 * cos(1.5 * pi * (2.0 * xi - 1.0)) * cos(0.5 * pi * (2.0 * eta - 1.0))
@@ -76,9 +85,9 @@ mesh = P4estMesh{2}(mesh_file,
                     initial_refinement_level = 1)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -134,7 +143,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode,
-            CarpenterKennedy2N54(thread = Trixi.True(),
+            CarpenterKennedy2N54(thread = Trixi.Threaded(),
                                  williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

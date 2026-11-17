@@ -26,47 +26,52 @@
 # way. Also, depth-first ordering *might* not be guaranteed during
 # refinement/coarsening operations.
 mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
-    parent_ids::Vector{Int}
-    child_ids::Matrix{Int}
-    neighbor_ids::Matrix{Int}
-    levels::Vector{Int}
-    coordinates::Matrix{RealT}
-    original_cell_ids::Vector{Int}
-    mpi_ranks::Vector{Int}
-
     capacity::Int
     length::Int
-    dummy::Int
 
-    center_level_0::SVector{NDIMS, RealT}
-    length_level_0::RealT
-    periodicity::NTuple{NDIMS, Bool}
+    parent_ids        :: Vector{Int}
+    child_ids         :: Matrix{Int}    # unsafe_wrap view of _child_ids
+    neighbor_ids      :: Matrix{Int}    # unsafe_wrap view of _neighbor_ids
+    levels            :: Vector{Int}
+    coordinates       :: Matrix{RealT}  # unsafe_wrap view of _coordinates
+    original_cell_ids :: Vector{Int}
+
+    # Resizable backing stores (flat 1-D vectors)
+    _child_ids    :: Vector{Int}
+    _neighbor_ids :: Vector{Int}
+    _coordinates  :: Vector{RealT}
+
+    center_level_0 :: SVector{NDIMS, RealT}
+    length_level_0 :: RealT
+    periodicity    :: NTuple{NDIMS, Bool}
+
+    mpi_ranks::Vector{Int} # Addition compared to `SerialTree`
 
     function ParallelTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
-        # Verify that NDIMS is an integer
         @assert NDIMS isa Integer
 
-        # Create instance
-        t = new()
+        parent_ids = fill(typemin(Int), capacity + 1)
+        _child_ids = fill(typemin(Int), 2^NDIMS * (capacity + 1))
+        child_ids = unsafe_wrap(Array, pointer(_child_ids), (2^NDIMS, capacity + 1))
+        _neighbor_ids = fill(typemin(Int), 2 * NDIMS * (capacity + 1))
+        neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                                   (2 * NDIMS, capacity + 1))
+        levels = fill(typemin(Int), capacity + 1)
+        _coordinates = fill(convert(RealT, NaN), NDIMS * (capacity + 1))
+        coordinates = unsafe_wrap(Array, pointer(_coordinates), (NDIMS, capacity + 1))
+        original_cell_ids = fill(typemin(Int), capacity + 1)
+        mpi_ranks = fill(typemin(Int), capacity + 1)
 
-        # Initialize fields with defaults
-        # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-        t.parent_ids = fill(typemin(Int), capacity + 1)
-        t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
-        t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Float64
-        t.original_cell_ids = fill(typemin(Int), capacity + 1)
-        t.mpi_ranks = fill(typemin(Int), capacity + 1)
+        center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
+        length_level_0 = convert(RealT, NaN)
+        periodicity = ntuple(_ -> false, NDIMS)
 
-        t.capacity = capacity
-        t.length = 0
-        t.dummy = capacity + 1
-
-        t.center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
-        t.length_level_0 = convert(RealT, NaN)
-
-        return t
+        return new(capacity, 0, #= length =#
+                   parent_ids, child_ids, neighbor_ids,
+                   levels, coordinates, original_cell_ids,
+                   _child_ids, _neighbor_ids, _coordinates,
+                   center_level_0, length_level_0, periodicity,
+                   mpi_ranks)
     end
 end
 
@@ -76,7 +81,7 @@ ParallelTree(::Val{NDIMS}, args...) where {NDIMS} = ParallelTree{NDIMS, Float64}
 # Create and initialize tree
 function ParallelTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
                                     length::RealT,
-                                    periodicity = true) where {NDIMS, RealT <: Real}
+                                    periodicity = false) where {NDIMS, RealT <: Real}
     # Create instance
     t = ParallelTree{NDIMS, RealT}(capacity)
 
@@ -88,17 +93,17 @@ end
 
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
-                                periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+                                periodicity = false) where {RealT <: Real}
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 function ParallelTree{1}(cap::Int, center::RealT, len::RealT,
-                         periodicity = true) where {RealT <: Real}
-    ParallelTree{1, RealT}(cap, [center], len, periodicity)
+                         periodicity = false) where {RealT <: Real}
+    return ParallelTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
 function init!(t::ParallelTree, center::AbstractArray{RealT}, length::RealT,
-               periodicity = true) where {RealT}
+               periodicity = false) where {RealT}
     clear!(t)
 
     # Set domain information
@@ -156,10 +161,10 @@ function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree)
     println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
     println(io, "t.capacity = $(t.capacity)")
     println(io, "t.length = $(t.length)")
-    println(io, "t.dummy = $(t.dummy)")
     println(io, "t.center_level_0 = $(t.center_level_0)")
     println(io, "t.length_level_0 = $(t.length_level_0)")
     println(io, '*'^20)
+    return nothing
 end
 
 # Check if cell is own cell, i.e., belongs to this MPI rank
@@ -168,7 +173,7 @@ is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 # Return an array with the ids of all leaf cells for a given rank
 leaf_cells_by_rank(t::ParallelTree, rank) =
     filter_leaf_cells(t) do cell_id
-        t.mpi_ranks[cell_id] == rank
+        return t.mpi_ranks[cell_id] == rank
     end
 
 # Return an array with the ids of all local leaf cells
@@ -225,20 +230,47 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
                ndims(target))
     copy_data!(target.original_cell_ids, source.original_cell_ids, first, last,
                destination)
-    copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
+    return copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
+end
+
+# Physically grow or shrink all storage arrays to hold new_capacity + 1 elements.
+# Existing entries at indices 1:length(t) are preserved; new slots are uninitialized.
+function resize_storage!(t::ParallelTree{NDIMS, RealT},
+                         new_capacity) where {NDIMS, RealT}
+    @assert new_capacity >= length(t)
+    @assert new_capacity >= 0
+    resize!(t.parent_ids, new_capacity + 1)
+    resize!(t._child_ids, 2^NDIMS * (new_capacity + 1))
+    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids),
+                              (2^NDIMS, new_capacity + 1))
+    resize!(t._neighbor_ids, 2 * NDIMS * (new_capacity + 1))
+    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
+                                 (2 * NDIMS, new_capacity + 1))
+    resize!(t.levels, new_capacity + 1)
+    resize!(t._coordinates, NDIMS * (new_capacity + 1))
+    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates),
+                                (NDIMS, new_capacity + 1))
+    resize!(t.original_cell_ids, new_capacity + 1)
+    resize!(t.mpi_ranks, new_capacity + 1)
+    t.capacity = new_capacity
+    return nothing
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
 function reset_data_structures!(t::ParallelTree{NDIMS, RealT}) where {NDIMS,
                                                                       RealT <: Real}
     t.parent_ids = Vector{Int}(undef, t.capacity + 1)
-    t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
-    t.neighbor_ids = Matrix{Int}(undef, 2 * NDIMS, t.capacity + 1)
+    resize!(t._child_ids, 2^NDIMS * (t.capacity + 1))
+    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids), (2^NDIMS, t.capacity + 1))
+    resize!(t._neighbor_ids, 2 * NDIMS * (t.capacity + 1))
+    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
+                                 (2 * NDIMS, t.capacity + 1))
     t.levels = Vector{Int}(undef, t.capacity + 1)
-    t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
+    resize!(t._coordinates, NDIMS * (t.capacity + 1))
+    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates), (NDIMS, t.capacity + 1))
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
-    t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
+    resize!(t.mpi_ranks, t.capacity + 1)
 
-    invalidate!(t, 1, capacity(t) + 1)
+    return invalidate!(t, 1, capacity(t) + 1)
 end
 end # @muladd

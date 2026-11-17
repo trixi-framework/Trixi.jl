@@ -30,7 +30,7 @@ end
 
 function BoundsCheckCallback(; output_directory = "out", save_errors = false,
                              interval = 1)
-    BoundsCheckCallback(output_directory, save_errors, interval)
+    return BoundsCheckCallback(output_directory, save_errors, interval)
 end
 
 function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
@@ -56,22 +56,38 @@ end
 
 @inline function check_bounds(u, equations, solver, cache,
                               volume_integral::VolumeIntegralSubcellLimiting)
-    check_bounds(u, equations, solver, cache, volume_integral.limiter)
+    return check_bounds(u, equations, solver, cache, volume_integral.limiter)
+end
+@inline function check_bounds(u, equations, solver, cache,
+                              volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return check_bounds(u, equations, solver, cache, volume_integral_stabilized)
 end
 
 @inline function save_bounds_check_errors(output_directory, t, iter, equations,
                                           volume_integral::VolumeIntegralSubcellLimiting)
-    save_bounds_check_errors(output_directory, t, iter, equations,
-                             volume_integral.limiter)
+    return save_bounds_check_errors(output_directory, t, iter, equations,
+                                    volume_integral.limiter)
+end
+@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+                                          volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return save_bounds_check_errors(output_directory, t, iter, equations,
+                                    volume_integral_stabilized)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi)
-    init_callback(callback, semi, semi.solver.volume_integral)
+    return init_callback(callback, semi, semi.solver.volume_integral)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi,
                        volume_integral::VolumeIntegralSubcellLimiting)
-    init_callback(callback, semi, volume_integral.limiter)
+    return init_callback(callback, semi, volume_integral.limiter)
+end
+function init_callback(callback::BoundsCheckCallback, semi,
+                       volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return init_callback(callback, semi, volume_integral_stabilized)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimiterIDP)
@@ -109,29 +125,42 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
             end
         end
         println(f)
+        return nothing
     end
 
     return nothing
 end
 
 function finalize_callback(callback::BoundsCheckCallback, semi)
-    finalize_callback(callback, semi, semi.solver.volume_integral)
+    return finalize_callback(callback, semi, semi.solver.volume_integral)
 end
 
 function finalize_callback(callback::BoundsCheckCallback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)
-    finalize_callback(callback, semi, volume_integral.limiter)
+    return finalize_callback(callback, semi, volume_integral.limiter)
+end
+function finalize_callback(callback::BoundsCheckCallback, semi,
+                           volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return finalize_callback(callback, semi, volume_integral_stabilized)
 end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
-    (; idp_bounds_delta_global) = limiter.cache
+    (; idp_bounds_delta_global, idp_newton_converged) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if semi.solver.volume_integral isa VolumeIntegralAdaptive
+        println("Note: The following deviations are only computed in elements where subcell limiting is active.")
+        println("In other elements, the solution is not checked for bounds violations.")
+    end
+    if !idp_newton_converged[]
+        println("Note: Newton-bisection method reached the maximum number of iterations at least once.")
+    end
     if local_twosided
         for v in limiter.local_twosided_variables_cons
             v_string = string(v)
@@ -204,6 +233,7 @@ end
             end
         end
         println(f)
+        return nothing
     end
     # Reset local maximum deviations
     for (key, _) in idp_bounds_delta_local
@@ -214,4 +244,5 @@ end
 end
 
 include("subcell_bounds_check_2d.jl")
+include("subcell_bounds_check_3d.jl")
 end # @muladd

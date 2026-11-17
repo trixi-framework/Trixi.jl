@@ -34,7 +34,7 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
     a_matrix = zeros(2, num_coeffs_max)
 
     dtmax = tspan[2] - tspan[1]
-    dteps = 1.0f-9
+    dteps = 1.0e-9
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
@@ -99,47 +99,48 @@ end
 
 @doc raw"""
     PairedExplicitRK4(num_stages, base_path_a_coeffs::AbstractString, dt_opt = nothing;
-                      cS3 = 1.0f0)
+                      cS3 = 1.0)
     PairedExplicitRK4(num_stages, tspan, semi::AbstractSemidiscretization;
-                      verbose = false, cS3 = 1.0f0)
+                      verbose = false, cS3 = 1.0)
     PairedExplicitRK4(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                      verbose = false, cS3 = 1.0f0)
+                      verbose = false, cS3 = 1.0)
 
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method
 optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
-The method has been proposed in 
+The method has been proposed in
 
-- D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
+- D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2025).
   Fourth-Order Paired-Explicit Runge-Kutta Methods
-  [DOI:10.48550/arXiv.2408.05470](https://doi.org/10.48550/arXiv.2408.05470)
+  [arXiv: 2408.05470](https://arxiv.org/abs/2408.05470)
+  [DOI: 10.1007/s44207-025-00005-4](https://doi.org/10.1007/s44207-025-00005-4)
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
-- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in
     the Butcher tableau of the Runge Kutta method.
     The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown.
     In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
 - `tspan`: Time span of the simulation.
 - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
 - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the `ODEProblem` after the
     equation has been semidiscretized.
 - `cS3` (`Float64`, optional): Value of $c_{S-3}$ in the Butcher tableau, where
-    $S$ is the number of stages. Default is `1.0f0`.
+    $S$ is the number of stages. Default is `1.0`.
 
 !!! note
     To use this integrator, the user must import the
-    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and
     [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
-    unless the coefficients are provided in a `a_<num_stages>.txt` file.   
+    unless the coefficients are provided in a `a_<num_stages>.txt` file.
 """
 struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
 
     # Optimized coefficients, i.e., flexible part of the Butcher array matrix A.
     a_matrix::Union{Matrix{Float64}, Nothing}
-    # This part of the Butcher array matrix A is constant for all PERK methods, i.e., 
+    # This part of the Butcher array matrix A is constant for all PERK methods, i.e.,
     # regardless of the optimized coefficients.
     a_matrix_constant::SMatrix{2, 3, Float64}
     c::Vector{Float64}
@@ -150,7 +151,7 @@ end
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK4(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt = nothing;
-                           cS3 = 1.0f0)  # Default value for best internal stability
+                           cS3 = 1.0)  # Default value for best internal stability
     @assert num_stages>=5 "PERK4 requires at least five stages"
     a_matrix, a_matrix_constant, c = compute_PairedExplicitRK4_butcher_tableau(num_stages,
                                                                                base_path_a_coeffs,
@@ -161,7 +162,7 @@ end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK4(num_stages, tspan, semi::AbstractSemidiscretization;
-                           verbose = false, cS3 = 1.0f0)
+                           verbose = false, cS3 = 1.0)
     @assert num_stages>=5 "PERK4 requires at least five stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
@@ -170,7 +171,7 @@ end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK4(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                           verbose = false, cS3 = 1.0f0)
+                           verbose = false, cS3 = 1.0)
     @assert num_stages>=5 "PERK4 requires at least five stages"
     a_matrix, a_matrix_constant, c, dt_opt = compute_PairedExplicitRK4_butcher_tableau(num_stages,
                                                                                        tspan,
@@ -182,9 +183,10 @@ end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
-# https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
+# https://docs.sciml.ai/DiffEqDocs/stable/basics/integrator/#Handling-Integrators
 # which are used in Trixi.jl.
-mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
+mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType <: AbstractVector,
+                                           Params, Sol, F,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
@@ -197,12 +199,12 @@ mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F # `rhs!` of the semidiscretization
-    alg::Alg # PairedExplicitRK4
+    const f::F # right-hand side of the semidiscretization
+    const alg::PairedExplicitRK4
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
-    dtchangeable::Bool
-    force_stepfail::Bool
+    const dtchangeable::Bool
+    const force_stepfail::Bool
     # Additional PERK register
     k1::uType
 end
@@ -215,11 +217,12 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
 
     k1 = zero(u0) # Additional PERK register
 
-    t0 = first(ode.tspan)
+    t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
 
-    integrator = PairedExplicitRK4Integrator(u0, du, u_tmp, t0, tdir, dt, dt, iter,
+    integrator = PairedExplicitRK4Integrator(u0, du, u_tmp, t, tdir, dt, dt, iter,
                                              ode.p,
                                              (prob = ode,), ode.f, alg,
                                              PairedExplicitRKOptions(callback,
@@ -228,15 +231,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
                                              false, true, false,
                                              k1)
 
-    # initialize callbacks
-    if callback isa CallbackSet
-        for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
-        end
-        for cb in callback.discrete_callbacks
-            cb.initialize(cb, integrator.u, integrator.t, integrator)
-        end
-    end
+    initialize_callbacks!(callback, integrator)
 
     return integrator
 end
@@ -280,6 +275,8 @@ end
         integrator.u[i] += 0.5 * integrator.dt *
                            (integrator.k1[i] + integrator.du[i])
     end
+
+    return nothing
 end
 
 function step!(integrator::PairedExplicitRK4Integrator)
@@ -295,12 +292,7 @@ function step!(integrator::PairedExplicitRK4Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
+    limit_dt!(integrator, t_end)
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
         PERK_k1!(integrator, prob.p)
@@ -317,21 +309,10 @@ function step!(integrator::PairedExplicitRK4Integrator)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    @trixi_timeit timer() "Step-Callbacks" begin
-        # handle callbacks
-        if callbacks isa CallbackSet
-            for cb in callbacks.discrete_callbacks
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-            end
-        end
-    end
+    @trixi_timeit timer() "Step-Callbacks" handle_callbacks!(callbacks, integrator)
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+    check_max_iter!(integrator)
+
+    return nothing
 end
 end # @muladd

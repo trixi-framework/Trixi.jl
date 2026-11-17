@@ -1,0 +1,65 @@
+@doc raw"""
+    LaplaceDiffusionEntropyVariables1D(equations)
+    LaplaceDiffusionEntropyVariables2D(equations)
+    LaplaceDiffusionEntropyVariables3D(equations)
+
+This represent a symmetrized Laplacian diffusion
+``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``,
+where ``w(u)`` denotes the mapping between conservative and entropy variables.
+Compared with `LaplaceDiffusion` (see [`LaplaceDiffusion1D`](@ref),
+[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is
+guaranteed to dissipate entropy.
+"""
+struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
+       AbstractLaplaceDiffusion{NDIMS, N}
+    diffusivity::T
+    equations_hyperbolic::E
+end
+
+function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEntropyVariables)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+end
+
+function gradient_variable_transformation(::LaplaceDiffusionEntropyVariables)
+    return cons2entropy
+end
+
+function cons2entropy(u, equations::LaplaceDiffusionEntropyVariables)
+    return cons2entropy(u, equations.equations_hyperbolic)
+end
+
+function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
+    return entropy2cons(w, equations.equations_hyperbolic)
+end
+
+# Jacobian-vector product for LaplaceDiffusionEntropyVariables parabolic fluxes.
+# Calls either a specialized `apply_jacobian_entropy2cons` for specific equations
+# or an AD fallback.
+function apply_jacobian_entropy2cons(dw, w,
+                                     equations_parabolic::LaplaceDiffusionEntropyVariables)
+    return apply_jacobian_entropy2cons(dw, w, equations_parabolic.equations_hyperbolic)
+end
+
+# `ForwardDiff.jacobian` fallback for the Jacobian-vector product.
+function apply_jacobian_entropy2cons(dw, w, equations::AbstractEquations)
+    return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w) * dw
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
+                      ::Type{NewRealT}) where {NDIMS, NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    equations_hyperbolic = similar(equations.equations_hyperbolic, NewRealT)
+    return LaplaceDiffusionEntropyVariables{NDIMS, typeof(equations_hyperbolic),
+                                            nvariables(equations_hyperbolic),
+                                            typeof(diffusivity)}(diffusivity,
+                                                                 equations_hyperbolic)
+end
+
+include("laplace_diffusion_entropy_variables_1d.jl")
+include("laplace_diffusion_entropy_variables_2d.jl")
+include("laplace_diffusion_entropy_variables_3d.jl")

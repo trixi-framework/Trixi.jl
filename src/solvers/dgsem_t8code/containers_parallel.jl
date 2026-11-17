@@ -1,8 +1,14 @@
-function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM, cache)
+function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
     @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
     mpi_cache = cache
-    resize!(elements, ncells(mesh))
+
+    n_cells = ncells(mesh)
+
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
 
     count_required_surfaces!(mesh)
     required = count_required_surfaces(mesh)
@@ -39,8 +45,10 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
     empty!(mpi_mesh_info.neighbor_ranks_mortar)
     empty!(mpi_mesh_info.neighbor_ranks_interface)
 
-    # Re-initialize and distribute normal directions of MPI mortars; requires
-    # MPI communication, so the MPI cache must be re-initialized beforehand.
+    # Re-initialize and distribute normal directions of MPI interfaces and mortars;
+    # requires MPI communication, so the MPI cache must be re-initialized beforehand.
+    init_normal_directions!(mpi_interfaces, dg.basis, elements)
+    exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
@@ -48,19 +56,19 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_mpi_interfaces!(interfaces, mesh::ParallelT8codeMesh)
+function init_mpi_interfaces!(interfaces, mesh::T8codeMeshParallel)
     # Do nothing.
     return nothing
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_mpi_mortars!(mortars, mesh::ParallelT8codeMesh)
+function init_mpi_mortars!(mortars, mesh::T8codeMeshParallel)
     # Do nothing.
     return nothing
 end
 
 # Compatibility to `dgsem_p4est/containers_parallel.jl`.
-function init_mpi_mortars!(mpi_mortars, mesh::ParallelT8codeMesh, basis, elements)
+function init_mpi_mortars!(mpi_mortars, mesh::T8codeMeshParallel, basis, elements)
     # Do nothing.
     return nothing
 end

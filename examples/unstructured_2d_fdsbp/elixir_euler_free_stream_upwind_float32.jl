@@ -3,7 +3,7 @@
 # Similar to unstructured_2d_fdsbp/elixir_euler_free_stream_upwind.jl
 # but using Float32 instead of the default Float64
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -16,10 +16,10 @@ initial_condition = initial_condition_constant
 # Boundary conditions for free-stream preservation test
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions = Dict(:outerCircle => boundary_condition_free_stream,
-                           :cone1 => boundary_condition_free_stream,
-                           :cone2 => boundary_condition_free_stream,
-                           :iceCream => boundary_condition_free_stream)
+boundary_conditions = (; outerCircle = boundary_condition_free_stream,
+                       cone1 = boundary_condition_free_stream,
+                       cone2 = boundary_condition_free_stream,
+                       iceCream = boundary_condition_free_stream)
 
 ###############################################################################
 # Get the Upwind FDSBP approximation space
@@ -53,7 +53,7 @@ mesh = UnstructuredMesh2D(mesh_file, RealT = Float32)
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -82,5 +82,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # set small tolerances for the free-stream preservation test
-sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6;
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            abstol = 1.0f-6, reltol = 1.0f-6,
             ode_default_options()..., callback = callbacks)

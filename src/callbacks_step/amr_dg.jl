@@ -7,7 +7,7 @@
 
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector,
-                           mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                           mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                            equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
 
@@ -28,7 +28,7 @@ function rebalance_solver!(u_ode::AbstractVector,
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
         # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
         # nicely with non-base array types
         old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
@@ -89,5 +89,17 @@ function rebalance_solver!(u_ode::AbstractVector,
             MPI.Waitall(requests, MPI.Status)
         end
     end # GC.@preserve old_u_ode
+
+    return nothing
+end
+
+# Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
+# This method is called when a controller is constructed
+function create_cache(::Union{Type{ControllerThreeLevel},
+                              Type{ControllerThreeLevelCombined}},
+                      mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
+                      equations, dg::DG, cache)
+    controller_value = Vector{Int}(undef, nelements(dg, cache))
+    return (; controller_value)
 end
 end # @muladd

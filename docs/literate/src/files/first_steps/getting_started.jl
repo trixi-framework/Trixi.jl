@@ -69,10 +69,10 @@
 # - Execute the following commands to install all mentioned packages. Please note that the
 #   installation process involves downloading and precompiling the source code, which may take
 #   some time depending on your machine.
-#   ```julia
+#   ````julia
 #   import Pkg
 #   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots", "Trixi"])
-#   ```
+#   ````
 # - On Windows, the firewall may request permission to install packages.
 
 # Besides Trixi.jl you have now installed additional packages:
@@ -106,17 +106,17 @@
 # ```math
 # \frac{\partial}{\partial t}
 # \begin{pmatrix}
-# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e_{\text{total}}
 # \end{pmatrix}
 # +
 # \frac{\partial}{\partial x}
 # \begin{pmatrix}
-# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
+# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e_{\text{total}} + p) v_1
 # \end{pmatrix}
 # +
 # \frac{\partial}{\partial y}
 # \begin{pmatrix}
-# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
+# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e_{\text{total}} + p) v_2
 # \end{pmatrix}
 # =
 # \begin{pmatrix}
@@ -124,10 +124,10 @@
 # \end{pmatrix},
 # ```
 # for an ideal gas with the specific heat ratio ``\gamma``.
-# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific
+# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e_{\text{total}}`` is the specific
 # total energy, and
 # ```math
-# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
+# p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
 # ```
 # is the pressure.
 
@@ -136,12 +136,12 @@
 
 # Start Julia in a terminal and execute the following code:
 
-# ```julia
+# ````julia
 # using Trixi, OrdinaryDiffEq
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
-# ```
+# ````
 using Trixi, OrdinaryDiffEqLowStorageRK #hide #md
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")); #hide #md
 
 # The output contains a recap of the setup and various information about the course of the simulation.
 # For instance, the solution was approximated over the [`TreeMesh`](@ref) with 1024 effective cells using
@@ -185,19 +185,19 @@ get_examples()
 
 # As an example, we will change the initial condition for calculations that occur in
 # `elixir_euler_ec.jl`. Initial conditions for [`CompressibleEulerEquations2D`](@ref) consist of
-# initial values for ``\rho``, ``\rho v_1``, ``\rho v_2`` and ``\rho e``. One of the common initial
+# initial values for ``\rho``, ``\rho v_1``, ``\rho v_2`` and ``\rho e_{\text{total}}``. One of the common initial
 # conditions for the compressible Euler equations is a simple density wave. Let's implement it.
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - Go to the line with the following code:
-#   ```julia
+#   ````julia
 #   initial_condition = initial_condition_weak_blast_wave
-#   ```
+#   ````
 #   Here, [`initial_condition_weak_blast_wave`](@ref) is used as the initial condition.
 # - Comment out the line using the `#` symbol:
-#   ```julia
+#   ````julia
 #   # initial_condition = initial_condition_weak_blast_wave
-#   ```
+#   ````
 # - Now you can create your own initial conditions. Add the following code after the
 #   commented line:
 
@@ -206,25 +206,25 @@ function initial_condition_density_waves(x, t, equations::CompressibleEulerEquat
     v2 = 0.2 # velocity along y-axis
     rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
     p = 20 # pressure
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
-    return SVector(rho, rho * v1, rho * v2, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho * v1, rho * v2, rho_e_total)
 end
 initial_condition = initial_condition_density_waves
 nothing; #hide #md
 
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
-#   ```julia
+#   ````julia
 #   using Trixi
-#   trixi_include(path/to/file)
+#   trixi_include(path/to/file);
 #   using Plots
 #   plot(sol)
-#   ```
+#   ````
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
 
 trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
-              initial_condition = initial_condition) #hide #md
+              initial_condition = initial_condition); #hide #md
 pd = PlotData2D(sol) #hide #md
 p1 = plot(pd["rho"]) #hide #md
 p2 = plot(pd["v1"], clim = (0.05, 0.15)) #hide #md
@@ -233,14 +233,14 @@ p4 = plot(pd["p"], clim = (10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
 
 # To get exactly the same picture execute the following.
-# ```julia
+# ````julia
 # pd = PlotData2D(sol)
 # p1 = plot(pd["rho"])
 # p2 = plot(pd["v1"], clim=(0.05, 0.15))
 # p3 = plot(pd["v2"], clim=(0.15, 0.25))
 # p4 = plot(pd["p"], clim=(10, 30))
 # plot(p1, p2, p3, p4)
-# ```
+# ````
 
 # Feel free to make further changes to the initial condition to observe different solutions.
 

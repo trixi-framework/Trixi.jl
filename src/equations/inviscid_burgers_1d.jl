@@ -52,6 +52,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::InviscidBurgersEquation1D)
@@ -67,10 +75,7 @@ Source terms used for convergence tests in combination with
     return SVector(du)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
     return SVector(0.5f0 * u[1]^2)
 end
@@ -101,18 +106,27 @@ end
 end
 
 @doc raw"""
-    flux_ec(u_ll, u_rr, orientation, equations::InviscidBurgersEquation1D)
+    flux_ec(u_ll, u_rr, orientation_or_normal_direction,
+            equations::InviscidBurgersEquation1D)
 
 Entropy-conserving, symmetric flux for the inviscid Burgers' equation.
 ```math
 F(u_L, u_R) = \frac{u_L^2 + u_L u_R + u_R^2}{6}
 ```
 """
-function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux_ec(u_ll, u_rr, orientation::Integer,
+                         equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
     return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
+end
+
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+@inline function flux_ec(u_ll, u_rr, normal_direction::AbstractVector,
+                         equations::InviscidBurgersEquation1D)
+    return normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
 end
 
 """
@@ -122,7 +136,8 @@ Godunov (upwind) numerical flux for the inviscid Burgers' equation.
 See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 section 4.1.5 and especially equation (4.16).
 """
-function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -131,8 +146,8 @@ end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 # section 4.2.5 and especially equation (4.34).
-function flux_engquist_osher(u_ll, u_rr, orientation,
-                             equation::InviscidBurgersEquation1D)
+@inline function flux_engquist_osher(u_ll, u_rr, orientation::Integer,
+                                     equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -185,13 +200,20 @@ end
 @inline cons2entropy(u, equation::InviscidBurgersEquation1D) = u
 @inline entropy2cons(u, equation::InviscidBurgersEquation1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(u, equations::InviscidBurgersEquation1D)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::InviscidBurgersEquation1D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::InviscidBurgersEquation1D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

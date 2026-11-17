@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -40,15 +40,15 @@ heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
-boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
-                           :y_neg => boundary_condition_slip_wall,
-                           :y_pos => boundary_condition_slip_wall,
-                           :x_pos => boundary_condition_slip_wall)
+boundary_conditions = (; x_neg = boundary_condition_slip_wall,
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall,
+                       x_pos = boundary_condition_slip_wall)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_cavity,
-                                     :y_neg => boundary_condition_cavity,
-                                     :y_pos => boundary_condition_lid,
-                                     :x_pos => boundary_condition_cavity)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_cavity,
+                                 y_neg = boundary_condition_cavity,
+                                 y_pos = boundary_condition_lid,
+                                 x_pos = boundary_condition_cavity)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -86,5 +86,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
