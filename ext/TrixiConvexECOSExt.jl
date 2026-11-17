@@ -99,12 +99,14 @@ and partial differential equations.
 
 - Ketcheson and Ahmadia (2012).
 Optimal stability polynomials for numerical integration of initial value problems
+[arXiv: 1201.3035](https://arxiv.org/abs/1201.3035)
 [DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
 
 For the fourth-order PERK schemes, a specialized optimization routine is required, see
-- D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
+- D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2025).
  Fourth-Order Paired-Explicit Runge-Kutta Methods
- [DOI:10.48550/arXiv.2408.05470](https://doi.org/10.48550/arXiv.2408.05470)
+ [arXiv: 2408.05470](https://arxiv.org/abs/2408.05470)
+ [DOI: 10.1007/s44207-025-00005-4](https://doi.org/10.1007/s44207-025-00005-4)
 =#
 
 # Perform bisection to optimize timestep for stability of the polynomial

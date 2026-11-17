@@ -9,8 +9,10 @@
 # The following rough explanation is on a very basic level. More information about an entropy stable
 # shock-capturing strategy for DGSEM discretizations of advection dominated problems, such as the
 # compressible Euler equations or the compressible Navier-Stokes equations, can be found in
-# [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935). In
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580) you find the extension to
+# [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)). In
+# [Rueda-Ramírez et al. (2021)](https://arxiv.org/abs/2012.12040)
+# ([DOI](https://doi.org/10.1016/j.jcp.2021.110580)) you find the extension to
 # the systems with non-conservative terms, such as the compressible magnetohydrodynamics (MHD) equations.
 # Furthermore, the latter paper introduces also second-order subcell finite volume stabilization.
 
@@ -184,7 +186,7 @@ volume_flux = flux_ranocha
 
 # Now, we specify the shock capturing indicator $\alpha$.
 
-# We implement the described indicator of Hennemann, Gassner as explained above with parameters
+# We implement the described indicator of Hennemann et al. as explained above with parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
 # Since density and pressure are the critical variables in this example, we use
 # `density_pressure = density * pressure = rho * p` as indicator variable.
@@ -285,7 +287,8 @@ combined_plot = plot(plot_density, plot_mesh, layout = (1, 2))
 # over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is
 # shown for the compressible Euler equations.
 # As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations),
-# Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
+# Lv and Ihme devised an a-posteriori limiter in [this paper](https://arxiv.org/abs/1411.5044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2015.04.026)) which can be applied after each Runge-Kutta stage.
 # This limiter enforces a non-decrease in the physical, thermodynamic entropy $S$
 # by bounding the entropy decrease (entropy increase is always tolerated) $\Delta S$ in each grid cell.
 #
@@ -348,7 +351,7 @@ using OrdinaryDiffEqSSPRK
 equations = CompressibleEulerEquations1D(1.4)
 
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     ## Set up polar coordinates
     inicenter = SVector(0.0)
     x_norm = x[1] - inicenter[1]

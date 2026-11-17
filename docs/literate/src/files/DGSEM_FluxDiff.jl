@@ -88,7 +88,8 @@
 # ```
 # we replace $D \underline{f}$ in the strong form by $2D \underline{f}_{vol}(u^-, u^+)$ with
 # the consistent two-point volume flux $f_{vol}$ and receive the DGSEM formulation with flux differencing
-# (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013)).
+# (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://arxiv.org/abs/1604.06618)
+# ([DOI](https://doi.org/10.1016/j.jcp.2016.09.013))).
 # The above manipulations are possible due to the "telescoping" property of the derivative matrix ``D``, see
 # [Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014).
 # In particular, we can check that every row sum ``\sum_j D_{i,j}`` is zero, which makes the
@@ -141,7 +142,8 @@ using OrdinaryDiffEqLowStorageRK
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-# As our initial condition we will use a weak blast wave from [Hennemann, Gassner (2020)](https://arxiv.org/abs/2008.12044).
+# As our initial condition we will use a weak blast wave from [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)).
 # The primitive variables are defined by
 # ```math
 # \begin{pmatrix} \rho \\ v_1 \\ v_2 \\ p \end{pmatrix}

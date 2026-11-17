@@ -120,6 +120,7 @@ An Alfvén wave as smooth initial condition used for convergence tests.
 See for reference section 4.2 in
 - Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016)
   A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
+  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
@@ -145,12 +146,15 @@ end
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
 
 A weak blast wave adapted from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     RealT = eltype(x)
@@ -262,6 +266,7 @@ normal direction for the metrics dealiasing.
   Florian Hindenlang, Joachim Saur
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD
   equations. Part I: Theory and numerical verification
+  [arXiv: 1802.07341](https://arxiv.org/abs/1802.07341)
   [DOI: 10.1016/j.jcp.2018.06.027](https://doi.org/10.1016/j.jcp.2018.06.027)
 """
 @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
@@ -365,8 +370,10 @@ nonconservative_type argument, employing multiple dispatch. They are used to
 compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          orientation::Integer,
@@ -456,8 +463,10 @@ end
 
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll,
@@ -565,8 +574,10 @@ end
 
 Symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
@@ -692,8 +703,10 @@ nonconservative_type argument, employing multiple dispatch. They are used to
 compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,
@@ -784,8 +797,10 @@ the non-conservative staggered "fluxes" for subcell limiting.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
                                                                     orientation::Integer,
@@ -894,8 +909,10 @@ the non-conservative staggered "fluxes" for subcell limiting.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
-- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+- Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems.
+  [arXiv: 2211.14009](https://arxiv.org/abs/2211.14009)
+  [DOI: 10.1016/j.jcp.2023.112607](https://doi.org/10.1016/j.jcp.2023.112607)
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,
@@ -995,6 +1012,7 @@ Entropy conserving two-point flux by
 - Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
+  [arXiv: 1711.06269](https://arxiv.org/abs/1711.06269)
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
 @inline function flux_derigs_etal(u_ll, u_rr, orientation::Integer,

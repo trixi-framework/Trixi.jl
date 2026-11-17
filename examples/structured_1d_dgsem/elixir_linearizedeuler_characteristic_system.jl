@@ -8,7 +8,7 @@ using Trixi
 rho_0 = 1.0
 v_0 = 1.0
 c_0 = 1.0
-equations = LinearizedEulerEquations1D(rho_0, v_0, c_0)
+equations = LinearizedEulerEquations1D(v_0, c_0, rho_0)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 

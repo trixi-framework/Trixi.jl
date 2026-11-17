@@ -144,7 +144,7 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 - David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
   Algorithms for scientists and engineers.
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
     n_iterations = 20

@@ -33,7 +33,8 @@
 # example.
 
 # `IndicatorHennemannGassner`, also used as a shock-capturing indicator, was developed by
-# [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935) and is explained in detail
+# [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)) and is explained in detail
 # in the [tutorial about shock-capturing](@ref shock_capturing). It can be constructed as follows.
 # ````julia
 # amr_indicator = IndicatorHennemannGassner(semi,
@@ -177,7 +178,8 @@ plot!(getmesh(pd))
 #   * Source: https://www.youtube.com/watch?v=dxgzgteJdOA
 #   * Authors: Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor Gassner
 #   * Setup described in detail in: A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics,
-#     Journal of Computational Physics (2021),(https://doi.org/10.1016/j.jcp.2021.110467).
+#     Journal of Computational Physics (2021), https://arxiv.org/abs/2008.10593
+#     (DOI: https://doi.org/10.1016/j.jcp.2021.110467).
 #   * Obtain responsive code by inserting link on https://embedresponsively.com
 #   -->
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/dxgzgteJdOA' frameborder='0' allowfullscreen></iframe></div>

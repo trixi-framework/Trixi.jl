@@ -587,8 +587,8 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
-                        l2=[0.01889578192611483],
-                        linf=[0.03572728414418691])
+                        l2=[0.00011452322577304734],
+                        linf=[0.00019546161661196382])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

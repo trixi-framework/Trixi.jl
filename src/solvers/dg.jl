@@ -35,13 +35,15 @@ abstract type AbstractVolumeIntegral end
 # - `create_cache(mesh, equations, volume_integral, dg, cache_containers, uEltype)`
 # - `resize_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
 # - `reinit_volume_integral_cache!(cache, mesh, volume_integral, dg, new_size)`
+# - `check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)`
 # - `get_element_variables!(element_variables, u, mesh, equations,
 #                           volume_integral, dg, cache)`
 # - `Base.show(io, ::MIME"text/plain", volume_integral)`
 #
 # Do not add methods to the functions handling the whole tree
 # (`create_volume_integral_caches`, `resize_volume_integral_caches!`,
-# `reinitialize_volume_integral_caches!`); they call the methods above for every node.
+# `reinitialize_volume_integral_caches!`, `check_axes_volume_integrals`);
+# they call the methods above for every node.
 ###############################################################################
 
 # Return a tuple of the volume integrals contained in the composite `volume_integral`,
@@ -87,6 +89,15 @@ function reinit_volume_integral_cache!(cache, mesh,
     return nothing
 end
 
+# Check whether the storage of `volume_integral` itself, i.e., its entries in the
+# `cache` and its per-instance state, has the axes we assume in the inner loops of
+# Trixi.jl. This allows assuming inbounds access in the kernels of the volume integral.
+# By default, there is nothing to check.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::AbstractVolumeIntegral, dg, cache)
+    return nothing
+end
+
 # Add "element variables" of `volume_integral` such as blending factors to the
 # output of the `SaveSolutionCallback`. By default, there are none.
 function get_element_variables!(element_variables, u, mesh, equations,
@@ -100,7 +111,8 @@ end
 # Apply `f` to `volume_integral` and all volume integrals nested in it.
 # This is used for operations that do not return anything, e.g., resizing
 # and reinitializing the storage after mesh adaptation
-# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`)
+# (`resize_volume_integral_caches!`, `reinitialize_volume_integral_caches!`),
+# checking the axes of the storage (`check_axes_volume_integrals`),
 # and checking supported combinations (`check_volume_integral_tree`).
 # Creating the storage uses `_collect_caches_volume_integral` instead,
 # since it returns the caches of all nodes.
@@ -209,6 +221,18 @@ function resize_volume_integral_caches!(cache, mesh, volume_integral, dg, new_si
     return nothing
 end
 
+# Check the storage of all volume integrals in the tree with root `volume_integral`.
+# This is called in the `@boundscheck` blocks of `calc_volume_integral!`.
+@inline function check_axes_volume_integrals(mesh, equations, volume_integral, dg,
+                                             cache)
+    foreach_volume_integral(volume_integral) do volume_integral_
+        check_axes_volume_integral(mesh, equations, volume_integral_, dg, cache)
+        return nothing
+    end
+
+    return nothing
+end
+
 # Resize and reinitialize the storage of all volume integrals starting with
 # `dg.volume_integral` after mesh adaptation. This is called by the mesh-specific
 # `reinitialize_containers!`.
@@ -307,11 +331,11 @@ standard textbooks.
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 
 `VolumeIntegralWeakForm()` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
@@ -332,19 +356,19 @@ the interface of numerical fluxes in Trixi.jl.
 
 - LeFloch, Mercier, Rohde (2002)
   Fully Discrete, Entropy Conservative Schemes of Arbitrary Order
-  [doi: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
+  [DOI: 10.1137/S003614290240069X](https://doi.org/10.1137/S003614290240069X)
 - Fisher, Carpenter (2013)
   High-order entropy stable finite difference schemes for nonlinear
   conservation laws: Finite domains
-  [doi: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
-- Hendrik Ranocha (2017)
+  [DOI: 10.1016/j.jcp.2013.06.014](https://doi.org/10.1016/j.jcp.2013.06.014)
+- Hendrik Ranocha (2018)
   Comparison of Some Entropy Conservative Numerical Fluxes for the Euler Equations
   [arXiv: 1701.02264](https://arxiv.org/abs/1701.02264)
-  [doi: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
+  [DOI: 10.1007/s10915-017-0618-1](https://doi.org/10.1007/s10915-017-0618-1)
 - Chen, Shu (2017)
   Entropy stable high order discontinuous Galerkin methods with suitable
   quadrature rules for hyperbolic conservation laws
-  [doi: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
+  [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 """
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
     volume_flux::VolumeFlux
@@ -431,9 +455,11 @@ The amount of blending is determined by the `indicator`, e.g.,
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function VolumeIntegralShockCapturingHG(indicator;
                                         volume_flux_dg = flux_central,
@@ -490,6 +516,7 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function VolumeIntegralShockCapturingRRG(basis, indicator;
@@ -540,13 +567,16 @@ Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, fo
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 function VolumeIntegralShockCapturingHGType(indicator;
@@ -630,7 +660,7 @@ In such cases, the `volume_integral_default` can be a cheaper volume integral su
 For reference, see
 - Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
   Volume Term Adaptivity for Discontinuous Galerkin Schemes
-  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+  [arXiv: 2603.24189](https://arxiv.org/abs/2603.24189)
 
 especially Sections 3 and 3.1 for a detailed description of the method.
 
@@ -714,9 +744,11 @@ mesh (LGL = Legendre-Gauss-Lobatto).
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
@@ -792,6 +824,7 @@ See especially Section 3.2, Section 4, and Appendix D of the paper
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 struct VolumeIntegralPureLGLFiniteVolumeO2{SubCellInterfaceCoordinates, VolumeFluxFV,
@@ -1025,7 +1058,7 @@ See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
 
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
-  [doi: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
+  [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -1065,11 +1098,11 @@ See also [`VolumeIntegralWeakForm`](@ref).
 - Kopriva (2009)
   Implementing Spectral Methods for Partial Differential Equations:
   Algorithms for Scientists and Engineers
-  [doi: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 - Hesthaven, Warburton (2007)
   Nodal Discontinuous Galerkin Methods: Algorithms, Analysis, and
   Applications
-  [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
+  [DOI: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 """
 struct SurfaceIntegralWeakForm{SurfaceFlux} <: AbstractSurfaceIntegral
     surface_flux::SurfaceFlux
@@ -1403,6 +1436,21 @@ Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indice
                           Val(nvariables(equations))))
 end
 
+# Return the auxiliary variables at a given volume node index as a tuple. Thus, the flux
+# functions are called as `flux(u_node, aux_node..., 1, equations)`. The tuple is empty if
+# the `cache` does not store any auxiliary variables, so that this reduces to
+# `flux(u_node, 1, equations)`.
+@inline get_aux_node_vars(::Nothing, equations, ::DG, indices...) = ()
+
+Base.@propagate_inbounds function get_aux_node_vars(aux, equations, ::DG,
+                                                    indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(aux, eachauxvariable(equations), indices...)
+    # Assume inbounds access now
+    return (SVector(ntuple(@inline(v->@inbounds aux[v, indices...]),
+                           Val(nauxvariables(equations)))),)
+end
+
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
                                                         indices...)
     # There is a cut-off at `n == 10` inside of the method
@@ -1433,12 +1481,59 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:D
     return u_ll, u_rr
 end
 
+# Return the auxiliary variables on both sides of a given surface node index.
+@inline get_aux_surface_node_vars(::Nothing, equations, ::Type{<:DG}, indices...) = ()
+
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
+                                                            equations, ::Type{<:DG},
+                                                            indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(aux_interface, 1:2, eachauxvariable(equations),
+                             indices...)
+    # Assume inbounds access now
+    aux_ll = SVector(ntuple(@inline(v->@inbounds aux_interface[1, v, indices...]),
+                            Val(nauxvariables(equations))))
+    aux_rr = SVector(ntuple(@inline(v->@inbounds aux_interface[2, v, indices...]),
+                            Val(nauxvariables(equations))))
+    return aux_ll, aux_rr
+end
+
 Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
                                                  indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
     return nothing
+end
+
+Base.@propagate_inbounds function set_aux_node_vars!(aux, aux_node, equations,
+                                                     solver::DG, indices...)
+    for v in eachauxvariable(equations)
+        aux[v, indices...] = aux_node[v]
+    end
+    return nothing
+end
+
+# Accessors for the arrays of auxiliary variables stored in the `aux_vars` container of
+# the `cache`. The `aux_vars` container is only created for equations with auxiliary
+# variables, see `nauxvariables`. Otherwise, `nothing` is returned. Since the `cache` is
+# a `NamedTuple`, the check is resolved at compile time.
+@inline function get_aux_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux : nothing
+end
+
+@inline function get_aux_interface_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_interface : nothing
+end
+
+@inline function get_aux_mortar_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
+end
+
+# Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
+# `remake` a semidiscretization, or `nothing` without auxiliary variables.
+@inline function get_aux_field(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_field : nothing
 end
 
 Base.@propagate_inbounds function add_to_node_vars!(u, u_node, equations, solver::DG,

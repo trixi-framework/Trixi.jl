@@ -13,10 +13,10 @@
 # used by OrdinaryDiffEq.jl.
 
 # OrdinaryDiffEq.jl provides many integration algorithms, which are summarized in
-# the [documentation](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Full-List-of-Methods).
+# the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Full-List-of-Methods).
 # Particularly interesting for Trixi.jl are their
-# [strong stability preserving (SSP) methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
-# and [low-storage methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Low-Storage-Methods).
+# [strong stability preserving (SSP) methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+# and [low-storage methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods).
 # These methods are also available from the low-dependency sub-packages
 # OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl of OrdinaryDiffEq.jl.
 # There are some differences regarding the choice of the used time step.
