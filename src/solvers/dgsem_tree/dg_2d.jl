@@ -128,11 +128,16 @@ end
 
 function create_cache(mesh::TreeMesh{2}, equations,
                       mortar_ec::LobattoLegendreMortarEC, uEltype)
+    # Thread-local storage for the standard mortar fluxes as for `MortarL2`.
+    # Only the primary fluxes are used since only conservative equations
+    # are supported.
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_ec)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_ec)}
-    fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
-    fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     # Two-point fluxes between all large face nodes and all mortar nodes
     # required for the entropy correction terms
@@ -142,7 +147,8 @@ function create_cache(mesh::TreeMesh{2}, equations,
     fstar_upper_correction_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
     fstar_lower_correction_threaded = MA3d[MA3d(undef) for _ in 1:Threads.maxthreadid()]
 
-    cache = (; fstar_upper_threaded, fstar_lower_threaded,
+    cache = (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
              fstar_upper_correction_threaded, fstar_lower_correction_threaded)
 
     return cache
@@ -1384,7 +1390,7 @@ function calc_mortar_flux!(surface_flux_values, u,
                            surface_integral, dg::DGSEM, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations, large_sides, neighbor_ids = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
     @unpack fstar_upper_correction_threaded, fstar_lower_correction_threaded = cache
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -1397,8 +1403,8 @@ function calc_mortar_flux!(surface_flux_values, u,
     @threaded for mortar in eachmortar(dg, cache)
         @inbounds begin
             # Choose thread-specific pre-allocated container
-            fstar_upper = fstar_upper_threaded[Threads.threadid()]
-            fstar_lower = fstar_lower_threaded[Threads.threadid()]
+            fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
+            fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
             # Calculate fluxes. The large-side mortar states are the
             # entropy-projected states computed in `prolong2mortars!`.
