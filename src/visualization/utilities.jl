@@ -531,9 +531,6 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         # `nothing` if the equations do not have auxiliary variables
         aux = get_aux_vars(cache)
         if aux !== nothing
-            if trixi_backend(aux) !== nothing
-                aux = Array(aux)
-            end
             aux = reshape(aux, nauxvariables(equations), :)
         end
         n_vars = length(solution_variables(get_node_vars(u, equations, solver),
