@@ -64,8 +64,8 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-# Use `surface_flux = flux_ranocha` for an entropy-conservative semidiscretization
-surface_flux = flux_lax_friedrichs
+# Use `surface_flux = flux_lax_friedrichs` for an entropy-dissipative semidiscretization
+surface_flux = flux_ranocha
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -76,10 +76,11 @@ solver = DGSEM(basis, surface_flux, VolumeIntegralFluxDifferencing(volume_flux),
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
-refinement_patches = ((type = "box", coordinates_min = (-5.0, -5.0),
+refinement_patches = ((type = "box",
+                       coordinates_min = (-5.0, -5.0),
                        coordinates_max = (5.0, 5.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
                 periodicity = true)
 
@@ -89,7 +90,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

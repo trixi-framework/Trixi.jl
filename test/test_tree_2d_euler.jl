@@ -1313,29 +1313,26 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_mortar_ec.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_mortar_ec.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_ec.jl"),
-                        # Expected errors are exactly the same as in the parallel test!
                         l2=[
-                            0.0006129490386872212,
-                            0.02493089490558065,
-                            0.026421719876697353,
-                            0.05800640325055998
+                            0.00013590595201776434,
+                            0.008992940152655565,
+                            0.0075470774297655115,
+                            0.015801176746529567
                         ],
                         linf=[
-                            0.011454723226935526,
-                            0.3015931304059589,
-                            0.28828855246078633,
-                            1.0438636782623405
+                            0.0021177738404140056,
+                            0.11012011877006034,
+                            0.07224759568794648,
+                            0.22974484095777825
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_vortex_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
