@@ -1498,6 +1498,13 @@ Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface,
     return aux_ll, aux_rr
 end
 
+# As above but dispatches on the solver instead of its type
+Base.@propagate_inbounds function get_aux_surface_node_vars(aux_interface, equations,
+                                                            solver::DG, indices...)
+    return get_aux_surface_node_vars(aux_interface, equations, typeof(solver),
+                                     indices...)
+end
+
 Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::DG,
                                                  indices...)
     for v in eachvariable(equations)
@@ -1528,6 +1535,14 @@ end
 
 @inline function get_aux_mortar_vars(cache)
     return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mortar : nothing
+end
+
+@inline function get_aux_mpi_interface_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_interface : nothing
+end
+
+@inline function get_aux_mpi_mortar_vars(cache)
+    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_mortar : nothing
 end
 
 # Return the function `aux_field` used to initialize the auxiliary variables, e.g., to
