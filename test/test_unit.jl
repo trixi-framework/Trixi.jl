@@ -6472,27 +6472,29 @@ end
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
+        # `u` and `du` do not keep `u_ode` and `du_ode` alive
         u_ode = compute_coefficients(0.0, semi)
         du_ode = zero(u_ode)
         Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
+        GC.@preserve u_ode du_ode begin
+            # Quantities of the `AnalysisCallback` are called as `func(u, aux, equations)`.
+            # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
+            # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
+            @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
+            @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
+                           atol = 1.0e-14)
+            @test isfinite(Trixi.analyze(Trixi.entropy_timederivative, du, u, 0.0, semi))
 
-        # Quantities of the `AnalysisCallback` are called as `func(u, aux, equations)`.
-        # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
-        # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
-        @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
-        @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
-                       atol = 1.0e-14)
-        @test isfinite(Trixi.analyze(Trixi.entropy_timederivative, du, u, 0.0, semi))
-
-        # `solution_variables` of solution files and visualization are called as
-        # `solution_variables(u, aux, equations)`
-        aux_times_u(u, aux, equations) = SVector(aux[1] * u[1])
-        data = Trixi.get_unstructured_data(u, aux_times_u, mesh, equations, solver,
-                                           semi.cache)
-        aux = semi.cache.aux_vars.aux
-        @test vec(data) ≈ vec(aux[1, :, :, :, :] .* u[1, :, :, :, :])
+            # `solution_variables` of solution files and visualization are called as
+            # `solution_variables(u, aux, equations)`
+            aux_times_u(u, aux, equations) = SVector(aux[1] * u[1])
+            data = Trixi.get_unstructured_data(u, aux_times_u, mesh, equations, solver,
+                                               semi.cache)
+            aux = semi.cache.aux_vars.aux
+            @test vec(data) ≈ vec(aux[1, :, :, :, :] .* u[1, :, :, :, :])
+        end
 
         # Plots use `cons2prim(u, aux, equations)` by default
         @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
