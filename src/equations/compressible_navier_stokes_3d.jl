@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion3D(equations; mu, Pr, R=1,
+    CompressibleNavierStokesDiffusion3D(equations; mu, Prandtl, R=1,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -15,7 +15,7 @@ the [`CompressibleEulerEquations3D`](@ref).
 
 - `equations`: instance of the [`CompressibleEulerEquations3D`](@ref)
 - `mu`: dynamic viscosity,
-- `Pr`: Prandtl number,
+- `Prandtl`: Prandtl number,
 - `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
@@ -122,7 +122,7 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     # and the relation (gamma - 1) * kappa = gamma * mu * R / Pr
     # which follows from Pr = c_p * mu / kappa and c_p = gamma * R / (gamma - 1)
     gamma_over_Pr = gamma / Pr
-    max_visc_cond = max(4 / 3, gamma_over_Pr)
+    max_visc_cond = max(convert(typeof(gamma_over_Pr), 4) / 3, gamma_over_Pr)
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
@@ -199,7 +199,8 @@ end
                                                                    equations)
 
     # Components of viscous stress tensor of a Newtonian fluid with zero bulk viscosity
-    # (Stokes' hypothesis, see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
+    # (Stokes' hypothesis), see, e.g.,
+    # https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case
     # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
 
     # Diagonal parts
