@@ -105,7 +105,7 @@ for human readability.
   form, flux differencing, pure LGL finite volume, and Hennemann-Gassner shock-capturing
   volume integrals, weakly imposed boundary conditions, source terms, and parabolic
   terms of a `SemidiscretizationHyperbolicParabolic` (with element-local gradients), see
-  `examples/p4est_2d_cgsem/` ([#3469]).
+  `examples/p4est_2d_cgsem/` ([#3469], [#3470]).
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
