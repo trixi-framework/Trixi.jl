@@ -6018,7 +6018,7 @@ end
     @test bc.indices == (NodeIndex.IBackward, NodeIndex.Begin)
     @test bc.other_orientation == 2
 
-    # Specifying the indices as `Symbol`s is not supported anymore
+    # `indices` must be `NodeIndex` values; `Symbol`s are rejected
     @test_throws MethodError BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
                                                       coupling_converter)
 end

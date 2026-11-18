@@ -434,8 +434,6 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 BoundaryConditionCoupled(2, (NodeIndex.Begin, NodeIndex.IForward), Float64, fun)
 
 # Connect the same two boundaries oppositely oriented
-
-# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (NodeIndex.Begin, NodeIndex.IBackward), Float64, fun)
 ```
 
