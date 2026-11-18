@@ -491,11 +491,11 @@ nauxvariables(::MyEquations) = 2
 flux(u, aux, normal_direction, equations::MyEquations) = ...
 flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
 ```
-Similar patterns are used for source terms etc. Functions of the conservative variables
-used for analysis and output, e.g., [`cons2prim`](@ref), [`cons2entropy`](@ref),
-[`entropy`](@ref), or the `solution_variables` of the [`SaveSolutionCallback`](@ref) and
-of plots, also get the auxiliary variables, e.g.,
-`cons2prim(u, aux, equations::MyEquations)`.
+Similar patterns are used for source terms etc.
+Functions of the conservative variables used for analysis and output, e.g.,
+[`cons2prim`](@ref), [`cons2entropy`](@ref), [`entropy`](@ref), or the
+`solution_variables` of the [`SaveSolutionCallback`](@ref) and of plots, also get the
+auxiliary variables, e.g., `cons2prim(u, aux, equations::MyEquations)`.
 With their default settings, the [`AnalysisCallback`](@ref) requires `cons2entropy` and
 the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
 

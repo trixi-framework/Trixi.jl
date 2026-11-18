@@ -563,8 +563,8 @@ function integrate(func::Func, u,
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
     integrate_via_indices(u, mesh, equations, dg, cache, aux;
-                          normalize = normalize) do u, i, j, k, element, equations, dg,
-                                                    aux
+                          normalize = normalize) do u, i, j, k, element,
+                                                    equations, dg, aux
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
         aux_local = get_aux_node_vars(aux, equations, dg, i, j, k, element)
         return func(u_local, aux_local..., equations)
