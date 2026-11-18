@@ -450,12 +450,12 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_godunov, RealT = float_type)
 # Next, we set up the sparsity detection. For this we need
 using SparseConnectivityTracer # For Jacobian sparsity pattern
 
-# We use the [global `TracerSparsityDetector()`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
+# We use the [global `TracerSparsityDetector()`](https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/global_vs_local/) here.
 jac_detector = TracerSparsityDetector()
 
 # Next, we retrieve the right element type corresponding to `float_type` for the Jacobian sparsity detection.
 # For more details, see the API documentation of
-# [`jacobian_eltype`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
+# [`jacobian_eltype`](https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#SparseConnectivityTracer.jacobian_eltype).
 jac_eltype = jacobian_eltype(float_type, jac_detector)
 
 # Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the
@@ -471,7 +471,7 @@ u0_ode = ode_jac_type.u0
 du_ode = similar(u0_ode)
 
 # Wrap the RHS for sparsity detection to match the expected signature `f!(du, u)` required by
-# [`jacobian_sparsity`](https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
+# [`jacobian_sparsity`](https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity).
 rhs_wrapped! = (du, u) -> Trixi.rhs_hyperbolic!(du, u, semi_jac_type, tspan[1])
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 

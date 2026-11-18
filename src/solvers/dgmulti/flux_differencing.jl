@@ -126,8 +126,8 @@ function create_cache_hyperbolic(mesh::DGMultiMesh, equations, dg::DGMultiFluxDi
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     cache = (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
              invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
@@ -510,7 +510,8 @@ end
 
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
-# is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
+# is required (see https://arxiv.org/abs/1708.01243
+# (DOI: https://doi.org/10.1016/j.jcp.2018.02.033), Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs_hyperbolic!(backend::Nothing,
                          du, u, t,

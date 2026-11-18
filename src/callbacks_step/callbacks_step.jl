@@ -13,10 +13,11 @@ function get_element_variables_callback!(element_variables, u, mesh, equations, 
     return nothing
 end
 
+# The `SaveSolutionCallback` calls this method for all continuous and discrete
+# callbacks. Trixi.jl implements its callbacks as the `affect!` of these callbacks.
 @inline function get_element_variables_callback!(element_variables, u_ode,
                                                  semi::AbstractSemidiscretization,
-                                                 cb::DiscreteCallback;
-                                                 kwargs...)
+                                                 cb; kwargs...)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     return get_element_variables_callback!(element_variables, u, mesh, equations,

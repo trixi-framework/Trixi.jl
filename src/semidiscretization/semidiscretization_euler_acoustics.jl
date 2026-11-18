@@ -62,8 +62,7 @@ end
 
 function create_cache_euler_acoustics(source_region, weights,
                                       mesh, equations::AcousticPerturbationEquations2D,
-                                      dg::DGSEM,
-                                      cache)
+                                      dg::DGSEM, cache)
     coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
     acoustic_source_terms = zeros(eltype(cache.elements),

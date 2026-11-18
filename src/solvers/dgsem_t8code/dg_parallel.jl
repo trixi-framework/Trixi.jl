@@ -5,9 +5,7 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_hyperbolic(mesh::T8codeMeshParallel, equations::AbstractEquations,
-                                 dg::DG,
-                                 ::Any,
-                                 ::Type{uEltype}) where {uEltype <: Real}
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
     # containers in case someone has tampered with forest after creating the
     # mesh.
