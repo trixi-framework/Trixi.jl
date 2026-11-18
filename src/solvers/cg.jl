@@ -15,7 +15,7 @@ include("cgsem/cgsem.jl")
 # - Interface and mortar terms are skipped; continuity is enforced by the assembly.
 # - The interior entries of `surface_flux_values` are zero (see `create_cache`), so the
 #   surface integral adds only the weakly imposed boundary fluxes.
-# - The source terms are added before the assembly, see `calc_sources_cgsem!`.
+# - The source terms are added before the assembly, see `calc_sources!` below.
 # - `assemble_and_apply_jacobian!` replaces `apply_jacobian!`.
 function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2}, equations,
                          boundary_conditions, source_terms::Source, solver::CGSEM,
@@ -61,7 +61,7 @@ function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2}, equatio
 
     # Calculate source terms before assembly/Jacobian application
     @trixi_timeit timer() "source terms" begin
-        calc_sources_cgsem!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, solver, cache)
     end
 
     # Sum the residuals of all copies of each node and apply the inverse of the
@@ -80,13 +80,14 @@ end
 # contains the Jacobian-weighted average of the source terms of all copies of a node,
 # which is the same for all copies even though their node coordinates (and thus the
 # source terms) differ by roundoff.
-function calc_sources_cgsem!(du, u, t, source_terms::Nothing,
-                             equations::AbstractEquations{2}, dg::DGSEM, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
+                       equations::AbstractEquations{2}, solver::CGSEM, cache)
     return nothing
 end
 
-function calc_sources_cgsem!(du, u, t, source_terms,
-                             equations::AbstractEquations{2}, dg::DGSEM, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       equations::AbstractEquations{2}, solver::CGSEM, cache)
+    (; dg) = solver
     (; node_coordinates, inverse_jacobian) = cache.elements
 
     # Explicit bounds check, which allows us to assume inbounds access below
