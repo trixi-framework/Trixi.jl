@@ -66,6 +66,15 @@ for human readability.
   `get_element_variables_callback!` and `get_element_variables_controller!`. As part of
   this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
   passed to the ODE solver ([#3399]).
+- For equations with auxiliary variables (i.e., `nauxvariables(equations) > 0`), the
+  auxiliary variables at a node are now also passed to functions of the conservative
+  variables used for analysis and output, e.g., `cons2prim(u, aux, equations)` instead
+  of `cons2prim(u, equations)`. This applies to `cons2prim`, `cons2entropy`, `entropy`,
+  the `solution_variables` of the `SaveSolutionCallback` and of plots, and the functions
+  passed to `integrate` and `calc_error_norms`. Such equations must now implement
+  `cons2entropy(u, aux, equations)` to use the `AnalysisCallback` and
+  `cons2prim(u, aux, equations)` to use the `SaveSolutionCallback` with their default
+  settings ([#3466]).
 
 #### Removed
 - The deprecated keyword arguments `storage_type`, `real_type`, and

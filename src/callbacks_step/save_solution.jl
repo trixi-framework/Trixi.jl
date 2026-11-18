@@ -21,6 +21,9 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables are passed as the second parameter
+and the equation struct as the third.
 
 Additional nodal variables such as vorticity or the Mach number can be saved by passing a tuple of symbols
 to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
