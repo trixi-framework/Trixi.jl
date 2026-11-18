@@ -5,6 +5,15 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.18 lifecycle
+
+#### Added
+
+#### Changed
+
+#### Deprecated
+
+
 ## Changes when updating to v0.18 from v0.17.x
 
 #### Changed
@@ -38,9 +47,10 @@ for human readability.
   `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
   (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
   directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
-  accordingly.
+  accordingly ([#3332]).
 - The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
-  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`.
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`
+  ([#3332]).
 - For the `CompressibleNavierStokesDiffusion1D` equations, the viscous stress `tau_xx`
   is now computed as `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`
   ([#3202]). Here, `mu` is the user-given dynamic viscosity.
