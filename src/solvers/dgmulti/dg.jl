@@ -763,7 +763,9 @@ function calc_sources!(du, u, t, source_terms::Nothing,
     return nothing
 end
 function calc_sources!(du, u, t, source_terms::Nothing,
-                       mesh, equations, dg::DGMultiFluxDiffSBP, cache)
+                       mesh, equations,
+                       dg::Union{DGMultiFluxDiffSBP, DGMultiEntropyCorrectionSBP},
+                       cache)
     return nothing
 end
 
