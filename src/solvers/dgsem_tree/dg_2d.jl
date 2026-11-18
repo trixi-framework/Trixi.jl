@@ -1468,15 +1468,12 @@ function calc_mortar_flux!(surface_flux_values, u,
 end
 
 # Entropy correction term of the large element, which is added after the standard
-# mortar fluxes have been projected to the large element. With the two-point
-# fluxes `F[i, j] = volume_flux(u_large[i], u_mortar[j])` between the
-# large face nodes `i` and the (entropy-projected) mortar nodes `j`, the correction reads
-#   correction[i] = sum_j R[i, j] * (F[i, j] - sum_k P[j, k] * F[k, j]),
-# where `P` and `R` are the forward and reverse mortar operators, see
-#   Chan, Bencomo, Del Rey Fernández (2021).
-#   Mortar-based Entropy-Stable Discontinuous Galerkin Methods on
-#     Non-conforming Quadrilateral and Hexahedral Meshes.
-#   https://doi.org/10.1007/s10915-021-01652-3
+# mortar fluxes have been projected to the large element.
+# With the two-point fluxes `F[i, j] = volume_flux(u_large[i], u_mortar[j])`
+# between the large face nodes `i` and the (entropy-projected) mortar nodes `j`,
+# the correction reads
+# `corr[i] = sum_j R[i, j] * (F[i, j] - sum_k P[j, k] * F[k, j])`,
+# where `P` and `R` are the forward and reverse mortar operators.
 # The correction is conservative, vanishes for constant states, and recovers
 # entropy conservation for a symmetric, entropy-conservative `volume_flux`
 # if `w_large[i] * R[i, j] == w_small[j] * P[j, i]` (LGL reverse operators).
