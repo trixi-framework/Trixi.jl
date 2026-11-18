@@ -21,7 +21,7 @@ for human readability.
   the methods for a single volume integral to `resize_cache_volume_integral!` and
   `reinit_cache_volume_integral!`. Furthermore, `resize_subcell_limiter_cache!` was
   renamed to `resize_cache_subcell_limiter!` and `initialize_cache!` of the
-  `AveragingCallback` to `initialize_cache_averaging!`. For `DGMulti`,
+  `AveragingCallback` to `initialize_cache_averaging_callback!`. For `DGMulti`,
   `create_cache_volume_integral` now receives the storage created so far instead of the
   real type `RealT`, as for the other solvers ([#3398]).
 - The node indices describing the faces of interfaces, boundaries, and mortars of
