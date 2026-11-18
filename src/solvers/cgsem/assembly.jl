@@ -282,13 +282,14 @@ See also [`assemble_and_apply_jacobian_parabolic!`](@ref).
 function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
                                       mesh, equations, solver::CGSEM, cache)
     # The DGSEM kernels compute the residual of `du/dt + div(f) = 0`, cf. `apply_jacobian!`
-    assemble_and_scale!(du, assembly, -1, equations, solver.dg)
+    assemble_and_scale!(du, assembly, -1, equations, solver)
     return nothing
 end
 
 @doc raw"""
     assemble_and_apply_jacobian_parabolic!(du, assembly::AssemblyCGSEM,
-                                           mesh, equations_parabolic, dg::DGSEM, cache)
+                                           mesh, equations_parabolic, solver::CGSEM,
+                                           cache)
 
 Gather-scatter step of the parabolic right-hand side of CGSEM. As in
 [`assemble_and_apply_jacobian!`](@ref), the value at every copy of a global node is
@@ -301,16 +302,17 @@ since the DGSEM kernels compute the parabolic terms as a right-hand side. This r
 `apply_jacobian_parabolic!` of DGSEM.
 """
 function assemble_and_apply_jacobian_parabolic!(du, assembly::AssemblyCGSEM,
-                                                mesh, equations_parabolic, dg::DGSEM,
-                                                cache)
-    assemble_and_scale!(du, assembly, 1, equations_parabolic, dg)
+                                                mesh, equations_parabolic,
+                                                solver::CGSEM, cache)
+    assemble_and_scale!(du, assembly, 1, equations_parabolic, solver)
     return nothing
 end
 
 # Kernel of the gather-scatter steps above: every copy of a global node is replaced by
 # `jacobian_sign` times the sum of all copies divided by the summed Jacobian
 function assemble_and_scale!(du, assembly::AssemblyCGSEM, jacobian_sign, equations,
-                             dg::DGSEM)
+                             solver::CGSEM)
+    (; dg) = solver
     (; inverse_sum_jacobian) = assembly
 
     # Explicit bounds check, which allows us to assume inbounds access below

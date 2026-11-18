@@ -207,7 +207,7 @@ end
     du_ode_parabolic = copy(du_ode_raw)
     du_parabolic = Trixi.wrap_array(du_ode_parabolic, semi)
     assemble_and_apply_jacobian_parabolic!(du_parabolic, assembly, mesh, equations,
-                                           solver, cache)
+                                           cgsem, cache)
     @test du_parabolic == -du
 
     # Ensure that we do not have excessive memory allocations

@@ -122,7 +122,7 @@ end
 # Parabolic right-hand side of CGSEM on a conforming `P4estMesh{2}`, cf. the DGSEM
 # version in `dgsem_p4est/dg_2d_parabolic.jl`. The differences are:
 # - The gradients are element-local strong form derivatives of the continuous solution
-#   plus a lift of the boundary data on the boundary faces, see `calc_gradient_cgsem!`.
+#   plus a lift of the boundary data on the boundary faces, see `calc_gradient!` below.
 #   They are not assembled.
 # - Interface and mortar terms are skipped. As in `rhs_hyperbolic!`, the interior
 #   entries of `surface_flux_values` are zero, so the surface integrals add only the
@@ -145,8 +145,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2},
 
     # Compute the element-local gradients of the gradient variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient_cgsem!(gradients, u_transformed, t, mesh, equations_parabolic,
-                             boundary_conditions_parabolic, dg, cache)
+        calc_gradient!(backend, gradients, u_transformed, t, mesh, equations_parabolic,
+                       boundary_conditions_parabolic, solver, parabolic_scheme, cache)
     end
 
     # Compute and store the parabolic fluxes
@@ -196,7 +196,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2},
     # assembled lumped mass matrix
     @trixi_timeit timer() "assembly" begin
         assemble_and_apply_jacobian_parabolic!(du, cache.assembly, mesh,
-                                               equations_parabolic, dg, cache)
+                                               equations_parabolic, solver, cache)
     end
 
     return nothing
@@ -220,9 +220,14 @@ end
 # u is continuous, u^* = u at the interior faces, so only the strong form derivative
 # remains there. At the boundary faces, u^* is the boundary value of the boundary
 # condition, which imposes Dirichlet data weakly (for Neumann conditions, u^* = u).
-function calc_gradient_cgsem!(gradients, u_transformed, t, mesh::P4estMesh{2},
-                              equations_parabolic, boundary_conditions_parabolic,
-                              dg::DGSEM, cache)
+# The `parabolic_scheme` only determines interface fluxes in DGSEM and is not used here;
+# it is passed to match the signature of the DGSEM version.
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
+                        mesh::P4estMesh{2}, equations_parabolic,
+                        boundary_conditions_parabolic, solver::CGSEM, parabolic_scheme,
+                        cache)
+    (; dg) = solver
+
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_gradients!(gradients, dg, cache)
@@ -230,8 +235,8 @@ function calc_gradient_cgsem!(gradients, u_transformed, t, mesh::P4estMesh{2},
 
     # Calculate the element-local strong form derivatives
     @trixi_timeit timer() "volume integral" begin
-        calc_gradient_strong!(gradients, u_transformed, mesh, equations_parabolic, dg,
-                              cache)
+        calc_gradient_strong!(gradients, u_transformed, mesh, equations_parabolic,
+                              solver, cache)
     end
 
     # Prolong the gradient variables to the boundaries
@@ -244,7 +249,7 @@ function calc_gradient_cgsem!(gradients, u_transformed, t, mesh::P4estMesh{2},
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux_gradient!(cache, t, boundary_conditions_parabolic, mesh,
                                      equations_parabolic, dg.surface_integral, dg)
-        calc_boundary_jump_gradient!(cache, mesh, equations_parabolic, dg)
+        calc_boundary_jump_gradient!(cache, mesh, equations_parabolic, solver)
     end
 
     # Add the lift of the boundary jumps. The interior entries of `surface_flux_values`
@@ -267,7 +272,8 @@ end
 # form derivative matrix `derivative_hat` = D - M^{-1} B.
 function calc_gradient_strong!(gradients, u_transformed, mesh::P4estMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache)
+                               solver::CGSEM, cache)
+    (; dg) = solver
     (; derivative_matrix) = dg.basis
     (; contravariant_vectors) = cache.elements
     gradients_x, gradients_y = gradients
@@ -335,7 +341,8 @@ end
 # the jumps u^* - u instead of the weak form surface term of DGSEM.
 function calc_boundary_jump_gradient!(cache, mesh::P4estMesh{2},
                                       equations_parabolic::AbstractEquationsParabolic,
-                                      dg::DGSEM)
+                                      solver::CGSEM)
+    (; dg) = solver
     (; boundaries) = cache
     (; surface_flux_values) = cache.elements
 
