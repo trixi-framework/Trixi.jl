@@ -6556,6 +6556,43 @@ end
         @test all(isfinite, du_ode)
     end
 
+    @timed_testset "Analysis and output functions get the auxiliary variables" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        # `integrate` calls `func(u, aux, equations)`.
+        # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
+        # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
+        @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
+        @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
+                       atol = 1.0e-14)
+
+        # Plots use `cons2prim(u, aux, equations)` by default
+        @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
+
+        # Plots along a curve interpolate `aux[1]` in the same way as a solution
+        # `u = aux[1]`. The mesh with `polydeg = 1` uses the search of p4est, the mesh
+        # with `polydeg = 2` the general implementation.
+        first_aux(u, aux, equations) = SVector(aux[1])
+        mesh_quadratic = P4estMesh((2, 2, 2), polydeg = 2,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        for mesh_ in (mesh, mesh_quadratic)
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
+                                                 boundary_conditions = boundary_condition_periodic,
+                                                 aux_field)
+            u_ode_ = compute_coefficients(0.0, semi_)
+            aux_as_u_ode = vec(semi_.cache.aux_vars.aux[1, :, :, :, :])
+            point = (0.1, -0.2, 0.3)
+            pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, point,
+                                variable_names = ["a1"])
+            pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, point)
+            @test pd_aux.data ≈ pd_u.data
+        end
+    end
+
     @timed_testset "No auxiliary variables for equations without them" begin
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_no_aux,
                                                                 initial_condition,
