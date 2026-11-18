@@ -646,7 +646,13 @@ end
 # directly before IO and do not necessarily need to be stored in memory before,
 #   get_element_variables!(element_variables, ..)
 # is used to retrieve such up to date element variables, modifying
-# `element_variables::Dict{Symbol,Any}` in place.
+# `element_variables::Dict{Symbol,Any}` in place. The method for the solver collects them
+# from its components via `get_element_variables_volume_integral!` and
+# `get_element_variables_mesh!`. The `SaveSolutionCallback` additionally calls
+# `get_element_variables_callback!` for each callback; the `AMRCallback` forwards this
+# to its controller via `get_element_variables_controller!`. Indicators that can be
+# evaluated from `u` alone (such as the ones used for AMR and shock capturing) are
+# updated first and then stored via `get_element_variables_indicator!`.
 function get_element_variables!(element_variables, u_ode,
                                 semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
