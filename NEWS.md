@@ -104,7 +104,7 @@ for human readability.
   residuals at shared nodes. It supports conforming `P4estMesh`es in 2D with the weak
   form, flux differencing, pure LGL finite volume, and Hennemann-Gassner shock-capturing
   volume integrals, weakly imposed boundary conditions, and source terms, see
-  `examples/p4est_2d_cgsem/`.
+  `examples/p4est_2d_cgsem/` ([#3469]).
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
