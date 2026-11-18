@@ -509,7 +509,8 @@ end
 
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
-# is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
+# is required (see https://arxiv.org/abs/1708.01243
+# (DOI: https://doi.org/10.1016/j.jcp.2018.02.033), Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs_hyperbolic!(backend::Nothing,
                          du, u, t,

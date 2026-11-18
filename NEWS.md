@@ -8,7 +8,14 @@ for human readability.
 ## Changes when updating to v0.18 from v0.17.x
 
 #### Changed
-
+- The node indices describing the faces of interfaces, boundaries, and mortars of
+  `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
+  `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
+  (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
+  directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
+  accordingly.
+- The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`.
 - For the `CompressibleNavierStokesDiffusion1D` equations, the viscous stress `tau_xx`
   is now computed as `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`
   ([#3202]). Here, `mu` is the user-given dynamic viscosity.
@@ -27,16 +34,21 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
+  approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
   every node such as a prescribed background flow. Whether equations use auxiliary
   variables is a fixed property of their type given by `nauxvariables(equations)`;
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
-  they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
-  AMR, MPI, and GPUs. The new equations `ConservativeLinearScalarAdvectionEquation3D` and
+  they are supported for `DGSEM` on (also statically refined and MPI-parallel)
+  `P4estMesh{3}`es without AMR, also with volume fluxes wrapped in `FluxTurbo`. On GPUs,
+  they are supported on conforming (also MPI-parallel) `P4estMesh{3}`es for equations
+  without nonconservative terms, also with `FluxTurbo`. The new equations
+  `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239]).
+  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -80,9 +92,9 @@ for human readability.
   to `solve` for a `Float32` semidiscretization.
 - The parabolic right-hand side `rhs_parabolic!` on conforming `P4estMesh`s
   can now be executed on GPUs and with the KernelAbstractions.jl CPU backend ([#3314], [#3328]).
-- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D `P4estMesh`s,
+- The hyperbolic right-hand side `rhs_hyperbolic!` on non-conforming 2D and 3D `P4estMesh`s,
   i.e., with mortars, can now be executed on GPUs and with the KernelAbstractions.jl
-  CPU backend ([#3251]).
+  CPU backend ([#3251], [#3381]).
 - `semidiscretize` of a `SemidiscretizationHyperbolicParabolic` supports the keyword
   arguments `storage_type`, `real_type`, and `flux_differencing_kernel` for the
   `P4estMesh` ([#3313]).
@@ -129,6 +141,12 @@ for human readability.
     `VolumeIntegralShockCapturingHG`, `VolumeIntegralShockCapturingRRG`, and
     `VolumeIntegralAdaptive` with `IndicatorHennemannGassner` on all mesh types
     supporting them ([#3428])
+  - the volume integrals `VolumeIntegralAdaptive` with `IndicatorEntropyChange`,
+    `IndicatorEntropyCorrection`, and `IndicatorEntropyCorrectionShockCapturingCombined`
+    on all mesh types supporting them ([#3432])
+  - the indicators `IndicatorHennemannGassner`, `IndicatorMax`, and
+    `IndicatorNodalFunction` on all mesh types and `IndicatorLöhner` on
+    three-dimensional meshes ([#3447])
 
   Moreover, explicit bounds checks are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
@@ -140,8 +158,22 @@ for human readability.
 - For the `CompressibleNavierStokesDiffusion` equations, a specific gas constant `R`
   different from unity is now supported, which then results in a different temperature
   `T = p / (R * rho)` ([#3165], [#3383]).
+- Trixi.jl now supports KernelAbstractions.jl v0.10 (and AcceleratedKernels.jl v0.5) in
+  addition to v0.9. Note that the `CPU` backend of KernelAbstractions.jl v0.10 compiles
+  kernels like the GPU backends and runs them with PoCL, so the performance of the
+  threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
+- `IndicatorHennemannGassner` for `DGMulti` solvers with `SBP()` approximation types on
+  triangles now sorts the modal coefficients by their total degree. Previously, the
+  energies of the highest modes were computed from the wrong modal coefficients, e.g.,
+  resulting in nonzero energies of the highest modes for polynomials of lower degree.
+  This changes the blending factors and thus the results of shock capturing simulations
+  on triangles.
+- `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
+  `IndicatorMax` throw a `DimensionMismatch` if their basis has a different number of
+  nodes than the one of the solver. Previously, `IndicatorMax` silently returned wrong
+  values if the basis of the indicator had more nodes ([#3447]).
 - `energy_internal`, `energy_total`, and `entropy` of the `LinearElasticityEquations1D`
   now use the P-wave modulus `lambda + 2 * mu` instead of Young's modulus, so that they
   are conserved by the equations, and `cons2entropy` returns the gradient of `entropy`.
@@ -285,6 +317,11 @@ for human readability.
   normal fluxes change. User-defined parabolic boundary conditions for the `Divergence()`
   operator must scale prescribed normal fluxes by the norm of the `normal_direction` in the
   same way; `flux_inner` already includes this scaling ([#3412]).
+- Fixes a bug in the AMR of `T8codeMesh`es: a family of elements was coarsened if its
+  first element was marked for coarsening, even if other elements of the family were
+  not. Now, a family is coarsened only if all of its elements are marked for coarsening,
+  as for `P4estMesh`es. Thus, results of simulations with AMR on `T8codeMesh`es change
+  and now agree with the corresponding simulations on `P4estMesh`es ([#3421]).
 - The smoothing of the blending factors of the `IndicatorHennemannGassner`
   (`alpha_smooth = true`, the default) now also takes MPI interfaces and MPI mortars
   into account on MPI-parallel `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es. Previously,
