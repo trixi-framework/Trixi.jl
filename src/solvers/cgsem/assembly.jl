@@ -6,11 +6,11 @@
 #! format: noindent
 
 @doc raw"""
-    AssemblyCGSEM(mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
+    AssemblyCGSEM(mesh::P4estMesh{2}, equations, solver::CGSEM, cache)
 
 Gather-scatter data of a continuous Galerkin spectral element method (CGSEM) on a
 conforming `mesh` with element-local storage of the solution, built from the DGSEM
-`cache` of `dg`.
+`cache` of the wrapped solver `solver.dg`.
 
 Every node on an element face has one copy in each element sharing it.
 `AssemblyCGSEM` numbers the distinct (global) nodes, stores the inverse of the
@@ -22,9 +22,9 @@ quadrature weight, which is the same for all copies of a node. It is used by
 
 The global numbering is obtained by union-find over the node pairs of all
 interfaces of `cache`, which also connects nodes that are shared only through a
-vertex. Interior nodes form singleton rows. Only a [`LobattoLegendreBasis`](@ref)
-is supported since Gauss-Legendre nodes do not lie on element faces, and the mesh
-must be conforming (no mortars).
+vertex. Interior nodes form singleton rows. The mesh must be conforming (no mortars).
+The basis is a [`LobattoLegendreBasis`](@ref), which is checked by [`CGSEM`](@ref),
+since Gauss-Legendre nodes do not lie on element faces.
 
 ## Local-to-global index map and its inverse
 
@@ -105,11 +105,8 @@ end
 # @eval due to @muladd
 @eval Adapt.@adapt_structure(AssemblyCGSEM)
 
-function AssemblyCGSEM(mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
-    if !(dg.basis isa LobattoLegendreBasis)
-        throw(ArgumentError("CGSEM requires a `LobattoLegendreBasis`, " *
-                            "got `$(nameof(typeof(dg.basis)))`"))
-    end
+function AssemblyCGSEM(mesh::P4estMesh{2}, equations, solver::CGSEM, cache)
+    (; dg) = solver
     n_mortars = nmortars(cache.mortars)
     if n_mortars > 0
         throw(ArgumentError("CGSEM requires a conforming mesh, " *
@@ -266,7 +263,7 @@ end
 
 @doc raw"""
     assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
-                                 mesh, equations, dg::DGSEM, cache)
+                                 mesh, equations, solver::CGSEM, cache)
 
 Gather-scatter step of CGSEM. The value at every copy of a global node is replaced by
 ```math
@@ -281,7 +278,8 @@ The copies are summed in a fixed order, so all copies receive bitwise identical 
 and the result does not depend on the number of threads.
 """
 function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
-                                      mesh, equations, dg::DGSEM, cache)
+                                      mesh, equations, solver::CGSEM, cache)
+    (; dg) = solver
     (; inverse_sum_jacobian) = assembly
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -312,7 +310,7 @@ function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
 end
 
 @doc raw"""
-    l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, dg::DGSEM, cache)
+    l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, solver::CGSEM, cache)
 
 L2 projection of the element-local nodal values `u` onto the continuous (C0) space
 described by `assembly`, with respect to the lumped (collocated) Gauss-Lobatto-Legendre
@@ -324,14 +322,17 @@ v_n = \frac{\sum_k J_k u_k}{\sum_k J_k}
 of its copies; interior nodes are not modified. The projection is idempotent (up to
 roundoff errors) and preserves the discrete integral of every variable. It is used for
 the initial condition of CGSEM and can be applied to any DGSEM solution on a conforming
-mesh, e.g.,
+mesh by wrapping the DGSEM solver `dg` of its semidiscretization `semi`, e.g.,
 ```julia
 u = Trixi.wrap_array(u_ode, semi)
+solver = CGSEM(dg)
 assembly = Trixi.AssemblyCGSEM(mesh, equations, solver, semi.cache)
 Trixi.l2_projection!(u, assembly, mesh, equations, solver, semi.cache)
 ```
 """
-function l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, dg::DGSEM, cache)
+function l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, solver::CGSEM,
+                        cache)
+    (; dg) = solver
     (; inverse_sum_jacobian) = assembly
     (; inverse_jacobian) = cache.elements
 

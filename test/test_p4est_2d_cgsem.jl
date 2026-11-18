@@ -62,7 +62,8 @@
         return SVector(x, y)
     end
 
-    # Discretization of the compressible Euler equations on a periodic curved mesh
+    # DGSEM discretization of the compressible Euler equations on a periodic curved mesh,
+    # the `CGSEM` wrapping its solver, and the corresponding gather-scatter data
     function setup_euler_periodic_curved(initial_condition; polydeg = 3,
                                          initial_refinement_level = 1)
         equations = CompressibleEulerEquations2D(1.4)
@@ -73,8 +74,9 @@
         boundary_conditions = boundary_condition_periodic
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions)
-        assembly = AssemblyCGSEM(mesh, equations, solver, semi.cache)
-        return semi, assembly
+        cgsem = CGSEM(solver)
+        assembly = AssemblyCGSEM(mesh, equations, cgsem, semi.cache)
+        return semi, cgsem, assembly
     end
 end
 
@@ -94,7 +96,7 @@ end
                          periodicity = periodicity)
         solver = DGSEM(polydeg = polydeg)
         cache = Trixi.create_cache_hyperbolic(mesh, equations, solver, Float64, Float64)
-        assembly = AssemblyCGSEM(mesh, equations, solver, cache)
+        assembly = AssemblyCGSEM(mesh, equations, CGSEM(solver), cache)
 
         # `polydeg` distinct nodes per element and direction, plus one on a
         # nonperiodic boundary
@@ -127,7 +129,7 @@ end
     # The initial condition is evaluated pointwise, so it is single-valued at the shared
     # nodes up to roundoff even if it is discontinuous. Add a different constant in each
     # element to obtain genuinely multi-valued data.
-    semi, assembly = setup_euler_periodic_curved(initial_condition_weak_blast_wave)
+    semi, cgsem, assembly = setup_euler_periodic_curved(initial_condition_weak_blast_wave)
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     u_ode = compute_coefficients(0.0, semi)
     u = Trixi.wrap_array(u_ode, semi)
@@ -139,7 +141,7 @@ end
     @test max_interface_jump(u, mesh, equations, solver, cache) > 0.01
     integrals = Trixi.integrate(cons2cons, u_ode, semi)
 
-    l2_projection!(u, assembly, mesh, equations, solver, cache)
+    l2_projection!(u, assembly, mesh, equations, cgsem, cache)
     @test max_interface_jump(u, mesh, equations, solver, cache) == 0.0
 
     # The projection preserves the integral of every variable
@@ -147,27 +149,27 @@ end
 
     # The projection is idempotent up to roundoff errors
     u_ode_projected = copy(u_ode)
-    l2_projection!(u, assembly, mesh, equations, solver, cache)
+    l2_projection!(u, assembly, mesh, equations, cgsem, cache)
     @test maximum(abs, u_ode - u_ode_projected) <= 10 * eps() * maximum(abs, u_ode)
 
     # The projection changes smooth data only by roundoff
     u_ode_smooth = compute_coefficients(initial_condition_convergence_test, 0.0, semi)
     u_ode_smooth_before = copy(u_ode_smooth)
     l2_projection!(Trixi.wrap_array(u_ode_smooth, semi), assembly, mesh, equations,
-                   solver, cache)
+                   cgsem, cache)
     @test maximum(abs, u_ode_smooth - u_ode_smooth_before) <=
           100 * eps() * maximum(abs, u_ode_smooth_before)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities); the threading macro may allocate a few bytes
-    @test (@allocated l2_projection!(u, assembly, mesh, equations, solver, cache)) < 1000
+    @test (@allocated l2_projection!(u, assembly, mesh, equations, cgsem, cache)) < 1000
 end
 
 @testitem "CGSEM 2D (P4estMesh): assembly" setup=[
     Setup,
     P4estMesh2DCGSEM
 ] tags=[:p4est_part1] begin
-    semi, assembly = setup_euler_periodic_curved(initial_condition_weak_blast_wave)
+    semi, cgsem, assembly = setup_euler_periodic_curved(initial_condition_weak_blast_wave)
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     (; weights) = solver.basis
 
@@ -178,7 +180,7 @@ end
     du = Trixi.wrap_array(du_ode, semi)
     du_raw = Trixi.wrap_array(du_ode_raw, semi)
 
-    assemble_and_apply_jacobian!(du, assembly, mesh, equations, solver, cache)
+    assemble_and_apply_jacobian!(du, assembly, mesh, equations, cgsem, cache)
     @test max_interface_jump(du, mesh, equations, solver, cache) == 0.0
 
     # The assembled values satisfy sum_n (sum_k w J_k) du_n = -sum_k w du_k for every
@@ -200,7 +202,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities); the threading macro may allocate a few bytes
-    @test (@allocated assemble_and_apply_jacobian!(du, assembly, mesh, equations, solver,
+    @test (@allocated assemble_and_apply_jacobian!(du, assembly, mesh, equations, cgsem,
                                                    cache)) <
           1000
 end
@@ -213,12 +215,6 @@ end
     mesh = P4estMesh((2, 2); polydeg = 1,
                      coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
                      initial_refinement_level = 1, periodicity = true)
-
-    # Gauss-Legendre nodes do not lie on element faces
-    solver_gauss = DGSEM(polydeg = 3, basis_type = GaussLegendreBasis)
-    cache_gauss = Trixi.create_cache_hyperbolic(mesh, equations, solver_gauss, Float64,
-                                                Float64)
-    @test_throws ArgumentError AssemblyCGSEM(mesh, equations, solver_gauss, cache_gauss)
 
     # Nonconforming meshes are not supported: refine the bottom left quadrant of each
     # tree once more (cf. `examples/p4est_2d_dgsem/elixir_advection_nonconforming_flag.jl`)
@@ -238,7 +234,7 @@ end
     solver = DGSEM(polydeg = 3)
     cache = Trixi.create_cache_hyperbolic(mesh, equations, solver, Float64, Float64)
     @test Trixi.nmortars(cache.mortars) > 0
-    @test_throws ArgumentError AssemblyCGSEM(mesh, equations, solver, cache)
+    @test_throws ArgumentError AssemblyCGSEM(mesh, equations, CGSEM(solver), cache)
 end
 
 @testitem "CGSEM 2D (P4estMesh): elixir_advection_basic.jl" setup=[

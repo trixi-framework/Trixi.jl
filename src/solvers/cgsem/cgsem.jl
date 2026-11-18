@@ -161,7 +161,7 @@ function create_cache(mesh::P4estMeshSerial{2}, equations::AbstractEquations,
     # integral adds only the boundary fluxes.
     fill!(cache.elements.surface_flux_values, zero(uEltype))
 
-    assembly = AssemblyCGSEM(mesh, equations, dg, cache)
+    assembly = AssemblyCGSEM(mesh, equations, solver, cache)
     return (; cache..., assembly)
 end
 
@@ -172,7 +172,7 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::P4estMesh{2},
     # The pointwise evaluation of `func` is single-valued at shared nodes only up to
     # roundoff (the node coordinates of the copies differ by roundoff); the projection
     # makes the copies bitwise identical.
-    l2_projection!(u, cache.assembly, mesh, equations, dg, cache)
+    l2_projection!(u, cache.assembly, mesh, equations, solver, cache)
     return nothing
 end
 

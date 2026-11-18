@@ -6,9 +6,10 @@
 #! format: noindent
 
 # Continuous Galerkin spectral element methods (CGSEM) build on the DGSEM kernels
-# and containers of the `P4estMesh`.
-include("cgsem/assembly.jl")
+# and containers of the `P4estMesh`. The `CGSEM` type is defined first since the
+# gather-scatter functions dispatch on it.
 include("cgsem/cgsem.jl")
+include("cgsem/assembly.jl")
 
 # Hyperbolic right-hand side of CGSEM on a conforming `P4estMesh{2}`, cf. the DGSEM
 # version in `dgsem_tree/dg_2d.jl`. The differences are:
@@ -67,7 +68,7 @@ function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2}, equatio
     # Sum the residuals of all copies of each node and apply the inverse of the
     # assembled lumped mass matrix
     @trixi_timeit timer() "assembly" begin
-        assemble_and_apply_jacobian!(du, cache.assembly, mesh, equations, dg, cache)
+        assemble_and_apply_jacobian!(du, cache.assembly, mesh, equations, solver, cache)
     end
 
     return nothing
