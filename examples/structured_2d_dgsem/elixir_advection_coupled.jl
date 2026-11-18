@@ -61,13 +61,21 @@ coupling_function12 = (x, u, equations_other, equations_own) -> u
 coupling_function13 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+boundary_conditions_x_neg1 = BoundaryConditionCoupled(2,
+                                                      (NodeIndex.End, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function12)
-boundary_conditions_x_pos1 = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64,
+boundary_conditions_x_pos1 = BoundaryConditionCoupled(2,
+                                                      (NodeIndex.Begin, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function12)
-boundary_conditions_y_neg1 = BoundaryConditionCoupled(3, (:i_forward, :end), Float64,
+boundary_conditions_y_neg1 = BoundaryConditionCoupled(3,
+                                                      (NodeIndex.IForward, NodeIndex.End),
+                                                      Float64,
                                                       coupling_function13)
-boundary_conditions_y_pos1 = BoundaryConditionCoupled(3, (:i_forward, :begin), Float64,
+boundary_conditions_y_pos1 = BoundaryConditionCoupled(3,
+                                                      (NodeIndex.IForward, NodeIndex.Begin),
+                                                      Float64,
                                                       coupling_function13)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -94,13 +102,21 @@ coupling_function21 = (x, u, equations_other, equations_own) -> u
 coupling_function24 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
+boundary_conditions_x_neg2 = BoundaryConditionCoupled(1,
+                                                      (NodeIndex.End, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function21)
-boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64,
+boundary_conditions_x_pos2 = BoundaryConditionCoupled(1,
+                                                      (NodeIndex.Begin, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function21)
-boundary_conditions_y_neg2 = BoundaryConditionCoupled(4, (:i_forward, :end), Float64,
+boundary_conditions_y_neg2 = BoundaryConditionCoupled(4,
+                                                      (NodeIndex.IForward, NodeIndex.End),
+                                                      Float64,
                                                       coupling_function24)
-boundary_conditions_y_pos2 = BoundaryConditionCoupled(4, (:i_forward, :begin), Float64,
+boundary_conditions_y_pos2 = BoundaryConditionCoupled(4,
+                                                      (NodeIndex.IForward, NodeIndex.Begin),
+                                                      Float64,
                                                       coupling_function24)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -127,13 +143,21 @@ coupling_function34 = (x, u, equations_other, equations_own) -> u
 coupling_function31 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg3 = BoundaryConditionCoupled(4, (:end, :i_forward), Float64,
+boundary_conditions_x_neg3 = BoundaryConditionCoupled(4,
+                                                      (NodeIndex.End, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function34)
-boundary_conditions_x_pos3 = BoundaryConditionCoupled(4, (:begin, :i_forward), Float64,
+boundary_conditions_x_pos3 = BoundaryConditionCoupled(4,
+                                                      (NodeIndex.Begin, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function34)
-boundary_conditions_y_neg3 = BoundaryConditionCoupled(1, (:i_forward, :end), Float64,
+boundary_conditions_y_neg3 = BoundaryConditionCoupled(1,
+                                                      (NodeIndex.IForward, NodeIndex.End),
+                                                      Float64,
                                                       coupling_function31)
-boundary_conditions_y_pos3 = BoundaryConditionCoupled(1, (:i_forward, :begin), Float64,
+boundary_conditions_y_pos3 = BoundaryConditionCoupled(1,
+                                                      (NodeIndex.IForward, NodeIndex.Begin),
+                                                      Float64,
                                                       coupling_function31)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -160,13 +184,21 @@ coupling_function43 = (x, u, equations_other, equations_own) -> u
 coupling_function42 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg4 = BoundaryConditionCoupled(3, (:end, :i_forward), Float64,
+boundary_conditions_x_neg4 = BoundaryConditionCoupled(3,
+                                                      (NodeIndex.End, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function43)
-boundary_conditions_x_pos4 = BoundaryConditionCoupled(3, (:begin, :i_forward), Float64,
+boundary_conditions_x_pos4 = BoundaryConditionCoupled(3,
+                                                      (NodeIndex.Begin, NodeIndex.IForward),
+                                                      Float64,
                                                       coupling_function43)
-boundary_conditions_y_neg4 = BoundaryConditionCoupled(2, (:i_forward, :end), Float64,
+boundary_conditions_y_neg4 = BoundaryConditionCoupled(2,
+                                                      (NodeIndex.IForward, NodeIndex.End),
+                                                      Float64,
                                                       coupling_function42)
-boundary_conditions_y_pos4 = BoundaryConditionCoupled(2, (:i_forward, :begin), Float64,
+boundary_conditions_y_pos4 = BoundaryConditionCoupled(2,
+                                                      (NodeIndex.IForward, NodeIndex.Begin),
+                                                      Float64,
                                                       coupling_function42)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
