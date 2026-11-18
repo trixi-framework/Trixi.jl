@@ -160,12 +160,12 @@ function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
 end
 
 # The `cache` of a `P4estMesh` or `T8codeMesh` contains the performance settings of
-# the GPU and KernelAbstractions.jl kernels as a `Tuning`, see `create_cache` in
-# `src/solvers/dgsem_p4est/dg.jl`. We set them (if requested) and check them every time
-# the semidiscretization is adapted, since the checks depend on the settings, the real
-# type, and the storage type. We store settings that are `nothing` (the defaults of the
-# backend) without resolving them, so that they follow the backend if the
-# semidiscretization is adapted again.
+# the GPU and KernelAbstractions.jl kernels as a `Tuning`,
+# see `create_cache_hyperbolic` in `src/solvers/dgsem_p4est/dg.jl`.
+# We set them (if requested) and check them every time the semidiscretization is adapted,
+# since the checks depend on the settings, the real type, and the storage type.
+# We store settings that are `nothing` (the defaults of the backend) without resolving
+# them, so that they follow the backend if the semidiscretization is adapted again.
 function adapt_tuning(semi, tuning)
     if !(hasproperty(semi, :cache) && haskey(semi.cache, :tuning))
         if tuning !== nothing
@@ -650,7 +650,13 @@ end
 # directly before IO and do not necessarily need to be stored in memory before,
 #   get_element_variables!(element_variables, ..)
 # is used to retrieve such up to date element variables, modifying
-# `element_variables::Dict{Symbol,Any}` in place.
+# `element_variables::Dict{Symbol,Any}` in place. The method for the solver collects them
+# from its components via `get_element_variables_volume_integral!` and
+# `get_element_variables_mesh!`. The `SaveSolutionCallback` additionally calls
+# `get_element_variables_callback!` for each callback; the `AMRCallback` forwards this
+# to its controller via `get_element_variables_controller!`. Indicators that can be
+# evaluated from `u` alone (such as the ones used for AMR and shock capturing) are
+# updated first and then stored via `get_element_variables_indicator!`.
 function get_element_variables!(element_variables, u_ode,
                                 semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
@@ -721,7 +727,7 @@ end
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)
-# - create_cache(mesh, equations, solver, RealT)
+# - create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
 # - wrap_array(u_ode, mesh, equations, solver, cache)
 # - integrate(func, u, mesh, equations, solver, cache; normalize=true)
 # - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)

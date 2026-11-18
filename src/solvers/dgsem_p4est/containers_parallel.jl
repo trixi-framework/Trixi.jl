@@ -20,7 +20,7 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                           NormalArray <: DenseArray{RealT, NDIMSP1},
                                           VecInt <: DenseVector{Int},
                                           IndicesVector <:
-                                          DenseVector{NTuple{NDIMS, Symbol}},
+                                          DenseVector{NTuple{NDIMS, NodeIndex.T}},
                                           uVector <: DenseVector{uEltype},
                                           NormalVector <: DenseVector{RealT}} <:
                AbstractMPIInterfaceContainer
@@ -123,7 +123,7 @@ function init_mpi_interfaces(mesh::Union{P4estMeshParallel, T8codeMeshParallel},
 
     local_neighbor_ids = Vector{Int}(undef, n_mpi_interfaces)
 
-    node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_mpi_interfaces)
+    node_indices = Vector{NTuple{NDIMS, NodeIndex.T}}(undef, n_mpi_interfaces)
 
     local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
@@ -197,13 +197,13 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
                                        uVector <: DenseVector{uEltype}} <:
                AbstractMPIMortarContainer
     u::uArray                                      # [small/large side, variable, position, i, j, mortar]
-    local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
-    local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}}    # [small/large, mortar]
-    normal_directions::Array{RealT, NDIMSP2}       # [dimension, i, j, position, mortar]
+    local_neighbor_ids::Vector{Vector{Int}}          # [mortar][ids]
+    local_neighbor_positions::Vector{Vector{Int}}    # [mortar][positions]
+    node_indices::Matrix{NTuple{NDIMS, NodeIndex.T}} # [small/large, mortar]
+    normal_directions::Array{RealT, NDIMSP2}         # [dimension, i, j, position, mortar]
     # internal `resize!`able storage
     _u::uVector
-    _node_indices::Vector{NTuple{NDIMS, Symbol}}
+    _node_indices::Vector{NTuple{NDIMS, NodeIndex.T}}
     _normal_directions::Vector{RealT}
 end
 
@@ -267,7 +267,7 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
     local_neighbor_ids = fill(Vector{Int}(), n_mpi_mortars)
     local_neighbor_positions = fill(Vector{Int}(), n_mpi_mortars)
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mpi_mortars)
+    _node_indices = Vector{NTuple{NDIMS, NodeIndex.T}}(undef, 2 * n_mpi_mortars)
     node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_mpi_mortars))
 
     _normal_directions = Vector{RealT}(undef,
@@ -352,7 +352,7 @@ function init_boundaries!(boundaries, mesh::P4estMeshParallel)
     return boundaries
 end
 
-function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM, cache)
     # Make sure to re-create ghost layer before reinitializing MPI-related containers
     update_ghost_layer!(mesh)
 
@@ -364,7 +364,7 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     required = count_required_surfaces(mesh)
 
