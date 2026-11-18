@@ -1414,7 +1414,6 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
                                 nodes, u, aux, equations, solver;
                                 cache = get_value_at_point_3d_cache(u, aux))
     # Set up data structures.
-    n_variables = size(u, 1)
     (; distances, coordinates_tetrahedron, value_tetrahedron, aux_tetrahedron) = cache
 
     maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
@@ -1453,7 +1452,7 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
                                                       index[1], index[2], index[3],
                                                       closest_element]
             end
-            for v in 1:n_variables
+            for v in eachvariable(equations)
                 value_tetrahedron[v, i] = u[v,
                                             index[1], index[2], index[3],
                                             closest_element]
