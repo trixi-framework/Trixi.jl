@@ -74,8 +74,8 @@ end
 # BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
 # The shared `create_cache_hyperbolic` (TreeMesh/P4estMesh) calls `create_cache_mortar`,
 # and the shared `rhs_hyperbolic!` calls `prolong2mortars!` and `calc_mortar_flux!`
-# with `dg.mortar`. BlockFV on P4estMesh needs none of these, since mortars are not
-# yet supported.
+# with `dg.mortar`.
+# BlockFV on P4estMesh needs none of these, since mortars are not yet supported.
 function create_cache_mortar(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis,
                              ::Any)
     if count_required_surfaces(mesh).mortars > 0
@@ -230,7 +230,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
         # This index on the primary side will always run forward but
         # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
+        if NodeIndex.IBackward in secondary_indices
             node_secondary = index_end
             node_secondary_step = -1
         else

@@ -110,7 +110,7 @@ After running the code above, SnoopCompile has generated the file
 `dev/precompile/precompile_Trixi.jl`, which contains precompile statements
 in the function `_precompile_`.
 More information on this process can be found in the docs of SnoopCompile,
-in particular at https://timholy.github.io/SnoopCompile.jl/stable/snoopi/.
+in particular at https://juliadebug.github.io/SnoopCompile.jl/stable/tutorials/snoop_inference_parcel/.
 
 This kind of analysis helps finding type-unstable parts of the code, e.g.
 `init_interfaces` etc. in https://github.com/trixi-framework/Trixi.jl/pull/307.
@@ -122,7 +122,7 @@ julia --threads=1 -e '@time using Trixi; @time include(joinpath(examples_dir(), 
 ```
 
 We add `@assert` to the precompile statements below to make sure that we don't include
-failing precompile statements, cf. https://timholy.github.io/SnoopCompile.jl/stable/snoopi/.
+failing precompile statements, cf. https://juliadebug.github.io/SnoopCompile.jl/stable/tutorials/snoop_inference_parcel/.
 If any assertions below fail, it is generally safe to just disable the failing call
 to precompile (or to not include precompile.jl at all).
 To still get the same latency reductions, you should consider to adapt the failing precompile

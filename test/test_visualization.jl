@@ -4,6 +4,8 @@
     # interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
     # Makie-based visualization.
     using CairoMakie
+    # Render displayed figures without opening an image viewer for each of them
+    CairoMakie.activate!(visible = false)
 
     EXAMPLES_DIR = examples_dir()
 end
@@ -121,7 +123,7 @@ end
                 for property in propertynames(spd_function)
                     if property == :data
                         @test spd_no_function.data.data ≈ spd_function.data.data
-                    elseif property == :variable_names
+                    elseif property in (:variable_names, :node_groups)
                         @test getproperty(spd_no_function, property) ==
                               getproperty(spd_function, property)
                     else
@@ -669,6 +671,9 @@ end
                         tspan=(0.0, 0.0),
                         approximation_type=Polynomial())
     @test PlotData1D(sol) isa PlotData1D
+    pd = PlotData1D(sol)
+    @test pd.orientation_x == 1
+    @test Plots.plot(pd["rho"])[1][:xaxis][:guide] == "\$x\$"
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
@@ -715,6 +720,35 @@ end
         @trixi_test_nowarn Plots.plot!(getmesh(pd))
         @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
         @trixi_test_nowarn Trixi.iplot(pd)
+    end
+
+    @testset "Axis labels of slices" begin
+        point = (0.125, 0.125, 0.125)
+        for (slice, xlabel, ylabel) in ((:xy, "\$x\$", "\$y\$"), (:xz, "\$x\$", "\$z\$"),
+                                        (:yz, "\$y\$", "\$z\$"))
+            pd_slice = PlotData2D(sol; slice, point)
+            subplot = Plots.plot(pd_slice["rho"])[1]
+            @test subplot[:xaxis][:guide] == xlabel
+            @test subplot[:yaxis][:guide] == ylabel
+
+            for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+                _, ax, _ = plot_function(pd_slice["rho"])
+                @test string(ax.xlabel[]) == xlabel
+                @test string(ax.ylabel[]) == ylabel
+            end
+        end
+
+        # `slice` and `point` are passed to `PlotData2D`, `colormap` to Makie
+        for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+            _, axes_sol = plot_function(sol; slice = :xz, point, colormap = :viridis)
+            @test string(first(axes_sol).xlabel[]) == "\$x\$"
+            @test string(first(axes_sol).ylabel[]) == "\$z\$"
+        end
+
+        # Makie attributes such as `colorrange` are passed to the mesh of the heatmap
+        _, axes_sol = Makie.plot(sol; slice = :xz, point, colorrange = (0.0, 1.0))
+        heatmap_mesh = only(only(first(axes_sol).scene.plots).plots)
+        @test heatmap_mesh.colorrange[] == [0.0, 1.0]
     end
 
     @testset "Slice planes" begin
@@ -882,6 +916,22 @@ end
     @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :xz) isa Trixi.PlotData2DCartesian
+
+    @testset "Makie plots of slices" begin
+        # Makie does not accept the keywords of `PlotData2D`, so these calls fail unless
+        # they are passed to `PlotData2D`. `colormap` is passed to Makie.
+        kwargs = (; slice = :xz, point = (0.0, 0.5, 0.0), nvisnodes = 3,
+                  grid_lines = false, max_supported_level = 5)
+        for plot_function in (Makie.plot, Makie.contour, Makie.contourf)
+            _, axes_sol = plot_function(sol; kwargs..., colormap = :viridis)
+            @test string(first(axes_sol).xlabel[]) == "\$x\$"
+            @test string(first(axes_sol).ylabel[]) == "\$z\$"
+        end
+
+        # Makie attributes such as `colorrange` are passed to the heatmap
+        _, axes_sol = Makie.plot(sol; kwargs..., colorrange = (0.0, 1.0))
+        @test first(first(axes_sol).scene.plots).colorrange[] == [0.0, 1.0]
+    end
 
     @testset "1D plot from 3D solution and Tree-mesh" begin
         @testset "Create 1D plot as slice" begin
@@ -1213,6 +1263,14 @@ end
     # Makie.plot(sol) for 1D solutions
     @trixi_test_nowarn Makie.plot(sol)
 
+    # Makie does not accept the keywords of `PlotData1D`, so this call fails unless they
+    # are passed to `PlotData1D`. `plot_mesh` and `linewidth` are passed to Makie.
+    _, axes_sol = @trixi_test_nowarn Makie.plot(sol, nvisnodes = 3, reinterpolate = false,
+                                                variable_names = ["u"], plot_mesh = true,
+                                                linewidth = 3)
+    @test first(axes_sol).title[] == "u"
+    @test first(first(axes_sol).scene.plots).linewidth[] == 3
+
     # PlotMesh overlay
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
@@ -1272,6 +1330,10 @@ end
     # kwargs are forwarded to contour!
     @trixi_test_nowarn Makie.contour(pd["scalar"], levels = 5)
 
+    # the mesh is drawn as lines on top of the contours
+    _, ax, _ = @trixi_test_nowarn Makie.contour(pd["scalar"], plot_mesh = true)
+    @test any(plt -> plt isa Makie.Lines, ax.scene.plots)
+
     # Makie.contour(pd) gives layout for all variables
     @trixi_test_nowarn Makie.contour(pd)
     @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
@@ -1282,6 +1344,8 @@ end
     # the same for filled contours
     @trixi_test_nowarn Makie.contourf(pd["scalar"])
     @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
+    _, ax, _ = @trixi_test_nowarn Makie.contourf(pd["scalar"], plot_mesh = true)
+    @test any(plt -> plt isa Makie.Lines, ax.scene.plots)
     @trixi_test_nowarn Makie.contourf(pd)
     @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
     @trixi_test_nowarn Makie.contourf(sol)
@@ -1369,6 +1433,9 @@ end
     pd = @inferred PlotData2D(sol)
     @trixi_test_nowarn Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    # Attributes of `Makie.Mesh` are accepted, others are rejected
+    @trixi_test_nowarn Makie.plot(pd, colorrange = (0.0, 1.0), highclip = :red)
+    @test_throws Makie.InvalidAttributeError Makie.plot(pd["rho"], levels = 5)
     # plot_mesh = true
     @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
 
@@ -1386,12 +1453,148 @@ end
     @trixi_test_nowarn typeof(fig) <: Makie.Figure
     @trixi_test_nowarn typeof(axes) <: AbstractArray{<:Makie.Axis}
 
+    # Makie.contour(pds) uses tricontour with title, xlabel, ylabel and colorbar
+    @test pd.point_values
+    @test isnothing(pd.node_groups)
+    @test occursin("point_values = true", sprint(show, pd))
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["rho"])
+    @test plt isa Makie.Tricontour
+
+    # kwargs are forwarded to tricontour!
+    @trixi_test_nowarn Makie.contour(pd["rho"], levels = 5)
+    @trixi_test_nowarn Makie.contour(pd["rho"], plot_mesh = true)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D UnstructuredMesh2D solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    _, _, plt = @trixi_test_nowarn Makie.contourf(pd["rho"])
+    @test plt isa Makie.Tricontourf
+    @trixi_test_nowarn Makie.contourf(pd["rho"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd["rho"], plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"], levels = 5, color = :white)
+
+    # Contours of cell (mean) values need the `node_groups`. The constructors ensure that
+    # they are available, so plot data without them has to be assembled manually here.
+    pd_cells = Trixi.PlotData2DTriangulated(pd.x, pd.y, pd.data, pd.t, pd.x_face,
+                                            pd.y_face, pd.face_data, pd.variable_names,
+                                            false, nothing, 1, 2)
+    @test_throws ArgumentError Makie.contour(pd_cells["rho"])
+    @test_throws ArgumentError Makie.contourf(pd_cells["rho"])
+
+    # Contours of a user-defined scalar field, with and without a variable name
+    TrixiMakieExt = Base.get_extension(Trixi, :TrixiMakieExt)
+    for (variable_name, title) in ((nothing, ""), ("x + y", "x + y"))
+        spd = ScalarPlotData2D(x .+ y, semi; variable_name)
+        _, ax_spd, plt_spd = @trixi_test_nowarn Makie.contour(spd)
+        @test plt_spd isa Makie.Tricontour
+        @test ax_spd.title[] == title
+        _, ax_spd, plt_spd = @trixi_test_nowarn Makie.contourf(spd)
+        @test plt_spd isa Makie.Tricontourf
+        @test ax_spd.title[] == title
+
+        # the mesh is drawn as lines on top of the contours
+        _, ax_spd, _ = @trixi_test_nowarn Makie.contour(spd; plot_mesh = true)
+        @test any(plt -> plt isa Makie.Lines, ax_spd.scene.plots)
+        _, ax_spd, _ = @trixi_test_nowarn Makie.contourf(spd; plot_mesh = true)
+        @test any(plt -> plt isa Makie.Lines, ax_spd.scene.plots)
+
+        # overlays on a given and on the current axis
+        _, ax_spd, _ = Makie.plot(pd["rho"])
+        @test Makie.contour!(ax_spd, spd) isa Makie.Tricontour
+        @test Makie.contourf!(ax_spd, spd) isa Makie.Tricontourf
+        @test @trixi_test_nowarn(Makie.contour!(spd)) isa Makie.Tricontour
+
+        _, _, z_spd, _ = TrixiMakieExt._tricontour_arguments(Trixi.PlotDataSeries(spd, 1))
+        @test z_spd == vec(spd.data.data)
+    end
+
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
     @trixi_test_nowarn Trixi.iplot(sol)
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    pd_const = PlotData2D(sol)
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["rho"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["rho"])
+end
+@testitem "Visualization: Makie contour plots for BlockFV on P4estMesh" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test !pd.point_values
+
+    # Each cell holds a single value on its own copy of the cell corners, so every
+    # triangle is constant. Contours need point values, so the cell values are averaged
+    # onto the cell corners when contours are plotted. On this Cartesian mesh, the corners
+    # of neighboring cells coincide exactly, so the four nodes at each interior corner must
+    # get the mean value of the four adjacent cells.
+    @test size(pd.node_groups) == size(pd.x)
+    TrixiMakieExt = Base.get_extension(Trixi, :TrixiMakieExt)
+    x, y = vec(pd.x), vec(pd.y)
+    u = vec(StructArrays.component(pd.data, 1))
+    u_point = TrixiMakieExt._tricontour_arguments(pd["scalar"])[3]
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, (x[i], y[i])), i)
+    end
+    interior_corners = filter(==(4) ∘ length, collect(values(nodes)))
+    @test length(interior_corners) == 63^2
+    @test all(n -> all(u_point[n] .≈ sum(u[n]) / 4), interior_corners)
+    @test minimum(u) <= minimum(u_point) && maximum(u_point) <= maximum(u)
+
+    # The corners are found with the mesh connectivity. Since the domain is periodic, the
+    # corners on opposite sides of the domain are the same and get the same value.
+    on_boundary(side) = Dict(round(y[i]; digits = 10) => u_point[i]
+                             for i in eachindex(x) if x[i] ≈ side)
+    left, right = on_boundary(-1), on_boundary(1)
+    @test keys(left) == keys(right)
+    @test all(k -> left[k] ≈ right[k], keys(left))
+
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["scalar"])
+    @test !isempty(plt.plots[1][1][])
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # On curved meshes, corners shared by neighboring elements only coincide up to
+    # round-off errors. The mesh connectivity still gives all of them the same value.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_unstructured_flag.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    x, y = vec(pd.x), vec(pd.y)
+    u_point = TrixiMakieExt._tricontour_arguments(pd["scalar"])[3]
+    nodes = Dict{Tuple{Float64, Float64}, Vector{Int}}()
+    for i in eachindex(x, y)
+        push!(get!(Vector{Int}, nodes, round.((x[i], y[i]); digits = 10)), i)
+    end
+    @test length(nodes) < length(unique(zip(x, y)))
+    @test all(n -> all(==(u_point[first(n)]), u_point[n]), values(nodes))
 end
 @testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
     Setup,
@@ -1436,6 +1639,15 @@ end
     @test !pd_fv.point_values
     @test !isempty(pd_fv.data)
     @trixi_test_nowarn Plots.plot(pd_fv)
+
+    # Triangulated plot data does not support DGSEM with `polydeg = 0`. The error is
+    # thrown before any interpolation to the plotting nodes, also for `nvisnodes > 1`.
+    @test_throws ArgumentError Trixi.PlotData2DTriangulated(sol)
+    @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol)
+    @test_throws "polydeg = 0" Trixi.PlotData2DTriangulated(sol; nvisnodes = 4)
+    u_fv = Trixi.wrap_array_native(sol.u[end], semi)
+    @test_throws ArgumentError ScalarPlotData2D(u_fv[1, :, :, :], semi)
+    @test_throws "polydeg = 0" ScalarPlotData2D(u_fv[1, :, :, :], semi)
 
     # `nvisnodes` has no effect on finite volume data (nothing to interpolate): every
     # value gives the native-resolution result

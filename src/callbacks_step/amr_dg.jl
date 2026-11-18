@@ -93,10 +93,9 @@ function rebalance_solver!(u_ode::AbstractVector,
     return nothing
 end
 
-# Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
-# This method is called when a controller is constructed
-function create_cache_controller(mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
-                                 equations, dg::DG, cache)
+# Construct the cache of AMR controllers, called from their constructors
+function create_cache_amr_controller(mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
+                                     equations, dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end

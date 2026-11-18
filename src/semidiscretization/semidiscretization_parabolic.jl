@@ -56,6 +56,9 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                      RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
+    # The solver uses the same basic storage (e.g., the containers of elements and
+    # interfaces) as for hyperbolic problems. The additional storage of the parabolic
+    # terms (e.g., for the gradients) is created by `create_cache_parabolic` below.
     cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)

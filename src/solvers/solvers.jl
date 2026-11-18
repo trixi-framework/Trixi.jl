@@ -62,10 +62,11 @@ configurations.
 See also [`FullSweep`](@ref) and [`FullSweepGlobal`](@ref).
 
 For details on the cyclic distribution see Section 4.1 (Eq. 6) of
-- Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+- Waterhouse, Waruszewski, Wilcox, Warburton, Giraldo (2027)
   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
   with Non-Conservative Terms
   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+  [DOI: 10.1016/j.jcp.2026.115543](https://doi.org/10.1016/j.jcp.2026.115543)
 """
 struct HalfSweep <: AbstractFluxDifferencingKernel end
 
@@ -79,7 +80,8 @@ All two-point fluxes are computed for each node.
 This doubles the number of flux evaluations,
 but no flux has to be exchanged between the threads.
 Shared memory is used to avoid repeated slow reads
-from the solution vector `u`.
+from the solution vector `u` and the auxiliary variables
+(see [`nauxvariables`](@ref)).
 
 See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
 """

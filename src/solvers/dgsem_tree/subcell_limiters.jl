@@ -41,7 +41,7 @@ The bounds are calculated using the low-order FV solution. The positivity limite
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
-where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
+where `d = #dimensions`). See equation (20) of Pazner (2021) and equation (30) of Rueda-Ramírez et al. (2022).
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
@@ -57,9 +57,11 @@ More features will follow soon.
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
   Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [arXiv: 2202.00576](https://arxiv.org/abs/2202.00576)
   [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
-- Pazner (2020)
+- Pazner (2021)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [arXiv: 2004.08503](https://arxiv.org/abs/2004.08503)
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
@@ -142,8 +144,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
-    cache = create_cache_limiter(SubcellLimiterIDP, equations, basis, bound_keys,
-                                 cache_variable_values)
+    cache = create_cache_subcell_limiter(SubcellLimiterIDP, equations, basis,
+                                         bound_keys, cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -225,13 +227,14 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
-function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
-                              equations::AbstractEquations{NDIMS},
-                              basis::LobattoLegendreBasis, bound_keys,
-                              cache_variable_values) where {NDIMS}
+function create_cache_subcell_limiter(limiter::Type{SubcellLimiterIDP},
+                                      equations::AbstractEquations{NDIMS},
+                                      basis::LobattoLegendreBasis,
+                                      bound_keys,
+                                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later via `resize_cache_volume_integral!` when the cache of the
-    # semidiscretization is created.
+    # and resize it later via `resize_cache_volume_integral!`
+    # when the cache of the semidiscretization is created.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys,
@@ -254,7 +257,7 @@ function create_cache_limiter(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global, idp_newton_converged)
 end
 
-function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+function resize_cache_subcell_limiter!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     return nothing

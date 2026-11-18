@@ -7,12 +7,20 @@
 
 # Create the cache of an indicator constructed from a semidiscretization, e.g., for AMR
 function create_cache_indicator(typ::Type{<:AbstractIndicator}, semi)
-    _, equations, solver, _ = mesh_equations_solver_cache(semi)
-    return create_cache_indicator(typ, equations, solver.basis)
+    return create_cache_indicator(typ, mesh_equations_solver_cache(semi)...)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::AbstractVolumeIntegralShockCapturing)
+function create_cache_indicator(typ::Type{<:AbstractIndicator},
+                                mesh, equations::AbstractEquations, dg::DGSEM, cache)
+    return create_cache_indicator(typ, equations, dg.basis)
+end
+
+# Add the values of `indicator` to `element_variables` under a name depending on the
+# component using the indicator (last argument), e.g., a volume integral or the
+# `AMRCallback`.
+function get_element_variables_indicator!(element_variables,
+                                          indicator::AbstractIndicator,
+                                          ::AbstractVolumeIntegralShockCapturing)
     element_variables[:indicator_shock_capturing] = indicator.cache.alpha
     return nothing
 end
@@ -36,9 +44,11 @@ See also [`VolumeIntegralShockCapturingHG`](@ref).
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+- Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 struct IndicatorHennemannGassner{RealT <: Real, Variable, Cache} <: AbstractIndicator
     alpha_max::RealT
@@ -128,6 +138,12 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     o_0001 = convert(RealT, 0.0001)
     parameter_s = log((1 - o_0001) / o_0001)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_indicator_hennemann_gassner(indicator_hg, mesh, dg)
+    end
+
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.
         # Use this function barrier and unpack inside to avoid passing closures to
@@ -140,22 +156,25 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
 
     if alpha_smooth
         apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+        apply_smoothing_mpi!(mesh, alpha, alpha_tmp, indicator_hg.cache, dg, cache)
     end
 
     return alpha
 end
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
+                                                dg, cache)
     # call the indicator to get up-to-date values for IO
     volume_integral.indicator(u, mesh, equations, dg, cache)
-    return get_element_variables!(element_variables, volume_integral.indicator,
-                                  volume_integral)
+    return get_element_variables_indicator!(element_variables,
+                                            volume_integral.indicator,
+                                            volume_integral)
 end
 
-function get_element_variables!(element_variables, indicator::IndicatorHennemannGassner,
-                                ::VolumeIntegralAdaptive)
+function get_element_variables_indicator!(element_variables,
+                                          indicator::IndicatorHennemannGassner,
+                                          ::VolumeIntegralAdaptive)
     element_variables[:indicator_volume_integral_adaptive] = indicator.cache.alpha
     return nothing
 end
@@ -179,7 +198,7 @@ and `basis` if this indicator should be used for shock capturing.
 
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
-  [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
+  [DOI: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
 - [https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000](https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000)
 """
 struct IndicatorLöhner{RealT <: Real, Variable, Cache} <: AbstractIndicator
@@ -324,6 +343,7 @@ This is discussed in more detail in
   [DOI: 10.1016/j.jcp.2017.05.025](https://doi.org/10.1016/j.jcp.2017.05.025)
 - Lin, Chan (2024)
   "High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting"
+  [arXiv: 2306.12663](https://arxiv.org/abs/2306.12663)
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 
 For ``\Delta S < \sigma \leq 0`` with ``\sigma`` being set to `maximum_entropy_increase`,

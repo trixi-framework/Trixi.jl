@@ -45,7 +45,7 @@ du_ode = similar(u0_ode)
 ### Compute the Jacobian sparsity pattern ###
 
 # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
-# https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+# https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
 rhs_wrapped! = function (du_ode, u0_ode)
     Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
 end
