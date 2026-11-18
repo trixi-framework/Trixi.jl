@@ -25,9 +25,11 @@ function initial_condition_medium_sedov_blast_wave(x, t,
     z_norm = x[3] - inicenter[3]
     r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
 
-    # TODO: Check radius
     # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+    # With `cells_per_dimension = (8, 8, 8)` on [-1, 1]^3, the hexahedral cell size is 0.25.
+    # Since `r0` is slightly smaller, the initial blast covers exactly the 48 tetrahedra
+    # sharing the vertex at the origin (8 hexahedra split into 6 tetrahedra each).
+    r0 = 0.21875
     E = 1.0
     p0_inner = 3 * (equations.gamma - 1) * E / (4 * pi * r0^2)
     p0_outer = 1.0e-3
