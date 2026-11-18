@@ -9,8 +9,8 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache_parabolic(mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DG, n_elements, uEltype)
+                                equations_hyperbolic::AbstractEquations, dg::DG,
+                                n_elements, n_boundaries, uEltype)
     parabolic_container = init_parabolic_container_3d(nvariables(equations_hyperbolic),
                                                       nnodes(dg), n_elements,
                                                       uEltype)
@@ -407,10 +407,10 @@ function get_unsigned_normal_vector_3d(direction)
     end
 end
 
-function calc_boundary_flux_gradient!(cache, t,
+function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{3}, # for dispatch only
-                                      equations_parabolic::AbstractEquationsParabolic,
+                                      equations_parabolic,
                                       surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
@@ -493,7 +493,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
 
                 x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                     i, j, boundary)
-                flux = boundary_condition(flux_inner, u_inner,
+                flux = boundary_condition(flux_inner, u_inner, nothing,
                                           get_unsigned_normal_vector_3d(direction),
                                           x, t, Gradient(), equations_parabolic)
 
@@ -508,7 +508,7 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     return nothing
 end
 
-function calc_boundary_flux_divergence!(cache, t,
+function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::TreeMesh{3},
                                         equations_parabolic::AbstractEquationsParabolic,
@@ -600,7 +600,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
                 # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion3D as of 2022-6-27.
                 # It will not work with implementations which utilize `u_inner` to impose boundary conditions, such as
                 # the `Slip` boundary condition, which can be imposed to realize reflective or symmetric boundaries.
-                flux = boundary_condition(flux_inner, nothing,
+                flux = boundary_condition(flux_inner, nothing, nothing,
                                           get_unsigned_normal_vector_3d(direction),
                                           x, t, Divergence(), equations_parabolic)
 
