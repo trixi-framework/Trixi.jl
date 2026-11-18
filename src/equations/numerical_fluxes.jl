@@ -740,8 +740,8 @@ end
                                turbovars_and_normals_and_equations[end - 1])
     flux = flux_conservative(u_ll, u_rr, aux..., normal_direction, equations)
     noncons_left = flux_nonconservative(u_ll, u_rr, aux..., normal_direction, equations)
-    noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)..., normal_direction,
-                                         equations)
+    noncons_right = flux_nonconservative(u_rr, u_ll, reverse(aux)...,
+                                         normal_direction, equations)
     flux_left = flux + 0.5f0 * noncons_left
     flux_right = flux + 0.5f0 * noncons_right
     return flux_left, flux_right

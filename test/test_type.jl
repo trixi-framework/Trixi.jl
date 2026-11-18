@@ -3049,8 +3049,8 @@ end
                   RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, aux, equations)) == RealT
 
-            @test eltype(@inferred cons2prim(u, equations)) == RealT
-            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, aux, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, aux, equations)) == RealT
         end
 
         equations = equations_conservative

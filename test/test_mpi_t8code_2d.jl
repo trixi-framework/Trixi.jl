@@ -79,8 +79,8 @@ end
 ] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
-                        l2=[0.002019623611753929],
-                        linf=[0.03542375961299987])
+                        l2=[0.0012808538770534917],
+                        linf=[0.017526900166598143])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

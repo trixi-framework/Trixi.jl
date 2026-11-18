@@ -16,7 +16,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have refined elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -58,7 +58,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,
@@ -238,7 +238,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have coarsened elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -268,7 +268,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,
@@ -459,7 +459,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have refined elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -507,7 +507,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
