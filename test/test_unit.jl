@@ -1251,6 +1251,65 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes 1D viscous flux consistent with 2D and 3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # For a flow depending only on x with zero transverse velocities, the viscous fluxes
+    # in x-direction of the 2D and 3D equations reduce to the 1D viscous flux.
+    # Prandtl = 3 ensures that the viscous stress (4/3 > gamma / Prandtl) determines
+    # `max_visc_cond`.
+    gamma, mu, R = 1.4, 0.01, 2.5
+    euler_1d = CompressibleEulerEquations1D(gamma)
+    euler_2d = CompressibleEulerEquations2D(gamma)
+    euler_3d = CompressibleEulerEquations3D(gamma)
+
+    # Viscous flux in x-direction for the state `prim_vars + x * prim_direction`
+    function viscous_flux_x(prim_vars, prim_direction, equations)
+        transformation = Trixi.gradient_variable_transformation(equations)
+        w(x) = transformation(prim2cons(prim_vars + x * prim_direction, equations),
+                              equations)
+        u = w(0.0)
+        gradient_x = ForwardDiff.derivative(w, 0.0)
+        gradients = ntuple(i -> i == 1 ? gradient_x : zero(u), ndims(equations))
+        return flux(u, gradients, 1, equations)
+    end
+
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy()),
+        Prandtl in (0.72, 3.0)
+
+        equations_1d = CompressibleNavierStokesDiffusion1D(euler_1d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_2d = CompressibleNavierStokesDiffusion2D(euler_2d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_3d = CompressibleNavierStokesDiffusion3D(euler_3d; mu, Prandtl, R,
+                                                           gradient_variables)
+
+        @test equations_1d.max_visc_cond == max(4 / 3, gamma / Prandtl)
+        @test equations_1d.max_visc_cond == equations_2d.max_visc_cond
+        @test equations_1d.max_visc_cond == equations_3d.max_visc_cond
+
+        flux_1d = viscous_flux_x(SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5),
+                                 equations_1d)
+        flux_2d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.5), equations_2d)
+        flux_3d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.0, 0.5), equations_3d)
+        @test flux_2d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, flux_1d[3])
+        @test flux_3d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, 0.0, flux_1d[3])
+    end
+
+    # The constant 4/3 in `max_visc_cond` must be computed in the real type
+    # of the equations.
+    for RealT in (Float32, BigFloat)
+        euler = CompressibleEulerEquations1D(RealT(gamma))
+        equations = CompressibleNavierStokesDiffusion1D(euler; mu = RealT(mu),
+                                                        Prandtl = RealT(3))
+        @test equations.max_visc_cond isa RealT
+        @test equations.max_visc_cond == RealT(4) / 3
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests
@@ -5400,12 +5459,12 @@ end
         # Reference: large capacity, no growth needed
         mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
                                                     domain_length)
-        Trixi.initialize!(mesh_ref, 3, (), ())
+        Trixi.init_refinement!(mesh_ref, 3, (), ())
 
         # Small: deliberately tiny initial capacity, must grow
         mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
                                                       domain_length)
-        Trixi.initialize!(mesh_small, 3, (), ())
+        Trixi.init_refinement!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
@@ -6052,6 +6111,34 @@ end
                                                                                       semi)
 end
 
+@testitem "Unit: NodeIndex and BoundaryConditionCoupled indices" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The node indices are stored efficiently as plain bits
+    @test isbitstype(NTuple{3, NodeIndex.T})
+    @test sizeof(NTuple{3, NodeIndex.T}) == 3
+
+    @test Trixi.indices2direction((NodeIndex.End, NodeIndex.IForward)) == 2
+    @test Trixi.indices2direction((NodeIndex.IForward, NodeIndex.JBackward,
+                                   NodeIndex.Begin)) == 5
+    @test Trixi.surface_indices((NodeIndex.IBackward, NodeIndex.End,
+                                 NodeIndex.JForward)) ==
+          (NodeIndex.IBackward, NodeIndex.JForward)
+
+    coupling_converter = (x, u, equations_other, equations_own) -> u
+    bc = BoundaryConditionCoupled(2, (NodeIndex.End, NodeIndex.IForward), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.End, NodeIndex.IForward)
+    @test bc.other_orientation == 1
+
+    bc = BoundaryConditionCoupled(2, (NodeIndex.IBackward, NodeIndex.Begin), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.IBackward, NodeIndex.Begin)
+    @test bc.other_orientation == 2
+
+    # `indices` must be `NodeIndex` values; `Symbol`s are rejected
+    @test_throws MethodError BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+                                                      coupling_converter)
+end
+
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Backend to check the defaults of GPU backends without a GPU.
     # `KernelAbstractions.GPU` is deprecated in KernelAbstractions.jl v0.10.
@@ -6138,16 +6225,6 @@ end
     @test Trixi.remake(semi_hyp_para_global).cache.tuning ===
           semi_hyp_para_global.cache.tuning
 
-    # Deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt`
-    semi_full = @test_deprecated trixi_adapt(semi; flux_differencing_kernel = FullSweep())
-    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
-    semi_full = @test_deprecated trixi_adapt(semi; tuning = Tuning(),
-                                             flux_differencing_kernel = FullSweep())
-    @test semi_full.cache.tuning.flux_differencing_kernel === FullSweep()
-    @test_throws ArgumentError trixi_adapt(semi;
-                                           tuning = Tuning(flux_differencing_kernel = HalfSweep()),
-                                           flux_differencing_kernel = FullSweep())
-
     # The tuning is available for all volume integrals and does not change the
     # volume integral cache
     solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -6163,7 +6240,8 @@ end
 
     # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver, nothing, Float64)
+    cache_view = Trixi.create_cache_hyperbolic(mesh_view, equations, solver,
+                                               nothing, Float64)
     @test cache_view.tuning === Trixi.default_tuning()
 
     # The GPU resource limits are not checked for CPU arrays, see also
@@ -6192,16 +6270,6 @@ end
     ode = semidiscretize(semi, (0.0f0, 1.0f0))
     @test ode.p === semi
     @test ode.tspan === (0.0, 1.0)
-
-    # Deprecated keyword arguments of `semidiscretize`
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
-    @test real(ode.p) == Float32
-    @test ode.tspan === (0.0f0, 1.0f0)
-    @test ode.u0 isa Vector{Float32}
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
-                                          flux_differencing_kernel = FullSweep())
-    @test real(ode.p) == Float64
-    @test ode.p.cache.tuning.flux_differencing_kernel === FullSweep()
 
     # The `SummaryCallback` warns if the time type differs from the real type of
     # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
@@ -6412,7 +6480,7 @@ end
         fill!(antidiffusive_flux, NaN)
     end
     new_size = nelements(semi.solver, semi.cache) + 3
-    Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
+    Trixi.reinit_cache_all_volume_integrals!(semi.cache, mesh, semi.solver, new_size)
     (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
     @test size(antidiffusive_flux1_L, 4) == new_size
     @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size
@@ -6523,6 +6591,43 @@ end
         Trixi.rhs_hyperbolic!(du_ode, u_ode, semi32, 0.0f0)
         @test eltype(du_ode) == Float32
         @test all(isfinite, du_ode)
+    end
+
+    @timed_testset "Analysis and output functions get the auxiliary variables" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        # `integrate` calls `func(u, aux, equations)`.
+        # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
+        # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
+        @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
+        @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
+                       atol = 1.0e-14)
+
+        # Plots use `cons2prim(u, aux, equations)` by default
+        @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
+
+        # Plots along a curve interpolate `aux[1]` in the same way as a solution
+        # `u = aux[1]`. The mesh with `polydeg = 1` uses the search of p4est, the mesh
+        # with `polydeg = 2` the general implementation.
+        first_aux(u, aux, equations) = SVector(aux[1])
+        mesh_quadratic = P4estMesh((2, 2, 2), polydeg = 2,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        for mesh_ in (mesh, mesh_quadratic)
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
+                                                 boundary_conditions = boundary_condition_periodic,
+                                                 aux_field)
+            u_ode_ = compute_coefficients(0.0, semi_)
+            aux_as_u_ode = vec(semi_.cache.aux_vars.aux[1, :, :, :, :])
+            point = (0.1, -0.2, 0.3)
+            pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, point,
+                                variable_names = ["a1"])
+            pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, point)
+            @test pd_aux.data ≈ pd_u.data
+        end
     end
 
     @timed_testset "No auxiliary variables for equations without them" begin
@@ -7120,21 +7225,21 @@ end
         semi_ = create_semi(volume_integral_ec)
         mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
 
-        # The buffers of an indicator created for equations with another number of
-        # spatial dimensions than the mesh are rejected
+        # The storage of an indicator created for equations with another number of
+        # spatial dimensions than the mesh is rejected
         equations_3d = CompressibleEulerEquations3D(1.4)
         volume_integral_3d = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations_3d,
                                                                                            basis),
                                                     volume_integral_default = volume_integral_wf,
                                                     volume_integral_stabilized = volume_integral_blend_low_order)
-        @test_throws "same number of spatial dimensions" Trixi.create_cache(mesh_,
-                                                                            equations_3d,
-                                                                            volume_integral_3d,
-                                                                            dg_,
-                                                                            nothing,
-                                                                            Float64)
-        Trixi.resize_volume_integral_caches!(cache_, mesh_, volume_integral_3d, dg_,
-                                             nelements(dg_, cache_))
+        @test_throws "same number of spatial dimensions" Trixi.create_cache_volume_integral(mesh_,
+                                                                                            equations_3d,
+                                                                                            volume_integral_3d,
+                                                                                            dg_,
+                                                                                            nothing,
+                                                                                            Float64)
+        Trixi.resize_cache_all_volume_integrals!(cache_, mesh_, volume_integral_3d, dg_,
+                                                 nelements(dg_, cache_))
         @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
                                                                          volume_integral_3d,
                                                                          dg_, cache_)

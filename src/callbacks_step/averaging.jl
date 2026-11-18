@@ -56,8 +56,8 @@ function AveragingCallback(semi::SemidiscretizationHyperbolic{<:Any,
                                                               <:CompressibleEulerEquations2D},
                            tspan; output_directory = "out", filename = "averaging.h5")
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    mean_values = initialize_mean_values(mesh, equations, solver, cache)
-    cache = create_cache(AveragingCallback, mesh, equations, solver, cache)
+    mean_values = init_mean_values(mesh, equations, solver, cache)
+    cache = create_cache_averaging_callback(mesh, equations, solver, cache)
 
     averaging_callback = AveragingCallback(tspan, mean_values, cache, output_directory,
                                            filename)
@@ -75,8 +75,11 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    @trixi_timeit timer() "averaging" initialize_cache!(averaging_callback.cache, u,
-                                                        mesh, equations, solver, cache)
+    @trixi_timeit timer() "averaging" init_cache_averaging_callback!(averaging_callback.cache,
+                                                                     u, mesh,
+                                                                     equations,
+                                                                     solver,
+                                                                     cache)
 
     # avoid re-evaluating possible FSAL stages
     derivative_discontinuity!(integrator, false)
