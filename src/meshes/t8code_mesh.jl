@@ -697,6 +697,9 @@ by the file extension.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 - `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
                                     same-level siblings, thus allowing to coarsen again.
+- `use_cad_geometry::Bool`: Gmsh files only. Use the CAD geometry from a `.brep` file with
+                            the same prefix as the `.msh` file, see
+                            `T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...)`.
 """
 function T8codeMesh(filepath::String, ndims; kwargs...)
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
@@ -738,15 +741,25 @@ mesh from a Gmsh mesh file (`.msh`).
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 - `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
                                     same-level siblings, thus allowing to coarsen again.
+- `use_cad_geometry::Bool`: Use the CAD geometry from a `.brep` file with the same prefix as
+                            the `.msh` file (requires t8code with OpenCASCADE support). The
+                            boundary of the mesh is then represented exactly by the CAD
+                            geometry; use a `polydeg > 1` to resolve its curvature.
 """
-function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
+function T8codeMesh(meshfile::GmshFile{NDIMS}; use_cad_geometry = false,
+                    kwargs...) where {NDIMS}
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile.path)
 
     meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
     cmesh = t8_cmesh_new()
-    t8_cmesh_from_msh_file(Ref(cmesh), meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
+    if use_cad_geometry
+        # Prevent `t8code` from crashing Julia if the CAD file doesn't exist.
+        @assert isfile(meshfile_prefix * ".brep")
+    end
+    t8_cmesh_from_msh_file(Ref(cmesh), meshfile_prefix, 0, mpi_comm(), NDIMS, 0,
+                           use_cad_geometry)
 
     return T8codeMesh(cmesh; kwargs...)
 end
