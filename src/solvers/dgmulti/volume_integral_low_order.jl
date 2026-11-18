@@ -19,10 +19,11 @@
 
 # Creates the sparse low order SBP operators and their joint sparsity pattern. The kernel
 # below additionally reads `cache.dxidxhatj`, which every `DGMulti` cache provides.
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
-                                             VolumeIntegralPureLGLFiniteVolume},
-                      dg::DGMultiSBP, RealT, uEltype) where {NDIMS}
+function create_cache_volume_integral(mesh::DGMultiMesh{NDIMS}, equations,
+                                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
+                                                             VolumeIntegralPureLGLFiniteVolume},
+                                      dg::DGMultiSBP, cache_containers,
+                                      uEltype) where {NDIMS}
     element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
 
     # create skew-symmetric parts of sparse hybridized operators for low order scheme.

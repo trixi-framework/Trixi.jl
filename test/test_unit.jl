@@ -6193,7 +6193,8 @@ end
 
     # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver, nothing, Float64)
+    cache_view = Trixi.create_cache_hyperbolic(mesh_view, equations, solver,
+                                               nothing, Float64)
     @test cache_view.tuning === Trixi.default_tuning()
 
     # The GPU resource limits are not checked for CPU arrays, see also
@@ -6442,7 +6443,7 @@ end
         fill!(antidiffusive_flux, NaN)
     end
     new_size = nelements(semi.solver, semi.cache) + 3
-    Trixi.reinitialize_volume_integral_caches!(semi.cache, mesh, semi.solver, new_size)
+    Trixi.reinit_cache_all_volume_integrals!(semi.cache, mesh, semi.solver, new_size)
     (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
     @test size(antidiffusive_flux1_L, 4) == new_size
     @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size
@@ -7150,21 +7151,21 @@ end
         semi_ = create_semi(volume_integral_ec)
         mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
 
-        # The buffers of an indicator created for equations with another number of
-        # spatial dimensions than the mesh are rejected
+        # The storage of an indicator created for equations with another number of
+        # spatial dimensions than the mesh is rejected
         equations_3d = CompressibleEulerEquations3D(1.4)
         volume_integral_3d = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations_3d,
                                                                                            basis),
                                                     volume_integral_default = volume_integral_wf,
                                                     volume_integral_stabilized = volume_integral_blend_low_order)
-        @test_throws "same number of spatial dimensions" Trixi.create_cache(mesh_,
-                                                                            equations_3d,
-                                                                            volume_integral_3d,
-                                                                            dg_,
-                                                                            nothing,
-                                                                            Float64)
-        Trixi.resize_volume_integral_caches!(cache_, mesh_, volume_integral_3d, dg_,
-                                             nelements(dg_, cache_))
+        @test_throws "same number of spatial dimensions" Trixi.create_cache_volume_integral(mesh_,
+                                                                                            equations_3d,
+                                                                                            volume_integral_3d,
+                                                                                            dg_,
+                                                                                            nothing,
+                                                                                            Float64)
+        Trixi.resize_cache_all_volume_integrals!(cache_, mesh_, volume_integral_3d, dg_,
+                                                 nelements(dg_, cache_))
         @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
                                                                          volume_integral_3d,
                                                                          dg_, cache_)

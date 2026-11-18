@@ -4,10 +4,11 @@
 @muladd begin
 #! format: noindent
 
-# by default, return an empty tuple for volume integral caches
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHGType,
-                      dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
+# Sparse low-order operators for the subcell finite volume scheme on the Gauss nodes
+function create_cache_volume_integral(mesh::DGMultiMesh{NDIMS}, equations,
+                                      volume_integral::VolumeIntegralShockCapturingHGType,
+                                      dg::DGMultiFluxDiff{<:GaussSBP}, cache_containers,
+                                      uEltype) where {NDIMS}
     (; volume_integral_default, volume_integral_blend_high_order) = volume_integral
     @assert volume_integral_default isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_default`"
     @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
@@ -31,8 +32,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations,
-                      basis::DGMultiBasis{NDIMS}) where {NDIMS}
+function create_cache_indicator(::Type{IndicatorHennemannGassner},
+                                equations::AbstractEquations,
+                                basis::DGMultiBasis{NDIMS}) where {NDIMS}
     uEltype = real(basis)
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
