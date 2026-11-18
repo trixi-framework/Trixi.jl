@@ -50,6 +50,8 @@ end
 
 Call `func(u_node, equations)` for each vector of nodal variables `u_node` in `u_ode`
 and integrate the result using a quadrature associated with the semidiscretization `semi`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+`func(u_node, aux_node, equations)` is called with the auxiliary variables `aux_node`.
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
@@ -72,6 +74,8 @@ end
     calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)
 
 Calculate discrete L2 and L∞ error norms of `func` applied to each nodal variable `u_node` in `u_ode`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+`func(u_node, aux_node, equations)` is called with the auxiliary variables `aux_node`.
 If no exact solution is available, "errors" are calculated using some reference state and can be useful
 for regression tests.
 """
