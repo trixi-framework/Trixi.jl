@@ -1,6 +1,8 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using SummationByParts # for the SBP operators for the Tetrahedra
+# SummationByParts.jl provides the nodes of the SBP operators on tetrahedra.
+# Loading it enables the corresponding package extension of StartUpDG.jl.
+using SummationByParts: SummationByParts
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
