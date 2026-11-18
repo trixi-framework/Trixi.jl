@@ -1409,8 +1409,9 @@ function calc_mortar_flux!(surface_flux_values, u,
             fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes. The large-side mortar states are the
-            # entropy-projected states computed in `prolong2mortars!`.
+            # Calculate fluxes. The large-side mortar states are computed in
+            # `prolong2mortars!` by interpolating the entropy variables of the large
+            # element to the mortar nodes and converting back to conservative variables.
             orientation = orientations[mortar]
             calc_fstar!(fstar_upper, equations, surface_flux, dg,
                         u_upper, mortar, orientation)
@@ -1470,8 +1471,9 @@ end
 # Entropy correction term of the large element, which is added after the standard
 # mortar fluxes have been projected to the large element.
 # With the two-point fluxes `F[i, j] = volume_flux(u_large[i], u_mortar[j])`
-# between the large face nodes `i` and the (entropy-projected) mortar nodes `j`,
-# the correction reads
+# between the large face nodes `i` and the mortar nodes `j`, where `u_mortar[j]` are the
+# large-side mortar states obtained by interpolating the entropy variables of the large
+# element to the mortar nodes (see `element_solutions_to_mortars!`), the correction reads
 # `corr[i] = sum_j R[i, j] * (F[i, j] - sum_k P[j, k] * F[k, j])`,
 # where `P` and `R` are the forward and reverse mortar operators.
 # The correction is conservative, vanishes for constant states, and recovers

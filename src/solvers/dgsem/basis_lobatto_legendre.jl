@@ -281,7 +281,8 @@ This means that all nonconforming interfaces (lines in 2D and faces in 3D) are o
 side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
 
 Compared to [`MortarL2`](@ref),
-- the solution of the large element is interpolated to the mortars in entropy variables,
+- the solution of the large element is interpolated to the mortars in entropy variables
+  (and converted back to conservative variables afterwards),
 - the reverse operators are the discrete Gauss-Lobatto L2 projections, i.e., the adjoints
   of the forward interpolation operators with respect to the LGL quadrature, and
 - a flux correction term coupling the large face nodes with the mortar nodes is added
