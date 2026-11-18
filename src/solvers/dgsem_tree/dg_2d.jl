@@ -1171,7 +1171,8 @@ Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
     fill!(u_lower, zero(eltype(u_lower)))
 
     # Convert conservative variables to entropy variables and interpolate to mortars,
-    # where `j` runs over the nodes of the large face and `i` over the mortar nodes
+    # where `j` runs over the nodes of the large face and
+    # `i` over the mortar nodes, i.e., the nodes of the small faces.
     for j in eachnode(dg)
         u_nodal_j = get_node_vars(u_large, equations, dg, j)
         w_nodal_j = cons2entropy(u_nodal_j, equations)
@@ -1185,12 +1186,15 @@ Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
 
     # Convert entropy variables back to conservative variables
     for i in eachnode(dg)
-        w_nodal_i = get_node_vars(u_upper, equations, dg, i)
-        u_nodal_i = entropy2cons(w_nodal_i, equations)
-        set_node_vars!(u_upper, u_nodal_i,
-                       equations, dg, i)
-        set_node_vars!(u_lower, u_nodal_i,
-                       equations, dg, i)
+        # Upper mortar
+        w_nodal_upper_i = get_node_vars(u_upper, equations, dg, i)
+        u_nodal_upper_i = entropy2cons(w_nodal_upper_i, equations)
+        set_node_vars!(u_upper, u_nodal_upper_i, equations, dg, i)
+
+        # Lower mortar
+        w_nodal_lower_i = get_node_vars(u_lower, equations, dg, i)
+        u_nodal_lower_i = entropy2cons(w_nodal_lower_i, equations)
+        set_node_vars!(u_lower, u_nodal_lower_i, equations, dg, i)
     end
 
     return nothing
