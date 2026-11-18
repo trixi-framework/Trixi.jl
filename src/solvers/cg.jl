@@ -188,8 +188,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2},
 
     # Calculate parabolic source terms before the assembly
     @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic_cgsem!(du, u, gradients, t, source_terms_parabolic,
-                                      equations_parabolic, dg, cache)
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, solver, cache)
     end
 
     # Sum the residuals of all copies of each node and apply the inverse of the
@@ -362,20 +362,21 @@ function calc_boundary_jump_gradient!(cache, mesh::P4estMesh{2},
     return nothing
 end
 
-# Parabolic source terms of CGSEM. As for `calc_sources_cgsem!`, they are added to the
-# element-local residuals before the assembly, which scales the residuals by
-# `1 / sum_k J_k` (see `assemble_and_apply_jacobian_parabolic!`), so the source terms
-# are multiplied by `J` here.
-function calc_sources_parabolic_cgsem!(du, u, gradients, t,
-                                       source_terms_parabolic::Nothing,
-                                       equations_parabolic::AbstractEquations{2},
-                                       dg::DGSEM, cache)
+# Parabolic source terms of CGSEM. As for the hyperbolic source terms (see
+# `calc_sources!` above), they are added to the element-local residuals before the
+# assembly, which scales the residuals by `1 / sum_k J_k` (see
+# `assemble_and_apply_jacobian_parabolic!`), so the source terms are multiplied by `J`
+# here.
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Nothing,
+                                 equations_parabolic::AbstractEquations{2},
+                                 solver::CGSEM, cache)
     return nothing
 end
 
-function calc_sources_parabolic_cgsem!(du, u, gradients, t, source_terms_parabolic,
-                                       equations_parabolic::AbstractEquations{2},
-                                       dg::DGSEM, cache)
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                 equations_parabolic::AbstractEquations{2},
+                                 solver::CGSEM, cache)
+    (; dg) = solver
     (; node_coordinates, inverse_jacobian) = cache.elements
     gradients_x, gradients_y = gradients
 
