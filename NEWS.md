@@ -66,6 +66,15 @@ for human readability.
   `get_element_variables_callback!` and `get_element_variables_controller!`. As part of
   this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
   passed to the ODE solver ([#3399]).
+- For equations with auxiliary variables (i.e., `nauxvariables(equations) > 0`), the
+  auxiliary variables at a node are now also passed to functions of the conservative
+  variables used for analysis and output, e.g., `cons2prim(u, aux, equations)` instead
+  of `cons2prim(u, equations)`. This applies to `cons2prim`, `cons2entropy`, `entropy`,
+  the `solution_variables` of the `SaveSolutionCallback` and of plots, and the functions
+  passed to `integrate` and `calc_error_norms`. Such equations must now implement
+  `cons2entropy(u, aux, equations)` to use the `AnalysisCallback` and
+  `cons2prim(u, aux, equations)` to use the `SaveSolutionCallback` with their default
+  settings ([#3466]).
 
 ## Changes in the v0.17 lifecycle
 
@@ -77,16 +86,14 @@ for human readability.
   variables is a fixed property of their type given by `nauxvariables(equations)`;
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
-  arguments to fluxes, numerical fluxes, boundary conditions, and source terms,
-  as well as to functions used for analysis and output such as `cons2prim` and
-  `cons2entropy` (e.g., `cons2prim(u, aux, equations)`).
-  Currently, they are supported for `DGSEM` on (also statically refined and MPI-parallel)
+  arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
+  they are supported for `DGSEM` on (also statically refined and MPI-parallel)
   `P4estMesh{3}`es without AMR, also with volume fluxes wrapped in `FluxTurbo`. On GPUs,
   they are supported on conforming (also MPI-parallel) `P4estMesh{3}`es for equations
   without nonconservative terms, also with `FluxTurbo`. The new equations
   `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441], [#3466]).
+  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
