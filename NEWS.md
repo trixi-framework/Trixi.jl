@@ -15,9 +15,9 @@ for human readability.
   variables is a fixed property of their type given by `nauxvariables(equations)`;
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
-  arguments to fluxes, numerical fluxes, boundary conditions, and source terms, as well as
-  to functions used for analysis and output such as `cons2prim` and `cons2entropy`
-  (e.g., `cons2prim(u, aux, equations)`).
+  arguments to fluxes, numerical fluxes, boundary conditions, and source terms,
+  as well as to functions used for analysis and output such as `cons2prim` and
+  `cons2entropy` (e.g., `cons2prim(u, aux, equations)`).
   Currently, they are supported for `DGSEM` on (also statically refined and MPI-parallel)
   `P4estMesh{3}`es without AMR, also with volume fluxes wrapped in `FluxTurbo`. On GPUs,
   they are supported on conforming (also MPI-parallel) `P4estMesh{3}`es for equations

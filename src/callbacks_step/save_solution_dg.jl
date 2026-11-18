@@ -36,8 +36,8 @@ function save_solution_file(u, time, dt, timestep,
         # result as a plain array of floating point numbers. The element type of
         # the result is determined by `solution_variables` and can differ from
         # `eltype(u)`, e.g., if `equations` use a different real type than `u`.
-        # The auxiliary variables are passed after the conservative variables for
-        # equations with auxiliary variables, see `nauxvariables`.
+        # For equations with auxiliary variables, they are passed to
+        # `solution_variables` after the conservative variables, see `nauxvariables`.
         aux = get_aux_vars(cache)
         if aux === nothing
             aux_vectors = ()
@@ -225,8 +225,8 @@ function save_solution_file(u, time, dt, timestep,
         # result as a plain array of floating point numbers. The element type of
         # the result is determined by `solution_variables` and can differ from
         # `eltype(u)`, e.g., if `equations` use a different real type than `u`.
-        # The auxiliary variables are passed after the conservative variables for
-        # equations with auxiliary variables, see `nauxvariables`.
+        # For equations with auxiliary variables, they are passed to
+        # `solution_variables` after the conservative variables, see `nauxvariables`.
         aux = get_aux_vars(cache)
         if aux === nothing
             aux_vectors = ()

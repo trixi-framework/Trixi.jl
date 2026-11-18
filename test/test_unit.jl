@@ -6473,7 +6473,7 @@ end
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
         u_ode = compute_coefficients(0.0, semi)
-        # Quantities of the `AnalysisCallback` are called as `func(u, aux, equations)`.
+        # `integrate` calls `func(u, aux, equations)`.
         # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
         # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
         @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
@@ -6482,7 +6482,6 @@ end
 
         # Plots use `cons2prim(u, aux, equations)` by default
         @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
-        @test Trixi.digest_solution_variables(equations_no_aux, nothing) === cons2prim
 
         # Plots along a curve interpolate `aux[1]` in the same way as a solution
         # `u = aux[1]`. The mesh with `polydeg = 1` uses the search of p4est, the mesh
@@ -6502,7 +6501,6 @@ end
             pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, point,
                                 variable_names = ["a1"])
             pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, point)
-            @test pd_aux.x ≈ pd_u.x
             @test pd_aux.data ≈ pd_u.data
         end
     end

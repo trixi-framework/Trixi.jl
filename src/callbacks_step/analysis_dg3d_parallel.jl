@@ -59,8 +59,8 @@ function calc_error_norms(func, u, t, analyzer,
                                                         k), t, equations)
             aux_node = get_aux_node_vars(aux_local, equations, dg, i, j, k)
             diff = func(u_exact, aux_node..., equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j, k), aux_node...,
-                        equations)
+                   func(get_node_vars(u_local, equations, dg, i, j, k),
+                        aux_node..., equations)
             # We take absolute value as we need the Jacobian here for the volume calculation
             abs_jacobian_local_ijk = abs(jacobian_local[i, j, k])
 

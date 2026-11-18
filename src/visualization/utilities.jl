@@ -1400,7 +1400,6 @@ function get_value_at_point_3d_cache(u, aux)
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
-    # `nothing` if the equations do not have auxiliary variables
     if aux === nothing
         aux_tetrahedron = nothing
     else

@@ -242,8 +242,8 @@ function calc_error_norms(func, u, t, analyzer,
 
     # Set up data structures
     aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1, 1)
-    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), aux_node...,
-                         equations))
+    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1),
+                         aux_node..., equations))
     linf_error = copy(l2_error)
     total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
@@ -269,8 +269,8 @@ function calc_error_norms(func, u, t, analyzer,
                                                         k), t, equations)
             aux_node = get_aux_node_vars(aux_local, equations, dg, i, j, k)
             diff = func(u_exact, aux_node..., equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j, k), aux_node...,
-                        equations)
+                   func(get_node_vars(u_local, equations, dg, i, j, k),
+                        aux_node..., equations)
             # We take absolute value as we need the Jacobian here for the volume calculation
             abs_jacobian_local_ijk = abs(jacobian_local[i, j, k])
 

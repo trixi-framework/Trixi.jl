@@ -490,14 +490,16 @@ nauxvariables(::MyEquations) = 2
 
 flux(u, aux, normal_direction, equations::MyEquations) = ...
 flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+cons2prim(u, aux, equations::MyEquations) = ...
 ```
 Similar patterns are used for source terms etc.
-Functions of the conservative variables used for analysis and output, e.g.,
-[`cons2prim`](@ref), [`cons2entropy`](@ref), [`entropy`](@ref), or the
-`solution_variables` of the [`SaveSolutionCallback`](@ref) and of plots, also get the
-auxiliary variables, e.g., `cons2prim(u, aux, equations::MyEquations)`.
-With their default settings, the [`AnalysisCallback`](@ref) requires `cons2entropy` and
-the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
+
+Functions of the conservative variables used for analysis and output also get the
+auxiliary variables.
+This applies to [`cons2prim`](@ref), [`cons2entropy`](@ref), [`entropy`](@ref),
+and the `solution_variables` of the [`SaveSolutionCallback`](@ref) and of plots.
+With their default settings, the [`AnalysisCallback`](@ref) requires `cons2entropy`
+and the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
 
 The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
