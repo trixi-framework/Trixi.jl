@@ -5,6 +5,19 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+- The node indices describing the faces of interfaces, boundaries, and mortars of
+  `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
+  `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
+  (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
+  directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
+  accordingly.
+- The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`.
+
+
 ## Changes in the v0.17 lifecycle
 
 #### Added
