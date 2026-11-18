@@ -5,6 +5,48 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+- The internal function `create_cache` was split into separate functions for the
+  different parts of the storage, which affects packages extending or calling it:
+  `create_cache_hyperbolic` (cache of a hyperbolic semidiscretization),
+  `create_cache_volume_integral`, `create_cache_mortar`, `create_cache_indicator`,
+  `create_cache_subcell_limiter`, `create_cache_amr_controller`,
+  `create_cache_averaging_callback`, and `create_cache_euler_acoustics`.
+  `create_cache_indicator_for_amr` was merged into `create_cache_indicator`. The functions
+  handling the storage of all nested volume integrals were renamed to
+  `create_cache_all_volume_integrals`,
+  `resize_cache_all_volume_integrals!`, and `reinit_cache_all_volume_integrals!`;
+  the methods for a single volume integral to `resize_cache_volume_integral!` and
+  `reinit_cache_volume_integral!`. Furthermore, `resize_subcell_limiter_cache!` was
+  renamed to `resize_cache_subcell_limiter!` and `initialize_cache!` of the
+  `AveragingCallback` to `initialize_cache_averaging_callback!`. For `DGMulti`,
+  `create_cache_volume_integral` now receives the storage created so far instead of the
+  real type `RealT`, as for the other solvers ([#3398]).
+- The node indices describing the faces of interfaces, boundaries, and mortars of
+  `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
+  `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
+  (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
+  directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
+  accordingly.
+- The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`.
+- For the `CompressibleNavierStokesDiffusion1D` equations, the viscous stress `tau_xx`
+  is now computed as `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`
+  ([#3202]). Here, `mu` is the user-given dynamic viscosity.
+  This is the 1D reduction of the stress tensor of a Newtonian fluid with zero bulk
+  viscosity (Stokes' hypothesis), consistent with `CompressibleNavierStokesDiffusion2D`
+  and `CompressibleNavierStokesDiffusion3D`.
+  Thus, the results of all 1D compressible Navier-Stokes simulations with the same
+  parameters change. Moreover, `max_diffusivity` now uses `max(4/3, gamma / Prandtl)`
+  instead of `max(1, gamma / Prandtl)`, so parabolic time step estimates (e.g., via
+  `StepsizeCallback` with `cfl_parabolic`) are smaller if `gamma / Prandtl < 4/3`.
+  To recover the previous results, pass `mu = (3/4) * mu_old` *and*
+  `Prandtl = (3/4) * Prandtl_old`; the second factor keeps the thermal conductivity
+  `kappa = gamma * mu * R / ((gamma - 1) * Prandtl)` unchanged.
+  A viscosity function `mu(u, equations)` needs to be scaled by `3/4` accordingly.
+
 ## Changes in the v0.17 lifecycle
 
 #### Added
@@ -16,13 +58,13 @@ for human readability.
   their values are given by the function `aux_field` passed to
   `SemidiscretizationHyperbolic`. The auxiliary variables are passed as additional
   arguments to fluxes, numerical fluxes, boundary conditions, and source terms. Currently,
-  they are supported for `DGSEM` on (also statically refined) `P4estMesh{3}`es without
-  AMR and MPI, also with volume fluxes wrapped in `FluxTurbo`. On GPUs, they are
-  supported on conforming `P4estMesh{3}`es for equations without nonconservative terms,
-  also with `FluxTurbo`. The new equations
+  they are supported for `DGSEM` on (also statically refined and MPI-parallel)
+  `P4estMesh{3}`es without AMR, also with volume fluxes wrapped in `FluxTurbo`. On GPUs,
+  they are supported on conforming (also MPI-parallel) `P4estMesh{3}`es for equations
+  without nonconservative terms, also with `FluxTurbo`. The new equations
   `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3396], [#3436], [#3437]).
+  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the
@@ -138,6 +180,12 @@ for human readability.
   threading backend `:kernelabstractions` can differ from v0.9 ([#3390]).
 
 #### Changed
+- `IndicatorHennemannGassner` for `DGMulti` solvers with `SBP()` approximation types on
+  triangles now sorts the modal coefficients by their total degree. Previously, the
+  energies of the highest modes were computed from the wrong modal coefficients, e.g.,
+  resulting in nonzero energies of the highest modes for polynomials of lower degree.
+  This changes the blending factors and thus the results of shock capturing simulations
+  on triangles.
 - `IndicatorHennemannGassner`, `IndicatorLöhner` (on three-dimensional meshes), and
   `IndicatorMax` throw a `DimensionMismatch` if their basis has a different number of
   nodes than the one of the solver. Previously, `IndicatorMax` silently returned wrong
