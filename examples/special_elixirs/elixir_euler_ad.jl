@@ -1,6 +1,6 @@
 # This example is described in more detail in the documentation of Trixi.jl
 
-using Trixi, LinearAlgebra, ForwardDiff
+using Trixi, ForwardDiff
 
 equations = CompressibleEulerEquations2D(1.4)
 

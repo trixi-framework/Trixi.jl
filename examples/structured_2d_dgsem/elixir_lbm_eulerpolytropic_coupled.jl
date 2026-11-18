@@ -1,6 +1,5 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
-using LinearAlgebra: norm
 
 ###############################################################################
 # Semidiscretizations of the polytropic Euler equations and Lattice-Boltzmann method (LBM)
