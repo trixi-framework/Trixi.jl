@@ -1194,6 +1194,65 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes 1D viscous flux consistent with 2D and 3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # For a flow depending only on x with zero transverse velocities, the viscous fluxes
+    # in x-direction of the 2D and 3D equations reduce to the 1D viscous flux.
+    # Prandtl = 3 ensures that the viscous stress (4/3 > gamma / Prandtl) determines
+    # `max_visc_cond`.
+    gamma, mu, R = 1.4, 0.01, 2.5
+    euler_1d = CompressibleEulerEquations1D(gamma)
+    euler_2d = CompressibleEulerEquations2D(gamma)
+    euler_3d = CompressibleEulerEquations3D(gamma)
+
+    # Viscous flux in x-direction for the state `prim_vars + x * prim_direction`
+    function viscous_flux_x(prim_vars, prim_direction, equations)
+        transformation = Trixi.gradient_variable_transformation(equations)
+        w(x) = transformation(prim2cons(prim_vars + x * prim_direction, equations),
+                              equations)
+        u = w(0.0)
+        gradient_x = ForwardDiff.derivative(w, 0.0)
+        gradients = ntuple(i -> i == 1 ? gradient_x : zero(u), ndims(equations))
+        return flux(u, gradients, 1, equations)
+    end
+
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy()),
+        Prandtl in (0.72, 3.0)
+
+        equations_1d = CompressibleNavierStokesDiffusion1D(euler_1d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_2d = CompressibleNavierStokesDiffusion2D(euler_2d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_3d = CompressibleNavierStokesDiffusion3D(euler_3d; mu, Prandtl, R,
+                                                           gradient_variables)
+
+        @test equations_1d.max_visc_cond == max(4 / 3, gamma / Prandtl)
+        @test equations_1d.max_visc_cond == equations_2d.max_visc_cond
+        @test equations_1d.max_visc_cond == equations_3d.max_visc_cond
+
+        flux_1d = viscous_flux_x(SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5),
+                                 equations_1d)
+        flux_2d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.5), equations_2d)
+        flux_3d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.0, 0.5), equations_3d)
+        @test flux_2d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, flux_1d[3])
+        @test flux_3d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, 0.0, flux_1d[3])
+    end
+
+    # The constant 4/3 in `max_visc_cond` must be computed in the real type
+    # of the equations.
+    for RealT in (Float32, BigFloat)
+        euler = CompressibleEulerEquations1D(RealT(gamma))
+        equations = CompressibleNavierStokesDiffusion1D(euler; mu = RealT(mu),
+                                                        Prandtl = RealT(3))
+        @test equations.max_visc_cond isa RealT
+        @test equations.max_visc_cond == RealT(4) / 3
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests
