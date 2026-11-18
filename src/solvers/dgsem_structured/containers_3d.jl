@@ -346,9 +346,10 @@ end
 
 # Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
 # equations (14) and (B.53) in:
-# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
-#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+#   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                         normal_vectors_3,
                                         mesh::Union{StructuredMesh{3},
@@ -538,6 +539,26 @@ function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
                                           normal_vectors_3,
                                           _normal_vectors_1, _normal_vectors_2,
                                           _normal_vectors_3)
+end
+
+# Check whether the arrays in `normal_vectors` have the axes we assume in the inner
+# loops of Trixi.jl.
+function check_axes(normal_vectors::NormalVectorContainer3D, equations, solver::DG,
+                    cache)
+    subcell_interface_axes = Base.OneTo(nnodes(solver) - 1)
+    check_axes(normal_vectors.normal_vectors_1,
+               (Base.OneTo(3),
+                subcell_interface_axes, eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(normal_vectors.normal_vectors_2,
+               (Base.OneTo(3),
+                eachnode(solver), subcell_interface_axes, eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(normal_vectors.normal_vectors_3,
+               (Base.OneTo(3),
+                eachnode(solver), eachnode(solver), subcell_interface_axes,
+                eachelement(solver, cache)))
+    return nothing
 end
 
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)

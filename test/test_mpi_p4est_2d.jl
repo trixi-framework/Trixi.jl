@@ -30,6 +30,20 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 2D: elixir_advection_basic.jl (single element)" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    # A mesh with a single element leaves all but one MPI rank without elements,
+    # see https://github.com/trixi-framework/Trixi.jl/issues/1973
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        trees_per_dimension=(1, 1), initial_refinement_level=0,
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.15241418350207245],
+                        linf=[0.26869273065839194])
+end
+
 @testitem "P4estMesh MPI 2D: elixir_advection_nonconforming_flag.jl" setup=[
     Setup,
     MPIP4estMesh2D
@@ -125,18 +139,18 @@ end
 @testitem "P4estMesh MPI 2D: elixir_euler_wall_bc_amr.jl" setup=[Setup, MPIP4estMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
                         l2=[
-                            0.020266970819461425,
-                            0.01746740120890609,
-                            0.011378393090609054,
-                            0.05138965928352185
+                            0.01634023934753053,
+                            0.014069761820947794,
+                            0.009057860913480532,
+                            0.041494832882935526
                         ],
                         linf=[
-                            0.3593492062888952,
-                            0.32077672777509403,
-                            0.23600493584887167,
-                            0.9291837711500472
+                            0.35327216004337436,
+                            0.32763728948336474,
+                            0.2335135546142649,
+                            0.9264192624051251
                         ],
-                        tspan=(0.0, 0.15))
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -167,6 +181,54 @@ end
                             0.7906704256076251
                         ],
                         tspan=(0.0, 5e-3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+# Shock capturing with smoothing of the blending factors across many MPI interfaces
+# due to the scattered element ordering of the mesh
+@testitem "P4estMesh MPI 2D: elixir_euler_NACA6412airfoil_mach2.jl" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.19107654776276498, 0.3545913719444839,
+                            0.18492730895077583, 0.817927213517244
+                        ],
+                        linf=[
+                            2.5397624311491946, 2.7075156425517917, 2.200980534211764,
+                            9.031153939238115
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+# Shock capturing with smoothing of the blending factors across MPI interfaces and
+# MPI mortars
+@testitem "P4estMesh MPI 2D: elixir_euler_weak_blast_wave_amr.jl" setup=[
+    Setup,
+    MPIP4estMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[
+                            0.11134260363848127,
+                            0.11752357091804219,
+                            0.11829112104640764,
+                            0.7557891142955036
+                        ],
+                        linf=[
+                            0.5728647031475109,
+                            0.8353132977670252,
+                            0.8266797080712205,
+                            3.9792506230548317
+                        ],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

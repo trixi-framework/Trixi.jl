@@ -10,7 +10,9 @@
                                     equations,
                                     numerical_flux, dg, cache, alpha,
                                     nturbovars(numerical_flux, equations),
-                                    Val(nvariables(equations)))
+                                    Val(nvariables(equations)),
+                                    get_aux_vars(cache),
+                                    Val(nauxvariables(equations)))
 end
 
 # Generated function that writes the equivalent hand-written code as in dg_compressible_euler_3d.jl,
@@ -22,22 +24,28 @@ end
                                                     have_nonconservative_terms::False,
                                                     equations,
                                                     volume_flux,
-                                                    dg, cache, alpha, ::Val{NAUX},
-                                                    ::Val{NVARS}) where {NAUX, NVARS}
+                                                    dg, cache, alpha, ::Val{NTURBO},
+                                                    ::Val{NVARS}, aux,
+                                                    ::Val{NAUXVARS}) where {NTURBO,
+                                                                            NVARS,
+                                                                            NAUXVARS}
     # Per-node scalars used inside the `@turbo` loops, e.g. `u_prim_ll_1 = rho_ll`,
     # `flux_1 = f1`, etc.
-    u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NAUX]
-    u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NAUX]
+    u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NTURBO]
+    u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NTURBO]
     flux = [Symbol(:flux_, v) for v in 1:NVARS]
 
-    # Convert conserved to auxiliary variables node-wise, e.g.
+    # Convert conserved to precomputed variables node-wise, e.g.
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
-    cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
-    cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NAUX]...),
+    # The auxiliary variables of the node (if any) are passed as additional scalars after
+    # the conserved variables, e.g., `cons2turbo(volume_flux, u_1, ..., aux_1, ...)`.
+    cons_reads = vcat([:(u_cons[$v, i, j, k, element]) for v in 1:NVARS],
+                      [:(aux[$v, i, j, k, element]) for v in 1:NAUXVARS])
+    cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NTURBO]...),
                        :(cons2turbo(volume_flux, $(cons_reads...),
                                     equations)))
-    cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NAUX]
+    cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NTURBO]
 
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=), Expr(:tuple, flux...),
@@ -51,9 +59,9 @@ end
     #   rho_ll = u_prim_permuted[jk, i, 1]   # left node, and so on
     #   rho_rr = u_prim_permuted[jk, ii, 1]  # right node
     loads(arr, idx_ll, idx_rr) = vcat([:($(u_prim_ll[v]) = $arr[$(idx_ll...), $v])
-                                       for v in 1:NAUX],
+                                       for v in 1:NTURBO],
                                       [:($(u_prim_rr[v]) = $arr[$(idx_rr...), $v])
-                                       for v in 1:NAUX])
+                                       for v in 1:NTURBO])
 
     # Compute the average of the normal_direction
     # e.g. the x direction `normals` gives
@@ -100,12 +108,12 @@ end
                                          (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
                                           StaticInt(nnodes(dg)), StaticInt(NVARS)))
 
-        # Convert conserved to auxiliary variables on the given `element`.
+        # Convert conserved to precomputed variables on the given `element`.
         u_prim = StrideArray{eltype(u_cons)}(undef,
                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                              StaticInt(nnodes(dg)), StaticInt(NAUX)))
+                                              StaticInt(nnodes(dg)), StaticInt(NTURBO)))
 
-        # Convert conserved to auxiliary variables and store them in `u_prim`.
+        # Convert conserved to precomputed variables and store them in `u_prim`.
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             $cons2turbo_
             $(cons2turbo_writes...)
@@ -123,7 +131,7 @@ end
         u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
                                                       (StaticInt(nnodes(dg)^2),
                                                        StaticInt(nnodes(dg)),
-                                                       StaticInt(NAUX)))
+                                                       StaticInt(NTURBO)))
 
         @turbo for v in indices(u_prim, 4),
                    k in eachnode(dg),
@@ -211,7 +219,7 @@ end
         GC.@preserve u_prim begin
             u_prim_reshaped = PtrArray(pointer(u_prim),
                                        (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
-                                        StaticInt(NAUX)))
+                                        StaticInt(NTURBO)))
 
             du_reshaped = PtrArray(pointer(du),
                                    (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
@@ -271,7 +279,9 @@ end
                                     equations,
                                     numerical_flux, dg, cache, alpha,
                                     nturbovars(numerical_flux, equations),
-                                    Val(nvariables(equations)))
+                                    Val(nvariables(equations)),
+                                    get_aux_vars(cache),
+                                    Val(nauxvariables(equations)))
 end
 
 @generated function flux_differencing_kernel_turbo!(_du::PtrArray, u_cons::PtrArray,
@@ -281,23 +291,29 @@ end
                                                     have_nonconservative_terms::True,
                                                     equations,
                                                     numerical_flux,
-                                                    dg, cache, alpha, ::Val{NAUX},
-                                                    ::Val{NVARS}) where {NAUX, NVARS}
+                                                    dg, cache, alpha, ::Val{NTURBO},
+                                                    ::Val{NVARS}, aux,
+                                                    ::Val{NAUXVARS}) where {NTURBO,
+                                                                            NVARS,
+                                                                            NAUXVARS}
     # Per-node scalars used inside the `@turbo` loops, e.g. `u_prim_ll_1 = rho_ll`,
     # `flux_1 = f1, etc.
-    u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NAUX]
-    u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NAUX]
+    u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NTURBO]
+    u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NTURBO]
     flux_left = [Symbol(:flux_left_, v) for v in 1:NVARS]
     flux_right = [Symbol(:flux_right_, v) for v in 1:NVARS]
 
-    # Convert conserved to auxiliary variables node-wise, e.g.
+    # Convert conserved to precomputed variables node-wise, e.g.
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
-    cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
-    cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NAUX]...),
+    # The auxiliary variables of the node (if any) are passed as additional scalars after
+    # the conserved variables, e.g., `cons2turbo(numerical_flux, u_1, ..., aux_1, ...)`.
+    cons_reads = vcat([:(u_cons[$v, i, j, k, element]) for v in 1:NVARS],
+                      [:(aux[$v, i, j, k, element]) for v in 1:NAUXVARS])
+    cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NTURBO]...),
                        :(cons2turbo(numerical_flux, $(cons_reads...),
                                     equations)))
-    cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NAUX]
+    cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NTURBO]
 
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=),
@@ -312,9 +328,9 @@ end
     #   rho_ll = u_prim_permuted[jk, i, 1]   # left node, and so on
     #   rho_rr = u_prim_permuted[jk, ii, 1]  # right node
     loads(arr, idx_ll, idx_rr) = vcat([:($(u_prim_ll[v]) = $arr[$(idx_ll...), $v])
-                                       for v in 1:NAUX],
+                                       for v in 1:NTURBO],
                                       [:($(u_prim_rr[v]) = $arr[$(idx_rr...), $v])
-                                       for v in 1:NAUX])
+                                       for v in 1:NTURBO])
 
     # Compute the average of the normal_direction
     # e.g. the x direction `normals` gives
@@ -361,12 +377,12 @@ end
                                          (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
                                           StaticInt(nnodes(dg)), StaticInt(NVARS)))
 
-        # Convert conserved to auxiliary variables on the given `element`.
+        # Convert conserved to precomputed variables on the given `element`.
         u_prim = StrideArray{eltype(u_cons)}(undef,
                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                              StaticInt(nnodes(dg)), StaticInt(NAUX)))
+                                              StaticInt(nnodes(dg)), StaticInt(NTURBO)))
 
-        # Convert conserved to auxiliary variables and store them in `u_prim`.
+        # Convert conserved to precomputed variables and store them in `u_prim`.
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             $cons2turbo_
             $(cons2turbo_writes...)
@@ -384,7 +400,7 @@ end
         u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
                                                       (StaticInt(nnodes(dg)^2),
                                                        StaticInt(nnodes(dg)),
-                                                       StaticInt(NAUX)))
+                                                       StaticInt(NTURBO)))
 
         @turbo for v in indices(u_prim, 4),
                    k in eachnode(dg),
@@ -472,7 +488,7 @@ end
         GC.@preserve u_prim begin
             u_prim_reshaped = PtrArray(pointer(u_prim),
                                        (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),
-                                        StaticInt(NAUX)))
+                                        StaticInt(NTURBO)))
 
             du_reshaped = PtrArray(pointer(du),
                                    (StaticInt(nnodes(dg)^2), StaticInt(nnodes(dg)),

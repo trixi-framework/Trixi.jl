@@ -39,6 +39,11 @@ end
 end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
+# Number of MPI interfaces for the auxiliary variables, see `init_aux_vars`
+@inline function nmpiinterfaces_aux(mesh::P4estMeshParallel, cache)
+    return nmpiinterfaces(cache.mpi_interfaces)
+end
+
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     @unpack _u, _normal_directions, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
@@ -207,6 +212,11 @@ end
 end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 
+# Number of MPI mortars for the auxiliary variables, see `init_aux_vars`
+@inline function nmpimortars_aux(mesh::P4estMeshParallel, cache)
+    return nmpimortars(cache.mpi_mortars)
+end
+
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     @unpack _u, _node_indices, _normal_directions = mpi_mortars
 
@@ -276,9 +286,10 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
                                                       _u, _node_indices,
                                                       _normal_directions)
 
-    if n_mpi_mortars > 0
-        init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
-    end
+    # Call this on all MPI ranks, even if there are no local MPI mortars, since it can
+    # include collective MPI communication (`p4est_iterate` validates the forest in
+    # debug builds of p4est)
+    init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
 
     return mpi_mortars
 end
@@ -395,6 +406,12 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     exchange_normal_directions!(mpi_interfaces, mpi_cache, mesh, nnodes(dg))
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+
+    # Auxiliary variables are only computed when the semidiscretization is created,
+    # so mesh adaptation would require re-evaluating them and resizing their container.
+    if haskey(cache, :aux_vars)
+        throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
+    end
 
     return nothing
 end

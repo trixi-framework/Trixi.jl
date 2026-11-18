@@ -1,6 +1,6 @@
 using Trixi
 using OrdinaryDiffEqSSPRK
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # Definition of the 2D scalar "KPP equation"

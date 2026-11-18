@@ -6,7 +6,8 @@
 #! format: noindent
 
 @doc raw"""
-    LinearizedEulerEquations1D(v_mean_global, c_mean_global, rho_mean_global)
+    LinearizedEulerEquations1D(v_mean_global::Real, c_mean_global::Real, rho_mean_global::Real)
+    LinearizedEulerEquations1D(; v_mean_global::Real, c_mean_global::Real, rho_mean_global::Real)
 
 Linearized Euler equations in one space dimension. The equations are given by
 ```math
@@ -24,7 +25,9 @@ Linearized Euler equations in one space dimension. The equations are given by
     0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables, i.e., the velocity
+``\bar{v_1}`` (`v_mean_global`) and the density ``\bar{\rho} > 0`` (`rho_mean_global`).
+The constant speed of sound is ``c > 0`` (`c_mean_global`).
 The unknowns are the perturbation quantities of the acoustic velocity ``v_1'``, the pressure ``p'``
 and the density ``\rho'``.
 """
@@ -33,18 +36,25 @@ struct LinearizedEulerEquations1D{RealT <: Real} <:
     v_mean_global::RealT
     c_mean_global::RealT
     rho_mean_global::RealT
+
+    function LinearizedEulerEquations1D{RealT}(v_mean_global, c_mean_global,
+                                               rho_mean_global) where {RealT <: Real}
+        if !(rho_mean_global > 0)
+            throw(ArgumentError("rho_mean_global must be positive"))
+        elseif !(c_mean_global > 0)
+            throw(ArgumentError("c_mean_global must be positive"))
+        end
+
+        return new{RealT}(v_mean_global, c_mean_global, rho_mean_global)
+    end
 end
 
 function LinearizedEulerEquations1D(v_mean_global::Real,
                                     c_mean_global::Real, rho_mean_global::Real)
-    if rho_mean_global < 0
-        throw(ArgumentError("rho_mean_global must be non-negative"))
-    elseif c_mean_global < 0
-        throw(ArgumentError("c_mean_global must be non-negative"))
-    end
-
-    return LinearizedEulerEquations1D(v_mean_global, c_mean_global,
-                                      rho_mean_global)
+    RealT = promote_type(typeof(v_mean_global), typeof(c_mean_global),
+                         typeof(rho_mean_global))
+    return LinearizedEulerEquations1D{RealT}(v_mean_global, c_mean_global,
+                                             rho_mean_global)
 end
 
 # Constructor with keywords
