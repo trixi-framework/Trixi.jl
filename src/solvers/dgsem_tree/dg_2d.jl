@@ -1169,26 +1169,28 @@ Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
     # Use the mortar storage to accumulate the interpolated entropy variables
     fill!(u_upper, zero(eltype(u_upper)))
     fill!(u_lower, zero(eltype(u_lower)))
-    for k in eachnode(dg)
-        w_k = cons2entropy(get_node_vars(u_large, equations, dg, k), equations)
-        for j in eachnode(dg)
-            add_to_node_vars!(u_upper, mortar_ec.forward_upper[j, k] * w_k,
-                              equations, dg, j)
-            add_to_node_vars!(u_lower, mortar_ec.forward_lower[j, k] * w_k,
-                              equations, dg, j)
+
+    # Convert conservative variables to entropy variables and interpolate to mortars,
+    # where `j` runs over the nodes of the large face and `i` over the mortar nodes
+    for j in eachnode(dg)
+        u_nodal_j = get_node_vars(u_large, equations, dg, j)
+        w_nodal_j = cons2entropy(u_nodal_j, equations)
+        for i in eachnode(dg)
+            add_to_node_vars!(u_upper, mortar_ec.forward_upper[i, j] * w_nodal_j,
+                              equations, dg, i)
+            add_to_node_vars!(u_lower, mortar_ec.forward_lower[i, j] * w_nodal_j,
+                              equations, dg, i)
         end
     end
 
     # Convert entropy variables back to conservative variables
-    for j in eachnode(dg)
-        set_node_vars!(u_upper,
-                       entropy2cons(get_node_vars(u_upper, equations, dg, j),
-                                    equations),
-                       equations, dg, j)
-        set_node_vars!(u_lower,
-                       entropy2cons(get_node_vars(u_lower, equations, dg, j),
-                                    equations),
-                       equations, dg, j)
+    for i in eachnode(dg)
+        w_nodal_i = get_node_vars(u_upper, equations, dg, i)
+        u_nodal_i = entropy2cons(w_nodal_i, equations)
+        set_node_vars!(u_upper, u_nodal_i,
+                       equations, dg, i)
+        set_node_vars!(u_lower, u_nodal_i,
+                       equations, dg, i)
     end
 
     return nothing
@@ -1485,33 +1487,54 @@ Base.@propagate_inbounds function calc_flux_correction!(surface_flux_values,
                                                         fstar_lower_correction)
     @unpack volume_flux, forward_upper, forward_lower, reverse_upper, reverse_lower = mortar_ec
 
+    # Call pointwise two-point numerical flux function between all nodes `i` of the
+    # large face and all nodes `j` of the upper/lower mortar.
+    # Note: Due to symmetric fluxes, "left" and "right" is meaningless here
     for j in eachnode(dg)
+        # Extract states of the mortars
         u_upper_j = get_node_vars(u_large_upper, equations, dg, j)
         u_lower_j = get_node_vars(u_large_lower, equations, dg, j)
         for i in eachnode(dg)
+            # Extract state of the large element
             u_large_i = get_node_vars(u_large, equations, dg, i)
 
+            # Calculate flux
             flux_upper = volume_flux(u_large_i, u_upper_j, orientation, equations)
             flux_lower = volume_flux(u_large_i, u_lower_j, orientation, equations)
 
+            # Copy flux back to actual flux array
             set_node_vars!(fstar_upper_correction, flux_upper, equations, dg, i, j)
             set_node_vars!(fstar_lower_correction, flux_lower, equations, dg, i, j)
         end
     end
 
-    for i in eachnode(dg)
-        for v in eachvariable(equations)
+    for v in eachvariable(equations)
+        # Loop over all nodes on the large face
+        for i in eachnode(dg)
+            # Calculate flux correction for node i
             flux_correction = zero(eltype(surface_flux_values))
+
+            # Inner loop over mortar nodes
             for j in eachnode(dg)
+                # j-local "forward" flux: flux between large node i and mortar node j
                 f_j_upper = fstar_upper_correction[v, i, j]
                 f_j_lower = fstar_lower_correction[v, i, j]
+
+                # Subtract the interpolated flux, i.e., the fluxes between all large nodes k
+                # and mortar node j, interpolated to mortar node j with the forward operator.
+                # For constant states this cancels the "forward" flux exactly.
                 for k in eachnode(dg)
                     f_j_upper -= forward_upper[j, k] * fstar_upper_correction[v, k, j]
                     f_j_lower -= forward_lower[j, k] * fstar_lower_correction[v, k, j]
                 end
+
+                # Project back to large node i with the reverse operators
+                # and add to the flux correction
                 flux_correction += (reverse_upper[i, j] * f_j_upper +
                                     reverse_lower[i, j] * f_j_lower)
             end
+
+            # Finally add to surface flux values of the large element
             surface_flux_values[v, i, direction, large_element] += flux_correction
         end
     end
