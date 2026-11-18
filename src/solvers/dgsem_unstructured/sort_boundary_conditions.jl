@@ -32,7 +32,8 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
     n_boundary_types = length(boundary_condition_types)
     boundary_indices = ntuple(_ -> [], n_boundary_types)
 
-    # Initialize `boundary_symbol_indices` as an empty dictionary, filled later in `initialize!`
+    # Initialize `boundary_symbol_indices` as an empty dictionary, filled later in
+    # `init_boundary_types!`
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
 
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
@@ -43,11 +44,11 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
                                                                     boundary_conditions,
                                                                     boundary_symbol_indices)
 
-    return initialize!(container, cache)
+    return init_boundary_types!(container, cache)
 end
 
-function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N},
-                     cache) where {N}
+function init_boundary_types!(boundary_types_container::UnstructuredSortedBoundaryTypes{N},
+                              cache) where {N}
     @unpack boundary_conditions, boundary_condition_types = boundary_types_container
 
     unique_names = unique(cache.boundaries.name)

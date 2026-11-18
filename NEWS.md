@@ -20,10 +20,19 @@ for human readability.
   `resize_cache_all_volume_integrals!`, and `reinit_cache_all_volume_integrals!`;
   the methods for a single volume integral to `resize_cache_volume_integral!` and
   `reinit_cache_volume_integral!`. Furthermore, `resize_subcell_limiter_cache!` was
-  renamed to `resize_cache_subcell_limiter!` and `initialize_cache!` of the
-  `AveragingCallback` to `initialize_cache_averaging_callback!`. For `DGMulti`,
+  renamed to `resize_cache_subcell_limiter!`. For `DGMulti`,
   `create_cache_volume_integral` now receives the storage created so far instead of the
   real type `RealT`, as for the other solvers ([#3398]).
+- Internal functions were renamed to use the abbreviations `init` and `reinit`
+  consistently, which affects packages extending or calling them:
+  `reinitialize_containers!` to `reinit_containers!`, `reinitialize_boundaries!` to
+  `reinit_boundaries!`, `initialize_left_neighbor_connectivity!` to
+  `init_left_neighbor_connectivity!`, `initialize_mean_values` to `init_mean_values`,
+  `initialize_cache!` (`AveragingCallback`) to `init_cache_averaging_callback!`, and
+  `initialize_dgmulti_solution_container` to `init_dgmulti_solution_container`. The
+  methods of `initialize!` for `TreeMesh` and `UnstructuredSortedBoundaryTypes` were
+  renamed to `init_refinement!` and `init_boundary_types!`; `initialize!` now only refers
+  to the initialization of callbacks ([#3402]).
 - The node indices describing the faces of interfaces, boundaries, and mortars of
   `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
   `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
