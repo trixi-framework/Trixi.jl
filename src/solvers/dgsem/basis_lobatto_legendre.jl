@@ -182,7 +182,7 @@ end
 
 L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
 Mortars are required to handle non-conforming interfaces. 
-Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+Trixi.jl supports only 2h-nonconforming interfaces.
 This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
 side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
 
@@ -276,20 +276,19 @@ end
 Entropy-conservative mortar tailored to the [`LobattoLegendreBasis`](@ref),
 following the hybrid SBP approach of Chan, Bencomo, and Del Rey Fernández (2021).
 Mortars are required to handle non-conforming interfaces.
-Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+Trixi.jl supports only 2h-nonconforming interfaces.
 This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
 side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
 
 Compared to [`MortarL2`](@ref),
 - the solution of the large element is interpolated to the mortars in entropy variables,
-- the reverse operators are the discrete (Gauss-Lobatto) L2 projections, i.e., the adjoints
+- the reverse operators are the discrete Gauss-Lobatto L2 projections, i.e., the adjoints
   of the forward interpolation operators with respect to the LGL quadrature, and
 - a flux correction term coupling the large face nodes with the mortar nodes is added
   to the large element.
 The two-point flux `volume_flux` is used for this correction term. It must be symmetric and
 entropy conservative (e.g., [`flux_ranocha`](@ref)) and is typically the same as the volume flux
-of a [`VolumeIntegralFluxDifferencing`](@ref). The surface flux of the solver can still be
-dissipative (e.g., [`flux_lax_friedrichs`](@ref)), which results in an entropy-stable scheme.
+of a [`VolumeIntegralFluxDifferencing`](@ref).
 
 # References
 - Jesse Chan, Mario J. Bencomo, and David C. Del Rey Fernández (2021).
@@ -305,6 +304,7 @@ function MortarEC(basis::LobattoLegendreBasis, volume_flux)
     # Entropy conservation requires the reverse operators to be the adjoints of the
     # forward operators with respect to the LGL quadrature used by the DGSEM, i.e.,
     # `w_large[i] * reverse[i, j] == w_small[j] * forward[j, i]`.
+    # Thus, :gauss_lobatto is used here instead of :gauss.
     reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss_lobatto), RealT)
     reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss_lobatto), RealT)
 

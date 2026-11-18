@@ -1155,13 +1155,8 @@ end
                                          u_large)
 end
 
-# For the entropy-conservative mortar, the solution of the large element is interpolated
-# to the mortars in entropy variables, see
-#   Chan, Bencomo, Del Rey Fernández (2021).
-#   Mortar-based Entropy-Stable Discontinuous Galerkin Methods on
-#     Non-conforming Quadrilateral and Hexahedral Meshes.
-#   https://doi.org/10.1007/s10915-021-01652-3
-# Note that `u_large` is a view into the solution `u` and must not be modified.
+# For the entropy-conservative mortar the solution of the large element is interpolated
+# to the mortars in entropy variables.
 Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
                                                                 mortar_ec::LobattoLegendreMortarEC,
                                                                 leftright, mortar,
