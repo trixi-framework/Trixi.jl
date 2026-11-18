@@ -156,12 +156,12 @@ function storage_type(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, cache)
 end
 
 # The `cache` of a `P4estMesh` or `T8codeMesh` contains the performance settings of
-# the GPU and KernelAbstractions.jl kernels as a `Tuning`, see `create_cache_hyperbolic` in
-# `src/solvers/dgsem_p4est/dg.jl`. We set them (if requested) and check them every time
-# the semidiscretization is adapted, since the checks depend on the settings, the real
-# type, and the storage type. We store settings that are `nothing` (the defaults of the
-# backend) without resolving them, so that they follow the backend if the
-# semidiscretization is adapted again.
+# the GPU and KernelAbstractions.jl kernels as a `Tuning`,
+# see `create_cache_hyperbolic` in `src/solvers/dgsem_p4est/dg.jl`.
+# We set them (if requested) and check them every time the semidiscretization is adapted,
+# since the checks depend on the settings, the real type, and the storage type.
+# We store settings that are `nothing` (the defaults of the backend) without resolving
+# them, so that they follow the backend if the semidiscretization is adapted again.
 function adapt_tuning(semi, tuning)
     if !(hasproperty(semi, :cache) && haskey(semi.cache, :tuning))
         if tuning !== nothing
@@ -253,7 +253,7 @@ end
                    colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The time span is converted to the real type `real(semi)` of the semidiscretization.
 
 Optional keyword arguments:
@@ -317,7 +317,7 @@ end
                    colorvec::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The initial condition etc. is taken from the `restart_file`.
 The time span is converted to the real type `real(semi)` of the semidiscretization.
 

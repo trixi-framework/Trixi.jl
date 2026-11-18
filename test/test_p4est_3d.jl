@@ -828,28 +828,28 @@ end
 @testitem "P4estMesh3D: elixir_mhd_shockcapturing_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
                         l2=[
-                            0.006297400925922205,
-                            0.006435877410736388,
-                            0.00711153097715686,
-                            0.006529600157112358,
-                            0.020599406703295717,
-                            0.0055588113252613425,
-                            0.00757466636850841,
-                            0.005572376436759117,
-                            0.00025405306150821585
+                            0.003230574555611937,
+                            0.0035055385332353607,
+                            0.00367603144467607,
+                            0.0035613609448183568,
+                            0.011371218399250963,
+                            0.003053930455986979,
+                            0.004239667341302796,
+                            0.0030571586497968673,
+                            0.0001622024325472736
                         ],
                         linf=[
-                            0.2091617827169785,
-                            0.18641668852940216,
-                            0.23487815102076448,
-                            0.19457634171022287,
-                            0.6850945763561453,
-                            0.15253252031299103,
-                            0.22382088039868442,
-                            0.16766918290544353,
-                            0.02877034442710524
+                            0.11596394565891233,
+                            0.11916244400971865,
+                            0.16735969384585622,
+                            0.14459732569870357,
+                            0.4673566414490513,
+                            0.11018098674910393,
+                            0.1618795525489103,
+                            0.1099319721127251,
+                            0.02318074464594008
                         ],
-                        tspan=(0.0, 0.04))
+                        tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -941,23 +941,129 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        l2=[0.00519048662880307],
+                        linf=[0.026769982125784075])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        l2=[0.01080549145175204],
+                        linf=[0.08535203150832649])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl (flux differencing)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        l2=[0.010805491451752015],
+                        linf=[0.08535203150832515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # `FluxTurbo` results in the same discretization as the plain `flux_central`
+    # (up to round-off errors), see the test above
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        l2=[0.010805491451752015],
+                        linf=[0.08535203150832515])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.0023544877254049017],
+                        linf=[0.02091570013800048])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_source_terms_nonconforming.jl (FluxTurbo)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    # `FluxTurbo` results in the same discretization as the plain tuple of fluxes
+    # (up to round-off errors), see the test above
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        volume_flux=FluxTurbo(flux_central, flux_nonconservative_central),
+                        l2=[0.0023544877254049017],
+                        linf=[0.02091570013800048])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        l2=[2.2815930561249495e-16],
+                        linf=[1.3100631690576847e-14])
+    # The velocity is discontinuous at interfaces and mortars
+    (; aux_interface, aux_mortar) = semi.cache.aux_vars
+    @test !(aux_interface[1, :, :, :, :] ≈ aux_interface[2, :, :, :, :])
+    @test !(aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.01374649869395016,
-                            0.01993458602992416,
-                            0.020403214655756098,
-                            0.020408263790073853,
-                            0.14975849029503904
+                            0.006397126301849624,
+                            0.012720295217888025,
+                            0.01318988235587869,
+                            0.013097523277007118,
+                            0.10426475175103048
                         ],
                         linf=[
-                            0.4411601724293266,
-                            0.668308654218055,
-                            0.7351134068050753,
-                            0.5955002383710662,
-                            3.1811162616598985
+                            0.3065455410983535,
+                            0.6592659455041433,
+                            0.6262896448939657,
+                            0.5631502851030113,
+                            3.0893593575020954
                         ],
-                        tspan=(0.0, 0.025))
+                        tspan=(0.0, 0.0125))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -970,6 +1076,72 @@ end
     @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
+end
+
+# Surface integrals of the pressure computed via `AnalysisSurfaceIntegral` on a curved
+# mesh of [-1, 1]^3. The pressure p = 2 + y (1 + x) (1 + z) yields
+# ∮ p n_x dS = ∫ ∂p/∂x dV = 0, ∮ p n_y dS = ∫ ∂p/∂y dV = 8, and
+# ∫_{y = 1} p dS = ∫∫ 2 + (1 + x) (1 + z) dx dz = 12.
+# The mapping keeps the boundary planar but distorts the boundary faces.
+@testsnippet SurfaceIntegralsCurvedMesh3D begin
+    function surface_integrals_curved_mesh_3d()
+        equations = CompressibleEulerEquations3D(1.4)
+        function initial_condition(x, t, equations)
+            p = 2 + x[2] * (1 + x[1]) * (1 + x[3])
+            return prim2cons(SVector(1.0, 0.0, 0.0, 0.0, p), equations)
+        end
+        function mapping(xi, eta, zeta)
+            return SVector(xi + 0.05 * sinpi(xi) * (2 + eta + zeta),
+                           eta + 0.05 * sinpi(eta) * (2 + zeta + xi),
+                           zeta + 0.05 * sinpi(zeta) * (2 + xi + eta))
+        end
+        polydeg = 3
+        solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+        mesh = P4estMesh((4, 4, 4); polydeg, mapping, periodicity = false)
+        boundary_condition = BoundaryConditionDirichlet(initial_condition)
+        boundary_conditions = (; x_neg = boundary_condition, x_pos = boundary_condition,
+                               y_neg = boundary_condition, y_pos = boundary_condition,
+                               z_neg = boundary_condition, z_pos = boundary_condition)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions)
+
+        # With these free-stream values, the coefficients are the surface integrals
+        # of p (n ⋅ ψ)
+        aoa, rho_inf, u_inf, a_inf = 0.0, 1.0, 1.0, 2.0
+        all_boundaries = (:x_neg, :x_pos, :y_neg, :y_pos, :z_neg, :z_pos)
+        lift = AnalysisSurfaceIntegral(all_boundaries,
+                                       LiftCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                 a_inf))
+        drag = AnalysisSurfaceIntegral(all_boundaries,
+                                       DragCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                 a_inf))
+        lift_top = AnalysisSurfaceIntegral((:y_pos,),
+                                           LiftCoefficientPressure3D(aoa, rho_inf, u_inf,
+                                                                     a_inf))
+
+        # The right-hand side evaluation prolongs the solution to the boundaries
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        # `wrap_array` may not keep `u_ode` and `du_ode` alive
+        GC.@preserve u_ode du_ode begin
+            u = Trixi.wrap_array(u_ode, semi)
+            du = Trixi.wrap_array(du_ode, semi)
+            return (Trixi.analyze(lift, du, u, 0.0, semi),
+                    Trixi.analyze(drag, du, u, 0.0, semi),
+                    Trixi.analyze(lift_top, du, u, 0.0, semi))
+        end
+    end
+end
+
+@testitem "P4estMesh3D: AnalysisSurfaceIntegral on curved mesh" setup=[
+    Setup,
+    SurfaceIntegralsCurvedMesh3D
+] tags=[:p4est_part2] begin
+    lift, drag, lift_top = surface_integrals_curved_mesh_3d()
+    @test isapprox(lift, 8; atol = 1.0e-5)
+    @test isapprox(drag, 0; atol = 1.0e-5)
+    @test isapprox(lift_top, 12; atol = 1.0e-5)
 end
 
 @testitem "P4estMesh3D: elixir_euler_ONERA_M6_wing.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin

@@ -19,6 +19,7 @@ solver = DGSEM(polydeg = 5,
 # warped mapping simplifies (quite a bit)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi, eta, zeta)
     y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
 
