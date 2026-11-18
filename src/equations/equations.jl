@@ -565,9 +565,12 @@ it is also as useful.
 
 """
     cons2prim(u, equations)
+    cons2prim(u, aux, equations)
 
 Convert the conserved variables `u` to the primitive variables for a given set of
 `equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`prim2cons`](@ref).
@@ -618,22 +621,28 @@ end
 
 """
     entropy(u, equations)
+    entropy(u, aux, equations)
 
 Return the chosen entropy of the conserved variables `u` for a given set of
 `equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 """
 function entropy end
 
 """
     cons2entropy(u, equations)
+    cons2entropy(u, aux, equations)
 
 Convert the conserved variables `u` to the entropy variables for a given set of
 `equations` with chosen standard [`entropy`](@ref).
 
 `u` is a vector type of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`entropy2cons`](@ref).
