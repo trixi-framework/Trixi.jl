@@ -24,7 +24,7 @@ for human readability.
   without nonconservative terms, also with `FluxTurbo`. The new equations
   `ConservativeLinearScalarAdvectionEquation3D` and
   `NonconservativeLinearScalarAdvectionEquation3D` use them for a spatially varying
-  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441]).
+  advection velocity ([#3239], [#3396], [#3436], [#3437], [#3441], [#3466]).
 - Contour plotting using Makie.jl is now supported for
   `PlotData2DTriangulated` data ([#3253]).
 - `Makie.plot`, `Makie.contour`, and `Makie.contourf` of 2D and 3D solutions pass the

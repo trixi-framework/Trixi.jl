@@ -6491,8 +6491,8 @@ end
                                    coordinates_min = (-1.0, -1.0, -1.0),
                                    coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
         for mesh_ in (mesh, mesh_quadratic)
-            semi_ = SemidiscretizationHyperbolic(mesh_, equations, initial_condition,
-                                                 solver;
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
                                                  boundary_conditions = boundary_condition_periodic,
                                                  aux_field)
             u_ode_ = compute_coefficients(0.0, semi_)
