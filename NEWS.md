@@ -5,6 +5,32 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+- The node indices describing the faces of interfaces, boundaries, and mortars of
+  `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
+  `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
+  (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
+  directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
+  accordingly.
+- The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`.
+- For the `CompressibleNavierStokesDiffusion1D` equations, the viscous stress `tau_xx`
+  is now computed as `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`
+  ([#3202]). Here, `mu` is the user-given dynamic viscosity.
+  This is the 1D reduction of the stress tensor of a Newtonian fluid with zero bulk
+  viscosity (Stokes' hypothesis), consistent with `CompressibleNavierStokesDiffusion2D`
+  and `CompressibleNavierStokesDiffusion3D`.
+  Thus, the results of all 1D compressible Navier-Stokes simulations with the same
+  parameters change. Moreover, `max_diffusivity` now uses `max(4/3, gamma / Prandtl)`
+  instead of `max(1, gamma / Prandtl)`, so parabolic time step estimates (e.g., via
+  `StepsizeCallback` with `cfl_parabolic`) are smaller if `gamma / Prandtl < 4/3`.
+  To recover the previous results, pass `mu = (3/4) * mu_old` *and*
+  `Prandtl = (3/4) * Prandtl_old`; the second factor keeps the thermal conductivity
+  `kappa = gamma * mu * R / ((gamma - 1) * Prandtl)` unchanged.
+  A viscosity function `mu(u, equations)` needs to be scaled by `3/4` accordingly.
+
 ## Changes in the v0.17 lifecycle
 
 #### Added
