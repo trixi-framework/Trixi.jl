@@ -74,6 +74,7 @@ References:
   Modeling of Space Plasma Flows, 213–218. [Bib Code: Code: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 - Schunk, R. W., & Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry.
   Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
@@ -227,12 +228,13 @@ end
 A weak blast wave (adapted to multi-ion MHD) from
 - Hennemann, S., Rueda-Ramírez, A. M., Hindenlang, F. J., & Gassner, G. J. (2021). A provably entropy
   stable subcell shock capturing approach for high order split form DG for the compressible Euler equations.
-  Journal of Computational Physics, 426, 109935. [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044).
+  Journal of Computational Physics, 426, 109935.
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::IdealGlmMhdMultiIonEquations2D)
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Adapted MHD version of the weak blast wave from Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     RealT = eltype(x)
@@ -399,6 +401,7 @@ end
 Entropy-conserving non-conservative two-point "flux" as described in
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 !!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi.jl"
@@ -925,11 +928,13 @@ end
 Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 This flux (together with the MHD non-conservative term) is consistent in the case of one ion species with the flux of:
 - Derigs et al. (2018). Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
+  [arXiv: 1711.06269](https://arxiv.org/abs/1711.06269)
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
 @inline function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
