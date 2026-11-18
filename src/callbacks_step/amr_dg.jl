@@ -22,7 +22,7 @@ function rebalance_solver!(u_ode::AbstractVector,
         # solver does not need to be rebalanced on this rank.
         # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
         # locally (there are other MPI ranks that need to be rebalanced if this function is called)
-        reinitialize_containers!(mesh, equations, dg, cache)
+        reinit_containers!(mesh, equations, dg, cache)
         return
     end
     # Retain current solution data
@@ -34,7 +34,7 @@ function rebalance_solver!(u_ode::AbstractVector,
         old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,

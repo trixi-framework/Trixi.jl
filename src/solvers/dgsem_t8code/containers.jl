@@ -1,4 +1,4 @@
-function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     n_cells = ncells(mesh)
 
     # Re-initialize elements container.

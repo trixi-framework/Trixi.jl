@@ -126,8 +126,8 @@ function create_cache_hyperbolic(mesh::DGMultiMesh, equations, dg::DGMultiFluxDi
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     cache = (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
              invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),

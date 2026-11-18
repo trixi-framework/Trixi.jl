@@ -134,10 +134,13 @@ function uses_amr(cb::DiscreteCallback{Condition, Affect!}) where {Condition,
 end
 uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                amr_callback::AMRCallback; kwargs...)
-    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                  amr_callback.controller, amr_callback; kwargs...)
+# Output the values of the indicator(s) used by the AMR controller.
+function get_element_variables_callback!(element_variables, u, mesh, equations, solver,
+                                         cache, amr_callback::AMRCallback; kwargs...)
+    return get_element_variables_controller!(element_variables, u, mesh, equations,
+                                             solver, cache,
+                                             amr_callback.controller, amr_callback;
+                                             kwargs...)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -656,11 +659,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
         # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
-            reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
+            reinit_boundaries!(semi.boundary_conditions_parabolic, cache)
         end
     end
 
@@ -765,7 +768,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     # Return true if there were any cells coarsened or refined, otherwise false
@@ -824,7 +827,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     mesh.unsaved_changes |= has_changed
@@ -833,13 +836,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
     return has_changed
 end
 
-function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
-                                  cache)
+function reinit_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
+                            cache)
     # Reinitialize boundary types container because boundaries may have changed.
     return reinit!(boundary_conditions, cache)
 end
 
-function reinitialize_boundaries!(boundary_conditions, cache)
+function reinit_boundaries!(boundary_conditions, cache)
     return boundary_conditions
 end
 
@@ -1044,17 +1047,22 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevel,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+# Add the values of the indicator(s) used by `controller` to `element_variables`.
+# New controller types used with the `SaveSolutionCallback` must specialize this method.
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevel,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator, amr_callback)
+    return get_element_variables_indicator!(element_variables, controller.indicator,
+                                            amr_callback)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::AMRCallback)
+function get_element_variables_indicator!(element_variables,
+                                          indicator::AbstractIndicator,
+                                          ::AMRCallback)
     element_variables[:indicator_amr] = indicator.cache.alpha
     return nothing
 end
@@ -1241,14 +1249,16 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevelCombined,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevelCombined,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator_primary(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator_primary,
-                                  amr_callback)
+    return get_element_variables_indicator!(element_variables,
+                                            controller.indicator_primary,
+                                            amr_callback)
 end
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
