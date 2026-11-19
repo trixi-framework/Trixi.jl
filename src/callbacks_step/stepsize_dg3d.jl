@@ -132,12 +132,15 @@ function max_dt(u, t,
     max_scaled_diffusivity = nextfloat(zero(t))
 
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
         max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(max_scaled_diffusivity)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            diffusivity = max_diffusivity(u_node, equations_parabolic)
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+            diffusivity = max_diffusivity(u_node, aux_node..., equations_parabolic)
 
             # Local diffusivity transformed to the reference element
             Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,

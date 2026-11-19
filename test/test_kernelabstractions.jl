@@ -1228,19 +1228,6 @@ end
     du = Trixi.wrap_array(du_ode, semi)
     x = semi.cache.elements.node_coordinates
     @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
-
-    # The parabolic terms receive the auxiliary variables of the hyperbolic terms
-    @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh,
-                                                                     (equations,
-                                                                      LaplaceDiffusion3D(1.0,
-                                                                                         LinearScalarAdvectionEquation3D(1.0,
-                                                                                                                         0.0,
-                                                                                                                         0.0))),
-                                                                     initial_condition,
-                                                                     solver;
-                                                                     boundary_conditions = (boundary_condition_periodic,
-                                                                                            boundary_condition_periodic),
-                                                                     aux_field)
 end
 
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[

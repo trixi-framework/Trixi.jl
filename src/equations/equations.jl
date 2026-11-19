@@ -528,16 +528,17 @@ flux(u, aux, gradients, orientation, equations_parabolic::MyParabolicEquations) 
 ```
 
 Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D
-(also with MPI), without AMR, and for [`SemidiscretizationHyperbolicParabolic`](@ref)
-with [`DGSEM`](@ref) on a serial [`P4estMesh`](@ref) in 3D, without AMR. On GPUs, only conforming meshes (also with MPI) are
-supported, and only equations without nonconservative terms, e.g.,
-[`ConservativeLinearScalarAdvectionEquation3D`](@ref)
+[`SemidiscretizationHyperbolic`](@ref) and [`SemidiscretizationHyperbolicParabolic`](@ref)
+with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D (also with MPI), without AMR.
+On GPUs, only conforming meshes are supported (also with MPI for
+[`SemidiscretizationHyperbolic`](@ref)), and only equations without nonconservative
+terms, e.g., [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
 but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
-[`boundary_condition_do_nothing`](@ref) support auxiliary variables, also for the
-parabolic terms, as well as [`BoundaryConditionNeumann`](@ref) for
-[`LaplaceDiffusion3D`](@ref).
+[`boundary_condition_do_nothing`](@ref) support auxiliary variables, the latter also in
+the parabolic terms. In the parabolic terms of [`LaplaceDiffusion3D`](@ref),
+[`BoundaryConditionDirichlet`](@ref) and [`BoundaryConditionNeumann`](@ref) support
+them as well.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0

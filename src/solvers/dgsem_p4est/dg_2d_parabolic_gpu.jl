@@ -260,13 +260,13 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
-        check_axes_aux(aux, equations_parabolic, dg, cache)
         for gradient in gradients
             check_axes(gradient, mesh, equations_parabolic, dg, cache)
         end
         for flux_parabolic_i in flux_parabolic
             check_axes(flux_parabolic_i, mesh, equations_parabolic, dg, cache)
         end
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
     kernel! = calc_parabolic_fluxes_KAkernel!(backend)
     kernel!(flux_parabolic, gradients, u_transformed, aux, typeof(mesh),
@@ -764,8 +764,8 @@ Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_valu
     # on the outside of the boundary.
     aux_inner = get_aux_node_vars(aux, equations_parabolic, dg, i_node, j_node, element)
 
-    flux_ = boundary_condition(flux_inner, u_inner, aux_inner..., normal_direction, x,
-                               t,
+    flux_ = boundary_condition(flux_inner, u_inner, aux_inner...,
+                               normal_direction, x, t,
                                operator_type, equations_parabolic)
 
     # Copy flux to element storage in the correct orientation
@@ -922,13 +922,13 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     @boundscheck begin
         check_axes(du, mesh, equations_parabolic, dg, cache)
         check_axes(u, mesh, equations_parabolic, dg, cache)
-        check_axes_aux(aux, equations_parabolic, dg, cache)
         for gradient in gradients
             check_axes(gradient, mesh, equations_parabolic, dg, cache)
         end
         check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh,
                                        equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)

@@ -99,6 +99,14 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("Current implementation of parabolic terms requires the same number of conservative and gradient variables."))
     end
 
+    # The parabolic terms receive the same auxiliary variables as the hyperbolic terms
+    if nauxvariables(equations_parabolic) != nauxvariables(equations)
+        throw(ArgumentError("`$(nameof(typeof(equations_parabolic)))` has " *
+                            "$(nauxvariables(equations_parabolic)) auxiliary variables " *
+                            "but `$(nameof(typeof(equations)))` has " *
+                            "$(nauxvariables(equations)), see `nauxvariables`"))
+    end
+
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
@@ -120,14 +128,6 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("`aux_field` was passed but " *
                             "`$(nameof(typeof(equations)))` does not have any " *
                             "auxiliary variables, see `nauxvariables`"))
-    end
-
-    # The parabolic terms receive the same auxiliary variables as the hyperbolic terms
-    if nauxvariables(equations_parabolic) != nauxvariables(equations)
-        throw(ArgumentError("`$(nameof(typeof(equations_parabolic)))` has " *
-                            "$(nauxvariables(equations_parabolic)) auxiliary variables " *
-                            "but `$(nameof(typeof(equations)))` has " *
-                            "$(nauxvariables(equations)), see `nauxvariables`"))
     end
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
@@ -247,6 +247,9 @@ function Base.show(io::IO, ::MIME"text/plain",
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "source terms parabolic", semi.source_terms_parabolic)
+        if nauxvariables(semi.equations) > 0
+            summary_line(io, "auxiliary variables", semi.cache.aux_vars.aux_field)
+        end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))

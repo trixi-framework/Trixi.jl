@@ -66,7 +66,8 @@ end
                                                                   x, t,
                                                                   operator_type::Gradient,
                                                                   equations_parabolic::AbstractLaplaceDiffusion)
-    return boundary_condition.boundary_value_function(x, t, equations_parabolic)
+    return boundary_condition(flux_inner, u_inner, normal, x, t, operator_type,
+                              equations_parabolic)
 end
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
@@ -75,7 +76,8 @@ end
                                                                   x, t,
                                                                   operator_type::Divergence,
                                                                   equations_parabolic::AbstractLaplaceDiffusion)
-    return flux_inner
+    return boundary_condition(flux_inner, u_inner, normal, x, t, operator_type,
+                              equations_parabolic)
 end
 
 # Required for the 1D (TreeMesh) case
@@ -136,7 +138,8 @@ end
                                                                 x, t,
                                                                 operator_type::Gradient,
                                                                 equations_parabolic::AbstractLaplaceDiffusion)
-    return flux_inner
+    return boundary_condition(flux_inner, u_inner, normal, x, t, operator_type,
+                              equations_parabolic)
 end
 
 # Required for the 1D (TreeMesh) case

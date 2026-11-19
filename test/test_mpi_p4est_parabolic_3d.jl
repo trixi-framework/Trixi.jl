@@ -105,6 +105,25 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
+@testitem "P4estMesh MPI 3D Parabolic: elixir_advectionconservative_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    MPIP4estMesh3DParabolic
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046])
+    # The auxiliary variables of the remote elements are received from the neighbor ranks
+    (; aux_mpi_interface) = semi.cache.aux_vars
+    @test Trixi.MPI.Allreduce(size(aux_mpi_interface, 5), +, Trixi.mpi_comm()) > 0
+    @test !any(isnan, aux_mpi_interface)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+end
+
 @testitem "P4estMesh MPI 3D Parabolic: parabolic time step" setup=[
     Setup,
     MPIP4estMesh3DParabolic

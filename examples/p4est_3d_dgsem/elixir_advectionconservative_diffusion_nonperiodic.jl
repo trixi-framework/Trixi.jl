@@ -8,15 +8,13 @@ using Trixi
 # `elixir_advection_diffusion_nonperiodic.jl`.
 
 diffusivity() = 1 / 17
+advection_velocity = (1.0, 0.0, 0.0)
 equations = ConservativeLinearScalarAdvectionEquation3D()
 equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 # The auxiliary variables of `ConservativeLinearScalarAdvectionEquation3D` are the
 # components `(a1, a2, a3)` of the advection velocity
-function aux_field(x, equations::ConservativeLinearScalarAdvectionEquation3D)
-    SVector(1.0, 0.0,
-            0.0)
-end
+aux_field(x, equations) = SVector(advection_velocity)
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
@@ -51,14 +49,16 @@ mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
 #   to numerical partial differential equations.
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
+    RealT = eltype(x)
     l = 4
-    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
+    epsilon = convert(RealT, diffusivity()) # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-    s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    r1 = (1 + sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
     u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
-        cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
+        cos(convert(RealT, pi) * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) /
+        (exp(-s1) - exp(-r1))
     return SVector(u)
 end
 initial_condition = initial_condition_eriksson_johnson

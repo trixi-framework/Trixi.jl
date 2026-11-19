@@ -448,8 +448,8 @@ Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_valu
     aux_inner = get_aux_node_vars(aux, equations_parabolic, dg,
                                   i_node, j_node, k_node, element)
 
-    flux_ = boundary_condition(flux_inner, u_inner, aux_inner..., normal_direction, x,
-                               t,
+    flux_ = boundary_condition(flux_inner, u_inner, aux_inner...,
+                               normal_direction, x, t,
                                operator_type, equations_parabolic)
 
     # Copy flux to element storage in the correct orientation

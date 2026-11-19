@@ -355,7 +355,6 @@ function calc_parabolic_fluxes!(flux_parabolic,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes_aux(aux, equations_parabolic, dg, cache)
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
         check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
@@ -363,6 +362,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
         check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
         check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
         check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -1294,13 +1294,13 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::So
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes_aux(aux, equations_parabolic, dg, cache)
         check_axes(u, Val(3), equations_parabolic, dg, cache)
         check_axes(du, Val(3), equations_parabolic, dg, cache)
         check_axes(gradients_x, Val(3), equations_parabolic, dg, cache)
         check_axes(gradients_y, Val(3), equations_parabolic, dg, cache)
         check_axes(gradients_z, Val(3), equations_parabolic, dg, cache)
         check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
