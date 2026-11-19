@@ -1143,6 +1143,106 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache.aux_vars.aux isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: auxiliary variables in the parabolic terms" setup=[
+    Setup
+] tags=[:kernelabstractions] begin
+    using Trixi: AbstractEquationsParabolic, GradientVariablesConservative, Gradient,
+                 Divergence
+
+    # Diffusion with the coefficient `aux[1]`, which receives the auxiliary variables
+    # `(a1, a2, a3)` of `ConservativeLinearScalarAdvectionEquation3D`
+    struct AuxDiffusion3D{E} <: AbstractEquationsParabolic{3, 1,
+                                      GradientVariablesConservative}
+        equations_hyperbolic::E
+    end
+
+    Trixi.nauxvariables(::AuxDiffusion3D) = 3
+
+    function Trixi.flux(u, aux, gradients, orientation::Integer, ::AuxDiffusion3D)
+        return aux[1] * gradients[orientation]
+    end
+
+    # With `aux = (1 + x, y, 0)` and `u = x^2`, the exact parabolic right-hand side
+    # `div(aux[1] * grad(u)) = 2 + 4x` is a polynomial that DGSEM with `polydeg = 3`
+    # reproduces exactly on a Cartesian mesh. The boundary condition and the source term
+    # only give the exact values if they receive the auxiliary variables of the node.
+    aux_field(x, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(1 + x[1], x[2],
+                                                                          zero(x[1]))
+    initial_condition(x, t, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(x[1]^2)
+
+    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
+                                    normal_direction::AbstractVector, x, t,
+                                    ::Gradient, ::AuxDiffusion3D)
+        return SVector((aux_inner[1] - 1)^2)
+    end
+    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
+                                    normal_direction::AbstractVector, x, t,
+                                    ::Divergence, ::AuxDiffusion3D)
+        return flux_inner
+    end
+
+    source_terms_aux(u, aux, gradients, x, t, ::AuxDiffusion3D) = SVector(aux[2] - x[2])
+
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    equations_parabolic = AuxDiffusion3D(equations)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition, solver;
+                                                 source_terms_parabolic = source_terms_aux,
+                                                 boundary_conditions = (BoundaryConditionDirichlet(initial_condition),
+                                                                        boundary_condition_aux),
+                                                 aux_field)
+
+    u_ode = compute_coefficients(0.0, semi)
+    @test Trixi.trixi_backend(u_ode) isa Trixi.KernelAbstractions.CPU
+    du_ode = similar(u_ode)
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+    du = Trixi.wrap_array(du_ode, semi)
+    x = semi.cache.elements.node_coordinates
+    @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
+
+    # The parabolic terms receive the auxiliary variables of the hyperbolic terms
+    @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh,
+                                                                     (equations,
+                                                                      LaplaceDiffusion3D(1.0,
+                                                                                         LinearScalarAdvectionEquation3D(1.0,
+                                                                                                                         0.0,
+                                                                                                                         0.0))),
+                                                                     initial_condition,
+                                                                     solver;
+                                                                     boundary_conditions = (boundary_condition_periodic,
+                                                                                            boundary_condition_periodic),
+                                                                     aux_field)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples

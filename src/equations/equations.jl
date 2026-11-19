@@ -530,7 +530,7 @@ flux(u, aux, gradients, orientation, equations_parabolic::MyParabolicEquations) 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D
 (also with MPI), without AMR, and for [`SemidiscretizationHyperbolicParabolic`](@ref)
-with [`DGSEM`](@ref) on a serial [`P4estMesh`](@ref) in 3D on CPUs, without AMR. On GPUs, only conforming meshes (also with MPI) are
+with [`DGSEM`](@ref) on a serial [`P4estMesh`](@ref) in 3D, without AMR. On GPUs, only conforming meshes (also with MPI) are
 supported, and only equations without nonconservative terms, e.g.,
 [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
 but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
