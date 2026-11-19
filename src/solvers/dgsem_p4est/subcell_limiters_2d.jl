@@ -12,57 +12,79 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+    # Process interfaces on different axes in separate passes. Within one pass,
+    # only the two opposite faces of each element on that axis are updated, e.g.,
+    # directions (1, 2) for axis 1. These faces share no nodes and each face
+    # belongs to at most one interface, so all updates are disjoint. Faces on
+    # different axes share corner nodes; the barrier between passes prevents
+    # races there.
+    for axis in 1:ndims(mesh)
+        @threaded for interface in eachinterface(dg, cache)
+            # Get side index information on the elements
+            primary_indices = node_indices[1, interface]
+            secondary_indices = node_indices[2, interface]
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+            # Convert indices to direction and then to the axis:
+            # directions (1, 2) -> axis 1, (3, 4) -> axis 2.
+            primary_axis = cld(indices2direction(primary_indices), 2)
+            secondary_axis = cld(indices2direction(secondary_indices), 2)
 
-        # Create the local i,j indexing
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Update only the side whose face is on
+            # the current axis, and skip the interface if neither side matches.
+            update_primary = primary_axis == axis
+            update_secondary = secondary_axis == axis
+            (update_primary || update_secondary) || continue
+
+            # Get element index information on the elements
+            primary_element = neighbor_ids[1, interface]
+            secondary_element = neighbor_ids[2, interface]
+
+            # Create the local i,j indexing
+            i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
                                                                      index_range)
-        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+            j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                      index_range)
+            i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                         index_range)
+            j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
+            for node in eachnode(dg)
+                if update_primary
+                    var_secondary = u[variable, i_secondary, j_secondary,
+                                      secondary_element]
+                    var_min[i_primary, j_primary, primary_element] = min(var_min[i_primary,
+                                                                                 j_primary,
+                                                                                 primary_element],
+                                                                         var_secondary)
+                    var_max[i_primary, j_primary, primary_element] = max(var_max[i_primary,
+                                                                                 j_primary,
+                                                                                 primary_element],
+                                                                         var_secondary)
+                end
+                if update_secondary
+                    var_primary = u[variable, i_primary, j_primary, primary_element]
+                    var_min[i_secondary, j_secondary, secondary_element] = min(var_min[i_secondary,
+                                                                                       j_secondary,
+                                                                                       secondary_element],
+                                                                               var_primary)
+                    var_max[i_secondary, j_secondary, secondary_element] = max(var_max[i_secondary,
+                                                                                       j_secondary,
+                                                                                       secondary_element],
+                                                                               var_primary)
+                end
 
-        for node in eachnode(dg)
-            var_primary = u[variable, i_primary, j_primary, primary_element]
-            var_secondary = u[variable, i_secondary, j_secondary, secondary_element]
-
-            var_min[i_primary, j_primary, primary_element] = min(var_min[i_primary,
-                                                                         j_primary,
-                                                                         primary_element],
-                                                                 var_secondary)
-            var_max[i_primary, j_primary, primary_element] = max(var_max[i_primary,
-                                                                         j_primary,
-                                                                         primary_element],
-                                                                 var_secondary)
-
-            var_min[i_secondary, j_secondary, secondary_element] = min(var_min[i_secondary,
-                                                                               j_secondary,
-                                                                               secondary_element],
-                                                                       var_primary)
-            var_max[i_secondary, j_secondary, secondary_element] = max(var_max[i_secondary,
-                                                                               j_secondary,
-                                                                               secondary_element],
-                                                                       var_primary)
-
-            # Increment primary element indices
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
+                # Increment the element indices
+                i_primary += i_primary_step
+                j_primary += j_primary_step
+                i_secondary += i_secondary_step
+                j_secondary += j_secondary_step
+            end
         end
     end
 
@@ -134,48 +156,72 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
+    # Process interfaces on different axes in separate passes. Within one pass,
+    # only the two opposite faces of each element on that axis are updated, e.g.,
+    # directions (1, 2) for axis 1. These faces share no nodes and each face
+    # belongs to at most one interface, so all updates are disjoint. Faces on
+    # different axes share corner nodes; the barrier between passes prevents
+    # races there.
+    for axis in 1:ndims(mesh)
+        @threaded for interface in eachinterface(dg, cache)
+            # Get side index information on the elements
+            primary_indices = node_indices[1, interface]
+            secondary_indices = node_indices[2, interface]
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
+            # Convert indices to direction and then to the axis:
+            # directions (1, 2) -> axis 1, (3, 4) -> axis 2.
+            primary_axis = cld(indices2direction(primary_indices), 2)
+            secondary_axis = cld(indices2direction(secondary_indices), 2)
 
-        # Create the local i,j indexing
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+            # With unstructured meshes, the two sides of an interface can lie on
+            # different axes of their elements. Update only the side whose face is on
+            # the current axis, and skip the interface if neither side matches.
+            update_primary = primary_axis == axis
+            update_secondary = secondary_axis == axis
+            (update_primary || update_secondary) || continue
+
+            # Get element index information on the elements
+            primary_element = neighbor_ids[1, interface]
+            secondary_element = neighbor_ids[2, interface]
+
+            # Create the local i,j indexing
+            i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
                                                                      index_range)
-        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+            j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                      index_range)
+            i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                         index_range)
+            j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                         index_range)
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        i_secondary = i_secondary_start
-        j_secondary = j_secondary_start
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            i_secondary = i_secondary_start
+            j_secondary = j_secondary_start
+            for node in eachnode(dg)
+                if update_primary
+                    var_secondary = variable_values[i_secondary, j_secondary,
+                                                    secondary_element]
+                    var_minmax[i_primary, j_primary, primary_element] = minmax(var_minmax[i_primary,
+                                                                                          j_primary,
+                                                                                          primary_element],
+                                                                               var_secondary)
+                end
 
-        for node in eachnode(dg)
-            var_primary = variable_values[i_primary, j_primary, primary_element]
-            var_secondary = variable_values[i_secondary, j_secondary, secondary_element]
+                if update_secondary
+                    var_primary = variable_values[i_primary, j_primary, primary_element]
+                    var_minmax[i_secondary, j_secondary, secondary_element] = minmax(var_minmax[i_secondary,
+                                                                                                j_secondary,
+                                                                                                secondary_element],
+                                                                                     var_primary)
+                end
 
-            var_minmax[i_primary, j_primary, primary_element] = minmax(var_minmax[i_primary,
-                                                                                  j_primary,
-                                                                                  primary_element],
-                                                                       var_secondary)
-            var_minmax[i_secondary, j_secondary, secondary_element] = minmax(var_minmax[i_secondary,
-                                                                                        j_secondary,
-                                                                                        secondary_element],
-                                                                             var_primary)
-
-            # Increment primary element indices
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
+                # Increment the element indices
+                i_primary += i_primary_step
+                j_primary += j_primary_step
+                i_secondary += i_secondary_step
+                j_secondary += j_secondary_step
+            end
         end
     end
 
