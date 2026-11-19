@@ -84,7 +84,7 @@ end
                          initial_refinement_level = initial_refinement_level,
                          periodicity = periodicity)
         solver = DGSEM(polydeg = polydeg)
-        cache = Trixi.create_cache(mesh, equations, solver, Float64, Float64)
+        cache = Trixi.create_cache_hyperbolic(mesh, equations, solver, Float64, Float64)
         assembly = AssemblyCGSEM(mesh, equations, solver, cache)
 
         # `polydeg` distinct nodes per element and direction, plus one on a
@@ -207,7 +207,8 @@ end
 
     # Gauss-Legendre nodes do not lie on element faces
     solver_gauss = DGSEM(polydeg = 3, basis_type = GaussLegendreBasis)
-    cache_gauss = Trixi.create_cache(mesh, equations, solver_gauss, Float64, Float64)
+    cache_gauss = Trixi.create_cache_hyperbolic(mesh, equations, solver_gauss, Float64,
+                                                Float64)
     @test_throws ArgumentError AssemblyCGSEM(mesh, equations, solver_gauss, cache_gauss)
 
     # Nonconforming meshes are not supported: refine the bottom left quadrant of each
@@ -226,7 +227,7 @@ end
     Trixi.refine_p4est!(mesh.p4est, false, refine_fn_c, C_NULL)
 
     solver = DGSEM(polydeg = 3)
-    cache = Trixi.create_cache(mesh, equations, solver, Float64, Float64)
+    cache = Trixi.create_cache_hyperbolic(mesh, equations, solver, Float64, Float64)
     @test Trixi.nmortars(cache.mortars) > 0
     @test_throws ArgumentError AssemblyCGSEM(mesh, equations, solver, cache)
 end
