@@ -327,9 +327,13 @@ function unstructured_3d_to_1d_curve(u,
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Get the number of variables after applying the transformation to solution variables.
     u_node = get_node_vars(u, equations, dg, 1, 1, 1, 1)
-    var_node = solution_variables(u_node, equations)
+    aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, aux_node..., equations)
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
@@ -381,7 +385,8 @@ function unstructured_3d_to_1d_curve(u,
         # before interpolation.
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            val = solution_variables(u_node, equations)
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+            val = solution_variables(u_node, aux_node..., equations)
             for v in eachindex(val)
                 unstructured_data[i, j, k, v] = val[v]
             end

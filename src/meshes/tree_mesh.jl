@@ -179,13 +179,14 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                                                                              periodicity)
 
     # Initialize mesh
-    initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
+    init_refinement!(mesh, initial_refinement_level, refinement_patches,
+                     coarsening_patches)
 
     return mesh
 end
 
-function initialize!(mesh::TreeMesh, initial_refinement_level,
-                     refinement_patches, coarsening_patches)
+function init_refinement!(mesh::TreeMesh, initial_refinement_level,
+                          refinement_patches, coarsening_patches)
     # Create initial refinement
     @trixi_timeit timer() "initial refinement" refine_uniformly!(mesh.tree,
                                                                  initial_refinement_level)
