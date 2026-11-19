@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- The parabolic time step restriction of the `StepsizeCallback` (keyword argument
+  `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
 - `SemidiscretizationHyperbolicParabolic` supports auxiliary variables via the keyword
   argument `aux_field` for `P4estMesh{3}`es, also with MPI or on GPUs. They are
   passed to both the hyperbolic and the parabolic terms, i.e., to the gradient variable
