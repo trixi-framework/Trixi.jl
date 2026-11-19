@@ -85,5 +85,6 @@ cmd = ```
       --check-bounds=yes --warn-overwrite=yes --depwarn=yes
       $(joinpath(TEST_DIR, "runtests.jl"))
       ```
-process = run(ignorestatus(cmd))
-exit(process.exitcode)
+# `run` throws if the tests fail, including termination by a signal (e.g., a segfault),
+# so that this script exits with a nonzero exit code
+run(cmd)

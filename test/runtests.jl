@@ -82,10 +82,21 @@ end
 # The GPU packages are listed only in the `[extras]` of `test/Project.toml` so that they
 # do not restrict the versions of other packages in the test environment. The GPU CI jobs
 # add the respective package via `test/run_gpu_downgrade_tests.jl`. For
-# `TRIXI_TEST == "all"`, we only use the GPU packages available in the test environment.
+# `TRIXI_TEST == "all"`, we only use the GPU packages available in the test environment,
+# i.e., the active project. We do not search stacked environments such as the default
+# `@v#.#` environment since their packages may be incompatible with the test environment.
+function in_active_project(name)
+    load_path = copy(LOAD_PATH)
+    try
+        empty!(LOAD_PATH)
+        push!(LOAD_PATH, "@")
+        return Base.find_package(name) !== nothing
+    finally
+        append!(empty!(LOAD_PATH), load_path)
+    end
+end
 function use_gpu_package(name)
-    return TRIXI_TEST == name ||
-           (TRIXI_TEST == "all" && Base.find_package(name) !== nothing)
+    return TRIXI_TEST == name || (TRIXI_TEST == "all" && in_active_project(name))
 end
 RUN_CUDA = false
 if !IN_WORKER && use_gpu_package("CUDA")
