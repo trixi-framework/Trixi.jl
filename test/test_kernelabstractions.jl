@@ -488,13 +488,30 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
-    # Parabolic time step restriction, reference value computed on the CPU
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     (; equations_parabolic) = semi
-    dt = Trixi.max_dt(Trixi.wrap_array(u_ode, semi), first(ode.tspan), mesh,
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
                       Trixi.have_constant_diffusivity(equations_parabolic), equations,
                       equations_parabolic, solver, cache)
     @test isapprox(dt, 0.6026785714285666, rtol = 1.0e-12)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_advection_diffusion_nonperiodic_curved.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Constant diffusivity on a curved mesh
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic_curved.jl"),
+                        tspan=(0.0, 0.0))
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 0.005600668213814502, rtol = 1.0e-12)
 end
 
 @testitem "KernelAbstractions CPU 2D: elixir_navierstokes_lid_driven_cavity.jl" setup=[
@@ -1190,11 +1207,28 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
-    # Parabolic time step restriction, reference value computed on the CPU
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     (; equations_parabolic) = semi
-    dt = Trixi.max_dt(Trixi.wrap_array(u_ode, semi), first(ode.tspan), mesh,
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
                       Trixi.have_constant_diffusivity(equations_parabolic), equations,
                       equations_parabolic, solver, cache)
     @test isapprox(dt, 0.4017857142856942, rtol = 1.0e-12)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advection_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Constant diffusivity
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.0))
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 0.015500439682961184, rtol = 1.0e-12)
 end

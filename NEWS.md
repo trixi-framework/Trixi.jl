@@ -9,9 +9,7 @@ for human readability.
 
 #### Added
 - The parabolic time step restriction of the `StepsizeCallback` (keyword argument
-  `cfl_parabolic`) on `P4estMesh`es can now be used on GPUs. With the
-  KernelAbstractions.jl CPU backend, it is now computed with KernelAbstractions.jl
-  instead of Polyester.jl ([#3479]).
+  `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
 
 #### Changed
 

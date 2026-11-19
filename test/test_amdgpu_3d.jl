@@ -776,10 +776,9 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 
-    # Parabolic time step restriction, reference value computed on the CPU
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     (; equations_parabolic) = semi
-    dt = Trixi.max_dt(Trixi.wrap_array(u_ode, semi), first(ode.tspan), mesh,
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
                       Trixi.have_constant_diffusivity(equations_parabolic), equations,
                       equations_parabolic, solver, cache)
     @test isapprox(dt, 0.4017857142856942, rtol = 1.0e-12)
