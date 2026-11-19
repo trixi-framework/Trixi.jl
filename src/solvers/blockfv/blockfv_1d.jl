@@ -9,9 +9,9 @@
 # Thread-local storage for the n+1 interface fluxes within each block.
 # Slots 1 and n+1 (the element-boundary interfaces) stay zero; they are
 # handled by the surface integral.
-function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralFiniteVolume,
-                      dg::BlockFV, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
+                                      volume_integral::VolumeIntegralFiniteVolume,
+                                      dg::BlockFV, cache_containers, uEltype)
     n = nnodes(dg)
     MA = MArray{Tuple{nvariables(equations), n + 1}, uEltype, 2,
                 nvariables(equations) * (n + 1)}
