@@ -79,20 +79,39 @@ end
 # The GPU suites run their items only when the respective backend is `functional()`,
 # so requesting `CUDA`/`AMDGPU`/`Metal` on a machine without that GPU warns and runs
 # nothing instead of erroring.
+# The GPU packages are listed only in the `[extras]` of `test/Project.toml` so that they
+# do not restrict the versions of other packages in the test environment. The GPU CI jobs
+# add the respective package via `test/run_gpu_downgrade_tests.jl`. For
+# `TRIXI_TEST == "all"`, we only use the GPU packages available in the test environment,
+# i.e., the active project. We do not search stacked environments such as the default
+# `@v#.#` environment since their packages may be incompatible with the test environment.
+function in_active_project(name)
+    load_path = copy(LOAD_PATH)
+    try
+        empty!(LOAD_PATH)
+        push!(LOAD_PATH, "@")
+        return Base.find_package(name) !== nothing
+    finally
+        append!(empty!(LOAD_PATH), load_path)
+    end
+end
+function use_gpu_package(name)
+    return TRIXI_TEST == name || (TRIXI_TEST == "all" && in_active_project(name))
+end
 RUN_CUDA = false
-if !IN_WORKER && TRIXI_TEST in ("all", "CUDA")
+if !IN_WORKER && use_gpu_package("CUDA")
     import CUDA
     RUN_CUDA = CUDA.functional()
     RUN_CUDA || @warn "Unable to run CUDA tests on this machine"
 end
 RUN_AMDGPU = false
-if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
+if !IN_WORKER && use_gpu_package("AMDGPU")
     import AMDGPU
     RUN_AMDGPU = AMDGPU.functional()
     RUN_AMDGPU || @warn "Unable to run AMDGPU tests on this machine"
 end
 RUN_METAL = false
-if !IN_WORKER && TRIXI_TEST in ("all", "Metal")
+if !IN_WORKER && use_gpu_package("Metal")
     import Metal
     RUN_METAL = Metal.functional()
     RUN_METAL || @warn "Unable to run Metal tests on this machine"
@@ -100,10 +119,12 @@ end
 # Some Metal test items produce wrong results, crash, or hang on Apple M1/M2 GPUs
 # because of upstream bugs, see https://github.com/JuliaGPU/Metal.jl/issues/1017 and
 # https://github.com/JuliaGPU/Metal.jl/issues/1018. They are tagged `:metal_skip_m1_m2`
-# and skipped on these GPUs.
-SKIP_METAL_M1_M2 = RUN_METAL && occursin(r"^Apple M[12]\b", String(Metal.device().name))
+# and skipped on these GPUs for Metal.jl versions older than v1.12.1.
+SKIP_METAL_M1_M2 = RUN_METAL && pkgversion(Metal) < v"1.12.1" &&
+                   occursin(r"^Apple M[12]\b", String(Metal.device().name))
 SKIP_METAL_M1_M2 &&
-    @warn "Skipping Metal test items with known failures on $(Metal.device().name)"
+    @warn ("Skipping Metal test items with known failures on $(Metal.device().name) " *
+           "with Metal.jl v$(pkgversion(Metal))")
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST_RUN_ITEMS=true` and `TRIXI_TEST=<suite>`.

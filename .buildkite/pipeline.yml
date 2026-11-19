@@ -1,16 +1,20 @@
 env:
 
+# The GPU tests run once with the oldest compatible versions of all packages on the oldest
+# Julia version supported by Trixi.jl and once with the newest compatible versions on a
+# newer Julia version. The script `test/run_gpu_downgrade_tests.jl` chooses the versions
+# based on the Julia version and adds the respective GPU package to the test environment.
 steps:
   - label: "CUDA Julia {{matrix.version}}"
     matrix:
       setup:
         version:
-          - "1.10" # LTS
-          - "1.13"
+          - "1.10" # LTS, oldest compatible package versions
+          - "1.13" # newest compatible package versions
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-      - JuliaCI/julia-test#v1: ~
+    command: julia --color=yes test/run_gpu_downgrade_tests.jl CUDA
     env:
       TRIXI_TEST: "CUDA"
       TRIXI_TEST_VERBOSE: "true"
@@ -24,12 +28,12 @@ steps:
     matrix:
       setup:
         version:
-          - "1.10" # LTS
-          - "1.13"
+          - "1.10" # LTS, oldest compatible package versions
+          - "1.13" # newest compatible package versions
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-      - JuliaCI/julia-test#v1: ~
+    command: julia --color=yes test/run_gpu_downgrade_tests.jl AMDGPU
     env:
       TRIXI_TEST: "AMDGPU"
       TRIXI_TEST_VERBOSE: "true"
@@ -43,12 +47,12 @@ steps:
     matrix:
       setup:
         version:
-          - "1.10" # LTS
-          - "1.13"
+          - "1.10" # LTS, oldest compatible package versions
+          - "1.13" # newest compatible package versions
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-      - JuliaCI/julia-test#v1: ~
+    command: julia --color=yes test/run_gpu_downgrade_tests.jl Metal
     env:
       TRIXI_TEST: "Metal"
       TRIXI_TEST_VERBOSE: "true"
