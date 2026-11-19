@@ -70,7 +70,7 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     perform_idp_correction!(u, dt, mesh, equations, solver,
                             solver.volume_integral, cache)
 
-    if solver.mortar isa Trixi.LobattoLegendreMortarIDP &&
+    if solver.mortar isa LobattoLegendreMortarIDP &&
        !(solver.mortar.pure_low_order)
         @trixi_timeit timer() "mortar blending factors" if isnothing(indicator)
             calc_mortar_limiting_factor!(u, semi, t, dt)

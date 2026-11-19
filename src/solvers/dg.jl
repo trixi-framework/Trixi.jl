@@ -1021,6 +1021,15 @@ function check_volume_integral_tree(volume_integral)
                                     "`VolumeIntegralPureLGLFiniteVolume`, got " *
                                     "$(nameof(typeof(volume_integral_low_order)))."))
             end
+
+            # Bar states are currently only supported if the subcell limiting is the
+            # volume integral of the solver, e.g., not inside a `VolumeIntegralAdaptive`.
+            if volume_integral_ !== volume_integral &&
+               volume_integral_.limiter.bar_states == true
+                throw(ArgumentError("`bar_states = true` is currently only supported if " *
+                                    "`VolumeIntegralSubcellLimiting` is the volume " *
+                                    "integral of the solver."))
+            end
         end
         return nothing
     end

@@ -1088,6 +1088,15 @@ end
     println()
 end
 
+@testitem "Unit: LimitingAnalysisCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Printing of the limiting analysis callback
+    callback = LimitingAnalysisCallback(interval = 10)
+    @test_nowarn show(stdout, callback)
+    println()
+    @test_nowarn show(stdout, "text/plain", callback)
+    println()
+end
+
 @testitem "Unit: Acoustic perturbation 2D varnames" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
@@ -6489,6 +6498,17 @@ end
     @test haskey(semi.cache, :antidiffusive_fluxes)
     @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) ==
           nelements(semi.solver, semi.cache)
+
+    # Bar states are not supported inside a `VolumeIntegralAdaptive`
+    limiter_idp_bar_states = SubcellLimiterIDP(equations, basis;
+                                               positivity_variables_cons = ["rho"],
+                                               bar_states = true)
+    volume_integral_sl_bar_states = VolumeIntegralSubcellLimiting(limiter_idp_bar_states;
+                                                                  volume_flux_dg = flux_ranocha,
+                                                                  volume_flux_fv = flux_hllc)
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_wf,
+                                                                  volume_integral_stabilized = volume_integral_sl_bar_states))
 
     # The storage of subcell limiting is resized after mesh adaptation.
     # Fill the antidiffusive fluxes with `NaN`s first so that the check of the

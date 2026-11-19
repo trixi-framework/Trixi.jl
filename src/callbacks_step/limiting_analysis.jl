@@ -21,10 +21,32 @@ struct LimitingAnalysisCallback
     interval::Int
 end
 
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:LimitingAnalysisCallback})
+    @nospecialize cb # reduce precompilation time
+
+    limiting_analysis_callback = cb.affect!
+    print(io, "LimitingAnalysisCallback(interval=", limiting_analysis_callback.interval,
+          ")")
+    return nothing
+end
+
 function Base.show(io::IO, ::MIME"text/plain",
                    cb::DiscreteCallback{<:Any, <:LimitingAnalysisCallback})
-    # TODO: Do we want any return value here?
-    return nothing
+    @nospecialize cb # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, cb)
+    else
+        limiting_analysis_callback = cb.affect!
+
+        setup = [
+            "interval" => limiting_analysis_callback.interval,
+            "output directory" => abspath(normpath(limiting_analysis_callback.output_directory)),
+            "output files" => "alphas.txt",
+            "" => "mortar_limiting_factor.txt (only with `MortarIDP`)"
+        ]
+        summary_box(io, "LimitingAnalysisCallback", setup)
+    end
 end
 
 function LimitingAnalysisCallback(; output_directory = "out", interval = 1)
