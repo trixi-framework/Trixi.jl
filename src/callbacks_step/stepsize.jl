@@ -247,6 +247,8 @@ end
 function calc_max_scaled_diffusivity(backend::Nothing, u, mesh, constant_diffusivity,
                                      equations, equations_parabolic, dg, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     max_scaled_diffusivity = zero(eltype(u))
     @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
@@ -256,6 +258,7 @@ function calc_max_scaled_diffusivity(backend::Nothing, u, mesh, constant_diffusi
                                                               equations_parabolic, dg,
                                                               contravariant_vectors,
                                                               inverse_jacobian,
+                                                              aux,
                                                               element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
@@ -268,6 +271,8 @@ function calc_max_scaled_diffusivity(backend::Backend, u, ::MeshT, constant_diff
                                      equations, equations_parabolic, dg,
                                      cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
@@ -279,6 +284,7 @@ function calc_max_scaled_diffusivity(backend::Backend, u, ::MeshT, constant_diff
                                            equations, equations_parabolic, dg,
                                            contravariant_vectors,
                                            inverse_jacobian,
+                                           aux,
                                            element)
     end
 

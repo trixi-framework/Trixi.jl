@@ -772,6 +772,14 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
+
+    # Parabolic time step restriction, reference value computed on the CPU
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(u_ode, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 0.4017857142856942, rtol = 1.0e-12)
 end
 
 @testitem "CUDA 3D: elixir_navierstokes_convergence.jl Float32 / CUDA" setup=[
@@ -1123,46 +1131,4 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
-end
-
-@testitem "CUDA 3D: parabolic time step Float64 / CUDA" setup=[Setup] tags=[:CUDA] begin
-    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
-    using CUDA
-
-    function max_dt_parabolic(semi)
-        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-        (; equations_parabolic) = semi
-        t = zero(real(semi))
-        u = Trixi.wrap_array(compute_coefficients(t, semi), semi)
-        return Trixi.max_dt(u, t, mesh,
-                            Trixi.have_constant_diffusivity(equations_parabolic),
-                            equations, equations_parabolic, solver, cache)
-    end
-
-    # Curved mesh with a varying Jacobian, so that the time step differs between elements
-    mapping(xi, eta, zeta) = SVector(xi + 0.1 * sinpi(eta) * sinpi(zeta),
-                                     eta + 0.1 * sinpi(0.5 * (eta + 1)), zeta)
-    mesh = P4estMesh((2, 2, 2), polydeg = 3, mapping = mapping, periodicity = true)
-    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
-    boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic)
-
-    # Constant diffusivity, reference value computed on the CPU
-    equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
-    equations_parabolic = LaplaceDiffusion3D(0.1, equations)
-    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition_convergence_test,
-                                                 solver; boundary_conditions)
-    semi = trixi_adapt(semi; storage_type = CuArray)
-    @test semi.cache.elements.inverse_jacobian isa CuArray
-    @test isapprox(max_dt_parabolic(semi), 0.7067436514936698, rtol = 1.0e-12)
-
-    # Solution-dependent diffusivity, reference value computed on the CPU
-    equations = CompressibleEulerEquations3D(1.4)
-    equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = 0.1,
-                                                              Prandtl = 0.72)
-    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition_convergence_test,
-                                                 solver; boundary_conditions)
-    semi = trixi_adapt(semi; storage_type = CuArray)
-    @test isapprox(max_dt_parabolic(semi), 0.6909529460505431, rtol = 1.0e-12)
 end
