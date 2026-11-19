@@ -1,8 +1,11 @@
 @testsnippet P4estMesh2DCGSEM begin
-    using Trixi: AssemblyCGSEM, assemble_and_apply_jacobian!, l2_projection!,
+    using Trixi: AssemblyCGSEM, assemble_and_apply_jacobian!,
+                 assemble_and_apply_jacobian_parabolic!, l2_projection!,
                  nnodes_unique, local_nodes_of, eachinterface, index_to_start_step_2d
 
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_cgsem")
+    # Some test items run DGSEM elixirs with `solver = CGSEM(...)`
+    EXAMPLES_DIR_DGSEM = joinpath(examples_dir(), "p4est_2d_dgsem")
 
     # Maximum absolute difference between the values of `u` on the two sides of an
     # interface, over all variables, nodes, and interfaces in `cache.interfaces`. It is
@@ -199,6 +202,13 @@ end
     Trixi.apply_jacobian!(nothing, du_dg, mesh, equations, solver, cache)
     interior = 2:(Trixi.nnodes(solver) - 1)
     @test view(du, :, interior, interior, :) == view(du_dg, :, interior, interior, :)
+
+    # The parabolic assembly differs only by the sign, cf. `apply_jacobian_parabolic!`
+    du_ode_parabolic = copy(du_ode_raw)
+    du_parabolic = Trixi.wrap_array(du_ode_parabolic, semi)
+    assemble_and_apply_jacobian_parabolic!(du_parabolic, assembly, mesh, equations,
+                                           cgsem, cache)
+    @test du_parabolic == -du
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities); the threading macro may allocate a few bytes
@@ -414,6 +424,177 @@ end
     @test haskey(element_variables, :indicator_shock_capturing)
 end
 
+@testitem "CGSEM 2D (P4estMesh): elixir_advection_diffusion_periodic_curved.jl" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # The DGSEM elixir with CGSEM on a periodic curved mesh
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM,
+                                 "elixir_advection_diffusion_periodic_curved.jl"),
+                        solver=CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs),
+                        initial_refinement_level=1, tspan=(0.0, 0.5),
+                        l2=[0.00048714345020574876], linf=[0.002413067509416944])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The solution stays continuous, and so does the parabolic time derivative, which
+    # is assembled separately from the hyperbolic one
+    @test max_interface_jump(sol.u[end], semi) == 0.0
+    du_ode = similar(sol.u[end])
+    Trixi.rhs_parabolic!(du_ode, sol.u[end], semi, sol.t[end])
+    @test max_interface_jump(du_ode, semi) == 0.0
+
+    # Observed order of convergence of the parabolic terms with element-local gradients
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR_DGSEM,
+                                        "elixir_advection_diffusion_periodic_curved.jl"),
+                               3;
+                               solver = CGSEM(polydeg = 3,
+                                              surface_flux = flux_lax_friedrichs),
+                               initial_refinement_level = 0, tspan = (0.0, 0.2))
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2], [3.9117512698919903], rtol = 0.05)
+    @test isapprox(mean_convergence[:linf], [3.7411657034311125], rtol = 0.05)
+end
+
+@testitem "CGSEM 2D (P4estMesh): elixir_advection_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # Dirichlet conditions enter via the boundary lift of the gradients, Neumann
+    # conditions via the boundary flux of the divergence
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.5),
+                        l2=[0.0014219602663244557], linf=[0.029142318913821436])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The solution stays continuous
+    @test max_interface_jump(sol.u[end], semi) == 0.0
+
+    # Observed order of convergence with weakly imposed Dirichlet and Neumann
+    # conditions; the coarse meshes do not resolve the boundary layer at x = 0 yet
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR,
+                                        "elixir_advection_diffusion_nonperiodic.jl"), 3;
+                               initial_refinement_level = 0, tspan = (0.0, 0.2))
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2], [2.824651630114246], rtol = 0.05)
+    @test isapprox(mean_convergence[:linf], [2.3438612863901924], rtol = 0.05)
+end
+
+@testitem "CGSEM 2D (P4estMesh): elixir_advection_diffusion_gradient_source_terms.jl" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # Parabolic source terms depending on the element-local gradients
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_diffusion_gradient_source_terms.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[0.0003400422802105387], linf=[0.001491344472279832])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The solution stays continuous although the source terms are evaluated with
+    # gradients that differ between the copies of a node
+    @test max_interface_jump(sol.u[end], semi) == 0.0
+end
+
+@testitem "CGSEM 2D (P4estMesh): elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # The DGSEM elixir with CGSEM: manufactured solution with no-slip, adiabatic walls
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM, "elixir_navierstokes_convergence.jl"),
+                        solver=CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs),
+                        initial_refinement_level=1, tspan=(0.0, 0.2),
+                        l2=[
+                            0.00046248537702963614,
+                            0.0005980774767103366,
+                            0.000879120672364965,
+                            0.0015139835650366178
+                        ],
+                        linf=[
+                            0.0022041858295689387,
+                            0.008290255068034165,
+                            0.00401140096396746,
+                            0.013479280507835867
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The solution stays continuous
+    @test max_interface_jump(sol.u[end], semi) == 0.0
+end
+
+@testitem "CGSEM 2D (P4estMesh): elixir_navierstokes_convergence.jl (convergence)" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # Observed order of convergence of the compressible Navier-Stokes equations
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR_DGSEM,
+                                        "elixir_navierstokes_convergence.jl"), 3;
+                               solver = CGSEM(polydeg = 3,
+                                              surface_flux = flux_lax_friedrichs),
+                               initial_refinement_level = 0, tspan = (0.0, 0.1))
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2],
+                   [
+                       3.2456391652701724,
+                       3.373945414898823,
+                       3.1852665490312164,
+                       3.66317725355332
+                   ], rtol = 0.05)
+end
+
+@testitem "CGSEM 2D (P4estMesh): elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    P4estMesh2DCGSEM
+] tags=[:p4est_part1] begin
+    # The DGSEM elixir with CGSEM. CGSEM has no interface dissipation, so an
+    # entropy-conservative flux differencing volume integral is used for robustness.
+    solver = CGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+    @test_trixi_include(joinpath(EXAMPLES_DIR_DGSEM,
+                                 "elixir_navierstokes_lid_driven_cavity.jl"),
+                        solver=solver, initial_refinement_level=1, tspan=(0.0, 0.5),
+                        l2=[
+                            0.0002628162008678956,
+                            0.0488360717350896,
+                            0.013832352074750896,
+                            0.034356111536687814
+                        ],
+                        linf=[
+                            0.0032379327225083854,
+                            0.4328398938021231,
+                            0.21504947195632723,
+                            0.47774238089928645
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The solution stays continuous although the lid velocity is discontinuous at the
+    # upper corners
+    @test max_interface_jump(sol.u[end], semi) == 0.0
+end
+
 @testitem "CGSEM 2D (P4estMesh): solver errors" setup=[
     Setup,
     P4estMesh2DCGSEM
@@ -444,6 +625,21 @@ end
     # Functionality that is not forwarded to the DGSEM solver, e.g., AMR, fails with
     # a `MethodError` instead of silently running the DGSEM code
     @test_throws MethodError Trixi.AdaptorAMR(mesh, solver)
+
+    # The parabolic formulation only affects interface fluxes, which CGSEM does not
+    # compute, so only BR1 is accepted
+    equations = LinearScalarAdvectionEquation2D(1.0, 0.0)
+    equations_parabolic = LaplaceDiffusion2D(0.1, equations)
+    solver = CGSEM(polydeg = 3)
+    boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic)
+    solver_parabolic = ParabolicFormulationLocalDG()
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition_convergence_test,
+                                                 solver; solver_parabolic,
+                                                 boundary_conditions)
+    u_ode = compute_coefficients(0.0, semi)
+    du_ode = similar(u_ode)
+    @test_throws ArgumentError Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
 
     @test occursin("CGSEM{Float64}", repr(solver))
     @test occursin("CGSEM(polydeg=3)", summary(solver))
