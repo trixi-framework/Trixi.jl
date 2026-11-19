@@ -83,6 +83,21 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: DGMulti: elixir_advection_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_3d",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.001), time_int_tol=1.0e-11,
+                        l2=[0.0003246577885828051],
+                        linf=[0.011752351728940073])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic3D: TreeMesh3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     Parabolic3D

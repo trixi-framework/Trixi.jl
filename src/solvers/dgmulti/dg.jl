@@ -180,6 +180,21 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return boundary_conditions
 end
 
+# Allow passing a single boundary condition, which is then applied to all boundaries
+# tagged in the mesh (e.g., `:entire_boundary` if no `is_on_boundary` was specified
+# when constructing the `DGMultiMesh`).
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::DGMultiMesh, dg::DGMulti, cache)
+    boundary_keys = Tuple(keys(mesh.boundary_faces))
+    return NamedTuple{boundary_keys}(map(_ -> boundary_conditions, boundary_keys))
+end
+
+# Resolve ambiguity with the general fallback for periodic boundary conditions
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::DGMultiMesh, dg::DGMulti, cache)
+    return boundary_conditions
+end
+
 # Allocate nested array type for DGMulti solution storage.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
     # store components as separate arrays, combine via StructArrays
