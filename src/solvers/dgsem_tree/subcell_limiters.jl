@@ -57,15 +57,20 @@ Local and global limiting of nonlinear variables uses a Newton-bisection method 
 `max_iterations_newton` iterations and relative and absolute tolerances of `newton_tolerances`.
 
 Optionally, a smoothness `indicator` such as [`IndicatorHennemannGassner`](@ref) can be passed to
-restrict the local limiting to non-smooth regions. In that case, two blending factors are computed
-for every subcell interface: one using positivity limiting only and one using positivity *and*
-local limiting. Both are combined element-wise using the indicator value `alpha_ind` in `[0, 1]` as
-`alpha = (1 - alpha_ind) * alpha_positivity + alpha_ind * alpha_local`.
-Thus, local limiting acts with full strength only where the indicator marks an element as
-non-smooth, while the scheme falls back to pure positivity limiting in smooth regions. At mortars,
-the maximum indicator value of all adjacent elements is used.
+restrict the local limiting to non-smooth regions. In that case, the blending factors of the
+positivity limiting, `alpha_positivity`, and of the local limiting, `alpha_local`, are computed
+separately. They are combined element-wise using the indicator value `alpha_ind` in `[0, 1]` as
+`alpha = alpha_positivity + alpha_ind * max(0, alpha_local - alpha_positivity)`,
+i.e., the local limiting is added on top of the positivity limiting with the fraction `alpha_ind`.
+Equivalently, `alpha` is the convex combination
+`alpha = (1 - alpha_ind) * alpha_positivity + alpha_ind * max(alpha_positivity, alpha_local)`
+of the blending factor for positivity limiting only and the one for positivity *and* local
+limiting. Since `alpha >= alpha_positivity`, the positivity bounds are always enforced. The local
+bounds are enforced completely only in elements with `alpha_ind = 1`, while the scheme falls back
+to pure positivity limiting in smooth regions with `alpha_ind = 0`. At mortars, the maximum
+indicator value of all adjacent elements is used.
 Note that with an `indicator` the local bounds are not enforced exactly anymore. Therefore, the
-computation of the deviations by [`BoundsCheckCallback`](@ref) are skipped.
+computation of the deviations by [`BoundsCheckCallback`](@ref) is skipped.
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
