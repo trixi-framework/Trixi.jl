@@ -240,7 +240,7 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
                 total_volume + volume_element)
     end
 
-    l2_error, linf_error, total_volume = AcceleratedKernels.mapreduce(local_reduce,
+    l2_error, linf_error, total_volume = mapreduce_accelerated(local_reduce,
                                                                       1:n_elements,
                                                                       backend; init,
                                                                       neutral) do element
