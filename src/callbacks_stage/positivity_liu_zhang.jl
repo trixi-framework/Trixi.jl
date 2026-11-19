@@ -42,6 +42,10 @@ the maximum number of Davis-Yin iterations per global limiting step.
 
 If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
 global limiting step is saved to the field `history_davis_yin_iterations` of the limiter.
+
+The limiter is available for [`DGSEM`](@ref) on `TreeMesh` and `P4estMesh` and for
+[`DGMulti`](@ref) solvers with `SBP()` approximation types, for which the solution nodes
+coincide with the volume quadrature nodes.
 """
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
@@ -120,8 +124,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
-                                             mesh::AbstractMesh, equations, dg::DGSEM,
-                                             cache;
+                                             mesh::Union{AbstractMesh, DGMultiMesh},
+                                             equations, dg::DG, cache;
                                              global_limiter_tol,
                                              max_davis_yin_iterations,
                                              record_davis_yin_iterations)
@@ -378,7 +382,7 @@ function global_cell_average_limiter!(u, cell_averages,
         conservation_residual = global_integral - global_integral_Y
 
         # Step 3: enforce conservation on Y and update dual variable Z
-        residual_squared = zero(real(mesh))
+        residual_squared = zero(eltype(sqrt_cell_volumes))
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
             Z_old = davis_yin_dual_vars[element]
