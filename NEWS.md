@@ -10,7 +10,7 @@ for human readability.
 #### Added
 - Add `@inbounds` statements and their correct propagation through
   `Base.@propagate_inbounds` for the `BlockFV` solver, together with
-  explicit bounds checks before assuming inbounds access ([#3473]).
+  explicit bounds checks before assuming inbounds access ([#3476]).
 
 #### Changed
 
