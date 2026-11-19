@@ -1091,12 +1091,16 @@ function calc_boundary_flux!(cache, t,
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(boundaries, equations_parabolic, dg, cache)
         check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh,
                                        equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_condition_indices)
@@ -1143,7 +1147,13 @@ function calc_boundary_flux!(cache, t,
                     x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                         i_node, j_node, k_node, element)
 
+                    # Auxiliary variables inside the domain. There are no separate
+                    # auxiliary variables on the outside of the boundary.
+                    aux_inner = get_aux_node_vars(aux, equations_parabolic, dg,
+                                                  i_node, j_node, k_node, element)
+
                     flux_ = boundary_condition_parabolic(flux_inner, u_inner,
+                                                         aux_inner...,
                                                          normal_direction,
                                                          x, t, operator_type,
                                                          equations_parabolic)

@@ -8,6 +8,12 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- `SemidiscretizationHyperbolicParabolic` supports auxiliary variables via the keyword
+  argument `aux_field` for `P4estMesh{3}`. They are passed to both the hyperbolic and
+  the parabolic terms, i.e., to the gradient variable transformation, the parabolic
+  fluxes, the parabolic boundary conditions, and the parabolic source terms, right after
+  the solution `u`, e.g., `flux(u, aux, gradients, orientation, equations_parabolic)`.
+  `LaplaceDiffusion3D` supports equations with auxiliary variables.
 
 #### Changed
 

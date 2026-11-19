@@ -58,6 +58,26 @@ end
     return flux_inner
 end
 
+# Versions for equations with auxiliary variables. The boundary values do not depend on
+# the auxiliary variables.
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+                                                                  aux_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations_parabolic::AbstractLaplaceDiffusion)
+    return boundary_condition.boundary_value_function(x, t, equations_parabolic)
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+                                                                  aux_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations_parabolic::AbstractLaplaceDiffusion)
+    return flux_inner
+end
+
 # Required for the 1D (TreeMesh) case
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   orientation,
@@ -91,6 +111,27 @@ end
 end
 
 @inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+                                                                normal::AbstractVector,
+                                                                x, t,
+                                                                operator_type::Gradient,
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
+    return flux_inner
+end
+
+# Versions for equations with auxiliary variables. The boundary normal fluxes do not
+# depend on the auxiliary variables.
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+                                                                aux_inner,
+                                                                normal::AbstractVector,
+                                                                x, t,
+                                                                operator_type::Divergence,
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
+    return boundary_condition(flux_inner, u_inner, normal, x, t, operator_type,
+                              equations_parabolic)
+end
+
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+                                                                aux_inner,
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Gradient,
