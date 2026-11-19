@@ -14,8 +14,9 @@ include("cgsem/assembly.jl")
 # Hyperbolic right-hand side of CGSEM on a conforming `P4estMesh{2}`, cf. the DGSEM
 # version in `dgsem_tree/dg_2d.jl`. The differences are:
 # - Interface and mortar terms are skipped; continuity is enforced by the assembly.
-# - The interior entries of `surface_flux_values` are zero (see `create_cache`), so the
-#   surface integral adds only the weakly imposed boundary fluxes.
+# - The interior entries of `surface_flux_values` are zero (see
+#   `create_cache_hyperbolic`), so the surface integral adds only the weakly imposed
+#   boundary fluxes.
 # - The source terms are added before the assembly, see `calc_sources!` below.
 # - `assemble_and_apply_jacobian!` replaces `apply_jacobian!`.
 function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::P4estMesh{2}, equations,

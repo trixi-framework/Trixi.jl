@@ -144,8 +144,9 @@ Base.summary(io::IO, solver::CGSEM) = print(io, "CGSEM(polydeg=$(polydeg(solver)
 
 # The cache is the DGSEM cache of `solver.dg` plus the gather-scatter data. Only serial
 # meshes are accepted since `AssemblyCGSEM` numbers the nodes via the local interfaces.
-function create_cache(mesh::P4estMeshSerial{2}, equations::AbstractEquations,
-                      solver::CGSEM, RealT, ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMeshSerial{2}, equations::AbstractEquations,
+                                 solver::CGSEM, RealT,
+                                 ::Type{uEltype}) where {uEltype <: Real}
     if have_nonconservative_terms(equations) isa True
         throw(ArgumentError("CGSEM does not support equations with nonconservative " *
                             "terms, got `$(nameof(typeof(equations)))`"))
@@ -154,7 +155,7 @@ function create_cache(mesh::P4estMeshSerial{2}, equations::AbstractEquations,
 
     # Containers and volume integral temporaries of DGSEM. `AssemblyCGSEM` checks that
     # the mesh is conforming, i.e., that the mortar container is empty.
-    cache = create_cache(mesh, equations, dg, RealT, uEltype)
+    cache = create_cache_hyperbolic(mesh, equations, dg, RealT, uEltype)
 
     # CGSEM does not compute interface fluxes and never writes the interior interface
     # entries of `surface_flux_values`. They are zeroed once here so that the surface
