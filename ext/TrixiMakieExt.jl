@@ -340,9 +340,12 @@ end
 
 # This initializes a Makie recipe, which creates a new type definition which Makie uses to create
 # custom `trixiheatmap` plots. See also https://docs.makie.org/stable/documentation/recipes/
-Makie.@recipe(TrixiHeatmap, plot_data_series) do scene
-    return Makie.Theme(colormap = default_Makie_colormap(),
-                       plot_mesh = false)
+Makie.@recipe TrixiHeatmap (plot_data_series,) begin
+    Makie.documented_attributes(Makie.Mesh)...
+    "Colormap of the heatmap"
+    colormap = default_Makie_colormap()
+    "Whether to draw the mesh on top of the heatmap"
+    plot_mesh = false
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
@@ -353,9 +356,13 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
     pd = pds.plot_data
     solution_z = vec(StructArrays.component(pd.data, pds.variable_id))
-    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = Makie.NoShading,
-                colormap = myplot[:colormap])
-    myplot.colorrange = extrema(solution_z)
+    # An explicit color range is required by `Makie.Colorbar`
+    if myplot.colorrange[] === Makie.automatic
+        myplot.colorrange = extrema(solution_z)
+    end
+    # Attributes such as `colorrange` and `highclip` are passed to the mesh
+    Makie.mesh!(myplot, Makie.shared_attributes(myplot, Makie.Mesh), plotting_mesh;
+                color = solution_z, shading = Makie.NoShading)
 
     if myplot.plot_mesh[]
         xyz_wireframe = convert_PlotData2D_to_mesh_Points(pds;
@@ -402,7 +409,7 @@ function Makie.plot!(pm::PlotMesh{<:AbstractPlotData{1}}; kwargs...)
     return plt
 end
 
-function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false)
+function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false, kwargs...)
     n = length(pd)
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
@@ -415,7 +422,7 @@ function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false)
                         title = variable_name,
                         xlabel = _makie_guide(pd.orientation_x))
         axes[row, col] = ax
-        Makie.lines!(ax, pds)
+        Makie.lines!(ax, pds; kwargs...)
         Makie.xlims!(ax, x[begin], x[end])
         if plot_mesh
             Makie.vlines!(ax, mesh_vertices_x; color = :grey, linewidth = 1)
@@ -465,7 +472,7 @@ function Makie.plot!(pm::PlotMesh{<:PlotData2DCartesian}; kwargs...)
 end
 
 function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
-                    plot_mesh = false, colormap = default_Makie_colormap())
+                    plot_mesh = false, colormap = default_Makie_colormap(), kwargs...)
     n = length(pd)
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
@@ -484,7 +491,8 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
         axes[row, col] = ax
         # Makie expands a zero-width color range only if it is passed explicitly.
         plt = Makie.heatmap!(ax, pds; colormap,
-                             colorrange = extrema(pds.plot_data.data[pds.variable_id]))
+                             colorrange = extrema(pds.plot_data.data[pds.variable_id]),
+                             kwargs...)
         Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, x[begin], x[end])
@@ -648,13 +656,31 @@ function Makie.contourf(pd::PlotData2DCartesian, fig = Makie.Figure();
     return FigureAndAxes(fig, axes)
 end
 
+# Keywords besides `solution_variables` accepted by (some of) the `PlotData1D` and
+# `PlotData2D` constructors for 1D and 2D/3D solutions, respectively, e.g., to select the
+# slice of 3D solutions. All other keywords of the plotting functions for solutions are
+# passed to Makie.
+const PLOT_DATA_1D_KEYWORDS = (:nvisnodes, :reinterpolate, :variable_names)
+const PLOT_DATA_2D_KEYWORDS = (:nvisnodes, :slice, :point, :grid_lines,
+                               :max_supported_level)
+
+# Split `kwargs` into those whose names are in `keywords` and all others
+function _split_kwargs(kwargs, keywords)
+    kwargs_vector = collect(kwargs)
+    is_selected = kv -> first(kv) in keywords
+    return filter(is_selected, kwargs_vector), filter(!is_selected, kwargs_vector)
+end
+
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
 function Makie.plot(sol::TrixiODESolution; solution_variables = nothing, kwargs...)
     if ndims(sol.prob.p) == 1
-        return Makie.plot(PlotData1D(sol; solution_variables); kwargs...)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_1D_KEYWORDS)
+        pd = PlotData1D(sol; solution_variables, plot_data_kwargs...)
+        return Makie.plot(pd; makie_kwargs...)
     else
-        pd = PlotData2D(sol; solution_variables) # use Julias dispatch here
-        return Makie.plot(pd; kwargs...)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
+        pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
+        return Makie.plot(pd; makie_kwargs...)
     end
 end
 
@@ -662,8 +688,9 @@ function Makie.contour(sol::TrixiODESolution; solution_variables = nothing, kwar
     if ndims(sol.prob.p) == 1
         throw(ArgumentError("Contour plots are not supported for 1D solutions."))
     else
-        pd = PlotData2D(sol; solution_variables) # use Julias dispatch here
-        return Makie.contour(pd; kwargs...)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
+        pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
+        return Makie.contour(pd; makie_kwargs...)
     end
 end
 
@@ -671,8 +698,9 @@ function Makie.contourf(sol::TrixiODESolution; solution_variables = nothing, kwa
     if ndims(sol.prob.p) == 1
         throw(ArgumentError("Filled contour plots are not supported for 1D solutions."))
     else
-        pd = PlotData2D(sol; solution_variables) # use Julias dispatch here
-        return Makie.contourf(pd; kwargs...)
+        plot_data_kwargs, makie_kwargs = _split_kwargs(kwargs, PLOT_DATA_2D_KEYWORDS)
+        pd = PlotData2D(sol; solution_variables, plot_data_kwargs...)
+        return Makie.contourf(pd; makie_kwargs...)
     end
 end
 
@@ -683,7 +711,8 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DTriangulated},
     @unpack variable_names = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
-                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    xlabel = _makie_guide(plot_data.orientation_x),
+                    ylabel = _makie_guide(plot_data.orientation_y),
                     aspect = Makie.DataAspect())
     plt = trixiheatmap!(ax, pds; plot_mesh, colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
@@ -703,14 +732,14 @@ function Makie.plot!(pm::PlotMesh{<:PlotData2DTriangulated}; kwargs...)
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig = Makie.Figure();
-                    plot_mesh = false, colormap = default_Makie_colormap())
-    figAxes = Makie.plot!(fig, pd; plot_mesh, colormap)
+                    plot_mesh = false, colormap = default_Makie_colormap(), kwargs...)
+    figAxes = Makie.plot!(fig, pd; plot_mesh, colormap, kwargs...)
     display(figAxes.fig)
     return figAxes
 end
 
 function Makie.plot!(fig, pd::PlotData2DTriangulated;
-                     plot_mesh = false, colormap = default_Makie_colormap())
+                     plot_mesh = false, colormap = default_Makie_colormap(), kwargs...)
     n = length(pd)
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
@@ -721,10 +750,11 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
         row, col = cld(i, cols), mod1(i, cols)
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
-                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xlabel = _makie_guide(pd.orientation_x),
+                        ylabel = _makie_guide(pd.orientation_y),
                         xticks = ticks, yticks = ticks)
         axes[row, col] = ax
-        plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
+        plt = trixiheatmap!(ax, pds; plot_mesh, colormap, kwargs...)
         Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, extrema(pd.x))
@@ -797,7 +827,8 @@ function Makie.contour(pds::PlotDataSeries{<:PlotData2DTriangulated},
     @unpack plot_data, variable_id = pds
     ax = Makie.Axis(fig[1, 1],
                     title = _variable_title(plot_data, variable_id),
-                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    xlabel = _makie_guide(plot_data.orientation_x),
+                    ylabel = _makie_guide(plot_data.orientation_y),
                     aspect = Makie.DataAspect())
     plt = Makie.contour!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
@@ -825,7 +856,8 @@ function Makie.contour(pd::PlotData2DTriangulated, fig = Makie.Figure();
         row, col = cld(i, cols), mod1(i, cols)
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
-                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xlabel = _makie_guide(pd.orientation_x),
+                        ylabel = _makie_guide(pd.orientation_y),
                         xticks = ticks, yticks = ticks)
         axes[row, col] = ax
         plt = Makie.contour!(ax, pds; colormap, kwargs...)
@@ -853,7 +885,8 @@ function Makie.contourf(pds::PlotDataSeries{<:PlotData2DTriangulated},
     @unpack plot_data, variable_id = pds
     ax = Makie.Axis(fig[1, 1],
                     title = _variable_title(plot_data, variable_id),
-                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    xlabel = _makie_guide(plot_data.orientation_x),
+                    ylabel = _makie_guide(plot_data.orientation_y),
                     aspect = Makie.DataAspect())
     plt = Makie.contourf!(ax, pds; colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
@@ -881,7 +914,8 @@ function Makie.contourf(pd::PlotData2DTriangulated, fig = Makie.Figure();
         row, col = cld(i, cols), mod1(i, cols)
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
-                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xlabel = _makie_guide(pd.orientation_x),
+                        ylabel = _makie_guide(pd.orientation_y),
                         xticks = ticks, yticks = ticks)
         axes[row, col] = ax
         plt = Makie.contourf!(ax, pds; colormap, kwargs...)
