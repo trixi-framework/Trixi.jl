@@ -7215,6 +7215,105 @@ end
                                                                        dg_, cache_)
         end
     end
+
+    # `VolumeIntegralFiniteVolume` of `BlockFV` checks its thread-local flux buffers and,
+    # on the `P4estMesh`, the face geometry of the FV cells, which is also checked by the
+    # interface and boundary fluxes
+    function test_check_axes_blockfv(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; volume_integral, surface_integral) = dg
+        @test volume_integral isa VolumeIntegralFiniteVolume
+        @test Trixi.check_axes_volume_integrals(mesh, equations, volume_integral,
+                                                dg, cache) === nothing
+        @test (@allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                            volume_integral,
+                                                            dg, cache)) == 0
+        nonconservative_terms = Trixi.have_nonconservative_terms(equations)
+
+        # `u` does not keep `u_ode` alive
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        GC.@preserve u_ode begin
+            du = zero(u)
+            du_wrong = similar(du, size(du)[1:(end - 1)]..., size(du, ndims(du)) - 1)
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                              nonconservative_terms, equations,
+                                              volume_integral, dg, cache) === nothing
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing,
+                                                                       du_wrong, u,
+                                                                       mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral,
+                                                                       dg, cache)
+            @test Trixi.calc_surface_integral!(nothing, du, u, mesh, equations,
+                                               surface_integral, dg, cache) === nothing
+            @test_throws DimensionMismatch Trixi.calc_surface_integral!(nothing,
+                                                                        du_wrong, u,
+                                                                        mesh, equations,
+                                                                        surface_integral,
+                                                                        dg, cache)
+        end
+
+        # Too few thread-local buffers
+        for name in (:fstar_threaded, :fstar_x_threaded, :fstar_y_threaded)
+            haskey(cache, name) || continue
+            cache_wrong = merge(cache, (; name => cache[name][1:(end - 1)]))
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                             equations,
+                                                                             volume_integral,
+                                                                             dg,
+                                                                             cache_wrong)
+        end
+
+        # Face geometry of the FV cells for a wrong number of elements
+        if mesh isa P4estMesh
+            @test Trixi.nboundaries(dg, cache) > 0
+            @test Trixi.check_axes_blockfv_geometry(mesh, dg, cache) === nothing
+            (; surface_flux_values) = cache.elements
+            for name in (:normal_x, :normal_y, :midpoint_x, :midpoint_y)
+                A = cache[name]
+                A_wrong = similar(A, size(A)[1:(end - 1)]..., size(A, ndims(A)) - 1)
+                cache_wrong = merge(cache, (; name => A_wrong))
+                @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                                 equations,
+                                                                                 volume_integral,
+                                                                                 dg,
+                                                                                 cache_wrong)
+                @test_throws DimensionMismatch Trixi.calc_interface_flux!(nothing,
+                                                                          surface_flux_values,
+                                                                          mesh,
+                                                                          nonconservative_terms,
+                                                                          equations,
+                                                                          surface_integral,
+                                                                          dg,
+                                                                          cache_wrong)
+                @test_throws DimensionMismatch Trixi.calc_boundary_flux!(nothing,
+                                                                         cache_wrong, 0.0,
+                                                                         semi.boundary_conditions,
+                                                                         mesh, equations,
+                                                                         surface_integral,
+                                                                         dg)
+            end
+        end
+
+        return nothing
+    end
+
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_blockfv", "elixir_advection_basic.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_blockfv",
+                                          "elixir_euler_vortex_mortar.jl")),
+                                ("P4estMesh{2}",
+                                 joinpath("p4est_2d_blockfv",
+                                          "elixir_euler_source_term_nonperiodic.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "BlockFV, $mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_blockfv, semi)
+        end
+    end
 end
 
 @testitem "Unit: check_axes of the storage of indicators" setup=[Setup, UnitTests] tags=[:misc_part1] begin

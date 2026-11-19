@@ -23,6 +23,15 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
     return (; fstar_threaded)
 end
 
+# Check the storage created by `create_cache_volume_integral` above
+function check_axes_volume_integral(mesh::TreeMesh{1}, equations,
+                                    volume_integral::VolumeIntegralFiniteVolume,
+                                    dg::BlockFV, cache)
+    check_axes_threaded(cache.fstar_threaded,
+                        (eachvariable(equations), Base.OneTo(nnodes(dg) + 1)))
+    return nothing
+end
+
 #####################################################################
 # Volume integral: FV flux differences at internal faces
 # The update for reference-element cell i is:
@@ -39,22 +48,31 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @unpack fstar_threaded = cache
     inv_h = nnodes(dg) * one(eltype(u)) / 2  # = 1 / h_ref
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        fstar = fstar_threaded[Threads.threadid()]
+        @inbounds begin
+            fstar = fstar_threaded[Threads.threadid()]
 
-        # Fluxes at internal interfaces i + 1/2 for i = 1, ..., n-1
-        for i in 2:nnodes(dg)
-            u_ll = get_node_vars(u, equations, dg, i - 1, element)
-            u_rr = get_node_vars(u, equations, dg, i, element)
-            f = surface_flux(u_ll, u_rr, 1, equations)
-            set_node_vars!(fstar, f, equations, dg, i)
-        end
+            # Fluxes at internal interfaces i + 1/2 for i = 1, ..., n-1
+            for i in 2:nnodes(dg)
+                u_ll = get_node_vars(u, equations, dg, i - 1, element)
+                u_rr = get_node_vars(u, equations, dg, i, element)
+                f = surface_flux(u_ll, u_rr, 1, equations)
+                set_node_vars!(fstar, f, equations, dg, i)
+            end
 
-        # Apply flux differences to du (boundary slots are zero)
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                du[v, i, element] = du[v, i, element] +
-                                    inv_h * (fstar[v, i + 1] - fstar[v, i])
+            # Apply flux differences to du (boundary slots are zero)
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    du[v, i, element] = du[v, i, element] +
+                                        inv_h * (fstar[v, i + 1] - fstar[v, i])
+                end
             end
         end
     end
@@ -74,14 +92,22 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @unpack surface_flux_values = cache.elements
     inv_h = nnodes(dg) * one(eltype(du)) / 2  # = n/2 = 1/h_ref
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
-            # Left element boundary (direction 1 = -x)
-            du[v, 1, element] = du[v, 1, element] -
-                                inv_h * surface_flux_values[v, 1, element]
-            # Right element boundary (direction 2 = +x)
-            du[v, nnodes(dg), element] = du[v, nnodes(dg), element] +
-                                         inv_h * surface_flux_values[v, 2, element]
+        @inbounds begin
+            for v in eachvariable(equations)
+                # Left element boundary (direction 1 = -x)
+                du[v, 1, element] = du[v, 1, element] -
+                                    inv_h * surface_flux_values[v, 1, element]
+                # Right element boundary (direction 2 = +x)
+                du[v, nnodes(dg), element] = du[v, nnodes(dg), element] +
+                                             inv_h * surface_flux_values[v, 2, element]
+            end
         end
     end
 
