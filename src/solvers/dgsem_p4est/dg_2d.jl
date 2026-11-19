@@ -998,7 +998,7 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1430,8 +1430,8 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+        calc_mortar_flux!(cache.elements.surface_flux_values, u,
+                          mesh, have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 

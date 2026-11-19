@@ -1088,7 +1088,7 @@ Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{3},
                            have_nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1149,7 +1149,7 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{3},
                            have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
