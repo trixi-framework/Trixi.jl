@@ -15,8 +15,7 @@ abstract type AbstractTreeElementContainer <: AbstractElementContainer end
 # Return number of element nodes
 @inline nnodes(elements::AbstractTreeElementContainer) = size(elements.node_coordinates,
                                                               2)
-@inline nvariables(elements::AbstractTreeElementContainer) = size(elements.surface_flux_values,
-                                                                  1)
+@inline nvariables(elements::AbstractTreeElementContainer) = static_size(elements.surface_flux_values)[1]
 # TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
 """
     eachelement(elements::AbstractTreeElementContainer)
@@ -35,9 +34,9 @@ abstract type AbstractTreeInterfaceContainer <: AbstractInterfaceContainer end
 # Return number of interfaces
 @inline ninterfaces(interfaces::AbstractTreeInterfaceContainer) = length(interfaces.orientations)
 # Return number of interface nodes for 2D and 3D. For 1D hard-coded to 1 interface node.
-@inline nnodes(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 3)
+@inline nnodes(interfaces::AbstractTreeInterfaceContainer) = static_size(interfaces.u)[3]
 # Return number of equation variables
-@inline nvariables(interfaces::AbstractTreeInterfaceContainer) = size(interfaces.u, 2)
+@inline nvariables(interfaces::AbstractTreeInterfaceContainer) = static_size(interfaces.u)[2]
 
 abstract type AbstractTreeMPIInterfaceContainer <: AbstractMPIInterfaceContainer end
 
