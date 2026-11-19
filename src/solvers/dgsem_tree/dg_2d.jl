@@ -11,8 +11,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
-                      dg::DG, RealT, uEltype)
+function create_cache_hyperbolic(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                                 dg::DG, RealT, uEltype)
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
@@ -29,10 +29,10 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
@@ -70,8 +70,24 @@ function create_f_threaded(mesh::AbstractMesh{2}, equations,
            f2_L_threaded, f2_R_threaded
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Check whether the thread-local buffers created by `create_f_threaded` have the axes
+# we assume in the inner loops of Trixi.jl.
+function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
+                               f2_L_threaded, f2_R_threaded,
+                               mesh::AbstractMesh{2}, equations, dg::DG)
+    f1_axes = (eachvariable(equations), Base.OneTo(nnodes(dg) + 1), eachnode(dg))
+    f2_axes = (eachvariable(equations), eachnode(dg), Base.OneTo(nnodes(dg) + 1))
+    check_axes_threaded(f1_L_threaded, f1_axes)
+    check_axes_threaded(f1_R_threaded, f1_axes)
+    check_axes_threaded(f2_L_threaded, f2_axes)
+    check_axes_threaded(f2_R_threaded, f2_axes)
+
+    return nothing
+end
+
+# Preallocated storage for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
@@ -82,12 +98,22 @@ function create_cache_subcell_fv(mesh::TreeMesh{2}, equations,
             fstar2_L_threaded, fstar2_R_threaded)
 end
 
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
+# assume in the inner loops of Trixi.jl.
+function check_axes_subcell_fv(mesh::TreeMesh{2}, equations, dg::DG, cache)
+    check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
+                          cache.fstar2_L_threaded, cache.fstar2_R_threaded,
+                          mesh, equations, dg)
+
+    return nothing
+end
+
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::Union{LobattoLegendreMortarL2,
-                                       UniformFiniteVolumeBasis,
-                                       LobattoLegendreMortarIDP}, uEltype)
+# and called from `create_cache_hyperbolic`.
+function create_cache_mortar(mesh::TreeMesh{2}, equations,
+                             mortar_l2::Union{LobattoLegendreMortarL2,
+                                              UniformFiniteVolumeBasis,
+                                              LobattoLegendreMortarIDP}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -321,15 +347,18 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     end
 end
 
-@inline function fvO2_kernel!(du, u,
-                              MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                                  UnstructuredMesh2D, P4estMesh{2},
-                                                  T8codeMesh{2}}},
-                              have_nonconservative_terms, equations,
-                              volume_flux_fv, dg::DGSEM, cache, element,
-                              sc_interface_coords, reconstruction_mode, slope_limiter,
-                              cons2recon, recon2cons,
-                              alpha = true)
+Base.@propagate_inbounds function fvO2_kernel!(du, u,
+                                               MeshT::Type{<:Union{TreeMesh{2},
+                                                                   StructuredMesh{2},
+                                                                   UnstructuredMesh2D,
+                                                                   P4estMesh{2},
+                                                                   T8codeMesh{2}}},
+                                               have_nonconservative_terms, equations,
+                                               volume_flux_fv, dg::DGSEM, cache,
+                                               element,
+                                               sc_interface_coords, reconstruction_mode,
+                                               slope_limiter, cons2recon, recon2cons,
+                                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -358,12 +387,14 @@ end
     return nothing
 end
 
-@inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                ::Type{<:TreeMesh{2}},
-                                have_nonconservative_terms::False,
-                                equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter,
-                                cons2recon, recon2cons)
+Base.@propagate_inbounds function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                                 u, ::Type{<:TreeMesh{2}},
+                                                 have_nonconservative_terms::False,
+                                                 equations, volume_flux_fv, dg::DGSEM,
+                                                 element, cache,
+                                                 sc_interface_coords,
+                                                 reconstruction_mode,
+                                                 slope_limiter, cons2recon, recon2cons)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -425,12 +456,15 @@ end
     return nothing
 end
 
-@inline function fv_kernel!(du, u,
-                            MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
-                                                UnstructuredMesh2D, P4estMesh{2},
-                                                T8codeMesh{2}}},
-                            have_nonconservative_terms, equations,
-                            volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
+Base.@propagate_inbounds function fv_kernel!(du, u,
+                                             MeshT::Type{<:Union{TreeMesh{2},
+                                                                 StructuredMesh{2},
+                                                                 UnstructuredMesh2D,
+                                                                 P4estMesh{2},
+                                                                 T8codeMesh{2}}},
+                                             have_nonconservative_terms, equations,
+                                             volume_flux_fv, dg::DGSEM, cache,
+                                             element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
@@ -458,13 +492,15 @@ end
 end
 
 # Compute the normal flux for the FV method on cartesian subcells, see
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:TreeMesh{2}},
-                              have_nonconservative_terms::False, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+# [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+# [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u, ::Type{<:TreeMesh{2}},
+                                               have_nonconservative_terms::False,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
@@ -484,10 +520,11 @@ end
     return nothing
 end
 
-@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:TreeMesh{2}},
-                              have_nonconservative_terms::True, equations,
-                              volume_flux_fv, dg::DGSEM, element, cache)
+Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
+                                               u, ::Type{<:TreeMesh{2}},
+                                               have_nonconservative_terms::True,
+                                               equations, volume_flux_fv, dg::DGSEM,
+                                               element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
     # Fluxes in x-direction

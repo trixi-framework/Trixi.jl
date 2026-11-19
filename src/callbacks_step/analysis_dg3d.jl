@@ -10,27 +10,35 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
@@ -42,40 +50,53 @@ function create_cache_analysis(analyzer,
                                RealT, uEltype) where {NDIMS_AMBIENT}
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    jacobian_local = StrideArray(undef, RealT,
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)))
-    jacobian_tmp1 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
-                                StaticInt(nnodes(dg)))
-    jacobian_tmp2 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)),
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(NDIMS_AMBIENT),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(NDIMS_AMBIENT),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(NDIMS_AMBIENT),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = stride_array_or_array(RealT,
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)),
+                                          StaticInt(nnodes(dg)))
+    jacobian_tmp2 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)))
+
+    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer,
+                                                              equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
-            jacobian_tmp1, jacobian_tmp2)
+            jacobian_tmp1, jacobian_tmp2, aux_local, aux_tmp1, aux_tmp2)
 end
 
 function create_cache_analysis(analyzer,
@@ -84,40 +105,77 @@ function create_cache_analysis(analyzer,
                                RealT, uEltype)
 
     # pre-allocate buffers
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    u_local = StrideArray(undef, uEltype,
-                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    u_tmp1 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    u_tmp2 = StrideArray(undef, uEltype,
-                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    x_local = StrideArray(undef, RealT,
-                          StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
-    x_tmp1 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
-    x_tmp2 = StrideArray(undef, RealT,
-                         StaticInt(ndims(equations)), StaticInt(nnodes(analyzer)),
-                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
-    jacobian_local = StrideArray(undef, RealT,
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)),
-                                 StaticInt(nnodes(analyzer)))
-    jacobian_tmp1 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
-                                StaticInt(nnodes(dg)))
-    jacobian_tmp2 = StrideArray(undef, RealT,
-                                StaticInt(nnodes(analyzer)),
-                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    # We use `StrideArray`s for `isbits` element types here since these buffers are used
+    # in performance-critical places and the additional information passed to the
+    # compiler makes them faster than native `Array`s (see `stride_array_or_array`).
+    u_local = stride_array_or_array(uEltype,
+                                    StaticInt(nvariables(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    u_tmp1 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = stride_array_or_array(uEltype,
+                                   StaticInt(nvariables(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = stride_array_or_array(RealT,
+                                    StaticInt(ndims(equations)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)),
+                                    StaticInt(nnodes(analyzer)))
+    x_tmp1 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = stride_array_or_array(RealT,
+                                   StaticInt(ndims(equations)),
+                                   StaticInt(nnodes(analyzer)),
+                                   StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = stride_array_or_array(RealT,
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)),
+                                           StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)),
+                                          StaticInt(nnodes(dg)))
+    jacobian_tmp2 = stride_array_or_array(RealT,
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(analyzer)),
+                                          StaticInt(nnodes(dg)))
+
+    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer,
+                                                              equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
-            jacobian_tmp1, jacobian_tmp2)
+            jacobian_tmp1, jacobian_tmp2, aux_local, aux_tmp1, aux_tmp2)
+end
+
+# Buffers to interpolate the auxiliary variables to the analysis nodes,
+# or `nothing` if the equations do not have auxiliary variables
+function create_cache_analysis_aux(analyzer, equations, dg::DG, cache)
+    aux = get_aux_vars(cache)
+    aux === nothing && return nothing, nothing, nothing
+
+    auxEltype = eltype(aux)
+    aux_local = stride_array_or_array(auxEltype,
+                                      StaticInt(nauxvariables(equations)),
+                                      StaticInt(nnodes(analyzer)),
+                                      StaticInt(nnodes(analyzer)),
+                                      StaticInt(nnodes(analyzer)))
+    aux_tmp1 = stride_array_or_array(auxEltype,
+                                     StaticInt(nauxvariables(equations)),
+                                     StaticInt(nnodes(analyzer)),
+                                     StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    aux_tmp2 = stride_array_or_array(auxEltype,
+                                     StaticInt(nauxvariables(equations)),
+                                     StaticInt(nnodes(analyzer)),
+                                     StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+
+    return aux_local, aux_tmp1, aux_tmp2
 end
 
 function calc_error_norms(func, u, t, analyzer,
@@ -167,17 +225,25 @@ function calc_error_norms(func, u, t, analyzer,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+    @unpack aux_local, aux_tmp1, aux_tmp2 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Calculate error norms on the CPU, to ensure the order of summation is the same.
     if trixi_backend(u) !== nothing
         node_coordinates = Array(node_coordinates)
         inverse_jacobian = Array(inverse_jacobian)
         u = Array(u)
+        if aux !== nothing
+            aux = Array(aux)
+        end
     end
 
     # Set up data structures
-    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
+    aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1, 1)
+    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1),
+                         aux_node..., equations))
     linf_error = copy(l2_error)
     total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
@@ -192,13 +258,19 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
                                        inv.(view(inverse_jacobian, :, :, :, element)),
                                        jacobian_tmp1, jacobian_tmp2)
+        if aux !== nothing
+            multiply_dimensionwise!(aux_local, vandermonde,
+                                    view(aux, :, :, :, :, element), aux_tmp1, aux_tmp2)
+        end
 
         # Calculate errors at each analysis node
         for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
             u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j,
                                                         k), t, equations)
-            diff = func(u_exact, equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j, k), equations)
+            aux_node = get_aux_node_vars(aux_local, equations, dg, i, j, k)
+            diff = func(u_exact, aux_node..., equations) -
+                   func(get_node_vars(u_local, equations, dg, i, j, k),
+                        aux_node..., equations)
             # We take absolute value as we need the Jacobian here for the volume calculation
             abs_jacobian_local_ijk = abs(jacobian_local[i, j, k])
 
@@ -220,10 +292,11 @@ end
 # We do not multiply by the Jacobian to stay in reference space.
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
-function integrate_reference_element(func::Func, u, element,
-                                     ::Type{<:AbstractMesh{3}}, equations, dg::DGSEM,
-                                     cache,
-                                     args...; normalize = true) where {Func}
+Base.@propagate_inbounds function integrate_reference_element(func::Func, u, element,
+                                                              ::Type{<:AbstractMesh{3}},
+                                                              equations, dg::DGSEM,
+                                                              cache,
+                                                              args...) where {Func}
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
@@ -239,22 +312,30 @@ end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
-function entropy_change_reference_element(du, u, element,
-                                          MeshT::Type{<:AbstractMesh{3}},
-                                          equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
-                                       du) do u, i, j, k, element, equations, dg, du
+Base.@propagate_inbounds function entropy_change_reference_element(du, u, element,
+                                                                   MeshT::Type{<:AbstractMesh{3}},
+                                                                   equations, dg::DGSEM,
+                                                                   cache, args...)
+    # Not a `do` block since `Base.@propagate_inbounds` cannot be applied to it
+    Base.@propagate_inbounds function integrand(u, i, j, k, element, equations, dg, du)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
 
-        dot(cons2entropy(u_node, equations), du_node)
+        return dot(cons2entropy(u_node, equations), du_node)
     end
+
+    return integrate_reference_element(integrand, u, element, MeshT, equations, dg,
+                                       cache, du)
 end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
-function surface_integral_reference_element(func::Func, u, element,
-                                            ::Type{<:TreeMesh{3}}, equations, dg::DGSEM,
-                                            cache, args...) where {Func}
+Base.@propagate_inbounds function surface_integral_reference_element(func::Func, u,
+                                                                     element,
+                                                                     ::Type{<:TreeMesh{3}},
+                                                                     equations,
+                                                                     dg::DGSEM,
+                                                                     cache,
+                                                                     args...) where {Func}
     @unpack weights = dg.basis
 
     u_tmp = get_node_vars(u, equations, dg, 1, 1, 1, element)
@@ -288,12 +369,15 @@ end
 # calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
 # Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
 # thus no +- flips are needed here.
-function surface_integral_reference_element(func::Func, u, element,
-                                            ::Type{<:Union{StructuredMesh{3},
-                                                           P4estMesh{3},
-                                                           T8codeMesh{3}}},
-                                            equations, dg::DGSEM, cache,
-                                            args...) where {Func}
+Base.@propagate_inbounds function surface_integral_reference_element(func::Func, u,
+                                                                     element,
+                                                                     ::Type{<:Union{StructuredMesh{3},
+                                                                                    P4estMesh{3},
+                                                                                    T8codeMesh{3}}},
+                                                                     equations,
+                                                                     dg::DGSEM,
+                                                                     cache,
+                                                                     args...) where {Func}
     @unpack contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
@@ -441,17 +525,16 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
-                                     typeof(equations), typeof(dg),
-                                     map(typeof, args)...))
+    integral0 = zero_return_type(func, typeof(u), Int, Int, Int, Int,
+                                 typeof(equations), typeof(dg), map(typeof, args)...)
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (integral0, volume0)
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
-    integral, total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
-                                                          backend; init,
-                                                          neutral) do element
+    integral, total_volume = mapreduce_accelerated(local_plus, 1:num_elements,
+                                                   backend; init,
+                                                   neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
 
@@ -477,10 +560,14 @@ function integrate(func::Func, u,
                                T8codeMesh{3}},
                    equations, dg::Union{DGSEM, FDSBP}, cache;
                    normalize = true) where {Func}
-    integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, k, element, equations, dg
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+    integrate_via_indices(u, mesh, equations, dg, cache, aux;
+                          normalize = normalize) do u, i, j, k, element,
+                                                    equations, dg, aux
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
-        return func(u_local, equations)
+        aux_local = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+        return func(u_local, aux_local..., equations)
     end
 end
 
@@ -507,12 +594,15 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
-                          du) do u, i, j, k, element, equations, dg, du
+                          du, aux) do u, i, j, k, element, equations, dg, du, aux
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
-        return dot(cons2entropy(u_node, equations), du_node)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+        return dot(cons2entropy(u_node, aux_node..., equations), du_node)
     end
 end
 

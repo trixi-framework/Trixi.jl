@@ -6,9 +6,9 @@
 #! format: noindent
 
 @inline function get_mortar_index(indices, i, j)
-    if indices[1] === :i_forward || indices[1] === :i_backward
+    if indices[1] === NodeIndex.IForward || indices[1] === NodeIndex.IBackward
         return i
-    else # indices[2] === :i_forward || indices[2] === :i_backward
+    else # indices[2] === NodeIndex.IForward || indices[2] === NodeIndex.IBackward
         return j
     end
 end
@@ -87,7 +87,7 @@ end
     # `mortar_weights` is defined in mortar reference coordinates, so it has to be
     # indexed with the loop counters (i and j). Using the element-local face indices instead
     # would pair mirror-image subcells whenever the large side is traversed backwards,
-    # i.e., for `:i_backward in large_indices`.
+    # i.e., for `NodeIndex.IBackward in large_indices`.
 
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version
@@ -306,7 +306,7 @@ end
     # `mortar_weights` is defined in mortar reference coordinates, so it has to be
     # indexed with the loop counters (i and j). Using the element-local face indices instead
     # would pair mirror-image subcells whenever the large side is traversed backwards,
-    # i.e., for `:i_backward in large_indices`.
+    # i.e., for `NodeIndex.IBackward in large_indices`.
 
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version

@@ -316,6 +316,35 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D MHD: elixir_mhd_vortex.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_vortex.jl"),
+                        l2=[
+                            0.0001559466989018188,
+                            0.0010365863012677349,
+                            0.001071418376513405,
+                            0.0,
+                            0.001481670949920638,
+                            0.0010618745179671524,
+                            0.001061114047526469,
+                            0.0,
+                            6.059544528666306e-5
+                        ],
+                        linf=[
+                            0.004782835496127458,
+                            0.01260904214264702,
+                            0.014634412533858443,
+                            0.0,
+                            0.020441478720071515,
+                            0.01350389451117244,
+                            0.013696112509106836,
+                            0.0,
+                            0.0011985128658772817
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D MHD: elixir_mhd_rotor.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
                         l2=[

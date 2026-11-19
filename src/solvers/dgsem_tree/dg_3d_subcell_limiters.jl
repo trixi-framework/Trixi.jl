@@ -52,11 +52,11 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
     end
 
     # `n_mortars_per_node` is stored in the limiter cache, which is resized to the
-    # number of elements in `resize_volume_integral_cache!` only after this function
+    # number of elements in `resize_cache_volume_integral!` only after this function
     # returns. Resize it here already, since the precomputation needs it. Resizing it
     # again to the same size afterward keeps the precomputed values.
     # Not very elegant, but for now okay.
-    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
+    resize_cache_subcell_limiter!(volume_integral.limiter, n_elements)
     precompute_n_mortars_per_nodes!(volume_integral, dg, cache_containers, mesh)
 
     return (; cache..., antidiffusive_fluxes,

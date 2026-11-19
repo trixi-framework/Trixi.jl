@@ -22,7 +22,7 @@ function init_elements!(elements, mesh::StructuredMesh{1}, basis::AbstractBasisS
     # Contravariant vectors don't make sense in 1D, they would be identical to inverse_jacobian
     fill!(contravariant_vectors, NaN)
 
-    initialize_left_neighbor_connectivity!(left_neighbors, mesh)
+    init_left_neighbor_connectivity!(left_neighbors, mesh)
     calc_boundary_node_coordinates!(boundary_node_coordinates, node_coordinates,
                                     mesh, basis)
 
@@ -100,7 +100,7 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 2}, eleme
 end
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
+function init_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{1})
     # Neighbors in x-direction
     # Inner elements
     for cell_x in 2:size(mesh, 1)

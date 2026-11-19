@@ -64,6 +64,7 @@ using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
+using EnumX: @enumx
 using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
@@ -218,6 +219,8 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
+       ConservativeLinearScalarAdvectionEquation3D,
+       NonconservativeLinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
@@ -283,6 +286,8 @@ export boundary_condition_do_nothing,
        Adiabatic, Isothermal,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
+export NodeIndex
+
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,
        source_terms_collision_ion_ion
@@ -338,8 +343,8 @@ export reconstruction_O2_inner, reconstruction_O2_full,
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback, LimitingAnalysisCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
-export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable,
+export nelements, nnodes, nvariables, nauxvariables,
+       eachelement, eachnode, eachvariable, eachauxvariable,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate

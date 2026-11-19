@@ -34,6 +34,23 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh MPI 3D: elixir_advection_basic.jl (single element)" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[
+    :mpi,
+    :mpi_skip_windows
+] begin
+    # A mesh with a single element leaves all but one MPI rank without elements,
+    # see https://github.com/trixi-framework/Trixi.jl/issues/1973
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        trees_per_dimension=(1, 1, 1), initial_refinement_level=0,
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.2106836032525802],
+                        linf=[0.4388801673496169])
+end
+
 @testitem "P4estMesh MPI 3D: AnalysisSurfaceIntegral on curved mesh" setup=[
     Setup,
     SurfaceIntegralsCurvedMesh3D
@@ -431,4 +448,66 @@ end
                       cache.boundaries, cache.mortars, cache.mpi_mortars)
         @test Trixi.check_axes(container, equations, dg, cache) === nothing
     end
+end
+
+@testitem "P4estMesh MPI 3D: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi, :mpi_skip_windows] begin
+    # Auxiliary variables at MPI interfaces, MPI mortars, boundaries, and in the source
+    # terms. With more trees, there are MPI mortars for 2 and 3 MPI ranks.
+    # The `SaveSolutionCallback` calls `cons2prim(u, aux, equations)` by default.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as in serial
+                        l2=[0.00032966706996308975],
+                        linf=[0.00233523138610936],
+                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1),
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback, stepsize_callback,
+                                              SaveSolutionCallback()))
+    @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+    # The auxiliary variables of the remote elements are received from the neighbor ranks
+    (; aux_mpi_interface, aux_mpi_mortar) = semi.cache.aux_vars
+    @test !any(isnan, aux_mpi_interface)
+    @test !any(isnan, aux_mpi_mortar)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # Mesh adaptation is not supported with auxiliary variables. With MPI, the AMR
+    # callback re-initializes the containers on all ranks, so all of them throw.
+    amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                          base_level = 2,
+                                          med_level = 3, med_threshold = 0.1,
+                                          max_level = 4, max_threshold = 0.6)
+    amr_callback = AMRCallback(semi, amr_controller,
+                               interval = 5,
+                               adapt_initial_condition = true)
+    @test_throws ArgumentError solve(ode,
+                                     CarpenterKennedy2N54(williamson_condition = false);
+                                     dt = 1.0e-3, callback = CallbackSet(amr_callback))
+end
+
+@testitem "P4estMesh MPI 3D: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi, :mpi_skip_windows] begin
+    # Nonconservative terms with auxiliary variables at MPI interfaces and MPI mortars
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are the same as in serial up to round-off
+                        l2=[0.00013126106205317068],
+                        linf=[0.0010576440539005194],
+                        trees_per_dimension=(2, 2, 2), tspan=(0.0, 0.1))
+    @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
+                              Trixi.mpi_comm()) > 0
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

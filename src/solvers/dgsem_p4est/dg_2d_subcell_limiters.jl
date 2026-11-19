@@ -208,7 +208,8 @@ end
                     # `mortar_weights` is defined in mortar reference coordinates, so it
                     # has to be indexed with the traversal counters. Using the element-local
                     # face indices instead would pair mirror-image subcells whenever the large
-                    # side is traversed backwards, i.e., for `:i_backward in large_indices`.
+                    # side is traversed backwards, i.e., for
+                    # `NodeIndex.IBackward in large_indices`.
                     weight = mortar_weights[node_large, node_small,
                                             small_element_index]
                     !iszero(weight) || continue

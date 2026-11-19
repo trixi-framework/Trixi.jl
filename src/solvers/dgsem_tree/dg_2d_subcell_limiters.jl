@@ -52,11 +52,11 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2
     end
 
     # `n_mortars_per_node` is stored in the limiter cache, which is resized to the
-    # number of elements in `resize_volume_integral_cache!` only after this function
+    # number of elements in `resize_cache_volume_integral!` only after this function
     # returns. Resize it here already, since the precomputation needs it. Resizing it
     # again to the same size afterward keeps the precomputed values.
     # Not very elegant, but for now okay.
-    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
+    resize_cache_subcell_limiter!(volume_integral.limiter, n_elements)
     precompute_n_mortars_per_nodes!(volume_integral, dg, cache_containers, mesh)
 
     return (; cache..., antidiffusive_fluxes,
@@ -325,8 +325,9 @@ end
 # The calculation of the non-conservative staggered "fluxes" requires non-conservative
 # terms that can be written as a product of local and a symmetric contributions. See, e.g.,
 #
-# - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-#   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+# - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+#   Discretizations of Non-Conservative Systems. https://arxiv.org/abs/2211.14009
+#   (DOI: https://doi.org/10.1016/j.jcp.2023.112607).
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 ::Type{<:TreeMesh{2}}, have_nonconservative_terms::True,

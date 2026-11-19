@@ -146,6 +146,6 @@ end
 
 # Note: `max_dt` is not implemented for `StructuredMesh{1}` and `equations_parabolic` since
 # for the `StructuredMesh` type there is no support of parabolic terms (yet), see the overview in the docs:
-# https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations
+# https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#overview-semidiscretizations
 
 end # @muladd

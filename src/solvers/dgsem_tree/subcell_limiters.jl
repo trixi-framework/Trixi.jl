@@ -7,11 +7,6 @@
 
 abstract type AbstractSubcellLimiter end
 
-function create_cache(typ::Type{LimiterType},
-                      semi) where {LimiterType <: AbstractSubcellLimiter}
-    return create_cache(typ, mesh_equations_solver_cache(semi)...)
-end
-
 @inline as_static_bool(b::Bool) = b ? True() : False()
 @inline as_static_bool(b::True) = b
 @inline as_static_bool(b::False) = b
@@ -80,9 +75,11 @@ computation of the deviations by [`BoundsCheckCallback`](@ref) is skipped.
 
 - Rueda-Ramírez, Pazner, Gassner (2022)
   Subcell Limiting Strategies for Discontinuous Galerkin Spectral Element Methods
+  [arXiv: 2202.00576](https://arxiv.org/abs/2202.00576)
   [DOI: 10.1016/j.compfluid.2022.105627](https://doi.org/10.1016/j.compfluid.2022.105627)
-- Pazner (2020)
+- Pazner (2021)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
+  [arXiv: 2004.08503](https://arxiv.org/abs/2004.08503)
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
@@ -202,8 +199,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     cache_variable_values = local_onesided
     # Only cache `alpha_local` if smoothness indicator is enabled.
     cache_alpha_local = !isnothing(indicator)
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states,
-                         cache_variable_values, cache_alpha_local)
+    cache = create_cache_subcell_limiter(SubcellLimiterIDP, equations, basis,
+                                         bound_keys, bar_states,
+                                         cache_variable_values, cache_alpha_local)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -298,15 +296,17 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     end
 end
 
-function create_cache(limiter::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys,
-                      ::False,
-                      cache_variable_values,
-                      cache_alpha_local) where {NDIMS}
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache_subcell_limiter(limiter::Type{SubcellLimiterIDP},
+                                      equations::AbstractEquations{NDIMS},
+                                      basis::LobattoLegendreBasis,
+                                      bound_keys,
+                                      ::False,
+                                      cache_variable_values,
+                                      cache_alpha_local) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later via `resize_volume_integral_cache!` when the cache of the
-    # semidiscretization is created.
+    # and resize it later via `resize_cache_volume_integral!`
+    # when the cache of the semidiscretization is created.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys,
@@ -330,14 +330,16 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global, idp_newton_converged)
 end
 
-function create_cache(limiter::Type{SubcellLimiterIDP},
-                      equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, bound_keys,
-                      ::True,
-                      cache_variable_values,
-                      cache_alpha_local)
-    cache = create_cache(limiter, equations, basis, bound_keys, False(),
-                         cache_variable_values, cache_alpha_local)
+# adds the bar states storage
+function create_cache_subcell_limiter(limiter::Type{SubcellLimiterIDP},
+                                      equations::AbstractEquations{2},
+                                      basis::LobattoLegendreBasis,
+                                      bound_keys,
+                                      ::True,
+                                      cache_variable_values,
+                                      cache_alpha_local)
+    cache = create_cache_subcell_limiter(limiter, equations, basis, bound_keys, False(),
+                                         cache_variable_values, cache_alpha_local)
     container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
                                                                    nvariables(equations),
                                                                    nnodes(basis))
@@ -345,7 +347,7 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
     return (; container_bar_states, cache...)
 end
 
-function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+function resize_cache_subcell_limiter!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     if limiter.bar_states == true
