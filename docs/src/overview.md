@@ -54,7 +54,7 @@ different features on different mesh types.
 | Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |          conforming        |
 | Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex (triᵃ, tetᵃ), quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
-| Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
+| Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       | [`DGSEM`](@ref), [`CGSEM`](@ref) |       [`DGMulti`](@ref)    |
 | Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary    |
 | Weak form                                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralWeakForm`](@ref)
 | Flux differencing                                            |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralFluxDifferencing`](@ref)
