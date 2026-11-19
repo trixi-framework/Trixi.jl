@@ -1,5 +1,6 @@
 # Test items tagged `:metal_skip_m1_m2` fail on Apple M1/M2 GPUs because of upstream
-# bugs in Metal.jl and are skipped there, see `runtests.jl`.
+# bugs in Metal.jl and are skipped there for Metal.jl versions older than v1.12.1, see
+# `runtests.jl`.
 
 @testsnippet Metal3DExamples begin
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")

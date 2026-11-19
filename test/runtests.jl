@@ -119,10 +119,12 @@ end
 # Some Metal test items produce wrong results, crash, or hang on Apple M1/M2 GPUs
 # because of upstream bugs, see https://github.com/JuliaGPU/Metal.jl/issues/1017 and
 # https://github.com/JuliaGPU/Metal.jl/issues/1018. They are tagged `:metal_skip_m1_m2`
-# and skipped on these GPUs.
-SKIP_METAL_M1_M2 = RUN_METAL && occursin(r"^Apple M[12]\b", String(Metal.device().name))
+# and skipped on these GPUs for Metal.jl versions older than v1.12.1.
+SKIP_METAL_M1_M2 = RUN_METAL && pkgversion(Metal) < v"1.12.1" &&
+                   occursin(r"^Apple M[12]\b", String(Metal.device().name))
 SKIP_METAL_M1_M2 &&
-    @warn "Skipping Metal test items with known failures on $(Metal.device().name)"
+    @warn ("Skipping Metal test items with known failures on $(Metal.device().name) " *
+           "with Metal.jl v$(pkgversion(Metal))")
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST_RUN_ITEMS=true` and `TRIXI_TEST=<suite>`.
