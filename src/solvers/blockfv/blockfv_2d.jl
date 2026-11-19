@@ -32,6 +32,19 @@ function create_cache_volume_integral(mesh::TreeMesh{2}, equations,
     return (; fstar_x_threaded, fstar_y_threaded)
 end
 
+# Check the storage created by `create_cache_volume_integral` above
+function check_axes_volume_integral(mesh::TreeMesh{2}, equations,
+                                    volume_integral::VolumeIntegralFiniteVolume,
+                                    dg::BlockFV, cache)
+    check_axes_threaded(cache.fstar_x_threaded,
+                        (eachvariable(equations),
+                         Base.OneTo(nnodes(dg) + 1), eachnode(dg)))
+    check_axes_threaded(cache.fstar_y_threaded,
+                        (eachvariable(equations),
+                         eachnode(dg), Base.OneTo(nnodes(dg) + 1)))
+    return nothing
+end
+
 #####################################################################
 # Volume integral: FV flux differences at internal faces in x and y
 # For cell (i,j):
@@ -48,39 +61,48 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @unpack fstar_x_threaded, fstar_y_threaded = cache
     inv_h = nnodes(dg) * one(eltype(u)) / 2
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        fstar_x = fstar_x_threaded[Threads.threadid()]
-        fstar_y = fstar_y_threaded[Threads.threadid()]
+        @inbounds begin
+            fstar_x = fstar_x_threaded[Threads.threadid()]
+            fstar_y = fstar_y_threaded[Threads.threadid()]
 
-        # x-direction: internal interfaces at i + 1/2 for i = 1, ..., n-1
-        for j in eachnode(dg)
-            for i in 2:nnodes(dg)
-                u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
-                u_rr = get_node_vars(u, equations, dg, i, j, element)
-                f = surface_flux(u_ll, u_rr, 1, equations)
-                set_node_vars!(fstar_x, f, equations, dg, i, j)
+            # x-direction: internal interfaces at i + 1/2 for i = 1, ..., n-1
+            for j in eachnode(dg)
+                for i in 2:nnodes(dg)
+                    u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
+                    u_rr = get_node_vars(u, equations, dg, i, j, element)
+                    f = surface_flux(u_ll, u_rr, 1, equations)
+                    set_node_vars!(fstar_x, f, equations, dg, i, j)
+                end
             end
-        end
 
-        # y-direction: internal interfaces at j + 1/2 for j = 1, ..., n-1
-        for j in 2:nnodes(dg)
-            for i in eachnode(dg)
-                u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
-                u_rr = get_node_vars(u, equations, dg, i, j, element)
-                f = surface_flux(u_ll, u_rr, 2, equations)
-                set_node_vars!(fstar_y, f, equations, dg, i, j)
+            # y-direction: internal interfaces at j + 1/2 for j = 1, ..., n-1
+            for j in 2:nnodes(dg)
+                for i in eachnode(dg)
+                    u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
+                    u_rr = get_node_vars(u, equations, dg, i, j, element)
+                    f = surface_flux(u_ll, u_rr, 2, equations)
+                    set_node_vars!(fstar_y, f, equations, dg, i, j)
+                end
             end
-        end
 
-        # Apply flux differences
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                for v in eachvariable(equations)
-                    du[v, i, j, element] = (du[v, i, j, element] +
-                                            inv_h *
-                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
-                                            inv_h *
-                                            (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
+            # Apply flux differences
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        flux_difference_x = fstar_x[v, i + 1, j] - fstar_x[v, i, j]
+                        flux_difference_y = fstar_y[v, i, j + 1] - fstar_y[v, i, j]
+                        du[v, i, j, element] = (du[v, i, j, element] +
+                                                inv_h * flux_difference_x +
+                                                inv_h * flux_difference_y)
+                    end
                 end
             end
         end
@@ -100,27 +122,35 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @unpack surface_flux_values = cache.elements
     inv_h = nnodes(dg) * one(eltype(du)) / 2
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg)
-            for v in eachvariable(equations)
-                # left boundary (-x): update leftmost column i=1
-                du[v, 1, j, element] = du[v, 1, j, element] -
-                                       inv_h * surface_flux_values[v, j, 1, element]
-                # right boundary (+x): update rightmost column i=n
-                du[v, nnodes(dg), j, element] = du[v, nnodes(dg), j, element] +
-                                                inv_h *
-                                                surface_flux_values[v, j, 2, element]
+        @inbounds begin
+            for j in eachnode(dg)
+                for v in eachvariable(equations)
+                    # left boundary (-x): update leftmost column i=1
+                    flux_left = surface_flux_values[v, j, 1, element]
+                    du[v, 1, j, element] = du[v, 1, j, element] - inv_h * flux_left
+                    # right boundary (+x): update rightmost column i=n
+                    flux_right = surface_flux_values[v, j, 2, element]
+                    du[v, nnodes(dg), j, element] = du[v, nnodes(dg), j, element] +
+                                                    inv_h * flux_right
+                end
             end
-        end
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                # bottom boundary (-y): update bottom row j=1
-                du[v, i, 1, element] = du[v, i, 1, element] -
-                                       inv_h * surface_flux_values[v, i, 3, element]
-                # top boundary (+y): update top row j=n
-                du[v, i, nnodes(dg), element] = du[v, i, nnodes(dg), element] +
-                                                inv_h *
-                                                surface_flux_values[v, i, 4, element]
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    # bottom boundary (-y): update bottom row j=1
+                    flux_bottom = surface_flux_values[v, i, 3, element]
+                    du[v, i, 1, element] = du[v, i, 1, element] - inv_h * flux_bottom
+                    # top boundary (+y): update top row j=n
+                    flux_top = surface_flux_values[v, i, 4, element]
+                    du[v, i, nnodes(dg), element] = du[v, i, nnodes(dg), element] +
+                                                    inv_h * flux_top
+                end
             end
         end
     end
@@ -244,11 +274,11 @@ end
     end
 end
 
-@inline function element_solutions_to_mortars!(mortars,
-                                               mortar_l2::UniformFiniteVolumeBasis,
-                                               leftright,
-                                               mortar,
-                                               u_large::AbstractArray{<:Any, 2})
+Base.@propagate_inbounds function element_solutions_to_mortars!(mortars,
+                                                                mortar_l2::UniformFiniteVolumeBasis,
+                                                                leftright, mortar,
+                                                                u_large::AbstractArray{<:Any,
+                                                                                       2})
 
     # Project the solution from the large element to the two small mortar sides
     # by duplicating each large-element node
@@ -266,14 +296,16 @@ end
     return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::TreeMesh{2}, equations,
-                                            mortar_l2::UniformFiniteVolumeBasis,
-                                            dg::BlockFV, cache,
-                                            mortar, fstar_primary_upper,
-                                            fstar_primary_lower,
-                                            fstar_secondary_upper,
-                                            fstar_secondary_lower)
+Base.@propagate_inbounds function mortar_fluxes_to_elements!(surface_flux_values,
+                                                             mesh::TreeMesh{2},
+                                                             equations,
+                                                             mortar_l2::UniformFiniteVolumeBasis,
+                                                             dg::BlockFV, cache,
+                                                             mortar,
+                                                             fstar_primary_upper,
+                                                             fstar_primary_lower,
+                                                             fstar_secondary_upper,
+                                                             fstar_secondary_lower)
     large_element = cache.mortars.neighbor_ids[3, mortar]
     upper_element = cache.mortars.neighbor_ids[2, mortar]
     lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -326,48 +358,40 @@ end
     for v in eachvariable(equations)
         if nnodes(dg) % 2 == 1
             # For an odd number of nodes, average the interface values at the center node
-            surface_flux_values[v, (nnodes(dg) + 1) ÷ 2, direction, large_element] = 0.5f0 *
-                                                                                     (fstar_primary_lower[v,
-                                                                                                          end] +
-                                                                                      fstar_primary_upper[v,
-                                                                                                          1])
+            i_center = (nnodes(dg) + 1) ÷ 2
+            flux_1 = fstar_primary_lower[v, end]
+            flux_2 = fstar_primary_upper[v, 1]
+            flux_center = 0.5f0 * (flux_1 + flux_2)
+            surface_flux_values[v, i_center, direction, large_element] = flux_center
             for i in eachnode(mortar_l2)
                 if i <= nnodes(dg) ÷ 2
                     # Average neighboring fluxes from the lower small element
-                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
-                                                                          (fstar_primary_lower[v,
-                                                                                               2 * i - 1] +
-                                                                           fstar_primary_lower[v,
-                                                                                               2 * i])
-                elseif i == (nnodes(dg) + 1) ÷ 2
-                    continue
+                    flux_1 = fstar_primary_lower[v, 2 * i - 1]
+                    flux_2 = fstar_primary_lower[v, 2 * i]
+                elseif i == i_center
                     # Center node already set above
+                    continue
                 else
                     # Average neighboring fluxes from the upper small element
-                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
-                                                                          (fstar_primary_upper[v,
-                                                                                               2 * i - 1 - nnodes(dg)] +
-                                                                           fstar_primary_upper[v,
-                                                                                               2 * i - nnodes(dg)])
+                    flux_1 = fstar_primary_upper[v, 2 * i - 1 - nnodes(dg)]
+                    flux_2 = fstar_primary_upper[v, 2 * i - nnodes(dg)]
                 end
+                flux_average = 0.5f0 * (flux_1 + flux_2)
+                surface_flux_values[v, i, direction, large_element] = flux_average
             end
         else
             for i in eachnode(mortar_l2)
                 if i <= nnodes(dg) ÷ 2
                     # Average neighboring fluxes from the lower small element
-                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
-                                                                          (fstar_primary_lower[v,
-                                                                                               2 * i - 1] +
-                                                                           fstar_primary_lower[v,
-                                                                                               2 * i])
+                    flux_1 = fstar_primary_lower[v, 2 * i - 1]
+                    flux_2 = fstar_primary_lower[v, 2 * i]
                 else
                     # Average neighboring fluxes from the upper small element
-                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
-                                                                          (fstar_primary_upper[v,
-                                                                                               2 * i - 1 - nnodes(dg)] +
-                                                                           fstar_primary_upper[v,
-                                                                                               2 * i - nnodes(dg)])
+                    flux_1 = fstar_primary_upper[v, 2 * i - 1 - nnodes(dg)]
+                    flux_2 = fstar_primary_upper[v, 2 * i - nnodes(dg)]
                 end
+                flux_average = 0.5f0 * (flux_1 + flux_2)
+                surface_flux_values[v, i, direction, large_element] = flux_average
             end
         end
     end

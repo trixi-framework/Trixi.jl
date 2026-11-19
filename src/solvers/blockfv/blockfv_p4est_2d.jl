@@ -148,6 +148,34 @@ function create_cache_volume_integral(mesh::P4estMesh{2}, equations,
             midpoint_y)
 end
 
+# Check the storage created by `create_cache_volume_integral` above
+function check_axes_volume_integral(mesh::P4estMesh{2}, equations,
+                                    volume_integral::VolumeIntegralFiniteVolume,
+                                    dg::BlockFV, cache)
+    check_axes_threaded(cache.fstar_x_threaded,
+                        (eachvariable(equations),
+                         Base.OneTo(nnodes(dg) + 1), eachnode(dg)))
+    check_axes_threaded(cache.fstar_y_threaded,
+                        (eachvariable(equations),
+                         eachnode(dg), Base.OneTo(nnodes(dg) + 1)))
+    check_axes_blockfv_geometry(mesh, dg, cache)
+    return nothing
+end
+
+# Check the face geometry of the FV cells created by `create_cache_volume_integral`.
+# It is also used for the interface and boundary fluxes, so it is checked there as well.
+function check_axes_blockfv_geometry(mesh::P4estMesh{2}, dg::BlockFV, cache)
+    faces_x_axes = (Base.OneTo(2), Base.OneTo(nnodes(dg) + 1), eachnode(dg),
+                    eachelement(dg, cache))
+    faces_y_axes = (Base.OneTo(2), eachnode(dg), Base.OneTo(nnodes(dg) + 1),
+                    eachelement(dg, cache))
+    check_axes(cache.normal_x, faces_x_axes)
+    check_axes(cache.midpoint_x, faces_x_axes)
+    check_axes(cache.normal_y, faces_y_axes)
+    check_axes(cache.midpoint_y, faces_y_axes)
+    return nothing
+end
+
 #####################################################################
 
 function prolong2interfaces!(backend::Nothing, cache, u,
@@ -159,16 +187,25 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(interfaces, equations, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        prolong2interfaces_per_interface!(interfaces_u, u, interface,
-                                          MeshT, equations,
-                                          neighbor_ids, node_indices, index_range)
+        @inbounds prolong2interfaces_per_interface!(interfaces_u, u, interface,
+                                                    MeshT, equations,
+                                                    neighbor_ids, node_indices,
+                                                    index_range)
     end
     return nothing
 end
 
-@inline function get_fv_boundary_normal(direction, normal_x, normal_y, i, j, element,
-                                        n_nodes)
+Base.@propagate_inbounds function get_fv_boundary_normal(direction,
+                                                         normal_x, normal_y,
+                                                         i, j, element,
+                                                         n_nodes)
     if direction == 1 # -x
         return SVector(-normal_x[1, 1, j, element], -normal_x[2, 1, j, element])
     elseif direction == 2 # +x
@@ -184,8 +221,10 @@ end
 
 # Exact physical midpoint of an FV cell's face at an element boundary, taken
 # from `midpoint_x`/`midpoint_y` computed in `create_cache_volume_integral`.
-@inline function get_fv_boundary_midpoint(direction, midpoint_x, midpoint_y, i, j,
-                                          element, n_nodes)
+Base.@propagate_inbounds function get_fv_boundary_midpoint(direction,
+                                                           midpoint_x, midpoint_y,
+                                                           i, j, element,
+                                                           n_nodes)
     if direction == 1 # -x
         return SVector(midpoint_x[1, 1, j, element], midpoint_x[2, 1, j, element])
     elseif direction == 2 # +x
@@ -214,49 +253,60 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.interfaces, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_blockfv_geometry(mesh, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
+        @inbounds begin
+            primary_element = neighbor_ids[1, interface]
+            primary_indices = node_indices[1, interface]
+            primary_direction = indices2direction(primary_indices)
 
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
+            i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                     index_range)
+            j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                     index_range)
 
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
+            secondary_element = neighbor_ids[2, interface]
+            secondary_indices = node_indices[2, interface]
+            secondary_direction = indices2direction(secondary_indices)
 
-        # This index on the primary side will always run forward but
-        # the secondary index might need to run backwards for flipped sides.
-        if NodeIndex.IBackward in secondary_indices
-            node_secondary = index_end
-            node_secondary_step = -1
-        else
-            node_secondary = 1
-            node_secondary_step = 1
-        end
+            # This index on the primary side will always run forward but
+            # the secondary index might need to run backwards for flipped sides.
+            if NodeIndex.IBackward in secondary_indices
+                node_secondary = index_end
+                node_secondary_step = -1
+            else
+                node_secondary = 1
+                node_secondary_step = 1
+            end
 
-        i_primary = i_primary_start
-        j_primary = j_primary_start
-        for node in index_range
-            normal_direction = get_fv_boundary_normal(primary_direction,
-                                                      normal_x, normal_y,
-                                                      i_primary, j_primary,
-                                                      primary_element, n_nodes)
+            i_primary = i_primary_start
+            j_primary = j_primary_start
+            for node in index_range
+                normal_direction = get_fv_boundary_normal(primary_direction,
+                                                          normal_x, normal_y,
+                                                          i_primary, j_primary,
+                                                          primary_element, n_nodes)
 
-            calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                                 equations, surface_integral, SolverT,
-                                 cache.interfaces.u, interface,
-                                 normal_direction, node,
-                                 primary_direction, primary_element,
-                                 node_secondary,
-                                 secondary_direction, secondary_element)
+                calc_interface_flux!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_integral, SolverT,
+                                     cache.interfaces.u, interface,
+                                     normal_direction,
+                                     node,
+                                     primary_direction, primary_element,
+                                     node_secondary,
+                                     secondary_direction, secondary_element)
 
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-            node_secondary += node_secondary_step
+                i_primary += i_primary_step
+                j_primary += j_primary_step
+                node_secondary += node_secondary_step
+            end
         end
     end
 
@@ -265,13 +315,70 @@ end
 
 #####################################################################
 
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::P4estMesh{2},
-                                     have_nonconservative_terms::False, equations,
-                                     surface_integral, dg::BlockFV, cache,
-                                     i_index, j_index,
-                                     node_index, direction_index, element_index,
-                                     boundary_index)
+# Same as the generic method for `P4estMesh{2}` except for the explicit bounds check,
+# which also covers the face geometry of the FV cells used in the per-node method below.
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
+                             mesh::P4estMesh{2},
+                             equations, surface_integral, dg::BlockFV) where {BC}
+    @unpack boundaries = cache
+    @unpack surface_flux_values = cache.elements
+    index_range = eachnode(dg)
+
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(boundaries, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_blockfv_geometry(mesh, dg, cache)
+    end
+
+    @threaded for local_index in eachindex(boundary_indexing)
+        @inbounds begin
+            # Use the local index to get the global boundary index from the
+            # pre-sorted list
+            boundary = boundary_indexing[local_index]
+
+            # Get information on the adjacent element, compute the surface fluxes,
+            # and store them
+            element = boundaries.neighbor_ids[boundary]
+            node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
+
+            i_node_start, i_node_step = index_to_start_step_2d(node_indices[1],
+                                                               index_range)
+            j_node_start, j_node_step = index_to_start_step_2d(node_indices[2],
+                                                               index_range)
+
+            i_node = i_node_start
+            j_node = j_node_start
+            for node in eachnode(dg)
+                calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                    mesh, have_nonconservative_terms(equations),
+                                    equations, surface_integral, dg, cache,
+                                    i_node, j_node,
+                                    node, direction, element, boundary)
+
+                i_node += i_node_step
+                j_node += j_node_step
+            end
+        end
+    end
+
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
+                                                      boundary_condition,
+                                                      mesh::P4estMesh{2},
+                                                      have_nonconservative_terms::False,
+                                                      equations,
+                                                      surface_integral,
+                                                      dg::BlockFV, cache,
+                                                      i_index, j_index,
+                                                      node_index,
+                                                      direction_index,
+                                                      element_index,
+                                                      boundary_index)
     @unpack boundaries = cache
     @unpack normal_x, normal_y, midpoint_x, midpoint_y = cache
     @unpack surface_flux = surface_integral
@@ -304,46 +411,61 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @unpack surface_flux = volume_integral
     @unpack fstar_x_threaded, fstar_y_threaded, normal_x, normal_y = cache
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integrals(mesh, equations, volume_integral, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        fstar_x = fstar_x_threaded[Threads.threadid()]
-        fstar_y = fstar_y_threaded[Threads.threadid()]
+        @inbounds begin
+            fstar_x = fstar_x_threaded[Threads.threadid()]
+            fstar_y = fstar_y_threaded[Threads.threadid()]
 
-        # x-direction: internal interfaces at i = 2, ..., n_nodes (between cells i-1, i).
-        # `normal` is the scaled face-normal vector (scaled by the interface length).
-        for j in eachnode(dg)
-            for i in 2:nnodes(dg)
-                u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
-                u_rr = get_node_vars(u, equations, dg, i, j, element)
-                normal = SVector(normal_x[1, i, j, element], normal_x[2, i, j, element])
-                f = surface_flux(u_ll, u_rr, normal, equations)
-                set_node_vars!(fstar_x, f, equations, dg, i, j)
+            # x-direction: internal interfaces at i = 2, ..., n_nodes
+            # (between cells i-1, i).
+            # `normal` is the scaled face-normal vector (scaled by the interface length).
+            for j in eachnode(dg)
+                for i in 2:nnodes(dg)
+                    u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
+                    u_rr = get_node_vars(u, equations, dg, i, j, element)
+                    normal = SVector(normal_x[1, i, j, element],
+                                     normal_x[2, i, j, element])
+                    f = surface_flux(u_ll, u_rr, normal, equations)
+                    set_node_vars!(fstar_x, f, equations, dg, i, j)
+                end
             end
-        end
 
-        # y-direction: internal interfaces at j = 2, ..., n_nodes (between cells j-1, j).
-        # `normal` is the scaled face-normal vector (scaled by the interface length).
-        for j in 2:nnodes(dg)
-            for i in eachnode(dg)
-                u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
-                u_rr = get_node_vars(u, equations, dg, i, j, element)
-                normal = SVector(normal_y[1, i, j, element], normal_y[2, i, j, element])
-                f = surface_flux(u_ll, u_rr, normal, equations)
-                set_node_vars!(fstar_y, f, equations, dg, i, j)
+            # y-direction: internal interfaces at j = 2, ..., n_nodes
+            # (between cells j-1, j).
+            # `normal` is the scaled face-normal vector (scaled by the interface length).
+            for j in 2:nnodes(dg)
+                for i in eachnode(dg)
+                    u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
+                    u_rr = get_node_vars(u, equations, dg, i, j, element)
+                    normal = SVector(normal_y[1, i, j, element],
+                                     normal_y[2, i, j, element])
+                    f = surface_flux(u_ll, u_rr, normal, equations)
+                    set_node_vars!(fstar_y, f, equations, dg, i, j)
+                end
             end
-        end
 
-        # Apply flux differences
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                for v in eachvariable(equations)
-                    # We require `du` to be set to zero before this operation.
-                    # The numerical fluxes are computed using scaled normal
-                    # directions (scaled by the interface length) and the
-                    # division by the cell volume (Jacobian) is done later
-                    # when evaluating the semidiscretization (`rhs_hyperbolic!`).
-                    du[v, i, j, element] = (du[v, i, j, element] +
-                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
-                                            (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
+            # Apply flux differences
+            for j in eachnode(dg)
+                for i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        # We require `du` to be set to zero before this operation.
+                        # The numerical fluxes are computed using scaled normal
+                        # directions (scaled by the interface length) and the
+                        # division by the cell volume (Jacobian) is done later
+                        # when evaluating the semidiscretization (`rhs_hyperbolic!`).
+                        du[v, i, j, element] = (du[v, i, j, element] +
+                                                (fstar_x[v, i + 1, j] -
+                                                 fstar_x[v, i, j]) +
+                                                (fstar_y[v, i, j + 1] -
+                                                 fstar_y[v, i, j]))
+                    end
                 end
             end
         end
@@ -360,21 +482,31 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 dg::BlockFV, cache)
     @unpack surface_flux_values = cache.elements
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg)
-            for v in eachvariable(equations)
-                # surface at -x
-                du[v, 1, l, element] = du[v, 1, l, element] +
-                                       surface_flux_values[v, l, 1, element]
-                # surface at +x
-                du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
-                                                surface_flux_values[v, l, 2, element]
-                # surface at -y
-                du[v, l, 1, element] = du[v, l, 1, element] +
-                                       surface_flux_values[v, l, 3, element]
-                # surface at +y
-                du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
-                                                surface_flux_values[v, l, 4, element]
+        @inbounds begin
+            for l in eachnode(dg)
+                for v in eachvariable(equations)
+                    # surface at -x
+                    du[v, 1, l, element] = du[v, 1, l, element] +
+                                           surface_flux_values[v, l, 1, element]
+                    # surface at +x
+                    du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
+                                                    surface_flux_values[v, l, 2,
+                                                                        element]
+                    # surface at -y
+                    du[v, l, 1, element] = du[v, l, 1, element] +
+                                           surface_flux_values[v, l, 3, element]
+                    # surface at +y
+                    du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
+                                                    surface_flux_values[v, l, 4,
+                                                                        element]
+                end
             end
         end
     end

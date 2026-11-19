@@ -8,6 +8,9 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- Add `@inbounds` statements and their correct propagation through
+  `Base.@propagate_inbounds` for the `BlockFV` solver, together with
+  explicit bounds checks before assuming inbounds access ([#3476]).
 
 #### Changed
 
