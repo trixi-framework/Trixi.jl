@@ -244,6 +244,47 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
     return max_scaled_speed
 end
 
+function calc_max_scaled_diffusivity(backend::Nothing, u, mesh, constant_diffusivity,
+                                     equations, equations_parabolic, dg, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    max_scaled_diffusivity = zero(eltype(u))
+    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
+        max_diffusivity_ = max_scaled_diffusivity_per_element(u, typeof(mesh),
+                                                              constant_diffusivity,
+                                                              equations,
+                                                              equations_parabolic, dg,
+                                                              contravariant_vectors,
+                                                              inverse_jacobian,
+                                                              element)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_diffusivity = Base.max(max_scaled_diffusivity, max_diffusivity_)
+    end
+    return max_scaled_diffusivity
+end
+
+function calc_max_scaled_diffusivity(backend::Backend, u, ::MeshT, constant_diffusivity,
+                                     equations, equations_parabolic, dg,
+                                     cache) where {MeshT}
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    num_elements = nelements(dg, cache)
+    init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
+
+    # Provide a custom neutral and init element since we "reduce" over 1:num_elements
+    max_scaled_diffusivity = mapreduce_accelerated(Base.max, 1:num_elements, backend;
+                                                   init, neutral) do element
+        max_scaled_diffusivity_per_element(u, MeshT, constant_diffusivity,
+                                           equations, equations_parabolic, dg,
+                                           contravariant_vectors,
+                                           inverse_jacobian,
+                                           element)
+    end
+
+    return max_scaled_diffusivity
+end
+
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")

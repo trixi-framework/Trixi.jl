@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- The parabolic time step restriction of the `StepsizeCallback` (keyword argument
+  `cfl_parabolic`) is supported on GPUs for `P4estMesh`es.
 
 #### Changed
 

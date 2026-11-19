@@ -551,3 +551,44 @@ end
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
+
+@testitem "CUDA 2D: parabolic time step Float64 / CUDA" setup=[Setup] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+
+    function max_dt_parabolic(semi)
+        mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; equations_parabolic) = semi
+        t = zero(real(semi))
+        u = Trixi.wrap_array(compute_coefficients(t, semi), semi)
+        return Trixi.max_dt(u, t, mesh,
+                            Trixi.have_constant_diffusivity(equations_parabolic),
+                            equations, equations_parabolic, solver, cache)
+    end
+
+    # Curved mesh with a varying Jacobian, so that the time step differs between elements
+    mapping(xi, eta) = SVector(xi + 0.1 * sinpi(eta), eta + 0.1 * sinpi(0.5 * (eta + 1)))
+    mesh = P4estMesh((2, 2), polydeg = 3, mapping = mapping, periodicity = true)
+    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic)
+
+    # Constant diffusivity, reference value computed on the CPU
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    equations_parabolic = LaplaceDiffusion2D(0.1, equations)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition_convergence_test,
+                                                 solver; boundary_conditions)
+    semi = trixi_adapt(semi; storage_type = CuArray)
+    @test semi.cache.elements.inverse_jacobian isa CuArray
+    @test isapprox(max_dt_parabolic(semi), 0.9529311138911759, rtol = 1.0e-12)
+
+    # Solution-dependent diffusivity, reference value computed on the CPU
+    equations = CompressibleEulerEquations2D(1.4)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = 0.1,
+                                                              Prandtl = 0.72)
+    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                 initial_condition_convergence_test,
+                                                 solver; boundary_conditions)
+    semi = trixi_adapt(semi; storage_type = CuArray)
+    @test isapprox(max_dt_parabolic(semi), 0.9427528782978488, rtol = 1.0e-12)
+end
