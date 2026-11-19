@@ -125,6 +125,9 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
                                            RealT, uEltype)
 
+    # Move analyzer to GPU, used in calc_error_norms
+    analyzer = trixi_adapt(storage_type(mesh, cache), RealT, analyzer)
+
     analysis_callback = AnalysisCallback(0.0, 0.0, 0, 0.0,
                                          interval, save_analysis, output_directory,
                                          analysis_filename,

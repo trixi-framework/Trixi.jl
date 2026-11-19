@@ -219,23 +219,18 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
                                       T8codeMesh{2}},
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
-    @unpack weights = analyzer
+    @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
 
     n_nodes = nnodes(dg)
     n_nodes_analysis = nnodes(analyzer)
     n_elements = nelements(dg, cache)
 
-    # TODO GPU: vandermonde needs to be moved to the GPU
-    vandermonde = SMatrix{n_nodes_analysis, n_nodes}(analyzer.vandermonde)
-
+    # Set up data structures
     u_node_type = SVector{nvariables(equations), eltype(u)}
     u0 = zero(u_node_type)
     x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
-
-    # We cannot evaluate `func` on GPU data here to get the type of the errors.
-    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    error0 = zero(Base.promote_op(func, u_node_type, typeof(equations)))
+    error0 = zero_return_type(func, u_node_type, typeof(equations))
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     init = neutral = (error0, error0, volume0)
 
