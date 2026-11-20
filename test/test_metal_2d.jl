@@ -410,5 +410,5 @@ end
     dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
                       Trixi.have_constant_diffusivity(equations_parabolic), equations,
                       equations_parabolic, solver, cache)
-    @test isapprox(dt, 1.0044642857142447, rtol = sqrt(eps(Float32)))
+    @test isapprox(dt, 1.0044643f0, rtol = sqrt(eps(Float32)))
 end
