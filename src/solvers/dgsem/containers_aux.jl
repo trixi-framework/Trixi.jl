@@ -11,7 +11,9 @@
 struct AuxVarsContainer{NDIMS, uEltype <: Real,
                         Aux <: AbstractArray{uEltype},
                         AuxInterface <: AbstractArray{uEltype},
-                        AuxMortar <: AbstractArray{uEltype}, AuxField}
+                        AuxMortar <: AbstractArray{uEltype},
+                        AuxMPIInterface <: AbstractArray{uEltype},
+                        AuxMPIMortar <: AbstractArray{uEltype}, AuxField}
     # 2D: [var, i, j, element]
     # 3D: [var, i, j, k, element]
     aux::Aux
@@ -24,6 +26,11 @@ struct AuxVarsContainer{NDIMS, uEltype <: Real,
     # 3D: [leftright, var, position, i, j, mortar]
     aux_mortar::AuxMortar
 
+    # Same as `aux_interface` and `aux_mortar` for the MPI interfaces and MPI mortars,
+    # which are empty for serial meshes
+    aux_mpi_interface::AuxMPIInterface
+    aux_mpi_mortar::AuxMPIMortar
+
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
 end
@@ -34,11 +41,15 @@ function Adapt.adapt_structure(to, aux_vars::AuxVarsContainer{NDIMS}) where {NDI
     aux = adapt(to, aux_vars.aux)
     aux_interface = adapt(to, aux_vars.aux_interface)
     aux_mortar = adapt(to, aux_vars.aux_mortar)
+    aux_mpi_interface = adapt(to, aux_vars.aux_mpi_interface)
+    aux_mpi_mortar = adapt(to, aux_vars.aux_mpi_mortar)
     @unpack aux_field = aux_vars
 
     return AuxVarsContainer{NDIMS, eltype(aux), typeof(aux),
                             typeof(aux_interface), typeof(aux_mortar),
+                            typeof(aux_mpi_interface), typeof(aux_mpi_mortar),
                             typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                               aux_mpi_interface, aux_mpi_mortar,
                                                aux_field)
 end
 
@@ -80,15 +91,43 @@ end
                        eachmortar(solver, cache)))
 end
 
-# Create and initialize the container of auxiliary variables. Only serial `P4estMesh`es
-# provide the containers of interfaces and mortars used below. Other mesh types throw an
-# error before accessing them, see also `init_aux_surface_node_vars!`.
+@inline check_axes_aux_mpi_interface(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_interface(aux_mpi_interface, equations,
+                                              solver, cache)
+    # 2D: [leftright, var, i, mpi_interface]
+    # 3D: [leftright, var, i, j, mpi_interface]
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_interface) - 3))
+    return check_axes(aux_mpi_interface,
+                      (Base.OneTo(2), eachauxvariable(equations), surface_node_axes...,
+                       eachmpiinterface(solver, cache)))
+end
+
+@inline check_axes_aux_mpi_mortar(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_mortar(aux_mpi_mortar, equations, solver, cache)
+    # 2D: [leftright, var, position, i, mpi_mortar]
+    # 3D: [leftright, var, position, i, j, mpi_mortar]
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_mortar) - 4))
+    return check_axes(aux_mpi_mortar,
+                      (Base.OneTo(2), eachauxvariable(equations),
+                       Base.OneTo(2^length(surface_node_axes)), surface_node_axes...,
+                       eachmpimortar(solver, cache)))
+end
+
+# Number of MPI interfaces and MPI mortars, which only exist for parallel meshes,
+# see `dgsem_p4est/containers_parallel.jl`
+@inline nmpiinterfaces_aux(mesh, cache) = 0
+@inline nmpimortars_aux(mesh, cache) = 0
+
+# Create and initialize the container of auxiliary variables. Only `P4estMesh`es provide
+# the containers of interfaces and mortars used below. Other mesh types throw an error
+# before accessing them, see also `init_aux_surface_node_vars!`.
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     throw_aux_not_implemented(mesh, solver)
 end
 
-function init_aux_vars(mesh::P4estMeshSerial, equations, solver::DGSEM, cache,
-                       aux_field)
+function init_aux_vars(mesh::P4estMesh, equations, solver::DGSEM, cache, aux_field)
     NDIMS = ndims(mesh)
     n_aux = nauxvariables(equations)
     n_nodes = nnodes(solver)
@@ -109,10 +148,19 @@ function init_aux_vars(mesh::P4estMeshSerial, equations, solver::DGSEM, cache,
     aux_mortar = fill(nan_uEltype,
                       (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
                        nmortars(cache.mortars)))
+    # Same for the MPI interfaces and MPI mortars, which are empty for serial meshes
+    aux_mpi_interface = fill(nan_uEltype,
+                             (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
+                              nmpiinterfaces_aux(mesh, cache)))
+    aux_mpi_mortar = fill(nan_uEltype,
+                          (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
+                           nmpimortars_aux(mesh, cache)))
 
     aux_vars = AuxVarsContainer{NDIMS, uEltype, typeof(aux),
                                 typeof(aux_interface), typeof(aux_mortar),
+                                typeof(aux_mpi_interface), typeof(aux_mpi_mortar),
                                 typeof(aux_field)}(aux, aux_interface, aux_mortar,
+                                                   aux_mpi_interface, aux_mpi_mortar,
                                                    aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
@@ -165,8 +213,8 @@ end
 
 # Filling the interface and mortar values requires information about the coupling of the
 # elements and is thus implemented for each mesh type separately, currently only for
-# serial `P4estMesh{2}`es and `P4estMesh{3}`es in `dgsem_p4est/containers_2d.jl` and
-# `dgsem_p4est/containers_3d.jl`.
+# serial `P4estMesh{2}`es in `dgsem_p4est/containers_2d.jl` and `P4estMesh{3}`es in
+# `dgsem_p4est/containers_3d.jl` and `dgsem_p4est/containers_parallel_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     throw_aux_not_implemented(mesh, solver)
 end
