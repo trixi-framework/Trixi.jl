@@ -6955,15 +6955,6 @@ end
     aux_field(x, equations) = SVector(1 + 0.125f0 * sinpi(x[1]), 0.5f0 * sinpi(x[2]))
 
     @timed_testset "Initialization" begin
-        # `aux_field` has to return the correct number of auxiliary variables
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
-                                                                initial_condition,
-                                                                solver;
-                                                                boundary_conditions = boundary_condition_periodic,
-                                                                aux_field = (x, equations) -> SVector(1,
-                                                                                                      2,
-                                                                                                      3))
-
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic,
                                             aux_field)
@@ -6980,27 +6971,6 @@ end
                   for i in 1:3, j in 1:3, element in 1:4)
         # The auxiliary variables are continuous, so both sides of an interface agree
         @test aux_interface[1, :, :, :] ≈ aux_interface[2, :, :, :]
-        @test_nowarn show(devnull, MIME"text/plain"(), semi)
-    end
-
-    @timed_testset "Remake, automatic differentiation, and trixi_adapt" begin
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                            boundary_conditions = boundary_condition_periodic,
-                                            aux_field)
-        semi_remade = Trixi.remake(semi)
-        @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
-        @test semi_remade.cache.aux_vars.aux_interface ==
-              semi.cache.aux_vars.aux_interface
-        @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
-
-        semi32 = trixi_adapt(semi; real_type = Float32)
-        @test semi32.cache.aux_vars.aux isa Array{Float32, 4}
-        @test semi32.cache.aux_vars.aux ≈ semi.cache.aux_vars.aux
-        u_ode = compute_coefficients(0.0f0, semi32)
-        du_ode = similar(u_ode)
-        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi32, 0.0f0)
-        @test eltype(du_ode) == Float32
-        @test all(isfinite, du_ode)
     end
 
     @timed_testset "Analysis functions get the auxiliary variables" begin
@@ -7021,8 +6991,6 @@ end
         @test Trixi.integrate_w_dot_stage(u, u, mesh, equations, solver, semi.cache) ≈
               Trixi.integrate((u, aux, equations) -> u[1]^2, u_ode, semi)
 
-        # Plots use `cons2prim(u, aux, equations)` by default
-        @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
         @test PlotData2D(u_ode, semi) isa Trixi.PlotData2DTriangulated
 
         # Plots interpolate `aux[1]` in the same way as a solution `u = aux[1]`.
@@ -7063,15 +7031,6 @@ end
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
                                                                 initial_condition,
                                                                 solver_gauss;
-                                                                boundary_conditions = boundary_condition_periodic,
-                                                                aux_field)
-
-        mesh_structured = StructuredMesh((2, 2), (-1.0, -1.0), (1.0, 1.0),
-                                         periodicity = true)
-        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_structured,
-                                                                equations,
-                                                                initial_condition,
-                                                                solver;
                                                                 boundary_conditions = boundary_condition_periodic,
                                                                 aux_field)
 

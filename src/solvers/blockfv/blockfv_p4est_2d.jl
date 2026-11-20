@@ -213,6 +213,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     n_nodes = nnodes(dg)
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
+    # `nothing` if the equations do not have auxiliary variables
+    aux_interface = get_aux_interface_vars(cache)
 
     @threaded for interface in eachinterface(dg, cache)
         primary_element = neighbor_ids[1, interface]
@@ -246,10 +248,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                       i_primary, j_primary,
                                                       primary_element, n_nodes)
 
-            # Auxiliary variables are not supported for this solver
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
-                                 cache.interfaces.u, nothing, interface,
+                                 cache.interfaces.u, aux_interface, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
                                  node_secondary,
