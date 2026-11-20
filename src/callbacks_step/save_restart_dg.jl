@@ -203,7 +203,8 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
                                        UnstructuredMesh2D, P4estMeshSerial,
                                        T8codeMeshSerial},
                            equations, dg::DG, cache,
-                           restart_file, interpolate_high2low, correct_mass)
+                           restart_file,
+                           interpolate_high2low, correct_mass)
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
@@ -372,21 +373,24 @@ end
 
 function load_restart_file(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                        T8codeMeshParallel}, equations,
-                           dg::DG, cache, restart_file, interpolate_high2low,
-                           correct_mass)
+                           dg::DG, cache, restart_file,
+                           interpolate_high2low, correct_mass)
     if HDF5.has_parallel()
         load_restart_file_parallel(mesh, equations, dg, cache,
-                                   restart_file, interpolate_high2low, correct_mass)
+                                   restart_file,
+                                   interpolate_high2low, correct_mass)
     else
         load_restart_file_on_root(mesh, equations, dg, cache,
-                                  restart_file, interpolate_high2low, correct_mass)
+                                  restart_file,
+                                  interpolate_high2low, correct_mass)
     end
 end
 
 function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                 T8codeMeshParallel},
                                     equations, dg::DG, cache,
-                                    restart_file, interpolate_high2low, correct_mass)
+                                    restart_file,
+                                    interpolate_high2low, correct_mass)
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -464,7 +468,8 @@ end
 function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                T8codeMeshParallel},
                                    equations, dg::DG, cache,
-                                   restart_file, interpolate_high2low, correct_mass)
+                                   restart_file,
+                                   interpolate_high2low, correct_mass)
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
