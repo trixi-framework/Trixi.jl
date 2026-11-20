@@ -295,9 +295,14 @@ Optional keyword arguments:
   For `correct_mass = true`, the same constant is added to all nodal values of each element
   after the conversion such that the discrete mass `sum_i w_i (J u)_i` of each element
   agrees with the one of the original simulation, i.e., the conversion is conservative
-  on all meshes. On curvilinear meshes, this can modify constant states slightly if
-  the discrete volume `sum_i w_i J_i` of an element depends on the polynomial degree,
-  i.e., free-stream preservation may be lost. Default is `false`.
+  on all meshes. Default is `false`.
+  **Note:** The mass correction comes at the cost of losing free-stream preservation on
+  curvilinear meshes in general. If the discrete volume `sum_i w_i J_i` of an element
+  depends on the polynomial degree (e.g., for a `StructuredMesh` with curved elements,
+  whose geometry is approximated with the polynomial degree of the solver), a constant
+  state is modified by the correction. This perturbation converges to zero with the
+  order of the LGL quadrature error under mesh refinement, but is not at the level of
+  machine precision on coarse meshes.
 - `jac_prototype`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
