@@ -321,6 +321,35 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_euler_free_stream_restart_polydeg_higher.jl (mass correction)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # The discrete volume of each element does not depend on the polynomial degree,
+    # since the LGL quadrature integrates the Jacobian exactly for a solver polynomial
+    # degree that is not lower than the one of the mesh. Thus, the mass correction
+    # preserves the free stream.
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_restart_polydeg_higher.jl"),
+                        correct_mass=true,
+                        l2=[
+                            3.699921944579549e-14,
+                            1.3103022358453464e-13,
+                            2.1518954058947216e-13,
+                            9.428897333359404e-14
+                        ],
+                        linf=[
+                            8.514300375850326e-13,
+                            6.280337361275201e-12,
+                            1.2099321544667418e-11,
+                            1.1329603921694797e-11
+                        ],
+                        atol=2.0e-12,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh2D: elixir_euler_free_stream_hybrid_mesh.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_hybrid_mesh.jl"),

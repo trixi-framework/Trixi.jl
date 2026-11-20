@@ -19,7 +19,14 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = (;
                                                            all = BoundaryConditionDirichlet(initial_condition)))
 
-ode = semidiscretize(semi, tspan, restart_filename)
+# On curvilinear meshes, the conversion of the solution to a different polynomial degree
+# does in general not conserve the discrete mass of each element exactly.
+# Use `correct_mass = true` to restore exact conservation.
+# This may come at the cost of losing free-stream preservation
+# if the discrete volume of an element depends on the polynomial degree,
+# see the docstring of `semidiscretize`.
+ode = semidiscretize(semi, tspan, restart_filename,
+                     correct_mass = false)
 
 # We need to lower the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 1.0)

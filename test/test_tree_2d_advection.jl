@@ -139,6 +139,22 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D Advection: elixir_advection_restart_polydeg_lower.jl (Interpolation 3 -> 1, mass correction)" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    # In contrast to 3 -> 2, the interpolation 3 -> 1 does not conserve the discrete mass
+    # of each element, since the LGL quadrature with 2 nodes is not exact for cubics
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_restart_polydeg_lower.jl"),
+                        solver=DGSEM(polydeg = 1, surface_flux = flux_lax_friedrichs),
+                        interpolate_high2low=true, correct_mass=true,
+                        l2=[0.01759046094197557], linf=[0.04245957822070823])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D Advection: elixir_advection_mortar.jl" setup=[
     Setup,
     TreeMesh2DAdvection

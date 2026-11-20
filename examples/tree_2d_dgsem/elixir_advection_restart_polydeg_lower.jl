@@ -20,12 +20,21 @@ tspan = (1.0, 2.0)
 # smaller L2 errors, but is in general not continuous across element interfaces.
 interpolate_high2low = true
 
+# On curvilinear meshes, the conversion of the solution to a different polynomial degree
+# does in general not conserve the discrete mass of each element exactly.
+# Use `correct_mass = true` to restore exact conservation.
+# This may come at the cost of losing free-stream preservation
+# if the discrete volume of an element depends on the polynomial degree,
+# see the docstring of `semidiscretize`.
+correct_mass = false
+
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
-ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low)
+ode = semidiscretize(semi, tspan, restart_filename;
+                     interpolate_high2low, correct_mass)
 
 # We can increase the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 2.0)
