@@ -781,12 +781,25 @@ mutable struct P4estIDPMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, NodeIndex.T}}} <:
                AbstractMortarContainer
-    u::uArray # [small/large side, variable, position, i, j, mortar]
-    u_large::uLArray # [variable, i, j, mortar]
-    neighbor_ids::IdsMatrix # [position, mortar]
-    node_indices::IndicesMatrix # [small/large, mortar]
-    limiting_factor::Vector{uEltype} # [mortar]
-    limiting_factor_local::Vector{uEltype} # [mortar]
+
+    # 2D: [small/large side, variable, position, i, mortar]
+    # 3D: [small/large side, variable, position, i, j, mortar]
+    u::uArray
+
+    # 2D: [variable, i, mortar]
+    # 3D: [variable, i, j, mortar]
+    u_large::uLArray # added for IDP mortars
+
+    # 2D/3D: [position, mortar]
+    neighbor_ids::IdsMatrix
+
+    # 2D/3D: [small/large side, mortar]
+    node_indices::IndicesMatrix
+
+    # 2D/3D: [mortar]
+    limiting_factor::Vector{uEltype} # added for IDP mortars
+    limiting_factor_local::Vector{uEltype} # added for IDP mortars
+
     # internal `resize!`able storage
     _u::uVector
     _u_large::uVector
