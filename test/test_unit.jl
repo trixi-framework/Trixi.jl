@@ -7023,6 +7023,36 @@ end
 
         # Plots use `cons2prim(u, aux, equations)` by default
         @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
+        @test PlotData2D(u_ode, semi) isa Trixi.PlotData2DTriangulated
+
+        # Plots interpolate `aux[1]` in the same way as a solution `u = aux[1]`.
+        # Along a curve, the mesh with `polydeg = 1` uses the search of p4est, the mesh
+        # with `polydeg = 2` the general implementation.
+        first_aux(u, aux, equations) = SVector(aux[1])
+        function Trixi.varnames(::typeof(first_aux),
+                                ::ConservativeLinearScalarAdvectionEquation2D)
+            return ("a1",)
+        end
+        mesh_quadratic = P4estMesh((2, 2), polydeg = 2,
+                                   coordinates_min = (-1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0), periodicity = true)
+        curve = vcat(range(-0.9, 0.9, length = 17)', fill(-0.2, 1, 17))
+        for mesh_ in (mesh, mesh_quadratic)
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
+                                                 boundary_conditions = boundary_condition_periodic,
+                                                 aux_field)
+            u_ode_ = compute_coefficients(0.0, semi_)
+            aux_as_u_ode = vec(semi_.cache.aux_vars.aux[1, :, :, :])
+            pd_aux = PlotData2D(u_ode_, semi_; solution_variables = first_aux)
+            pd_u = PlotData2D(aux_as_u_ode, semi_; solution_variables = cons2cons)
+            @test pd_aux.data ≈ pd_u.data
+            @test pd_aux.face_data ≈ pd_u.face_data
+            pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, curve,
+                                variable_names = ["a1"])
+            pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, curve)
+            @test pd_aux.data ≈ pd_u.data
+        end
     end
 
     @timed_testset "Unsupported meshes and solvers" begin
