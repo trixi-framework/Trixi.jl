@@ -64,13 +64,21 @@ end
                                           source_terms_parabolic=nothing,
                                           bboundary_conditions,
                                           RealT=real(solver),
-                                          uEltype=RealT)
+                                          uEltype=RealT,
+                                          aux_field=nothing)
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
 
 Boundary conditions must be provided explicitly as a tuple of two boundary conditions, where the first entry corresponds to the
 hyperbolic part and the second to the parabolic part. The boundary conditions for the hyperbolic and parabolic part can be
 either passed as `NamedTuple` or as a single boundary condition that is applied to all boundaries.
+
+`aux_field` is a function `aux_field(x, equations)` returning the auxiliary variables at
+the node coordinates `x`. It is required for equations using auxiliary variables and must
+not be passed otherwise, see [`nauxvariables`](@ref). The auxiliary variables are
+evaluated once when the semidiscretization is created and are passed to both the
+hyperbolic and the parabolic terms, so the parabolic equations must have the same
+number of auxiliary variables as the hyperbolic equations.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                initial_condition, solver;
@@ -80,7 +88,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                boundary_conditions,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT)
+                                               RealT = real(solver), uEltype = RealT,
+                                               aux_field = nothing)
     equations, equations_parabolic = equations
 
     @assert ndims(mesh) == ndims(equations)
@@ -90,9 +99,37 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
         throw(ArgumentError("Current implementation of parabolic terms requires the same number of conservative and gradient variables."))
     end
 
+    # The parabolic terms receive the same auxiliary variables as the hyperbolic terms
+    if nauxvariables(equations_parabolic) != nauxvariables(equations)
+        throw(ArgumentError("`$(nameof(typeof(equations_parabolic)))` has " *
+                            "$(nauxvariables(equations_parabolic)) auxiliary variables " *
+                            "but `$(nameof(typeof(equations)))` has " *
+                            "$(nauxvariables(equations)), see `nauxvariables`"))
+    end
+
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
+
+    # Whether auxiliary variables are used is a fixed property of the `equations`.
+    # They are only stored for equations with `nauxvariables(equations) > 0`. Otherwise,
+    # the `aux_vars` field is absent from the `cache`, which keeps every simulation without
+    # auxiliary variables completely unaffected.
+    if nauxvariables(equations) > 0
+        if aux_field === nothing
+            throw(ArgumentError("`$(nameof(typeof(equations)))` has " *
+                                "$(nauxvariables(equations)) auxiliary variables, " *
+                                "so an `aux_field` must be passed, " *
+                                "see `nauxvariables`"))
+        end
+        aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
+        cache = (; cache..., aux_vars)
+    elseif aux_field !== nothing
+        throw(ArgumentError("`aux_field` was passed but " *
+                            "`$(nameof(typeof(equations)))` does not have any " *
+                            "auxiliary variables, see `nauxvariables`"))
+    end
+
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
@@ -151,7 +188,9 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
                 source_terms = semi.source_terms,
                 source_terms_parabolic = semi.source_terms_parabolic,
                 boundary_conditions = semi.boundary_conditions,
-                boundary_conditions_parabolic = semi.boundary_conditions_parabolic)
+                boundary_conditions_parabolic = semi.boundary_conditions_parabolic,
+                aux_field = nauxvariables(equations) > 0 ? get_aux_field(semi.cache) :
+                            nothing)
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
@@ -162,7 +201,7 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
                                                      source_terms_parabolic,
                                                      boundary_conditions = (boundary_conditions,
                                                                             boundary_conditions_parabolic),
-                                                     uEltype)
+                                                     uEltype, aux_field)
     return copy_tuning(semi_new, semi)
 end
 
@@ -208,6 +247,9 @@ function Base.show(io::IO, ::MIME"text/plain",
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "source terms parabolic", semi.source_terms_parabolic)
+        if nauxvariables(semi.equations) > 0
+            summary_line(io, "auxiliary variables", semi.cache.aux_vars.aux_field)
+        end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))

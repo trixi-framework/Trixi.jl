@@ -6592,6 +6592,79 @@ end
         @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),
                                               1, 1, 1) === ()
     end
+
+    @timed_testset "SemidiscretizationHyperbolicParabolic" begin
+        equations_parabolic = LaplaceDiffusion3D(0.1, equations)
+        equations_parabolic_no_aux = LaplaceDiffusion3D(0.1, equations_no_aux)
+        @test nauxvariables(equations_parabolic) == 3
+        @test nauxvariables(equations_parabolic_no_aux) == 0
+        boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic)
+
+        @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh,
+                                                                         (equations,
+                                                                          equations_parabolic),
+                                                                         initial_condition,
+                                                                         solver;
+                                                                         boundary_conditions)
+        @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh,
+                                                                         (equations_no_aux,
+                                                                          equations_parabolic_no_aux),
+                                                                         initial_condition,
+                                                                         solver;
+                                                                         boundary_conditions,
+                                                                         aux_field)
+        # The parabolic terms receive the auxiliary variables of the hyperbolic terms
+        @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh,
+                                                                         (equations,
+                                                                          equations_parabolic_no_aux),
+                                                                         initial_condition,
+                                                                         solver;
+                                                                         boundary_conditions,
+                                                                         aux_field)
+
+        semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     boundary_conditions, aux_field)
+        @test occursin("auxiliary variables",
+                       sprint(show, MIME"text/plain"(), semi))
+
+        # `remake` evaluates the same `aux_field` again by default
+        semi_remade = Trixi.remake(semi)
+        @test Trixi.get_aux_field(semi_remade.cache) === aux_field
+        @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
+
+        # `remake` is used to compute Jacobians via automatic differentiation
+        A, _ = linear_structure_parabolic(semi)
+        @test jacobian_ad_forward_parabolic(semi) ≈ Matrix(A)
+    end
+
+    @timed_testset "Parabolic boundary conditions" begin
+        # The boundary values of `LaplaceDiffusion3D` do not depend on the auxiliary
+        # variables
+        equations_parabolic = LaplaceDiffusion3D(0.1, equations)
+        flux_inner = SVector(5.0)
+        u = SVector(2.0)
+        aux = SVector(3.0, -1.0, 0.5)
+        normal_direction = SVector(0.0, 2.0, 0.0)
+        x = SVector(0.1, 0.2, 0.3)
+        t = 0.5
+
+        boundary_value(x, t, equations) = SVector(x[1] + t)
+        boundary_condition = BoundaryConditionDirichlet(boundary_value)
+        @test boundary_condition(flux_inner, u, aux, normal_direction, x, t,
+                                 Trixi.Gradient(), equations_parabolic) ≈ SVector(0.6)
+        @test boundary_condition(flux_inner, u, aux, normal_direction, x, t,
+                                 Trixi.Divergence(), equations_parabolic) == flux_inner
+
+        # The prescribed normal flux is scaled by `norm(normal_direction)`
+        boundary_normal_flux(x, t, equations) = SVector(x[2] - t)
+        boundary_condition = BoundaryConditionNeumann(boundary_normal_flux)
+        @test boundary_condition(flux_inner, u, aux, normal_direction, x, t,
+                                 Trixi.Gradient(), equations_parabolic) == flux_inner
+        @test boundary_condition(flux_inner, u, aux, normal_direction, x, t,
+                                 Trixi.Divergence(), equations_parabolic) ≈ SVector(-0.6)
+    end
 end
 
 @testitem "Unit: FluxTurbo with auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -6715,6 +6788,12 @@ end
                                         Trixi.Gradient(), equations_parabolic) ==
           flux_inner
     @test boundary_condition_do_nothing(flux_inner, nothing, outward_direction, x, t,
+                                        Trixi.Divergence(), equations_parabolic) ==
+          flux_inner
+    @test boundary_condition_do_nothing(flux_inner, u, aux, outward_direction, x, t,
+                                        Trixi.Gradient(), equations_parabolic) ==
+          flux_inner
+    @test boundary_condition_do_nothing(flux_inner, u, aux, outward_direction, x, t,
                                         Trixi.Divergence(), equations_parabolic) ==
           flux_inner
 

@@ -144,12 +144,12 @@ end
                                                     constant_diffusivity::False,
                                                     equations, equations_parabolic,
                                                     dg::DG, contravariant_vectors,
-                                                    inverse_jacobian, aux::Nothing,
-                                                    element)
+                                                    inverse_jacobian, aux, element)
     max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        diffusivity = max_diffusivity(u_node, equations_parabolic)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+        diffusivity = max_diffusivity(u_node, aux_node..., equations_parabolic)
 
         # Local diffusivity transformed to the reference element
         Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
@@ -220,8 +220,7 @@ end
                                                     constant_diffusivity::True,
                                                     equations, equations_parabolic,
                                                     dg::DG, contravariant_vectors,
-                                                    inverse_jacobian, aux::Nothing,
-                                                    element)
+                                                    inverse_jacobian, aux, element)
     diffusivity = max_diffusivity(equations_parabolic)
 
     max_diffusivity1 = max_diffusivity2 = max_diffusivity3 = zero(eltype(u))

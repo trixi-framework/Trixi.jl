@@ -1,0 +1,105 @@
+using OrdinaryDiffEqLowStorageRK
+using Trixi
+
+###############################################################################
+# semidiscretization of the linear advection-diffusion equation with the advection
+# velocity stored as auxiliary variables, which are passed to both the hyperbolic and
+# the parabolic terms. The velocity is constant, so the setup is the same as in
+# `elixir_advection_diffusion_nonperiodic.jl`.
+
+diffusivity() = 1 / 17
+advection_velocity = (1.0, 0.0, 0.0)
+equations = ConservativeLinearScalarAdvectionEquation3D()
+equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
+
+# The auxiliary variables of `ConservativeLinearScalarAdvectionEquation3D` are the
+# components `(a1, a2, a3)` of the advection velocity
+aux_field(x, equations) = SVector(advection_velocity)
+
+polydeg = 3
+solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+
+coordinates_min = (-1.0, -0.5, -0.5)
+coordinates_max = (0.0, 0.5, 0.5)
+
+# Affine type mapping to take the [-1,1]^3 domain
+# and warp it as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
+function mapping(xi, eta, zeta)
+    y_ = eta + 1 / 6 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta))
+    x_ = xi + 1 / 6 * (cos(0.5 * pi * xi) * cos(2 * pi * y_) * cos(0.5 * pi * zeta))
+    z_ = zeta + 1 / 6 * (cos(0.5 * pi * x_) * cos(pi * y_) * cos(0.5 * pi * zeta))
+
+    # Map from [-1, 1]^3 to [-1, -0.5, -0.5] x [0, 0.5, 0.5]
+    x = 0.5 * (x_ - 1)
+    y = 0.5 * y_
+    z = 0.5 * z_
+
+    return SVector(x, y, z)
+end
+
+trees_per_dimension = (5, 3, 3)
+mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
+                 mapping = mapping, periodicity = false)
+
+# Example setup taken from
+# - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
+#   Robust DPG methods for transient convection-diffusion.
+#   In: Building bridges: connections and challenges in modern approaches
+#   to numerical partial differential equations.
+#   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
+function initial_condition_eriksson_johnson(x, t, equations)
+    RealT = eltype(x)
+    l = 4
+    epsilon = convert(RealT, diffusivity()) # NOTE: this requires epsilon <= 1/16 due to sqrt
+    lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
+    r1 = (1 + sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
+    u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
+        cos(convert(RealT, pi) * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) /
+        (exp(-s1) - exp(-r1))
+    return SVector(u)
+end
+initial_condition = initial_condition_eriksson_johnson
+
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
+semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                             (equations, equations_parabolic),
+                                             initial_condition, solver;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
+                                             boundary_conditions = (boundary_conditions,
+                                                                    boundary_conditions),
+                                             aux_field = aux_field)
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
+tspan = (0.0, 0.5)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+stepsize_callback = StepsizeCallback(cfl = 1.6,
+                                     cfl_parabolic = 0.25)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
+
+###############################################################################
+# run the simulation
+
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded()),
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
