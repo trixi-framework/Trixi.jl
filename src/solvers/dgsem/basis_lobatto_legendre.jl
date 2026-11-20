@@ -229,6 +229,114 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
+                                Limiter, Mortar} <: AbstractMortar{RealT}
+    limiter::Limiter
+    pure_low_order::Bool
+    connectivity::Symbol # `:sparse` or `:dense` node coupling of the low-order mortar flux
+    mortar_l2::Mortar
+    # LENGTH = `2 * (NDIMS - 1) + 1`
+    mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
+    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
+end
+
+"""
+    MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
+              pure_low_order = false, connectivity = :sparse)
+
+Mortar for nonconforming interfaces which is compatible with subcell IDP limiting. It is used
+together with [`VolumeIntegralSubcellLimiting`](@ref) and has to be passed the same
+[`SubcellLimiterIDP`](@ref) `limiter` as the volume integral.
+
+In addition to the standard L2-projected high-order mortar flux (see `MortarL2`), a low-order
+finite volume flux is computed at the nonconforming interface. Both fluxes are blended using a
+limiting factor `alpha` in `[0, 1]`,
+```
+f = alpha * f_low_order + (1 - alpha) * f_high_order,
+```
+where `alpha` is chosen as small as possible such that the bounds requested by `limiter` are still
+satisfied in all elements adjacent to the mortar. In contrast to the element-internal limiting,
+which uses one factor per subcell interface, a single factor is used for the whole mortar.
+
+Setting `pure_low_order = true` skips the computation of the limiting factor and the corresponding
+correction, such that the pure low-order finite volume flux (`alpha = 1`) is used at all
+nonconforming interfaces. This is mainly useful for debugging and comparisons.
+
+The node coupling of the low-order flux is set with `connectivity`. With `connectivity = :sparse`
+(default), the weights are the overlaps of the LGL subcells on both sides of the mortar, such
+that only nodes with overlapping subcells are coupled. With `connectivity = :dense`, every node is
+coupled to every node on the other side with the weights `w_ij = int_S phi_i phi_j ds` of the
+Lagrange basis functions, evaluated with LGL quadrature (all-to-all coupling). Since some of these
+weights are negative, the central part of the flux uses the signed weights and the dissipation the
+absolute values. This requires a numerical flux consisting of a symmetric central part and a
+symmetric dissipation, such as [`FluxLaxFriedrichs`](@ref) with `max_abs_speed_naive`. The dense
+coupling is only implemented for the 2D [`TreeMesh`](@ref) and is mainly useful for comparisons.
+
+!!! note
+    Like [`SubcellLimiterIDP`](@ref), this mortar only works together with the correction callback
+    [`SubcellLimiterIDPCorrection`](@ref). Without the callback, no mortar correction takes place,
+    leading to pure low-order fluxes at nonconforming interfaces.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
+                   pure_low_order = false, connectivity = :sparse)
+    if !(limiter isa SubcellLimiterIDP)
+        throw(ArgumentError("`MortarIDP` requires a `SubcellLimiterIDP`, got a `$(typeof(limiter))`."))
+    end
+    if !(connectivity in (:sparse, :dense))
+        throw(ArgumentError("`connectivity` must be `:sparse` or `:dense`, got `$connectivity`."))
+    end
+    RealT = real(basis)
+    n_dims = ndims(equations)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT;
+                                                              connectivity, mortar_l2)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
+                             2 * (n_dims - 1) + 1,
+                             typeof(limiter),
+                             typeof(mortar_l2)}(limiter,
+                                                pure_low_order,
+                                                connectivity,
+                                                mortar_l2,
+                                                mortar_weights,
+                                                mortar_weights_sums)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ", limiter=", mortar.limiter, ", pure_low_order=", mortar.pure_low_order,
+          ", connectivity=", mortar.connectivity, ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    setup = ["limiter" => string(mortar.limiter)]
+    if mortar.pure_low_order
+        push!(setup, "" => "pure low-order mortars")
+    end
+    push!(setup, "connectivity" => string(mortar.connectivity))
+    summary_box(io,
+                "LobattoLegendreMortarIDP{$(real(mortar)), polydeg=$(polydeg(mortar))}",
+                setup)
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 

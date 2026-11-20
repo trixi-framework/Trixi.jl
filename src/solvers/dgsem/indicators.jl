@@ -25,6 +25,19 @@ function get_element_variables_indicator!(element_variables,
     return nothing
 end
 
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralSubcellLimiting,
+                                                dg, cache)
+    if !isnothing(volume_integral.limiter.indicator)
+        # call the indicator to get up-to-date values for IO
+        volume_integral.limiter.indicator(u, mesh, equations, dg, cache)
+        return get_element_variables_indicator!(element_variables,
+                                                volume_integral.limiter.indicator,
+                                                volume_integral)
+    end
+    return nothing
+end
+
 """
     IndicatorHennemannGassner(equations::AbstractEquations, basis;
                               alpha_max=0.5,
@@ -176,6 +189,13 @@ function get_element_variables_indicator!(element_variables,
                                           indicator::IndicatorHennemannGassner,
                                           ::VolumeIntegralAdaptive)
     element_variables[:indicator_volume_integral_adaptive] = indicator.cache.alpha
+    return nothing
+end
+
+function get_element_variables_indicator!(element_variables,
+                                          indicator::IndicatorHennemannGassner,
+                                          ::VolumeIntegralSubcellLimiting)
+    element_variables[:smoothness_indicator] = indicator.cache.alpha
     return nothing
 end
 
