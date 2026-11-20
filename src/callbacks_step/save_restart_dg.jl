@@ -51,6 +51,13 @@ end
 # polynomial degree `polydeg_file` to the polynomial degree of the solver `dg`.
 # Low -> high: interpolation (exact). High -> low: interpolation if
 # `interpolate_high2low == true`, otherwise L2 projection.
+# The L2 projection preserves the integral of `u` over each element in reference
+# coordinates. Thus, it conserves the discrete mass `sum_{i,j} w_i w_j J_{ij} u_{ij}`,
+# i.e., the quantity conserved by the DGSEM, only on meshes with an element-wise
+# constant Jacobian (such as the `TreeMesh`).
+# On curvilinear meshes, the Jacobian varies within an element and
+# the LGL quadrature is not exact for `J * u`, so conservation is
+# not guaranteed without special treatment (e.g., a mass correction).
 # Restart files do not store the type of the basis, i.e., the nodes of the stored
 # solution are not known. Thus, the conversion is only supported for the
 # Legendre-Gauss-Lobatto nodes of the `LobattoLegendreBasis`, which are assumed for

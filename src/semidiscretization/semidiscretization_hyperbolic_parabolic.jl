@@ -348,6 +348,8 @@ Optional keyword arguments:
   The projection preserves the integral of the solution over each element in reference
   coordinates, i.e., it is conservative on meshes with an element-wise constant Jacobian
   (such as the `TreeMesh`).
+  On curvilinear meshes, conservation of the discrete mass` w_i (J u)_i` is not guaranteed,
+  since no special treatment (such as a mass correction) is applied.
   For `interpolate_high2low = true`, the solution is interpolated from the higher-degree
   polynomial to the lower-degree polynomial.
   This preserves the values at the cell interfaces, thus a formerly continuous solution
