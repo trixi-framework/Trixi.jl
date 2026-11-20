@@ -97,6 +97,20 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "T8codeMesh MPI 2D: elixir_advection_restart_polydeg_higher.jl" setup=[
+    Setup,
+    MPIT8codeMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_restart_polydeg_higher.jl"),
+                        l2=[0.0004035489510898178],
+                        linf=[0.0054955091397658196],)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "T8codeMesh MPI 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
     Setup,
     MPIT8codeMesh2D

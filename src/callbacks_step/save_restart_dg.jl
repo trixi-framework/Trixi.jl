@@ -47,10 +47,164 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
+# Compute the matrix converting the nodal solution values of a restart file with
+# polynomial degree `polydeg_file` to the polynomial degree of the solver `dg`.
+# Low -> high: interpolation (exact). High -> low: interpolation if
+# `interpolate_high2low == true`, otherwise L2 projection.
+# The L2 projection preserves the integral of `u` over each element in reference
+# coordinates. Thus, it conserves the discrete mass `sum_{i,j} w_i w_j J_{ij} u_{ij}`,
+# i.e., the quantity conserved by the DGSEM, only on meshes with an element-wise
+# constant Jacobian (such as the `TreeMesh`).
+# On curvilinear meshes, the Jacobian varies within an element and
+# the LGL quadrature is not exact for `J * u`, so conservation is
+# not guaranteed without special treatment, see `correct_mass_restart!`.
+# Restart files do not store the type of the basis, i.e., the nodes of the stored
+# solution are not known. Thus, the conversion is only supported for the
+# Legendre-Gauss-Lobatto nodes of the `LobattoLegendreBasis`, which are assumed for
+# both the restart file and the solver.
+function restart_conversion_matrix(polydeg_file, dg::DG{<:LobattoLegendreBasis},
+                                   interpolate_high2low)
+    RealT = real(dg)
+    nodes_file = gauss_lobatto_nodes_weights(polydeg_file + 1, RealT)[1]
+    nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg), RealT)[1]
+
+    if (polydeg_file < polydeg(dg)) || interpolate_high2low # Interpolation
+        return polynomial_interpolation_matrix(nodes_file, nodes_solver)
+    else # Projection from higher to lower polynomial degree
+        return polynomial_l2projection_matrix(nodes_file, nodes_solver, Val(:gauss),
+                                              RealT)
+    end
+end
+
+function restart_conversion_matrix(polydeg_file, dg::DG, interpolate_high2low)
+    throw(ArgumentError("restart mismatch: the polynomial degree in the restart file " *
+                        "($polydeg_file) differs from the one of the solver " *
+                        "($(polydeg(dg))). Converting the solution to a different " *
+                        "polynomial degree is only supported for a `DGSEM` solver " *
+                        "with a `LobattoLegendreBasis`, but the solver uses a " *
+                        "$(nameof(typeof(dg.basis)))."))
+end
+
+# Inverse Jacobian at the LGL nodes of the polynomial degree `polydeg_file` of the
+# restart file, i.e., the inverse Jacobian used by the simulation that wrote it.
+# On the `TreeMesh`, the Jacobian is constant per element and thus independent of the
+# polynomial degree.
+function inverse_jacobian_restart_file(mesh::TreeMesh, equations, dg, cache,
+                                       polydeg_file)
+    return cache.elements.inverse_jacobian
+end
+
+function inverse_jacobian_restart_file(mesh::Union{StructuredMesh, P4estMesh,
+                                                   T8codeMesh},
+                                       equations, dg, cache, polydeg_file)
+    basis_file = LobattoLegendreBasis(real(dg), polydeg_file)
+    elements_file = init_elements(mesh, equations, basis_file, real(dg))
+    return elements_file.inverse_jacobian
+end
+
+function inverse_jacobian_restart_file(mesh::UnstructuredMesh2D, equations, dg, cache,
+                                       polydeg_file)
+    basis_file = LobattoLegendreBasis(real(dg), polydeg_file)
+    elements_file = init_elements(mesh, equations, basis_file, real(dg), real(dg))
+    return elements_file.inverse_jacobian
+end
+
+# Compute the discrete mass `sum_{i,j,(k)} w_i w_j (w_k) J_{ij(k)} u_{ij(k)}` of all
+# variables and the discrete volume `sum_{i,j,(k)} w_i w_j (w_k) J_{ij(k)}` of an
+# element. The discrete mass is the quantity conserved by the DGSEM.
+# Dimension agnostic, i.e., valid for 1D, 2D, and 3D meshes. Since this is called only
+# once when loading a restart file, it is not optimized for performance.
+function element_mass_and_volume_restart(u, element, weights, inverse_jacobian, mesh)
+    n_variables = size(u, 1)
+    mass = zeros(eltype(u), n_variables)
+    volume = zero(eltype(inverse_jacobian))
+    for node in CartesianIndices(ntuple(_ -> length(weights), ndims(mesh)))
+        indices = Tuple(node)
+        volume_node = prod(i -> weights[i], indices) /
+                      get_inverse_jacobian(inverse_jacobian, mesh, indices..., element)
+        for v in 1:n_variables
+            mass[v] += volume_node * u[v, indices..., element]
+        end
+        volume += volume_node
+    end
+    return mass, volume
+end
+
+# Correct the discrete mass of the converted solution `u` such that it agrees with the
+# discrete mass of the solution `u_file` of the restart file in each element.
+# The discrete mass `sum w J u` is in general not preserved by the conversion on
+# curvilinear meshes, since the LGL quadrature is not exact for `J * u` and the Jacobian
+# is evaluated at different nodes before and after the conversion. On all meshes, it is
+# not preserved by the interpolation from a higher to a lower polynomial degree.
+# To restore exact conservation, the same constant
+# `delta = (mass_file - mass_new) / volume_new` is added to all nodal values of each
+# element. If the discrete volumes `sum w J` of an element before and after the conversion
+# differ (e.g., for curved elements whose Jacobian is not integrated exactly by the
+# LGL quadrature), `delta` does not vanish for constant states. Thus, the correction
+# trades exact free-stream preservation for exact conservation.
+function correct_mass_restart!(u, u_file, polydeg_file,
+                               mesh, equations, dg::DGSEM, cache)
+    weights_file = gauss_lobatto_nodes_weights(polydeg_file + 1, real(dg))[2]
+    inverse_jacobian_file = inverse_jacobian_restart_file(mesh, equations, dg, cache,
+                                                          polydeg_file)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    for element in eachelement(dg, cache)
+        mass_file, _ = element_mass_and_volume_restart(u_file, element, weights_file,
+                                                       inverse_jacobian_file, mesh)
+        mass, volume = element_mass_and_volume_restart(u, element, weights,
+                                                       inverse_jacobian, mesh)
+        delta = (mass_file - mass) / volume
+        for node in CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
+            for v in eachvariable(equations)
+                u[v, Tuple(node)..., element] += delta[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
+# Convert the nodal values `u_file` [variable, i, (j, (k),) element] of the solution
+# stored in a restart file with polynomial degree `polydeg_file` to the polynomial
+# degree of the solver and store them in `u`. Both arrays contain only the elements
+# of this process. Optionally, the discrete mass of each element is corrected
+# afterwards, see `correct_mass_restart!`.
+function convert_restart_file_polydeg!(u, u_file, polydeg_file,
+                                       mesh, equations, dg::DGSEM, cache,
+                                       interpolate_high2low, correct_mass)
+    conversion_matrix = restart_conversion_matrix(polydeg_file, dg,
+                                                  interpolate_high2low)
+
+    # Perform interpolation/projection to new polynomial degree
+    for element in eachelement(dg, cache)
+        u[.., element] = multiply_dimensionwise(conversion_matrix,
+                                                u_file[.., element])
+    end
+
+    if correct_mass
+        correct_mass_restart!(u, u_file, polydeg_file, mesh, equations, dg, cache)
+    end
+
+    return nothing
+end
+
+# Allocate an array for the nodal values of the solution with `nnodes_file` nodes per
+# dimension stored in a restart file for the elements of this process
+function allocate_restart_file_data(u, nnodes_file, mesh, equations, dg, cache)
+    return zeros(eltype(u),
+                 (nvariables(equations),
+                  ntuple(_ -> nnodes_file, ndims(mesh))...,
+                  nelements(dg, cache)))
+end
+
 function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
                                        UnstructuredMesh2D, P4estMeshSerial,
                                        T8codeMeshSerial},
-                           equations, dg::DG, cache, restart_file)
+                           equations, dg::DG, cache,
+                           restart_file,
+                           interpolate_high2low, correct_mass)
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
@@ -64,14 +218,9 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
         if read(attributes(file)["equations"]) != get_name(equations)
             error("restart mismatch: equations differ from value in restart file")
         end
-        if read(attributes(file)["polydeg"]) != polydeg(dg)
-            error("restart mismatch: polynomial degree in solver differs from value in restart file")
-        end
         if read(attributes(file)["n_elements"]) != nelements(dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
-
-        # Read data
         for v in eachvariable(equations)
             # Check if variable name matches
             var = file["variables_$v"]
@@ -79,9 +228,23 @@ function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
                varnames(cons2cons, equations)[v]
                 error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
             end
+        end
 
-            # Read variable
-            u[v, .., :] = read(file["variables_$v"])
+        ### Read variable data ###
+        polydeg_file = read(attributes(file)["polydeg"])
+        if polydeg_file != polydeg(dg) # Conversion is necessary
+            u_file = allocate_restart_file_data(u, polydeg_file + 1,
+                                                mesh, equations, dg, cache)
+            for v in eachvariable(equations)
+                u_file[v, .., :] = read(file["variables_$v"])
+            end
+            convert_restart_file_polydeg!(u, u_file, polydeg_file,
+                                          mesh, equations, dg, cache,
+                                          interpolate_high2low, correct_mass)
+        else # Read in variables separately
+            for v in eachvariable(equations)
+                u[v, .., :] = read(file["variables_$v"])
+            end
         end
     end
 
@@ -210,25 +373,24 @@ end
 
 function load_restart_file(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                        T8codeMeshParallel}, equations,
-                           dg::DG, cache, restart_file)
+                           dg::DG, cache, restart_file,
+                           interpolate_high2low, correct_mass)
     if HDF5.has_parallel()
-        load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
+        load_restart_file_parallel(mesh, equations, dg, cache,
+                                   restart_file,
+                                   interpolate_high2low, correct_mass)
     else
-        load_restart_file_on_root(mesh, equations, dg, cache, restart_file)
+        load_restart_file_on_root(mesh, equations, dg, cache,
+                                  restart_file,
+                                  interpolate_high2low, correct_mass)
     end
 end
 
 function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                 T8codeMeshParallel},
-                                    equations, dg::DG, cache, restart_file)
-
-    # Calculate element and node counts by MPI rank
-    element_size = nnodes(dg)^ndims(mesh)
-    element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
-    node_counts = element_counts * Cint(element_size)
-    # Cumulative sum of nodes per rank starting with an additional 0
-    cum_node_counts = append!(zeros(eltype(node_counts), 1), cumsum(node_counts))
-
+                                    equations, dg::DG, cache,
+                                    restart_file,
+                                    interpolate_high2low, correct_mass)
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -242,14 +404,9 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
         if read(attributes(file)["equations"]) != get_name(equations)
             error("restart mismatch: equations differ from value in restart file")
         end
-        if read(attributes(file)["polydeg"]) != polydeg(dg)
-            error("restart mismatch: polynomial degree in solver differs from value in restart file")
-        end
         if read(attributes(file)["n_elements"]) != nelementsglobal(mesh, dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
-
-        # Read data
         for v in eachvariable(equations)
             # Check if variable name matches
             var = file["variables_$v"]
@@ -257,13 +414,51 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
                varnames(cons2cons, equations)[v]
                 error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
             end
+        end
 
-            # Read variable
-            mpi_println("Reading variables_$v ($name)...")
+        ### Read variable data ###
+        element_counts = convert(Vector{Cint},
+                                 collect(cache.mpi_cache.n_elements_by_rank))
+        polydeg_file = read(attributes(file)["polydeg"])
+        if polydeg_file != polydeg(dg) # Conversion is necessary
+            nnodes_file = polydeg_file + 1
+
+            # Calculate element and node counts by MPI rank
+            element_size_file = nnodes_file^ndims(mesh)
+            node_counts_file = element_counts * Cint(element_size_file)
+            # Cumulative sum of nodes per rank starting with an additional 0
+            cum_node_counts_file = append!(zeros(eltype(node_counts_file), 1),
+                                           cumsum(node_counts_file))
+
+            # Read data of each process in slices (ranks start with 0)
+            slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
+
+            u_file = allocate_restart_file_data(u, nnodes_file,
+                                                mesh, equations, dg, cache)
+            for v in eachvariable(equations)
+                var = file["variables_$v"]
+                # Convert 1D array back to actual size of `u_file`
+                u_file[v, .., :] = reshape(read(var)[slice],
+                                           size(@view u_file[v, .., :]))
+            end
+            convert_restart_file_polydeg!(u, u_file, polydeg_file,
+                                          mesh, equations, dg, cache,
+                                          interpolate_high2low, correct_mass)
+        else # Read in variables separately
+            # Calculate element and node counts by MPI rank
+            element_size = nnodes(dg)^ndims(mesh)
+            node_counts = element_counts * Cint(element_size)
+            # Cumulative sum of nodes per rank starting with an additional 0
+            cum_node_counts = append!(zeros(eltype(node_counts), 1),
+                                      cumsum(node_counts))
             # Read data of each process in slices (ranks start with 0)
             slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
-            # Convert 1D array back to actual size of `u`
-            u[v, .., :] = reshape(read(var)[slice], size(@view u[v, .., :]))
+
+            for v in eachvariable(equations)
+                var = file["variables_$v"]
+                # Convert 1D array back to actual size of `u`
+                u[v, .., :] = reshape(read(var)[slice], size(@view u[v, .., :]))
+            end
         end
     end
 
@@ -272,67 +467,89 @@ end
 
 function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                T8codeMeshParallel},
-                                   equations, dg::DG, cache, restart_file)
-
-    # Calculate element and node counts by MPI rank
-    element_size = nnodes(dg)^ndims(mesh)
-    element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
-    node_counts = element_counts * Cint(element_size)
-
+                                   equations, dg::DG, cache,
+                                   restart_file,
+                                   interpolate_high2low, correct_mass)
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
-    # non-root ranks only receive data
-    if !mpi_isroot()
-        # Receive nodal data from root
-        for v in eachvariable(equations)
-            # put Scatterv in both blocks of the if condition to avoid type instability
-            if isempty(u)
-                data = eltype(u)[]
-                MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
-            else
-                data = @view u[v, .., :]
-                MPI.Scatterv!(nothing, data, mpi_root(), mpi_comm())
+    # Only the root rank reads the restart file. All ranks need to know its polynomial
+    # degree to decide whether a conversion is necessary.
+    if mpi_isroot()
+        polydeg_file = h5open(restart_file, "r") do file
+            # Read attributes to perform some sanity checks
+            if read(attributes(file)["ndims"]) != ndims(mesh)
+                error("restart mismatch: ndims differs from value in restart file")
             end
-        end
+            if read(attributes(file)["equations"]) != get_name(equations)
+                error("restart mismatch: equations differ from value in restart file")
+            end
+            if read(attributes(file)["n_elements"]) != nelements(dg, cache)
+                error("restart mismatch: number of elements in solver differs from value in restart file")
+            end
+            for v in eachvariable(equations)
+                # Check if variable name matches
+                var = file["variables_$v"]
+                if (name = read(attributes(var)["name"])) !=
+                   varnames(cons2cons, equations)[v]
+                    error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
+                end
+            end
 
-        return u_ode
+            return Int(read(attributes(file)["polydeg"]))
+        end
+        MPI.Bcast!(Ref(polydeg_file), mpi_root(), mpi_comm())
+    else
+        polydeg_file = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
     end
 
-    # read only on MPI root
-    h5open(restart_file, "r") do file
-        # Read attributes to perform some sanity checks
-        if read(attributes(file)["ndims"]) != ndims(mesh)
-            error("restart mismatch: ndims differs from value in restart file")
-        end
-        if read(attributes(file)["equations"]) != get_name(equations)
-            error("restart mismatch: equations differ from value in restart file")
-        end
-        if read(attributes(file)["polydeg"]) != polydeg(dg)
-            error("restart mismatch: polynomial degree in solver differs from value in restart file")
-        end
-        if read(attributes(file)["n_elements"]) != nelements(dg, cache)
-            error("restart mismatch: number of elements in solver differs from value in restart file")
-        end
-
-        # Read data
-        for v in eachvariable(equations)
-            # Check if variable name matches
-            var = file["variables_$v"]
-            if (name = read(attributes(var)["name"])) !=
-               varnames(cons2cons, equations)[v]
-                error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
-            end
-
-            # Read variable
-            println("Reading variables_$v ($name)...")
-            sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
-            MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
-        end
+    ### Read variable data ###
+    if polydeg_file != polydeg(dg) # Conversion is necessary
+        # Distribute the data of the restart file to all ranks, which then convert the
+        # data of their own elements. This is required for the mass correction, since
+        # each rank knows only the geometry of its own elements.
+        u_file = allocate_restart_file_data(u, polydeg_file + 1,
+                                            mesh, equations, dg, cache)
+        scatter_restart_file_variables!(u_file, restart_file, equations, cache)
+        convert_restart_file_polydeg!(u, u_file, polydeg_file,
+                                      mesh, equations, dg, cache,
+                                      interpolate_high2low, correct_mass)
+    else # Read in variables separately
+        scatter_restart_file_variables!(u, restart_file, equations, cache)
     end
 
     return u_ode
+end
+
+# Read the solution variables of a restart file on the root rank and distribute them to
+# the arrays `data` [variable, i, (j, (k),) element] of all ranks
+function scatter_restart_file_variables!(data, restart_file, equations, cache)
+    # Calculate node counts by MPI rank
+    element_size = prod(size(data)[2:(end - 1)])
+    element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
+    node_counts = element_counts * Cint(element_size)
+
+    if mpi_isroot()
+        h5open(restart_file, "r") do file
+            for v in eachvariable(equations)
+                sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
+                MPI.Scatterv!(sendbuf, @view(data[v, .., :]), mpi_root(), mpi_comm())
+            end
+        end
+    else
+        # non-root ranks only receive data
+        for v in eachvariable(equations)
+            # put Scatterv in both blocks of the if condition to avoid type instability
+            if isempty(data)
+                MPI.Scatterv!(nothing, eltype(data)[], mpi_root(), mpi_comm())
+            else
+                MPI.Scatterv!(nothing, @view(data[v, .., :]), mpi_root(), mpi_comm())
+            end
+        end
+    end
+
+    return nothing
 end
 
 # Store controller values for an adaptive time stepping scheme

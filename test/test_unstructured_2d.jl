@@ -122,6 +122,63 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "UnstructuredMesh2D: elixir_euler_restart.jl (Interpolation 8 -> 9)" setup=[
+    Setup,
+    UnstructuredMesh2D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
+                        semi=SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          DGSEM(polydeg = 9,
+                                                                surface_flux = flux_lax_friedrichs),
+                                                          source_terms = source_terms,
+                                                          boundary_conditions = boundary_conditions),
+                        l2=[
+                            0.0006686191870474832,
+                            0.000576329493854189,
+                            0.0005823885530005755,
+                            0.0008979916543444841
+                        ],
+                        linf=[
+                            0.0032837605140083603,
+                            0.0024675348201217417,
+                            0.0028616161119012773,
+                            0.004595929104344698
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "UnstructuredMesh2D: elixir_euler_restart.jl (Interpolation 8 -> 6, mass correction)" setup=[
+    Setup,
+    UnstructuredMesh2D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
+                        semi=SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          DGSEM(polydeg = 6,
+                                                                surface_flux = flux_lax_friedrichs),
+                                                          source_terms = source_terms,
+                                                          boundary_conditions = boundary_conditions),
+                        interpolate_high2low=true, correct_mass=true,
+                        l2=[
+                            0.001493618129301753,
+                            0.002222477137964883,
+                            0.002029820176639446,
+                            0.006486435551344044
+                        ],
+                        linf=[
+                            0.013738980739046447,
+                            0.024309722793802724,
+                            0.0215754300315103,
+                            0.07038965543782272
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "UnstructuredMesh2D: elixir_euler_ec.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
