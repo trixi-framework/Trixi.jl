@@ -1538,11 +1538,11 @@ end
 end
 
 @inline function get_aux_mpi_interface_vars(cache)
-    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_interface : nothing
+    return haskey(cache, :mpi_aux_vars) ? cache.mpi_aux_vars.aux_mpi_interface : nothing
 end
 
 @inline function get_aux_mpi_mortar_vars(cache)
-    return haskey(cache, :aux_vars) ? cache.aux_vars.aux_mpi_mortar : nothing
+    return haskey(cache, :mpi_aux_vars) ? cache.mpi_aux_vars.aux_mpi_mortar : nothing
 end
 
 # Return the function `aux_field` used to initialize the auxiliary variables, e.g., to

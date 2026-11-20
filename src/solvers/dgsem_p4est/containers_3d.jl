@@ -370,7 +370,7 @@ end
 
 # Auxiliary variables at the interface and mortar nodes, cf. `prolong2interfaces!` and
 # `prolong2mortars!`. For parallel meshes, the auxiliary variables at the MPI interfaces
-# and MPI mortars are initialized afterwards, see `init_aux_mpi_surface_node_vars!`.
+# and MPI mortars are stored separately, see `init_mpi_aux_vars`.
 function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations,
                                      solver, cache)
     @unpack aux, aux_interface = aux_vars
@@ -448,13 +448,9 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations,
     end
 
     init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver, cache)
-    init_aux_mpi_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
 
     return nothing
 end
-
-# Serial meshes do not have MPI interfaces and MPI mortars
-init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshSerial, equations, solver, cache) = nothing
 
 # The auxiliary variables are treated as the solution in `prolong2mortars!`: the values
 # of the small elements are copied and the values of the large element are interpolated

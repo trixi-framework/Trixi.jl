@@ -467,7 +467,7 @@ end
     @test Trixi.MPI.Allreduce(Trixi.nmpimortars(semi.solver, semi.cache), +,
                               Trixi.mpi_comm()) > 0
     # The auxiliary variables of the remote elements are received from the neighbor ranks
-    (; aux_mpi_interface, aux_mpi_mortar) = semi.cache.aux_vars
+    (; aux_mpi_interface, aux_mpi_mortar) = semi.cache.mpi_aux_vars
     @test !any(isnan, aux_mpi_interface)
     @test !any(isnan, aux_mpi_mortar)
 

@@ -235,9 +235,11 @@ end
 # Auxiliary variables at the MPI interface and MPI mortar nodes, cf.
 # `prolong2mpiinterfaces!` and `prolong2mpimortars!`. The values of the local elements are
 # copied and afterwards exchanged with the neighbor ranks, see `exchange_aux_vars!`.
-function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
-                                         equations, solver, cache)
-    @unpack aux, aux_mpi_interface = aux_vars
+function init_aux_mpi_surface_node_vars!(mpi_aux_vars, aux_vars,
+                                         mesh::P4estMeshParallel{3}, equations, solver,
+                                         cache)
+    @unpack aux = aux_vars
+    @unpack aux_mpi_interface = mpi_aux_vars
     @unpack mpi_interfaces = cache
     index_range = eachnode(solver)
 
@@ -280,11 +282,11 @@ function init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
         end
     end
 
-    init_aux_mpi_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver,
-                                   cache)
+    init_aux_mpi_mortar_node_vars!(mpi_aux_vars, aux_vars, mesh, equations,
+                                   solver.mortar, solver, cache)
 
     # Get the auxiliary variables of the remote elements from the neighbor ranks
-    exchange_aux_vars!(aux_vars, mpi_interfaces, cache.mpi_mortars,
+    exchange_aux_vars!(mpi_aux_vars, mpi_interfaces, cache.mpi_mortars,
                        cache.mpi_cache, mesh, equations, nnodes(solver))
 
     return nothing
@@ -292,10 +294,12 @@ end
 
 # The auxiliary variables are treated as the solution in `prolong2mpimortars!`, as in
 # `init_aux_mortar_node_vars!`.
-function init_aux_mpi_mortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, equations,
+function init_aux_mpi_mortar_node_vars!(mpi_aux_vars, aux_vars,
+                                        mesh::P4estMeshParallel{3}, equations,
                                         mortar_l2::LobattoLegendreMortarL2, solver,
                                         cache)
-    @unpack aux, aux_mpi_mortar = aux_vars
+    @unpack aux = aux_vars
+    @unpack aux_mpi_mortar = mpi_aux_vars
     @unpack node_indices = cache.mpi_mortars
     index_range = eachnode(solver)
 

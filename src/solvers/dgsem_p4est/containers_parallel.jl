@@ -39,11 +39,6 @@ end
 end
 @inline Base.ndims(::P4estMPIInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
 
-# Number of MPI interfaces for the auxiliary variables, see `init_aux_vars`
-@inline function nmpiinterfaces_aux(mesh::P4estMeshParallel, cache)
-    return nmpiinterfaces(cache.mpi_interfaces)
-end
-
 function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     @unpack _u, _normal_directions, local_neighbor_ids, node_indices, local_sides = mpi_interfaces
 
@@ -212,11 +207,6 @@ end
 end
 @inline Base.ndims(::P4estMPIMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 
-# Number of MPI mortars for the auxiliary variables, see `init_aux_vars`
-@inline function nmpimortars_aux(mesh::P4estMeshParallel, cache)
-    return nmpimortars(cache.mpi_mortars)
-end
-
 function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
     @unpack _u, _node_indices, _normal_directions = mpi_mortars
 
@@ -328,6 +318,85 @@ function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
                                                           normal_directions, _u,
                                                           _node_indices,
                                                           _normal_directions)
+end
+
+# Container for the values of the auxiliary variables at the MPI interface and MPI mortar
+# nodes, cf. `AuxVarsContainer`. It is stored as `cache.mpi_aux_vars` and only created
+# for equations with auxiliary variables.
+struct P4estMPIAuxVarsContainer{NDIMS, uEltype <: Real,
+                                AuxMPIInterface <: AbstractArray{uEltype},
+                                AuxMPIMortar <: AbstractArray{uEltype}}
+    aux_mpi_interface::AuxMPIInterface  # [leftright, var, i, j, mpi_interface] in 3D
+    aux_mpi_mortar::AuxMPIMortar        # [leftright, var, position, i, j, mpi_mortar] in 3D
+end
+
+function Adapt.adapt_structure(to,
+                               mpi_aux_vars::P4estMPIAuxVarsContainer{NDIMS}) where {NDIMS}
+    aux_mpi_interface = adapt(to, mpi_aux_vars.aux_mpi_interface)
+    aux_mpi_mortar = adapt(to, mpi_aux_vars.aux_mpi_mortar)
+
+    return P4estMPIAuxVarsContainer{NDIMS, eltype(aux_mpi_interface),
+                                    typeof(aux_mpi_interface),
+                                    typeof(aux_mpi_mortar)}(aux_mpi_interface,
+                                                            aux_mpi_mortar)
+end
+
+@inline check_axes_aux_mpi_interface(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_interface(aux_mpi_interface, equations,
+                                              solver, cache)
+    # [leftright, var, i, j, mpi_interface] in 3D
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_interface) - 3))
+    return check_axes(aux_mpi_interface,
+                      (Base.OneTo(2), eachauxvariable(equations), surface_node_axes...,
+                       eachmpiinterface(solver, cache)))
+end
+
+@inline check_axes_aux_mpi_mortar(::Nothing, equations, solver, cache) = nothing
+
+@inline function check_axes_aux_mpi_mortar(aux_mpi_mortar, equations, solver, cache)
+    # [leftright, var, position, i, j, mpi_mortar] in 3D
+    surface_node_axes = ntuple(_ -> eachnode(solver), Val(ndims(aux_mpi_mortar) - 4))
+    return check_axes(aux_mpi_mortar,
+                      (Base.OneTo(2), eachauxvariable(equations),
+                       Base.OneTo(2^length(surface_node_axes)), surface_node_axes...,
+                       eachmpimortar(solver, cache)))
+end
+
+function create_cache_aux_vars(mesh::P4estMeshParallel, equations, solver, cache,
+                               aux_field)
+    aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
+    mpi_aux_vars = init_mpi_aux_vars(mesh, equations, solver, cache, aux_vars)
+
+    return (; aux_vars, mpi_aux_vars)
+end
+
+# Create and initialize the container of auxiliary variables at the MPI interfaces and
+# MPI mortars from the values at the volume nodes in `aux_vars`
+function init_mpi_aux_vars(mesh::P4estMeshParallel, equations, solver, cache, aux_vars)
+    NDIMS = ndims(mesh)
+    n_aux = nauxvariables(equations)
+    n_nodes = nnodes(solver)
+    uEltype = eltype(cache.elements)
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Surface nodes on both sides of the MPI interfaces
+    aux_mpi_interface = fill(nan_uEltype,
+                             (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
+                              nmpiinterfaces(cache.mpi_interfaces)))
+    # Surface nodes of the small elements on both sides of the MPI mortars
+    aux_mpi_mortar = fill(nan_uEltype,
+                          (2, n_aux, 2^(NDIMS - 1), ntuple(_ -> n_nodes, NDIMS - 1)...,
+                           nmpimortars(cache.mpi_mortars)))
+
+    mpi_aux_vars = P4estMPIAuxVarsContainer{NDIMS, uEltype, typeof(aux_mpi_interface),
+                                            typeof(aux_mpi_mortar)}(aux_mpi_interface,
+                                                                    aux_mpi_mortar)
+
+    init_aux_mpi_surface_node_vars!(mpi_aux_vars, aux_vars, mesh, equations, solver,
+                                    cache)
+
+    return mpi_aux_vars
 end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must

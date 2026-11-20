@@ -75,8 +75,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                 "so an `aux_field` must be passed, " *
                                 "see `nauxvariables`"))
         end
-        aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
-        cache = (; cache..., aux_vars)
+        cache = (; cache...,
+                 create_cache_aux_vars(mesh, equations, solver, cache, aux_field)...)
     elseif aux_field !== nothing
         throw(ArgumentError("`aux_field` was passed but " *
                             "`$(nameof(typeof(equations)))` does not have any " *

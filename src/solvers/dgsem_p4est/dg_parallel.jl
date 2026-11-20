@@ -784,10 +784,11 @@ end
 # The data layout of the buffers is the same as for the solution, see `start_mpi_send!`
 # and `finish_mpi_receive!`, with the auxiliary variables instead of the conservative
 # variables.
-function exchange_aux_vars!(aux_vars, mpi_interfaces::P4estMPIInterfaceContainer,
+function exchange_aux_vars!(mpi_aux_vars::P4estMPIAuxVarsContainer,
+                            mpi_interfaces::P4estMPIInterfaceContainer,
                             mpi_mortars::P4estMPIMortarContainer, mpi_cache,
                             mesh::P4estMeshParallel, equations, n_nodes)
-    @unpack aux_mpi_interface, aux_mpi_mortar = aux_vars
+    @unpack aux_mpi_interface, aux_mpi_mortar = mpi_aux_vars
     @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = mpi_cache
     RealT = eltype(aux_mpi_interface)
     data_size = nauxvariables(equations) * n_nodes^(ndims(mesh) - 1)

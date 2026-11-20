@@ -133,7 +133,7 @@ end
     @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
     @test Trixi.MPI.Allreduce(Trixi.nmpiinterfaces(semi.solver, semi.cache), +,
                               Trixi.mpi_comm()) > 0
-    @test !any(isnan, semi.cache.aux_vars.aux_mpi_interface)
+    @test !any(isnan, semi.cache.mpi_aux_vars.aux_mpi_interface)
 
     # Ensure that the RHS computation overwrites existing data in `du` correctly.
     u_ode = copy(ode.u0)
