@@ -879,13 +879,13 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
-    # Call pointwise numerical flux functions for the conservative and nonconservative part
-    # in the normal direction on the boundary
     # Auxiliary variables inside the domain. There are no separate auxiliary variables
     # on the outside of the boundary.
     aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, element_index)
 
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
+    # in the normal direction on the boundary
     flux, noncons_flux = boundary_condition(u_inner, aux_inner...,
                                             normal_direction, x, t,
                                             surface_integral.surface_flux, equations)
@@ -930,13 +930,13 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
-    # Call pointwise numerical flux functions for the conservative and nonconservative part
-    # in the normal direction on the boundary
     # Auxiliary variables inside the domain. There are no separate auxiliary variables
     # on the outside of the boundary.
     aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
                                   i_index, j_index, element_index)
 
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
+    # in the normal direction on the boundary
     flux = boundary_condition(u_inner, aux_inner...,
                               normal_direction, x, t,
                               surface_integral.surface_flux, equations)
@@ -1093,8 +1093,8 @@ function calc_mortar_flux!(surface_flux_values,
                     # Auxiliary variables on the small (primary) and the large
                     # (secondary) side, cf. `init_aux_mortar_node_vars!`
                     aux_node = get_aux_surface_node_vars(aux_mortar, equations,
-                                                         typeof(dg), position, node,
-                                                         mortar)
+                                                         typeof(dg),
+                                                         position, node, mortar)
 
                     calc_mortar_flux!(fstar_primary, fstar_secondary,
                                       mesh, have_nonconservative_terms, equations,

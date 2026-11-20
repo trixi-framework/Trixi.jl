@@ -202,9 +202,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                             cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
+    symmetric_flux, nonconservative_flux = volume_flux
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
-    symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
     flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
