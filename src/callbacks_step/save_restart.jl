@@ -166,9 +166,9 @@ function load_dt(restart_file::AbstractString)
 end
 
 function load_restart_file(semi::AbstractSemidiscretization,
-                           restart_file, interpolate_high2low)
+                           restart_file, interpolate_high2low, correct_mass)
     load_restart_file(mesh_equations_solver_cache(semi)...,
-                      restart_file, interpolate_high2low)
+                      restart_file, interpolate_high2low, correct_mass)
 end
 
 """

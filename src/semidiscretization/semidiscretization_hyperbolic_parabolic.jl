@@ -326,7 +326,7 @@ end
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                    restart_file::AbstractString;
-                   interpolate_high2low = false,
+                   interpolate_high2low = false, correct_mass = false,
                    jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
@@ -348,12 +348,20 @@ Optional keyword arguments:
   The projection preserves the integral of the solution over each element in reference
   coordinates, i.e., it is conservative on meshes with an element-wise constant Jacobian
   (such as the `TreeMesh`).
-  On curvilinear meshes, conservation of the discrete mass` w_i (J u)_i` is not guaranteed,
-  since no special treatment (such as a mass correction) is applied.
+  On curvilinear meshes, conservation of the discrete mass `sum_i w_i (J u)_i` is not
+  guaranteed unless `correct_mass = true` is used.
   For `interpolate_high2low = true`, the solution is interpolated from the higher-degree
   polynomial to the lower-degree polynomial.
   This preserves the values at the cell interfaces, thus a formerly continuous solution
   is still continuous after the interpolation.
+- `correct_mass` applies only to the case when a simulation is restarted with a
+  different polynomial degree than the one used in the original simulation.
+  For `correct_mass = true`, the same constant is added to all nodal values of each element
+  after the conversion such that the discrete mass `sum_i w_i (J u)_i` of each element
+  agrees with the one of the original simulation, i.e., the conversion is conservative
+  on all meshes. On curvilinear meshes, this can modify constant states slightly if
+  the discrete volume `sum_i w_i J_i` of an element depends on the polynomial degree,
+  i.e., free-stream preservation may be lost. Default is `false`.
 - `jac_prototype_parabolic`: Expected to come from [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl).
   Specifies the sparsity structure of the parabolic function's Jacobian to enable e.g. efficient implicit time stepping.
   The [`SplitODEProblem`](https://docs.sciml.ai/DiffEqDocs/stable/types/split_ode_types/#SciMLBase.SplitODEProblem) only expects the Jacobian
@@ -364,7 +372,7 @@ Optional keyword arguments:
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
-                        interpolate_high2low = false,
+                        interpolate_high2low = false, correct_mass = false,
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true)
@@ -377,7 +385,8 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
 
     tspan = convert_tspan(semi, tspan)
     # Load initial condition from restart file
-    u0_ode = load_restart_file(semi, restart_file, interpolate_high2low)
+    u0_ode = load_restart_file(semi, restart_file, interpolate_high2low,
+                               correct_mass)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
