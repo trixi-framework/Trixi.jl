@@ -29,8 +29,7 @@ inf_timing = @snoopi tmin=0.01 begin
   coordinates_min = (-5, -5)
   coordinates_max = ( 5,  5)
   mesh = TreeMesh(coordinates_min, coordinates_max,
-                  initial_refinement_level=4,
-                  n_cells_max=30_000)
+                  initial_refinement_level=4)
   show(stdout, mesh)
   show(stdout, MIME"text/plain"(), mesh)
 
@@ -95,7 +94,7 @@ inf_timing = @snoopi tmin=0.01 begin
 
   u_ode = copy(ode.u0)
   du_ode = similar(u_ode)
-  Trixi.rhs!(du_ode, u_ode, semi, first(tspan))
+  Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(tspan))
 
   # You could also include a `solve` stage to generate possibly more precompile statements.
   # sol = Trixi.solve(ode, Trixi.SimpleAlgorithm2N45(),
@@ -111,7 +110,7 @@ After running the code above, SnoopCompile has generated the file
 `dev/precompile/precompile_Trixi.jl`, which contains precompile statements
 in the function `_precompile_`.
 More information on this process can be found in the docs of SnoopCompile,
-in particular at https://timholy.github.io/SnoopCompile.jl/stable/snoopi/.
+in particular at https://juliadebug.github.io/SnoopCompile.jl/stable/tutorials/snoop_inference_parcel/.
 
 This kind of analysis helps finding type-unstable parts of the code, e.g.
 `init_interfaces` etc. in https://github.com/trixi-framework/Trixi.jl/pull/307.
@@ -123,7 +122,7 @@ julia --threads=1 -e '@time using Trixi; @time include(joinpath(examples_dir(), 
 ```
 
 We add `@assert` to the precompile statements below to make sure that we don't include
-failing precompile statements, cf. https://timholy.github.io/SnoopCompile.jl/stable/snoopi/.
+failing precompile statements, cf. https://juliadebug.github.io/SnoopCompile.jl/stable/tutorials/snoop_inference_parcel/.
 If any assertions below fail, it is generally safe to just disable the failing call
 to precompile (or to not include precompile.jl at all).
 To still get the same latency reductions, you should consider to adapt the failing precompile
@@ -223,24 +222,7 @@ function _precompile_manual_()
 
     # Constructors: mesh
     for RealT in (Int, Float64)
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      RealT, RealT})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT}, Tuple{RealT}})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT, RealT}, Tuple{RealT, RealT}})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT, RealT, RealT},
-                                      Tuple{RealT, RealT, RealT}})
-        # New: n_cells_max omitted (uses default nothing)
+        # TreeMesh constructors: capacity derived from initial_refinement_level
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level,),
                                                  Tuple{Int}}, Type{TreeMesh},
@@ -260,7 +242,7 @@ function _precompile_manual_()
                                       Tuple{RealT, RealT, RealT}})
     end
     for TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
-        @assert Base.precompile(Tuple{typeof(Trixi.initialize!),
+        @assert Base.precompile(Tuple{typeof(Trixi.init_refinement!),
                                       TreeMesh{NDIMS, TreeType{NDIMS}, Float64}, Int,
                                       Tuple{},
                                       Tuple{}})

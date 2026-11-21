@@ -31,8 +31,9 @@ using Trixi
 # Special value for which nonlinear solver can be omitted
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
-# We want kappa = cp * mu = mu_bar to ensure constant enthalpy
-prandtl_number() = 1
+# We want kappa = cp * mu_bar to ensure constant enthalpy
+# See footnote 1 on page 335 in Margolin et al.
+prandtl_number() = 3 / 4
 
 ### Free choices: ###
 gamma() = 5 / 3
@@ -85,7 +86,12 @@ initial_condition = initial_condition_viscous_shock
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 equations = CompressibleEulerEquations1D(gamma())
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_bar(),
+
+# Trixi implements the stress tensor in deviatoric form, thus we need to
+# convert the "isotropic/longitudinal viscosity" to the "deviatoric viscosity"
+# See again footnote 1 on page 335 in Margolin et al.
+mu_deviatoric() = mu_bar() * 3 / 4
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -96,8 +102,7 @@ coordinates_max = domain_length / 2
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 ### Inviscid boundary conditions ###
 
@@ -138,8 +143,8 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
 # We use by default the Bassi-Rebay 1 scheme.
-# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence. 
-# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes. 
+# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence.
+# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes.
 # The LDG scheme can be used by specifying the keyword
 # solver_parabolic = ParabolicFormulationLocalDG()
 # in the semidiscretization call below.
@@ -168,5 +173,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             dt = 1e-3, ode_default_options()..., callback = callbacks)

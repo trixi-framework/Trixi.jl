@@ -9,7 +9,8 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 initial_condition = initial_condition_gauss
@@ -17,7 +18,8 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 boundary_conditions = (; all = boundary_condition)
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. The original mapping applied to this unstructured mesh
 # causes some Jacobians to be negative, which makes the mesh invalid.
@@ -86,14 +88,7 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           dynamic_load_balancing = false)
-# We disable `dynamic_load_balancing` for now, since t8code does not support
-# partitioning for coarsening yet. That is, a complete family of elements always
-# stays on rank and is not split up due to partitioning. Without this feature
-# dynamic AMR simulations are not perfectly deterministic regarding to
-# convergent tests. Once this feature is available in t8code load balancing is
-# enabled again.
+                           adapt_initial_condition_only_refine = true)
 
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
@@ -108,6 +103,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

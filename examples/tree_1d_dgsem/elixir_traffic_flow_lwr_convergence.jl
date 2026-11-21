@@ -14,7 +14,7 @@ coordinates_max = 2.0 # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, periodicity = true)
+                periodicity = true)
 
 ###############################################################################
 # Specify non-periodic boundary conditions
@@ -47,6 +47,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54();
+sol = solve(ode, CarpenterKennedy2N54(thread = Trixi.Threaded());
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

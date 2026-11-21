@@ -57,7 +57,7 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                periodicity = false, n_cells_max = 512^2 * 16)
+                periodicity = false)
 
 surface_flux = flux_lax_friedrichs
 
@@ -99,6 +99,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 ## Run the simulation
-sol = solve(ode, SSPRK54();
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, SSPRK54(thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

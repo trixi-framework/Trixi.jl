@@ -3,7 +3,8 @@ using Trixi
 
 ###############################################################################
 # Semidiscretization of the quasi 1d compressible Euler equations
-# See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
+# See Chan et al. https://arxiv.org/abs/2307.12089
+# (DOI: https://doi.org/10.1016/j.jcp.2024.112876) for details
 
 equations = CompressibleEulerEquationsQuasi1D(1.4)
 
@@ -31,7 +32,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
@@ -47,6 +48,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -26,9 +26,9 @@ end
 # will be discretized first order form as follows:
 #               1. compute grad(u)
 #               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
+#               3. compute div(f(u, grad(u))) (i.e., the "regular" RHS call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
+function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -43,7 +43,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
+        calc_gradient!(backend, gradients, u_transformed, t, mesh, equations_parabolic,
                        boundary_conditions_parabolic, dg,
                        parabolic_scheme, cache)
     end
@@ -54,10 +54,10 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                                equations_parabolic, dg, cache)
     end
 
-    # The remainder of this function is essentially a regular rhs! for
+    # The remainder of this function is essentially a regular RHS evaluation for
     # parabolic equations (i.e., it computes the divergence of the parabolic fluxes)
     #
-    # OBS! In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
+    # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
     # been computed and stored in `flux_parabolic`. In the following, we *reuse* (abuse) the
     # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
@@ -92,7 +92,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+        prolong2boundaries!(backend, cache, flux_parabolic, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes.
@@ -133,13 +134,22 @@ function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations_parabolic, dg, cache)
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        # Calculate volume terms in one element
-        for i in eachnode(dg)
-            u_node = get_node_vars(u, equations_parabolic, dg, i, element)
-            u_transformed_node = transformation(u_node, equations_parabolic)
-            set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
-                           i, element)
+        @inbounds begin
+            # Calculate volume terms in one element
+            for i in eachnode(dg)
+                u_node = get_node_vars(u, equations_parabolic, dg, i, element)
+                u_transformed_node = transformation(u_node, equations_parabolic)
+                set_node_vars!(u_transformed, u_transformed_node,
+                               equations_parabolic, dg,
+                               i, element)
+            end
         end
     end
 
@@ -149,20 +159,29 @@ end
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
 # except that the fluxes are here already precomputed in `calc_parabolic_fluxes!`
-function calc_volume_integral!(du, flux_parabolic, mesh::TreeMesh{1},
+function calc_volume_integral!(du, flux_parabolic_x, mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
     @unpack derivative_hat = dg.basis
 
-    @threaded for element in eachelement(dg, cache)
-        # Calculate volume terms in one element
-        for i in eachnode(dg)
-            flux_1_node = get_node_vars(flux_parabolic, equations_parabolic, dg, i,
-                                        element)
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+    end
 
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
-                                           equations_parabolic, dg, ii, element)
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            # Calculate volume terms in one element
+            for i in eachnode(dg)
+                flux_1_node = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
+                                            i, element)
+
+                for ii in eachnode(dg)
+                    multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
+                                               equations_parabolic, dg,
+                                               ii, element)
+                end
             end
         end
     end
@@ -176,51 +195,71 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
+        @inbounds begin
+            # Get neighboring elements
+            left_id = neighbor_ids[1, interface]
+            right_id = neighbor_ids[2, interface]
 
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
+            # Determine interface direction with respect to elements:
+            # orientation = 1: left -> 2, right -> 1
+            left_direction = 2 * orientations[interface]
+            right_direction = 2 * orientations[interface] - 1
 
-        # Get precomputed fluxes at interfaces
-        flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
-                                                 equations_parabolic,
-                                                 dg, interface)
+            # Get precomputed fluxes at interfaces
+            flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
+                                                     equations_parabolic, dg,
+                                                     interface)
 
-        # compute interface flux for the DG divergence 
-        flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
-                              equations_parabolic, parabolic_scheme)
+            # compute interface flux for the DG divergence
+            flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
+                                  equations_parabolic, parabolic_scheme)
 
-        # Copy flux to left and right element storage
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, left_direction, left_id] = flux[v]
-            surface_flux_values[v, right_direction, right_id] = flux[v]
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, left_direction, left_id] = flux[v]
+                surface_flux_values[v, right_direction, right_id] = flux[v]
+            end
         end
     end
 
     return nothing
 end
 
-function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
+function calc_parabolic_fluxes!(flux_parabolic_x, gradients, u_transformed,
                                 mesh::TreeMesh{1},
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            # Get solution and gradients
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, element)
-            gradients_1_node = get_node_vars(gradients, equations_parabolic, dg,
-                                             i, element)
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+    end
 
-            # Calculate parabolic flux and store each component for later use
-            flux_parabolic_node = flux(u_node, (gradients_1_node,), 1,
-                                       equations_parabolic)
-            set_node_vars!(flux_parabolic, flux_parabolic_node, equations_parabolic, dg,
-                           i, element)
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for i in eachnode(dg)
+                # Get solution and gradients
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, element)
+                gradients_1_node = get_node_vars(gradients, equations_parabolic, dg,
+                                                 i, element)
+
+                # Calculate parabolic flux and store each component for later use
+                flux_parabolic_node = flux(u_node, (gradients_1_node,), 1,
+                                           equations_parabolic)
+                set_node_vars!(flux_parabolic_x, flux_parabolic_node,
+                               equations_parabolic, dg,
+                               i, element)
+            end
         end
     end
 
@@ -229,17 +268,19 @@ end
 
 function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::TreeMesh{1},
+                                      mesh::Union{TreeMesh, P4estMesh},
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
 function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::TreeMesh{1},
+                                        mesh::Union{TreeMesh, P4estMesh},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
     return nothing
 end
 
@@ -280,31 +321,40 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.boundaries, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(1),
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for boundary in first_boundary:last_boundary
-        # Get neighboring element
-        neighbor = neighbor_ids[boundary]
+        @inbounds begin
+            # Get neighboring element
+            neighbor = neighbor_ids[boundary]
 
-        # Get boundary flux
-        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, boundary)
-        if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
-            u_inner = u_ll
-        else # Element is on the right, boundary on the left
-            u_inner = u_rr
-        end
+            # Get boundary flux
+            u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg, boundary)
+            if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
+                u_inner = u_ll
+            else # Element is on the right, boundary on the left
+                u_inner = u_rr
+            end
 
-        # TODO: revisit if we want more general boundary treatments.
-        # This assumes the gradient numerical flux at the boundary is the gradient variable,
-        # which is consistent with BR1, LDG.
-        flux_inner = u_inner
+            # TODO: revisit if we want more general boundary treatments.
+            # This assumes the gradient numerical flux at the boundary is the gradient variable,
+            # which is consistent with BR1, LDG.
+            flux_inner = u_inner
 
-        x = get_node_coords(node_coordinates, equations_parabolic, dg, boundary)
-        flux = boundary_condition(flux_inner, u_inner, orientations[boundary],
-                                  direction,
-                                  x, t, Gradient(), equations_parabolic)
+            x = get_node_coords(node_coordinates, equations_parabolic, dg, boundary)
+            flux = boundary_condition(flux_inner, u_inner, orientations[boundary],
+                                      direction,
+                                      x, t, Gradient(), equations_parabolic)
 
-        # Copy flux to left and right element storage
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, direction, neighbor] = flux[v]
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, direction, neighbor] = flux[v]
+            end
         end
     end
 
@@ -352,32 +402,42 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     # of the parabolic flux, as computed in `prolong2boundaries!`
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.boundaries, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(1),
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for boundary in first_boundary:last_boundary
-        # Get neighboring element
-        neighbor = neighbor_ids[boundary]
+        @inbounds begin
+            # Get neighboring element
+            neighbor = neighbor_ids[boundary]
 
-        # Get parabolic boundary fluxes
-        flux_ll, flux_rr = get_surface_node_vars(u, equations_parabolic, dg, boundary)
-        if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
-            flux_inner = flux_ll
-        else # Element is on the right, boundary on the left
-            flux_inner = flux_rr
-        end
+            # Get parabolic boundary fluxes
+            flux_ll, flux_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                                     boundary)
+            if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
+                flux_inner = flux_ll
+            else # Element is on the right, boundary on the left
+                flux_inner = flux_rr
+            end
 
-        x = get_node_coords(node_coordinates, equations_parabolic, dg, boundary)
+            x = get_node_coords(node_coordinates, equations_parabolic, dg, boundary)
 
-        # TODO: add a field in `cache.boundaries` for gradient information.
-        # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
-        # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
-        # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
-        # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
-        flux = boundary_condition(flux_inner, nothing, orientations[boundary],
-                                  direction,
-                                  x, t, Divergence(), equations_parabolic)
+            # TODO: add a field in `cache.boundaries` for gradient information.
+            # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
+            # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
+            # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
+            # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
+            flux = boundary_condition(flux_inner, nothing, orientations[boundary],
+                                      direction,
+                                      x, t, Divergence(), equations_parabolic)
 
-        # Copy flux to left and right element storage
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, direction, neighbor] = flux[v]
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, direction, neighbor] = flux[v]
+            end
         end
     end
 
@@ -390,17 +450,25 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
                                         dg::DGSEM, cache)
     @unpack derivative_hat = dg.basis
 
-    @threaded for element in eachelement(dg, cache)
-        # Calculate volume terms in one element,
-        # corresponds to `kernel` functions for the hyperbolic part of the flux
-        for i in eachnode(dg)
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                                   i, element)
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients, mesh, equations_parabolic, dg, cache)
+    end
 
-            for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients, derivative_hat[ii, i],
-                                           u_node, equations_parabolic, dg,
-                                           ii, element)
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            # Calculate volume terms in one element,
+            # corresponds to `kernel` functions for the hyperbolic part of the flux
+            for i in eachnode(dg)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, element)
+
+                for ii in eachnode(dg)
+                    multiply_add_to_node_vars!(gradients, derivative_hat[ii, i],
+                                               u_node, equations_parabolic, dg,
+                                               ii, element)
+                end
             end
         end
     end
@@ -414,29 +482,39 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.interfaces, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
     @threaded for interface in eachinterface(dg, cache)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
+        @inbounds begin
+            # Get neighboring elements
+            left_id = neighbor_ids[1, interface]
+            right_id = neighbor_ids[2, interface]
 
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
+            # Determine interface direction with respect to elements:
+            # orientation = 1: left -> 2, right -> 1
+            left_direction = 2 * orientations[interface]
+            right_direction = 2 * orientations[interface] - 1
 
-        # Call pointwise Riemann solver
-        u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
-                                           equations_parabolic, dg, interface)
+            # Call pointwise Riemann solver
+            u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
+                                               equations_parabolic, dg,
+                                               interface)
 
-        flux = flux_parabolic(u_ll, u_rr, Gradient(),
-                              equations_parabolic, parabolic_scheme)
+            flux = flux_parabolic(u_ll, u_rr, Gradient(),
+                                  equations_parabolic, parabolic_scheme)
 
-        # Copy flux to left and right element storage
-        for v in eachvariable(equations_parabolic)
-            surface_flux_values[v, left_direction, left_id] = flux[v]
-            # No sign flip needed for gradient computation because for parabolic terms, 
-            # the normals are not embedded in `flux_` for gradient computations.
-            surface_flux_values[v, right_direction, right_id] = flux[v]
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, left_direction, left_id] = flux[v]
+                # No sign flip needed for gradient computation because for parabolic terms,
+                # the normals are not embedded in `flux_` for gradient computations.
+                surface_flux_values[v, right_direction, right_id] = flux[v]
+            end
         end
     end
 
@@ -454,17 +532,28 @@ function calc_surface_integral_gradient!(gradients,
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
-    @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations_parabolic)
-            # surface at -x
-            gradients[v, 1, element] = (gradients[v, 1, element] -
-                                        surface_flux_values[v, 1, element] *
-                                        factor)
 
-            # surface at +x
-            gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
-                                                 surface_flux_values[v, 2, element] *
-                                                 factor)
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(gradients, mesh, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for v in eachvariable(equations_parabolic)
+                # surface at -x
+                gradients[v, 1, element] = (gradients[v, 1, element] -
+                                            surface_flux_values[v, 1, element] *
+                                            factor)
+
+                # surface at +x
+                gradients[v, nnodes(dg), element] = (gradients[v, nnodes(dg), element] +
+                                                     surface_flux_values[v, 2,
+                                                                         element] *
+                                                     factor)
+            end
         end
     end
 
@@ -481,23 +570,34 @@ function calc_surface_integral_gradient!(gradients,
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations_parabolic)
-            # Aliases for repeatedly accessed variables
-            surface_flux_minus = surface_flux_values[v, 1, element]
-            surface_flux_plus = surface_flux_values[v, 2, element]
-            for ii in eachnode(dg)
-                # surface at -x
-                gradients[v, ii, element] = (gradients[v, ii, element] -
-                                             surface_flux_minus *
-                                             boundary_interpolation_inverse_weights[ii,
-                                                                                    1])
 
-                # surface at +x
-                gradients[v, ii, element] = (gradients[v, ii, element] +
-                                             surface_flux_plus *
-                                             boundary_interpolation_inverse_weights[ii,
-                                                                                    2])
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(gradients, mesh, equations_parabolic, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh,
+                                       equations_parabolic, dg, cache)
+        check_axes(boundary_interpolation_inverse_weights,
+                   (eachnode(dg), Base.OneTo(2)))
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for v in eachvariable(equations_parabolic)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus = surface_flux_values[v, 1, element]
+                surface_flux_plus = surface_flux_values[v, 2, element]
+                for ii in eachnode(dg)
+                    factor_minus = boundary_interpolation_inverse_weights[ii, 1]
+                    factor_plus = boundary_interpolation_inverse_weights[ii, 2]
+
+                    # surface at -x
+                    gradients[v, ii, element] = (gradients[v, ii, element] -
+                                                 surface_flux_minus * factor_minus)
+
+                    # surface at +x
+                    gradients[v, ii, element] = (gradients[v, ii, element] +
+                                                 surface_flux_plus * factor_plus)
+                end
             end
         end
     end
@@ -506,7 +606,8 @@ function calc_surface_integral_gradient!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
+                        mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
 
@@ -538,7 +639,8 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic, dg)
+        prolong2boundaries!(backend, cache, u_transformed, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes
@@ -573,12 +675,20 @@ function apply_jacobian_parabolic!(du::AbstractArray, mesh::TreeMesh{1},
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        factor = inverse_jacobian[element]
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
 
-        for i in eachnode(dg)
-            for v in eachvariable(equations_parabolic)
-                du[v, i, element] *= factor
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            factor = inverse_jacobian[element]
+
+            for i in eachnode(dg)
+                for v in eachvariable(equations_parabolic)
+                    du[v, i, element] *= factor
+                end
             end
         end
     end
@@ -598,16 +708,28 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                  cache)
     @unpack node_coordinates = cache.elements
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, Val(1), equations_parabolic, dg, cache)
+        check_axes(du, Val(1), equations_parabolic, dg, cache)
+        check_axes(gradients, Val(1), equations_parabolic, dg, cache)
+        check_axes(cache.elements, equations_parabolic, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            u_local = get_node_vars(u, equations_parabolic, dg, i, element)
-            gradients_x_local = get_node_vars(gradients, equations_parabolic, dg, i,
-                                              element)
-            x_local = get_node_coords(node_coordinates, equations_parabolic, dg,
-                                      i, element)
-            du_local = source_terms_parabolic(u_local, (gradients_x_local,), x_local, t,
-                                              equations_parabolic)
-            add_to_node_vars!(du, du_local, equations_parabolic, dg, i, element)
+        @inbounds begin
+            for i in eachnode(dg)
+                u_local = get_node_vars(u, equations_parabolic, dg, i, element)
+                gradients_x_local = get_node_vars(gradients, equations_parabolic, dg,
+                                                  i, element)
+                x_local = get_node_coords(node_coordinates, equations_parabolic, dg,
+                                          i, element)
+                du_local = source_terms_parabolic(u_local, (gradients_x_local,),
+                                                  x_local, t,
+                                                  equations_parabolic)
+                add_to_node_vars!(du, du_local, equations_parabolic, dg,
+                                  i, element)
+            end
         end
     end
 

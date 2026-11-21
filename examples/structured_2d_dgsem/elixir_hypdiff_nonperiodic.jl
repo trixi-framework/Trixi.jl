@@ -17,7 +17,8 @@ boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
 ###############################################################################
 # Get the curved quad mesh from a mapping function
 #
-# Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580), but reduced to 2D
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5
@@ -73,5 +74,5 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52();
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

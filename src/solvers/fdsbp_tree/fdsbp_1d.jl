@@ -1,6 +1,3 @@
-# !!! warning "Experimental implementation (upwind SBP)"
-#     This is an experimental feature and may change in future releases.
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -9,9 +6,9 @@
 #! format: noindent
 
 # 1D caches
-function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralStrongForm,
-                      dg, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
+                                      volume_integral::VolumeIntegralStrongForm,
+                                      dg, cache_containers, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
@@ -20,9 +17,9 @@ function create_cache(mesh::TreeMesh{1}, equations,
     return (; f_threaded)
 end
 
-function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralUpwind,
-                      dg, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
+                                      volume_integral::VolumeIntegralUpwind,
+                                      dg, cache_containers, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
     f = StructArray([(u_node, u_node)])
@@ -41,7 +38,79 @@ function create_cache(mesh::TreeMesh{1}, equations,
     return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded)
 end
 
-# 2D volume integral contributions for `VolumeIntegralStrongForm`
+function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
+                                      volume_integral::VolumeIntegralFluxDifferencing,
+                                      dg::FDSBP, cache_containers, uEltype)
+    if !(typeof(dg.surface_integral) <: SurfaceIntegralWeakForm)
+        throw(ArgumentError("Invalid surface integral type: $(dg.surface_integral). Please use SurfaceIntegralWeakForm(surface_flux)."))
+    end
+
+    D = sparse(dg.basis)
+    M = SummationByPartsOperators.mass_matrix(dg.basis)
+    if M isa UniformScaling
+        M = M(nnodes(dg))
+    end
+    inv_weights = diag(inv(M))
+    # We multiply by the mass matrix to exploit the skew-symmetry property, where Q = M D
+    derivative_split_weighted = 2 .* M * D
+    # We subtract the boundary operator B
+    derivative_split_weighted[1, 1] = 0
+    derivative_split_weighted[end, end] = 0
+    # We have to loop over rows, but sparse matrices in Julia are column major, therefore we permute the dimensions.
+    derivative_split_weighted = permutedims(derivative_split_weighted)
+    # Since the matrix is skew symmetric, we avoid looping over the lower triangular part of the matrix.
+    derivative_split_weighted = sparse(UpperTriangular(derivative_split_weighted))
+    dropzeros!(derivative_split_weighted)
+
+    return (; derivative_split_weighted, inv_weights)
+end
+
+# 1D volume integral contributions for `VolumeIntegralFluxDifferencing`
+function calc_volume_integral!(backend, du, u,
+                               mesh::TreeMesh{1},
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::FDSBP, cache)
+    Q_split = cache.derivative_split_weighted # SBP split derivative operator weighted by mass matrix
+    inv_weights = cache.inv_weights
+    @unpack volume_flux = volume_integral
+
+    Q_split_base, row_ids, rows, vals = sparse_operator_data(Q_split)
+
+    @threaded for element in eachelement(dg, cache)
+        # The first contribution to a node depends on the sparsity pattern of
+        # `Q_split`. Thus, we reset `du` in this element since the volume integral
+        # must overwrite `du`, see the interface of volume integrals in
+        # `src/solvers/dg.jl`. This is cheap since the element data are loaded into
+        # the cache anyway.
+        du[.., element] .= zero(eltype(du))
+
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+
+            # We are looping over the columns of the permuted derivative split weighted operator,
+            # which corresponds to looping over the rows of the derivative split weighted operator.
+            for id in nzrange(Q_split_base, i)
+                ii = rows[id]
+                Q_split_i_ii = vals[id]
+
+                u_node_ii = get_node_vars(u, equations, dg, ii, element)
+
+                flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
+                multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i], flux1,
+                                           equations, dg, i, element)
+                multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii], flux1,
+                                           equations, dg, ii, element)
+            end
+        end
+    end
+
+    return nothing
+end
+
+# 1D volume integral contributions for `VolumeIntegralStrongForm`
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
@@ -73,10 +142,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
         f_element = f_threaded[Threads.threadid()]
         u_element = view(u_vectors, :, element)
 
-        # x direction
+        # x direction, overwriting `du` (see the interface of volume integrals in
+        # `src/solvers/dg.jl`)
         @. f_element = flux(u_element, 1, equations)
         mul!(view(du_vectors, :, element), D, view(f_element, :),
-             one(eltype(du)), one(eltype(du)))
+             one(eltype(du)))
     end
 
     return nothing
@@ -130,10 +200,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
         f_plus_element = f_plus_threaded[Threads.threadid()]
         u_element = view(u_vectors, :, element)
 
-        # x direction
+        # x direction, where the first operator overwrites `du` (see the interface of
+        # volume integrals in `src/solvers/dg.jl`)
         @. f_minus_plus_element = splitting(u_element, 1, equations)
         mul!(view(du_vectors, :, element), D_plus, view(f_minus_element, :),
-             one(eltype(du)), one(eltype(du)))
+             one(eltype(du)))
         mul!(view(du_vectors, :, element), D_minus, view(f_plus_element, :),
              one(eltype(du)), one(eltype(du)))
     end
@@ -167,9 +238,41 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
     return nothing
 end
 
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::FDSBP, cache)
+    inv_weight_left = -inv(left_boundary_weight(dg.basis))
+    inv_weight_right = inv(right_boundary_weight(dg.basis))
+    @unpack surface_flux_values = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        # surface at -x
+        u_node = get_node_vars(u, equations, dg, 1, element)
+        f_num = get_node_vars(surface_flux_values, equations, dg, 1, element)
+        multiply_add_to_node_vars!(du, inv_weight_left, f_num,
+                                   equations, dg, 1, element)
+
+        # surface at +x
+        u_node = get_node_vars(u, equations, dg, nnodes(dg), element)
+        f_num = get_node_vars(surface_flux_values, equations, dg, 2, element)
+        multiply_add_to_node_vars!(du, inv_weight_right, f_num,
+                                   equations, dg, nnodes(dg), element)
+    end
+
+    return nothing
+end
+
 # Periodic FDSBP operators need to use a single element without boundaries
 function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh1D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
+                                dg::PeriodicFDSBP, cache)
+    @assert nelements(dg, cache) == 1
+    return nothing
+end
+
+# Periodic FDSBP operators need to use a single element without boundaries
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh1D,
+                                equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::PeriodicFDSBP, cache)
     @assert nelements(dg, cache) == 1
     return nothing

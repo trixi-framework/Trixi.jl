@@ -11,7 +11,8 @@ equations = IdealGlmMhdEquations2D(1.4)
 The classical MHD rotor test case. Here, the setup is taken from
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+  [arXiv: 1708.03537](https://arxiv.org/abs/1708.03537)
+  [DOI: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
 """
 function initial_condition_rotor(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
@@ -67,6 +68,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 # Affine type mapping to take the [-1,1]^2 domain from the mesh file
 # and put it onto the rotor domain [0,1]^2 and then warp it with a mapping
 # as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping_twist(xi, eta)
     y = 0.5 * (eta + 1.0) +
         0.05 * cos(1.5 * pi * (2.0 * xi - 1.0)) * cos(0.5 * pi * (2.0 * eta - 1.0))
@@ -115,14 +117,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           dynamic_load_balancing = false)
-# We disable `dynamic_load_balancing` for now, since t8code does not support
-# partitioning for coarsening yet. That is, a complete family of elements always
-# stays on rank and is not split up due to partitioning. Without this feature
-# dynamic AMR simulations are not perfectly deterministic regarding to
-# convergent tests. Once this feature is available in t8code load balancing is
-# enabled again.
+                           adapt_initial_condition_only_refine = true)
 
 cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
@@ -140,6 +135,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

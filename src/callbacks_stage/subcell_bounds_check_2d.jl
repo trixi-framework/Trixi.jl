@@ -26,6 +26,8 @@
             key_max = Symbol(v_string, "_max")
             deviation_min = idp_bounds_delta_local[key_min]
             deviation_max = idp_bounds_delta_local[key_max]
+            bounds_min = variable_bounds[key_min]
+            bounds_max = variable_bounds[key_max]
             @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
                                                                                                      cache)
 
@@ -38,10 +40,8 @@
                     # `max` operator for the lower and upper bound. The different directions of
                     # upper and lower bound are considered in their calculations with a
                     # different sign.
-                    deviation_min = max(deviation_min,
-                                        variable_bounds[key_min][i, j, element] - var)
-                    deviation_max = max(deviation_max,
-                                        var - variable_bounds[key_max][i, j, element])
+                    deviation_min = max(deviation_min, bounds_min[i, j, element] - var)
+                    deviation_max = max(deviation_max, var - bounds_max[i, j, element])
                 end
             end
             idp_bounds_delta_local[key_min] = deviation_min
@@ -52,6 +52,7 @@
         for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
             key = Symbol(string(variable), "_", string(min_or_max))
             deviation = idp_bounds_delta_local[key]
+            bounds = variable_bounds[key]
             sign_ = min_or_max(1.0, -1.0)
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
 
@@ -64,8 +65,7 @@
                     # Note: We always save the absolute deviations >= 0 and therefore use the
                     # `max` operator for lower and upper bounds. The different directions of
                     # upper and lower bounds are considered with `sign_`.
-                    deviation = max(deviation,
-                                    sign_ * (v - variable_bounds[key][i, j, element]))
+                    deviation = max(deviation, sign_ * (v - bounds[i, j, element]))
                 end
             end
             idp_bounds_delta_local[key] = deviation
@@ -80,6 +80,7 @@
             end
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
+            bounds = variable_bounds[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
 
                 # detect if subcell limiting is necessary
@@ -87,8 +88,7 @@
 
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
-                    deviation = max(deviation,
-                                    variable_bounds[key][i, j, element] - var)
+                    deviation = max(deviation, bounds[i, j, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation
@@ -96,6 +96,7 @@
         for variable in limiter.positivity_variables_nonlinear
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
+            bounds = variable_bounds[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
 
                 # detect if subcell limiting is necessary
@@ -104,8 +105,7 @@
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
-                    deviation = max(deviation,
-                                    variable_bounds[key][i, j, element] - var)
+                    deviation = max(deviation, bounds[i, j, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation

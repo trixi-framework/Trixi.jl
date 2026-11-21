@@ -50,8 +50,8 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
     # Check if both solvers use the same polynomial basis
     @assert semi_acoustics.solver.basis == semi_euler.solver.basis
 
-    cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
-                         mesh_equations_solver_cache(semi_acoustics)...)
+    cache = create_cache_euler_acoustics(source_region, weights,
+                                         mesh_equations_solver_cache(semi_acoustics)...)
 
     performance_counter = PerformanceCounter()
 
@@ -60,9 +60,9 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
                                                            cache, performance_counter)
 end
 
-function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,
-                      mesh, equations::AcousticPerturbationEquations2D, dg::DGSEM,
-                      cache)
+function create_cache_euler_acoustics(source_region, weights,
+                                      mesh, equations::AcousticPerturbationEquations2D,
+                                      dg::DGSEM, cache)
     coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
     acoustic_source_terms = zeros(eltype(cache.elements),
@@ -168,7 +168,7 @@ end
     return calc_error_norms(func, u, t, analyzer, semi.semi_acoustics, cache_analysis)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
     @unpack semi_acoustics, cache = semi
     @unpack acoustic_source_terms, acoustic_source_weights, coupled_element_ids = cache
 
@@ -176,7 +176,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
 
     time_start = time_ns()
 
-    @trixi_timeit timer() "acoustics rhs!" rhs!(du_ode, u_ode, semi_acoustics, t)
+    @trixi_timeit timer() "acoustics rhs!" rhs_hyperbolic!(du_ode, u_ode,
+                                                           semi_acoustics, t)
 
     @trixi_timeit timer() "add acoustic source terms" begin
         add_acoustic_source_terms!(du_acoustics, acoustic_source_terms,

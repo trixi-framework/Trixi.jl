@@ -227,11 +227,9 @@ refinement_patches = ((type = "sphere", center = (0.0, 0.0), radius = 85.0 * r0)
                       (type = "sphere", center = (0.0, 0.0), radius = 10.0 * r0),
                       (type = "sphere", center = (0.0, 0.0), radius = 5.0 * r0))
 initial_refinement_level = 7
-n_cells_max = 500_000
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
                 refinement_patches = refinement_patches,
-                n_cells_max = n_cells_max, # set maximum capacity of tree data structure
                 periodicity = false)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -339,8 +337,10 @@ callbacks_averaging = CallbackSet(summary_callback, alive_callback, averaging_ca
 # run simulation for averaging the flow field
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol_averaging = solve(ode_averaging, CarpenterKennedy2N54(williamson_condition = false);
-                      dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol_averaging = solve(ode_averaging,
+                      CarpenterKennedy2N54(williamson_condition = false,
+                                           thread = Trixi.Threaded());
+                      dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                       ode_default_options()..., callback = callbacks_averaging);
 
 ###############################################################################
@@ -366,7 +366,8 @@ ode_euler = semidiscretize(semi.semi_euler, tspan)
 cfl_acoustics = 0.8
 cfl_euler = 0.8
 euler_acoustics_coupling = EulerAcousticsCouplingCallback(ode_euler, "out/averaging.h5",
-                                                          CarpenterKennedy2N54(williamson_condition = false),
+                                                          CarpenterKennedy2N54(williamson_condition = false,
+                                                                               thread = Trixi.Threaded()),
                                                           cfl_acoustics, cfl_euler,
                                                           callback = SaveRestartCallback(interval = 2300,
                                                                                          output_directory = "out/euler/"))
@@ -386,6 +387,7 @@ save_restart = SaveRestartCallback(interval = 2300, output_directory = output_di
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution,
                         save_restart, euler_acoustics_coupling)
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

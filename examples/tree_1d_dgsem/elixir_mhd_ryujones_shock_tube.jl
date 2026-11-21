@@ -16,6 +16,7 @@ present in the one dimensional MHD equations. It is the second test from Section
 - Ryu and Jones (1995)
   Numerical Magnetohydrodynamics in Astrophysics: Algorithm and Tests
   for One-Dimensional Flow
+  [arXiv: astro-ph/9404074](https://arxiv.org/abs/astro-ph/9404074)
   [DOI: 10.1086/175437](https://doi.org/10.1086/175437)
 !!! note
     This paper has a typo in the initial conditions. Their variable `E` should be `p`.
@@ -57,7 +58,6 @@ coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 7,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -91,6 +91,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

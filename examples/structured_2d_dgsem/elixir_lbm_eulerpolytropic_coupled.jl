@@ -1,13 +1,12 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
-using LinearAlgebra: norm
 
 ###############################################################################
 # Semidiscretizations of the polytropic Euler equations and Lattice-Boltzmann method (LBM)
 # coupled using converter functions across their respective domains to generate a periodic system.
 #
 # In this elixir, we have a rectangular domain that is divided into a left and right half.
-# On each half of the domain, an independent SemidiscretizationHyperbolic is created for each set of equations. 
+# On each half of the domain, an independent SemidiscretizationHyperbolic is created for each set of equations.
 # The two systems are coupled in the x-direction and are periodic in the y-direction.
 # For a high-level overview, see also the figure below:
 #
@@ -61,17 +60,21 @@ mesh_euler = StructuredMesh(cells_per_dim_per_section,
                             coords_min_euler, coords_max_euler,
                             periodicity = (false, true))
 
-# Use macroscopic variables derived from LBM populations 
+# Use macroscopic variables derived from LBM populations
 # as boundary values for the Euler equations
 function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
     rho, v1, v2, _ = cons2macroscopic(u, equations_other)
     return prim2cons(SVector(rho, v1, v2), equations_own)
 end
 
-boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward),
+boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2,
+                                                              (NodeIndex.End,
+                                                               NodeIndex.IForward),
                                                               Float64,
                                                               coupling_function_LBM2Euler),
-                             x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward),
+                             x_pos = BoundaryConditionCoupled(2,
+                                                              (NodeIndex.Begin,
+                                                               NodeIndex.IForward),
                                                               Float64,
                                                               coupling_function_LBM2Euler),
                              y_neg = boundary_condition_periodic,
@@ -86,7 +89,7 @@ semi_euler = SemidiscretizationHyperbolic(mesh_euler, eqs_euler, initial_conditi
 # LBM
 ###########
 
-# Results in c_s = c/sqrt(3) = 1. 
+# Results in c_s = c/sqrt(3) = 1.
 # This in turn implies that also in the LBM, p = c_s^2 * rho = 1 * rho = kappa * rho holds
 # This is absolutely essential for the correct coupling between the two systems.
 c = sqrt(3)
@@ -127,7 +130,7 @@ mesh_lbm = StructuredMesh(cells_per_dim_per_section,
                           coords_min_lbm, coords_max_lbm,
                           periodicity = (false, true))
 
-# Supply equilibrium (Maxwellian) distribution function computed 
+# Supply equilibrium (Maxwellian) distribution function computed
 # from the Euler-variables as boundary values for the LBM equations
 function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
     u_prim_euler = cons2prim(u, equations_other)
@@ -138,10 +141,14 @@ function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
     return equilibrium_distribution(rho, v1, v2, equations_own)
 end
 
-boundary_conditions_lbm = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward),
+boundary_conditions_lbm = (x_neg = BoundaryConditionCoupled(1,
+                                                            (NodeIndex.End,
+                                                             NodeIndex.IForward),
                                                             Float64,
                                                             coupling_function_Euler2LBM),
-                           x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward),
+                           x_pos = BoundaryConditionCoupled(1,
+                                                            (NodeIndex.Begin,
+                                                             NodeIndex.IForward),
                                                             Float64,
                                                             coupling_function_Euler2LBM),
                            y_neg = boundary_condition_periodic,
@@ -226,6 +233,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK83();
+sol = solve(ode, SSPRK83(thread = Trixi.Threaded());
             dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

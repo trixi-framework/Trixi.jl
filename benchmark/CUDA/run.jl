@@ -41,7 +41,8 @@ function main(elixir_path)
     # read TimerOutputs timings
     timer = Trixi.timer()
     metrics["total time"] = 1.0e-9 * TimerOutputs.tottime(timer)
-    metrics["rhs! time"] = 1.0e-9 * TimerOutputs.time(timer["rhs!"])
+    metrics["rhs_hyperbolic! time"] = 1.0e-9 *
+                                      TimerOutputs.time(timer["rhs_hyperbolic!"])
 
     # compute performance index
     latest_semi = @invokelatest (@__MODULE__).semi

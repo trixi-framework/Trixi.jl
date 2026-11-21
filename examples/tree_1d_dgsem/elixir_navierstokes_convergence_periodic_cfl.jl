@@ -79,13 +79,13 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     du2 = (rho_t * v1 + rho * v1_t
            + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
            # stress tensor from x-direction
-           v1_xx * mu_)
+           v1_xx * mu_ * 4 / 3)
 
     # total energy equation
     du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
            # stress tensor and temperature gradient terms from x-direction
-           v1_xx * v1 * mu_ -
-           v1_x * v1_x * mu_ -
+           v1_xx * v1 * mu_ * 4 / 3 -
+           v1_x * v1_x * mu_ * 4 / 3 -
            T_const * inv_rho_cubed *
            (p_xx * rho * rho -
             2.0 * p_x * rho * rho_x +
@@ -103,7 +103,7 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -128,7 +128,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 2.7,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.08)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -139,5 +139,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
+sol = solve(ode, CKLLSRK95_4S(thread = Trixi.Threaded()),
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

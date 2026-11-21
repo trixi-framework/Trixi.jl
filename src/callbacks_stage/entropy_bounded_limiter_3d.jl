@@ -41,9 +41,9 @@ function limiter_entropy_bounded!(u, u_prev, exp_entropy_decrease_max,
 
         epsilon = d_exp_s_min / (d_exp_s_min - entropy_change_mean)
 
-        # In the derivation of the limiter it is assumed that 
+        # In the derivation of the limiter it is assumed that
         # entropy_change_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
-        # However, this might not always be the case in a simulation as 
+        # However, this might not always be the case in a simulation as
         # we usually do not enforce the corresponding CFL condition from Lemma 3.
         # Thus, we clip epsilon at 1.
         if epsilon > 1

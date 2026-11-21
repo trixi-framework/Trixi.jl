@@ -9,6 +9,7 @@
 # For complete details on the problem setup see Section 5.7 of the paper:
 # - Jean-Luc Guermond, Murtazo Nazarov, Bojan Popov, and Ignacio Tomas (2018)
 #   Second-Order Invariant Domain Preserving Approximation of the Euler Equations using Convex Limiting.
+#   [arXiv: 1710.00417](https://arxiv.org/abs/1710.00417)
 #   [DOI: 10.1137/17M1149961](https://doi.org/10.1137/17M1149961)
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
@@ -112,6 +113,12 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# positivity limiter necessary for this example with strong shocks. Very sensitive
+# to the order of the limiter variables, pressure must come first.
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
+                                                         variables = (pressure,
+                                                                      Trixi.density))
+
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
@@ -119,22 +126,21 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level = 3, med_threshold = 0.05,
                                       max_level = 5, max_threshold = 0.1)
 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
                         amr_callback)
 
-# positivity limiter necessary for this example with strong shocks. Very sensitive
-# to the order of the limiter variables, pressure must come first.
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
-                                                     variables = (pressure, Trixi.density))
-
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(; stage_limiter!);
+sol = solve(ode,
+            SSPRK43(; stage_limiter! = positivity_limiter, thread = Trixi.Threaded());
             ode_default_options()..., callback = callbacks);

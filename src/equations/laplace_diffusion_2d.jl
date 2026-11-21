@@ -3,8 +3,8 @@
 
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
-This is intended for use as the parabolic part of a hyperbolic-parabolic system, where the 
-hyperbolic part is defined by `equations`. For a purely parabolic diffusion equation 
+This is intended for use as the parabolic part of a hyperbolic-parabolic system, where the
+hyperbolic part is defined by `equations`. For a purely parabolic diffusion equation
 without any hyperbolic part, see [`LinearDiffusionEquation2D`](@ref).
 """
 struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
@@ -33,7 +33,8 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion2D)
+@inline function flux(u, gradients, orientation::Integer,
+                      equations_parabolic::LaplaceDiffusion2D)
     dudx, dudy = gradients
     if orientation == 1
         return SVector(equations_parabolic.diffusivity * dudx)

@@ -22,6 +22,7 @@ A version of the classical Kelvin-Helmholtz instability based on
   A Subcell Finite Volume Positivity-Preserving Limiter for DGSEM Discretizations
   of the Euler Equations
   [arXiv: 2102.06017](https://arxiv.org/abs/2102.06017)
+  [DOI: 10.23967/wccm-eccomas.2020.038](https://doi.org/10.23967/wccm-eccomas.2020.038)
 """
 function initial_condition_kelvin_helmholtz_instability(x, t,
                                                         equations::CompressibleEulerEquations2D)
@@ -51,7 +52,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback,
@@ -61,5 +62,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = estimate_dt(mesh, dg), ode_default_options()..., callback = callbacks);

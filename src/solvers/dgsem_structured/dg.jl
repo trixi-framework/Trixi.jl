@@ -8,9 +8,9 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
-                      equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::Union{StructuredMesh, StructuredMeshView},
+                                 equations::AbstractEquations, dg::DG, ::Any,
+                                 ::Type{uEltype}) where {uEltype <: Real}
     elements = init_elements(mesh, equations, dg.basis, uEltype)
 
     # Container cache
@@ -18,14 +18,22 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
 
     return cache
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
-@inline function get_contravariant_vector(index, contravariant_vectors, indices...)
-    return SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
+Base.@propagate_inbounds function get_contravariant_vector(index,
+                                                           contravariant_vectors,
+                                                           indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(contravariant_vectors,
+                             1:(ndims(contravariant_vectors) - 3), index, indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(dim->@inbounds contravariant_vectors[dim, index,
+                                                                       indices...]),
                           Val(ndims(contravariant_vectors) - 3)))
 end
 
@@ -38,13 +46,14 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
     return nothing
 end
 
-function rhs!(du, u, t,
-              mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
-
-    # Calculate volume integral
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
+    # Calculate volume integral. Since this is the first term, the volume integral
+    # overwrites `du` instead of adding to it, so that `du` does not need to be
+    # reset to zero before.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
@@ -63,7 +72,7 @@ function rhs!(du, u, t,
                              dg.surface_integral, dg, cache)
     end
 
-    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values 
+    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values
     # are stored in the interface datastructure (`interfaces_u`),
     # so we can directly calculate the boundary fluxes without prolongation.
 
@@ -119,16 +128,20 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
-                                                  orientation,
-                                                  boundary_condition,
-                                                  mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  have_nonconservative_terms::False,
-                                                  equations,
-                                                  surface_integral, dg::DG, cache,
-                                                  direction, node_indices,
-                                                  surface_node_indices, element)
+Base.@propagate_inbounds function calc_boundary_flux_by_direction!(surface_flux_values,
+                                                                   t,
+                                                                   orientation,
+                                                                   boundary_condition,
+                                                                   mesh::Union{StructuredMesh,
+                                                                               StructuredMeshView},
+                                                                   have_nonconservative_terms::False,
+                                                                   equations,
+                                                                   surface_integral,
+                                                                   dg::DG, cache,
+                                                                   direction,
+                                                                   node_indices,
+                                                                   surface_node_indices,
+                                                                   element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
@@ -162,16 +175,20 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
-                                                  orientation,
-                                                  boundary_condition,
-                                                  mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  have_nonconservative_terms::True,
-                                                  equations,
-                                                  surface_integral, dg::DG, cache,
-                                                  direction, node_indices,
-                                                  surface_node_indices, element)
+Base.@propagate_inbounds function calc_boundary_flux_by_direction!(surface_flux_values,
+                                                                   t,
+                                                                   orientation,
+                                                                   boundary_condition,
+                                                                   mesh::Union{StructuredMesh,
+                                                                               StructuredMeshView},
+                                                                   have_nonconservative_terms::True,
+                                                                   equations,
+                                                                   surface_integral,
+                                                                   dg::DG, cache,
+                                                                   direction,
+                                                                   node_indices,
+                                                                   surface_node_indices,
+                                                                   element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
@@ -231,4 +248,5 @@ include("dg_2d_subcell_limiters.jl")
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
 include("dg_3d_compressible_euler.jl")
+include("dg_3d_turbo.jl")
 end # @muladd

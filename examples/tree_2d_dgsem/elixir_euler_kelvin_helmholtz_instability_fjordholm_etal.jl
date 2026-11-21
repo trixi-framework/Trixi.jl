@@ -10,10 +10,11 @@ equations = CompressibleEulerEquations2D(gamma)
     initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t, equations::CompressibleEulerEquations2D)
 
 A version of the classical Kelvin-Helmholtz instability based on
-- Ulrik S. Fjordholm, Roger Käppeli, Siddhartha Mishra, Eitan Tadmor (2014)
+- Ulrik S. Fjordholm, Roger Käppeli, Siddhartha Mishra, Eitan Tadmor (2017)
   Construction of approximate entropy measure valued
   solutions for hyperbolic systems of conservation laws
   [arXiv: 1402.0909](https://arxiv.org/abs/1402.0909)
+  [DOI: 10.1007/s10208-015-9299-z](https://doi.org/10.1007/s10208-015-9299-z)
 """
 function initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t,
                                                                        equations::CompressibleEulerEquations2D)
@@ -100,7 +101,7 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -129,5 +130,5 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43();
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
             ode_default_options()..., callback = callbacks);

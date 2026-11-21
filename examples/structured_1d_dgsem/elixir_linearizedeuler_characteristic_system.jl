@@ -8,7 +8,7 @@ using Trixi
 rho_0 = 1.0
 v_0 = 1.0
 c_0 = 1.0
-equations = LinearizedEulerEquations1D(rho_0, v_0, c_0)
+equations = LinearizedEulerEquations1D(v_0, c_0, rho_0)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -104,6 +104,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

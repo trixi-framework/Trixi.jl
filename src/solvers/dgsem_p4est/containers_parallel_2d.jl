@@ -14,27 +14,97 @@
     # relative to the interface.
     if local_side == 1 || orientation == 0
         # Forward indexing
-        i = :i_forward
+        i = NodeIndex.IForward
     else
         # Backward indexing
-        i = :i_backward
+        i = NodeIndex.IBackward
     end
 
     if faces[local_side] == 0
         # Index face in negative x-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (:begin, i)
+        mpi_interfaces.node_indices[mpi_interface_id] = (NodeIndex.Begin, i)
     elseif faces[local_side] == 1
         # Index face in positive x-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (:end, i)
+        mpi_interfaces.node_indices[mpi_interface_id] = (NodeIndex.End, i)
     elseif faces[local_side] == 2
         # Index face in negative y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (i, :begin)
+        mpi_interfaces.node_indices[mpi_interface_id] = (i, NodeIndex.Begin)
     else # faces[local_side] == 3
         # Index face in positive y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (i, :end)
+        mpi_interfaces.node_indices[mpi_interface_id] = (i, NodeIndex.End)
     end
 
     return mpi_interfaces
+end
+
+# Initialize the normal directions of the primary elements of MPI interfaces with a local
+# primary element. The normal directions of MPI interfaces with a local secondary element
+# are set to NaN; they must be received from the MPI rank owning the primary element via
+# `exchange_normal_directions!`.
+function init_normal_directions!(mpi_interfaces::P4estMPIInterfaceContainer{2},
+                                 basis, elements)
+    @unpack local_neighbor_ids, node_indices, local_sides, normal_directions = mpi_interfaces
+    @unpack contravariant_vectors = elements
+    index_range = eachnode(basis)
+    nan = convert(eltype(normal_directions), NaN)
+
+    @threaded for interface in 1:nmpiinterfaces(mpi_interfaces)
+        if local_sides[interface] == 2
+            @views normal_directions[.., interface] .= nan
+        else
+            local_element = local_neighbor_ids[interface]
+            local_indices = node_indices[interface]
+            local_direction = indices2direction(local_indices)
+
+            i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
+                                                                     index_range)
+            j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
+                                                                     index_range)
+
+            i_element = i_element_start
+            j_element = j_element_start
+            for i in eachnode(basis)
+                normal_direction = get_normal_direction(local_direction,
+                                                        contravariant_vectors,
+                                                        i_element, j_element,
+                                                        local_element)
+                @views normal_directions[:, i, interface] .= normal_direction
+
+                i_element += i_element_step
+                j_element += j_element_step
+            end
+        end
+    end
+
+    return nothing
+end
+
+# Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
+# inner loops of Trixi.jl.
+function check_axes(mpi_mortars::P4estMPIMortarContainer{2}, equations, solver::DG,
+                    cache)
+    check_axes(mpi_mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(2),
+                eachnode(solver),
+                eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.local_neighbor_ids, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.local_neighbor_positions, (eachmpimortar(solver, cache),))
+    check_axes(mpi_mortars.node_indices, (Base.OneTo(2), eachmpimortar(solver, cache)))
+    check_axes(mpi_mortars.normal_directions,
+               (Base.OneTo(2),
+                eachnode(solver),
+                Base.OneTo(2),
+                eachmpimortar(solver, cache)))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    buffer_axes = (eachvariable(equations), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_primary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_threaded, buffer_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
 end
 
 # Normal directions of small element surfaces are needed to calculate the mortar fluxes. Initialize

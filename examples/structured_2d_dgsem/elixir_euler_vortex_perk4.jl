@@ -13,7 +13,7 @@ The classical isentropic vortex test case as presented in Section 5.1 of
 
 - Brian Vermeire (2019).
   Paired Explicit Runge-Kutta Schemes for Stiff Systems of Equations
-  [DOI:10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
+  [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
   https://spectrum.library.concordia.ca/id/eprint/985444/1/Paired-explicit-Runge-Kutta-schemes-for-stiff-sy_2019_Journal-of-Computation.pdf
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
@@ -108,5 +108,5 @@ ode_algorithm = Trixi.PairedExplicitRK4(num_stages, path_coeff_file)
 # run the simulation
 
 sol = Trixi.solve(ode, ode_algorithm;
-                  dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

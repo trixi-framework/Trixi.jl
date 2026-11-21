@@ -29,7 +29,6 @@ coordinates_min = (-3.0, -3.0)
 coordinates_max = (3.0, 3.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -86,6 +85,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

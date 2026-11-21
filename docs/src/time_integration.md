@@ -2,7 +2,7 @@
 
 ## Methods from OrdinaryDiffEq.jl
 
-Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
+Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://docs.sciml.ai/DiffEqDocs/stable/).
 In particular, [explicit Runge-Kutta methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Runge-Kutta-Methods)
 from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and its sub-packages
 are tested extensively.
@@ -14,7 +14,7 @@ Interesting classes of time integration schemes are
 
 Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are the following. Further documentation can be found in the
-[SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
+[SciML docs](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 - If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
   a time step as `dt = ...`. If you use a [`StepsizeCallback`](@ref), the value passed
   as `dt = ...` is irrelevant since it will be overwritten by the [`StepsizeCallback`](@ref).
@@ -43,12 +43,12 @@ are the following. Further documentation can be found in the
 - Hyperbolic-parabolic problems can be solved using IMEX (implicit-explicit) integrators.
   Available options from OrdinaryDiffEq.jl are [IMEX SDIRK](https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-SDIRK) (Single-Diagonal Implicit Runge-Kutta) methods and [IMEX BDF](https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#IMEX-Multistep) (Backwards Differentiation Formula) methods.
 
-!!! note "Number of `rhs!` calls"
+!!! note "Number of RHS evaluations"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
-    the total number of `rhs!` calls can be (slightly) bigger than the number of steps times the number
-    of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
-    and error-based time step control. In general, you often should not need to worry about this if you
-    use Trixi.jl.
+    the total number of RHS evaluations can be (slightly) bigger than the number of steps times the
+    number of stages, e.g. to allow for interpolation (dense output), root-finding for continuous
+    callbacks, and error-based time step control. In general, you often should not need to worry
+    about this if you use Trixi.jl.
 
 ## Custom Optimized Schemes
 
@@ -66,9 +66,9 @@ where $p$ denotes the order of consistency of the scheme, $S$ is the number of s
 In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
 Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
 For small (say, up to roughly $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
-For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://arxiv.org/abs/2403.05144) ([DOI](https://doi.org/10.1016/j.jcp.2024.113223)). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
-The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for a moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for a large number of stages $S$.
+The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](https://arxiv.org/abs/1201.3035) ([DOI](https://doi.org/10.2140/camcos.2012.7.247)) for a moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://arxiv.org/abs/2402.12140) ([DOI](https://doi.org/10.1007/s10915-024-02478-5)) for a large number of stages $S$.
 In Trixi.jl, the former approach is implemented by means of convex optimization using the [Convex.jl](https://github.com/jump-dev/Convex.jl) package.
 
 The resulting stability polynomial $P_{p;S}$ is then used to construct an optimized Runge-Kutta method.
@@ -77,7 +77,7 @@ Trixi.jl implements the [Paired-Explicit Runge-Kutta (PERK)](https://doi.org/10.
 ### Paired-Explicit Runge-Kutta (PERK) Schemes
 
 Paired-Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
-In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://doi.org/10.48550/arXiv.2408.05470) order in subsequent works.
+In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://arxiv.org/abs/2408.05470) ([DOI](https://doi.org/10.1007/s44207-025-00005-4)) order in subsequent works.
 
 By construction, PERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
 Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods. In Trixi.jl, the _standalone_ PERK integrators are implemented such that all stages of the method are active.
@@ -170,7 +170,7 @@ With everything set up, you can now use `Trixi.solve` to solve the ODE problem. 
 ```@example PERK-example-1
 # Solve the ODE problem using PERK2
 sol = Trixi.solve(ode, ode_algorithm;
-                  dt = 1.0, # overwritten by `stepsize_callback`
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks)
 ```
 
@@ -207,7 +207,7 @@ If the optimal monomial coefficients are precomputed, the user needs to provide 
 The corresponding constructor has signature
 ```julia
 PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
-                  dt_opt = nothing; cS2 = 1.0f0)
+                  dt_opt = nothing; cS2 = 1.0)
 ```
 Then, the stable CFL number can be computed as described above.
 
@@ -283,9 +283,9 @@ H(\boldsymbol U_{n+1}) = H\left( \boldsymbol U_n + \Delta t \sum_{i=1}^S b_i \bo
 ```
 
 To resolve the difference $H(\boldsymbol U_{n+1}) - H_{n+1}$ Ketcheson, Ranocha and collaborators have introduced *relaxation* Runge-Kutta methods in a series of publications, see for instance
-- [Ketcheson (2019)](https://doi.org/10.1137/19M1263662): Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
-- [Ranocha et al. (2020)](https://doi.org/10.1137/19M1263480): Relaxation Runge-Kutta methods: Fully discrete explicit entropy-stable schemes for the compressible Euler and Navier-Stokes equations
-- [Ranocha, Lóczi, and Ketcheson (2020)](https://doi.org/10.1007/s00211-020-01158-4): General relaxation methods for initial-value problems with application to multistep schemes
+- [Ketcheson (2019)](https://arxiv.org/abs/1905.09847) ([DOI](https://doi.org/10.1137/19M1263662)): Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+- [Ranocha et al. (2020)](https://arxiv.org/abs/1905.09129) ([DOI](https://doi.org/10.1137/19M1263480)): Relaxation Runge-Kutta methods: Fully discrete explicit entropy-stable schemes for the compressible Euler and Navier-Stokes equations
+- [Ranocha, Lóczi, and Ketcheson (2020)](https://arxiv.org/abs/2003.03012) ([DOI](https://doi.org/10.1007/s00211-020-01158-4)): General relaxation methods for initial-value problems with application to multistep schemes
 
 Almost miraculously, it suffices to introduce a single parameter $\gamma$ in the final update step of the Runge-Kutta method to ensure that the properties of the spatial discretization are preserved, i.e.,
 ```math

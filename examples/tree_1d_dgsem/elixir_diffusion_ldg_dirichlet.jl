@@ -14,7 +14,6 @@ solver_parabolic = ParabolicFormulationLocalDG()
 # Create a uniformly refined mesh with nonperiodic boundaries
 mesh = TreeMesh(0.0, 1.0,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = false)
 
 function analytical_solution(x, t, equations)
@@ -56,5 +55,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 # For CI purposes, we use fixed time-stepping for this elixir.
-sol = solve(ode, RDPK3SpFSAL35(); dt = 1.0e-4, adaptive = false,
+sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.Threaded());
+            dt = 1.0e-4, adaptive = false,
             ode_default_options()..., callback = callbacks)

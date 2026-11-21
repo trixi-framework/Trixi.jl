@@ -9,8 +9,10 @@
 # The following rough explanation is on a very basic level. More information about an entropy stable
 # shock-capturing strategy for DGSEM discretizations of advection dominated problems, such as the
 # compressible Euler equations or the compressible Navier-Stokes equations, can be found in
-# [Hennemann et al. (2021)](https://doi.org/10.1016/j.jcp.2020.109935). In
-# [Rueda-Ramírez et al. (2021)](https://doi.org/10.1016/j.jcp.2021.110580) you find the extension to
+# [Hennemann et al. (2021)](https://arxiv.org/abs/2008.12044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2020.109935)). In
+# [Rueda-Ramírez et al. (2021)](https://arxiv.org/abs/2012.12040)
+# ([DOI](https://doi.org/10.1016/j.jcp.2021.110580)) you find the extension to
 # the systems with non-conservative terms, such as the compressible magnetohydrodynamics (MHD) equations.
 # Furthermore, the latter paper introduces also second-order subcell finite volume stabilization.
 
@@ -184,7 +186,7 @@ volume_flux = flux_ranocha
 
 # Now, we specify the shock capturing indicator $\alpha$.
 
-# We implement the described indicator of Hennemann, Gassner as explained above with parameters
+# We implement the described indicator of Hennemann et al. as explained above with parameters
 # `equations`, `basis`, `alpha_max`, `alpha_min`, `alpha_smooth` and `variable`.
 # Since density and pressure are the critical variables in this example, we use
 # `density_pressure = density * pressure = rho * p` as indicator variable.
@@ -208,7 +210,6 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -230,11 +231,53 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
                                                      variables = (Trixi.density, pressure))
 
 sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 using Plots
 plot(sol)
+
+# # Positivity Preserving Limiter to stabilize AMR & Mortars
+
+# It is pretty evident from the plot above that large parts of the domain are essentially constant,
+# and only a narrow region contains all the changes.
+# Thus, to make the simulation more efficient, we might want to enable dynamic mesh adaptation by means of
+# Adaptive Mesh Refinement (AMR) (which actually also includes coarsening).
+
+# First, one needs an indicator that tells the AMR callback which cells to refine or coarsen.
+# We can re-use the `indicator_sc` from above for this.
+# Next, a so-called controller is required that specifies the different levels of refinement and
+# refinement thresholds.
+amr_controller = ControllerThreeLevel(semi, indicator_sc,
+                                      base_level = 3,
+                                      med_level = 5, med_threshold = 0.01,
+                                      max_level = 7, max_threshold = 0.05)
+
+# Given the controller, we can now set up the actual callback.
+# The keyword `interval` determines the number of steps taken between checks for mesh adaption.
+# Although not strictly necessary in this example, we supply the `PositivityPreservingLimiterZhangShu` from
+# above to the `AMRCallback`.
+# This way, one can ensure that the projections and interpolations during coarsening and refinement maintain
+# positivity (given that the solution before mesh adaptation was positive).
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 5,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = stage_limiter!)
+
+# We add the `amr_callback` to the `CallbackSet` and run the simulation again:
+callbacks = CallbackSet(analysis_callback, amr_callback, stepsize_callback);
+
+sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+            dt = 1,
+            ode_default_options()..., callback = callbacks);
+
+pd = PlotData2D(sol);
+plot_density = plot(pd["rho"]);
+plot_mesh = plot(getmesh(pd));
+
+# We can now look at the plot and the mesh
+combined_plot = plot(plot_density, plot_mesh, layout = (1, 2))
 
 # # Entropy bounded limiter
 
@@ -244,7 +287,8 @@ plot(sol)
 # over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is
 # shown for the compressible Euler equations.
 # As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations),
-# Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
+# Lv and Ihme devised an a-posteriori limiter in [this paper](https://arxiv.org/abs/1411.5044)
+# ([DOI](https://doi.org/10.1016/j.jcp.2015.04.026)) which can be applied after each Runge-Kutta stage.
 # This limiter enforces a non-decrease in the physical, thermodynamic entropy $S$
 # by bounding the entropy decrease (entropy increase is always tolerated) $\Delta S$ in each grid cell.
 #
@@ -307,7 +351,7 @@ using OrdinaryDiffEqSSPRK
 equations = CompressibleEulerEquations1D(1.4)
 
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     ## Set up polar coordinates
     inicenter = SVector(0.0)
     x_norm = x[1] - inicenter[1]
@@ -331,7 +375,6 @@ coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -364,7 +407,7 @@ stage_limiter! = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
 sol = solve(ode, SSPRK33(; stage_limiter!);
-            dt = 1.0,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks);
 
 using Plots

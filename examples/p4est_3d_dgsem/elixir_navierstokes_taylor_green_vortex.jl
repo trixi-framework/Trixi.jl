@@ -80,7 +80,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-ode_alg = RDPK3SpFSAL49()
+ode_alg = RDPK3SpFSAL49(thread = Trixi.Threaded())
 time_int_tol = 1e-8
 sol = solve(ode, ode_alg;
             # not necessary, added for overwriting in tests

@@ -3,11 +3,11 @@
     LaplaceDiffusionEntropyVariables2D(equations)
     LaplaceDiffusionEntropyVariables3D(equations)
 
-This represent a symmetrized Laplacian diffusion 
-``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``, 
-where ``w(u)`` denotes the mapping between conservative and entropy variables. 
+This represent a symmetrized Laplacian diffusion
+``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``,
+where ``w(u)`` denotes the mapping between conservative and entropy variables.
 Compared with `LaplaceDiffusion` (see [`LaplaceDiffusion1D`](@ref),
-[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is 
+[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is
 guaranteed to dissipate entropy.
 """
 struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
@@ -32,6 +32,19 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
+# Jacobian-vector product for LaplaceDiffusionEntropyVariables parabolic fluxes.
+# Calls either a specialized `apply_jacobian_entropy2cons` for specific equations
+# or an AD fallback.
+function apply_jacobian_entropy2cons(dw, w,
+                                     equations_parabolic::LaplaceDiffusionEntropyVariables)
+    return apply_jacobian_entropy2cons(dw, w, equations_parabolic.equations_hyperbolic)
+end
+
+# `ForwardDiff.jacobian` fallback for the Jacobian-vector product.
+function apply_jacobian_entropy2cons(dw, w, equations::AbstractEquations)
+    return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w) * dw
+end
+
 # Together with our specialization of `Adapt.adapt_structure`,
 # this allows to move semidiscretizations and their components including
 # the equations to GPUs and adapt the floating point type, e.g.,
@@ -45,47 +58,6 @@ function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
                                             nvariables(equations_hyperbolic),
                                             typeof(diffusivity)}(diffusivity,
                                                                  equations_hyperbolic)
-end
-
-# This is used to compute the diffusivity tensor for LaplaceDiffusionEntropyVariables.
-# This is the generic fallback using AD (assuming entropy2cons exists)
-function jacobian_entropy2cons(w, equations)
-    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
-end
-
-# Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
-# Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any 
-# spatial dimension. 
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return boundary_condition.boundary_value_function(x, t, equations_parabolic)
-end
-
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return flux_inner
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusionEntropyVariables)
-    return flux_inner
 end
 
 include("laplace_diffusion_entropy_variables_1d.jl")

@@ -4,7 +4,7 @@
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -57,8 +57,9 @@ function cart_to_sphere(x)
     return lambda, phi, r
 end
 
-function Trixi.get_element_variables!(element_variables, indicator::typeof(indicator_test),
-                                      ::AMRCallback)
+function Trixi.get_element_variables_indicator!(element_variables,
+                                                indicator::typeof(indicator_test),
+                                                ::AMRCallback)
     return nothing
 end
 
@@ -131,5 +132,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

@@ -165,14 +165,14 @@ end
 end
 
 """
-    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction,
                  equations::LinearScalarAdvectionEquation3D)
 
 Godunov (upwind) flux for the 3D linear scalar advection equation.
 Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -184,8 +184,8 @@ function flux_godunov(u_ll, u_rr, orientation::Integer,
     end
 end
 
-function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
-                      equation::LinearScalarAdvectionEquation3D)
+@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+                              equation::LinearScalarAdvectionEquation3D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
@@ -218,6 +218,8 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
+# Convert entropy variables to conservative variables
+@inline entropy2cons(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Calculate entropy for a conservative state `u`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2

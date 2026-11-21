@@ -17,7 +17,8 @@ equations = CompressibleEulerEquations2D(1.4)
 ###############################################################################
 ### mesh ###
 
-# Mapping as described in https://arxiv.org/abs/2012.12040,
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580),
 # reduced to 2D on [0, 2]^2 instead of [0, 3]^3
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,2]
@@ -62,9 +63,11 @@ du_ode = similar(u0_ode)
 ###############################################################################
 ### Compute the Jacobian sparsity pattern ###
 
-# Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
-# https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, tspan[1])
+# Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
+# https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+rhs_wrapped! = function (du_ode, u0_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+end
 
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 

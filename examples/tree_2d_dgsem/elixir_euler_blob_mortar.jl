@@ -10,12 +10,13 @@ equations = CompressibleEulerEquations2D(gamma)
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 
 The blob test case taken from
-- Agertz et al. (2006)
+- Agertz et al. (2007)
   Fundamental differences between SPH and grid methods
   [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
+  [DOI: 10.1111/j.1365-2966.2007.12183.x](https://doi.org/10.1111/j.1365-2966.2007.12183.x)
 """
 function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
-    # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # blob test case, see Agertz et al. https://arxiv.org/abs/astro-ph/0610051
     # other reference: https://doi.org/10.1111/j.1365-2966.2007.12183.x
     # change discontinuity to tanh
     # typical domain is rectangular, we change it to a square
@@ -58,7 +59,7 @@ initial_condition = initial_condition_blob
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -85,7 +86,7 @@ refinement_patches = ((type = "box", coordinates_min = (-40.0, -5.0),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -118,6 +119,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

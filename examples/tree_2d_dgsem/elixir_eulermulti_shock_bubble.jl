@@ -12,14 +12,16 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
     initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{5, 2})
 
 A shock-bubble testcase for multicomponent Euler equations
-- Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
+- Ayoub Gouasmi, Karthik Duraisamy, Scott M. Murman (2020)
   Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
+  [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 """
 function initial_condition_shock_bubble(x, t,
                                         equations::CompressibleEulerMulticomponentEquations2D{5,
                                                                                               2})
-    # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
+    # bubble test case, see Gouasmi et al. https://arxiv.org/abs/1904.00972
+    # (DOI: https://doi.org/10.1016/j.cma.2020.112912)
     # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
     RealT = eltype(x)
@@ -87,7 +89,7 @@ initial_condition = initial_condition_shock_bubble
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -106,7 +108,7 @@ coordinates_min = (-2.25, -2.225)
 coordinates_max = (2.20, 2.225)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 1_000_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -140,8 +142,9 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()...,
             callback = callbacks,
             maxiters = 1e5);

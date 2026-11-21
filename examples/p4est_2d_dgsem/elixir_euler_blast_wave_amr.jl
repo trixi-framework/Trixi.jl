@@ -10,12 +10,15 @@ equations = CompressibleEulerEquations2D(1.4)
     initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
 A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    # Modified From Hennemann et al. JCP paper 2021 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
@@ -105,6 +108,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

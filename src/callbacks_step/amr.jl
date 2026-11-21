@@ -10,12 +10,16 @@
                 interval,
                 adapt_initial_condition=true,
                 adapt_initial_condition_only_refine=true,
-                dynamic_load_balancing=true)
+                dynamic_load_balancing=true,
+                limiter! = nothing)
 
-Performs adaptive mesh refinement (AMR) every `interval` time steps
-for a given semidiscretization `semi` using the chosen `controller`.
+Performs adaptive mesh refinement (AMR) every `interval` time steps for a given semidiscretization
+`semi` using the chosen `controller`.
+If specified, a `limiter!` (currently only available option is the
+[`PositivityPreservingLimiterZhangShu`](@ref)) is applied to the solution after refinement
+and coarsening.
 """
-struct AMRCallback{Controller, Adaptor, Cache}
+struct AMRCallback{Controller, Adaptor, Cache, Limiter}
     controller::Controller
     interval::Int
     adapt_initial_condition::Bool
@@ -23,13 +27,15 @@ struct AMRCallback{Controller, Adaptor, Cache}
     dynamic_load_balancing::Bool
     adaptor::Adaptor
     amr_cache::Cache
+    limiter!::Limiter
 end
 
 function AMRCallback(semi, controller, adaptor;
                      interval,
                      adapt_initial_condition = true,
                      adapt_initial_condition_only_refine = true,
-                     dynamic_load_balancing = true)
+                     dynamic_load_balancing = true,
+                     limiter! = nothing)
     # check arguments
     if !(interval isa Integer && interval >= 0)
         throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -54,13 +60,15 @@ function AMRCallback(semi, controller, adaptor;
     to_coarsen = Int[]
     amr_cache = (; to_refine, to_coarsen)
 
-    amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(controller,
-                                                                                       interval,
-                                                                                       adapt_initial_condition,
-                                                                                       adapt_initial_condition_only_refine,
-                                                                                       dynamic_load_balancing,
-                                                                                       adaptor,
-                                                                                       amr_cache)
+    amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache),
+                               typeof(limiter!)}(controller,
+                                                 interval,
+                                                 adapt_initial_condition,
+                                                 adapt_initial_condition_only_refine,
+                                                 dynamic_load_balancing,
+                                                 adaptor,
+                                                 amr_cache,
+                                                 limiter!)
 
     return DiscreteCallback(condition, amr_callback,
                             save_positions = (false, false),
@@ -104,6 +112,9 @@ function Base.show(io::IO, mime::MIME"text/plain",
                          amr_callback.adapt_initial_condition_only_refine ? "yes" :
                          "no")
         end
+        if amr_callback.limiter! !== nothing
+            summary_line(io, "limiter", amr_callback.limiter!)
+        end
         summary_footer(io)
     end
 end
@@ -123,10 +134,13 @@ function uses_amr(cb::DiscreteCallback{Condition, Affect!}) where {Condition,
 end
 uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                amr_callback::AMRCallback; kwargs...)
-    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                  amr_callback.controller, amr_callback; kwargs...)
+# Output the values of the indicator(s) used by the AMR controller.
+function get_element_variables_callback!(element_variables, u, mesh, equations, solver,
+                                         cache, amr_callback::AMRCallback; kwargs...)
+    return get_element_variables_controller!(element_variables, u, mesh, equations,
+                                             solver, cache,
+                                             amr_callback.controller, amr_callback;
+                                             kwargs...)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -235,7 +249,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
                                      passive_args = ())
-    @unpack controller, adaptor = amr_callback
+    @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -279,11 +293,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
         # refine solver
         @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
-                                               cache, elements_to_refine)
+                                               cache, elements_to_refine, limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations, p_dg, p_cache,
-                                                           elements_to_refine)
+                                                           elements_to_refine, limiter!)
         end
     else
         # If there is nothing to refine, create empty array for later use
@@ -346,11 +360,12 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
         # coarsen solver
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
-                                                cache, elements_to_remove)
+                                                cache, elements_to_remove, limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
                                                             p_equations, p_dg, p_cache,
-                                                            elements_to_remove)
+                                                            elements_to_remove,
+                                                            limiter!)
         end
     else
         # If there is nothing to coarsen, create empty array for later use
@@ -386,7 +401,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                                  SemidiscretizationParabolic},
                                      t, iter;
                                      only_refine = false, only_coarsen = false)
-    @unpack controller, adaptor = amr_callback
+    @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -434,7 +449,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         # refine solver
         @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
                                                cache, cache_parabolic,
-                                               elements_to_refine)
+                                               elements_to_refine, limiter!)
     else
         # If there is nothing to refine, create empty array for later use
         refined_original_cells = Int[]
@@ -498,7 +513,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         # coarsen solver
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
                                                 cache, cache_parabolic,
-                                                elements_to_remove)
+                                                elements_to_remove, limiter!)
     else
         # If there is nothing to coarsen, create empty array for later use
         coarsened_original_cells = Int[]
@@ -559,7 +574,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
                                      passive_args = ())
-    @unpack controller, adaptor = amr_callback
+    @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -581,14 +596,17 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh)
 
         # Refine solver
-        @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
+        @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh,
+                                               equations, dg,
                                                cache, cache_parabolic,
-                                               refined_original_cells)
+                                               refined_original_cells,
+                                               limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations,
                                                            p_dg, p_cache,
-                                                           refined_original_cells)
+                                                           refined_original_cells,
+                                                           limiter!)
         end
     else
         # If there is nothing to refine, create empty array for later use
@@ -602,12 +620,14 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         # coarsen solver
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
                                                 cache, cache_parabolic,
-                                                coarsened_original_cells)
+                                                coarsened_original_cells,
+                                                limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
                                                             p_equations,
                                                             p_dg, p_cache,
-                                                            coarsened_original_cells)
+                                                            coarsened_original_cells,
+                                                            limiter!)
         end
     else
         # If there is nothing to coarsen, create empty array for later use
@@ -639,11 +659,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
         # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
-            reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
+            reinit_boundaries!(semi.boundary_conditions_parabolic, cache)
         end
     end
 
@@ -667,7 +687,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
                                      passive_args = ())
-    @unpack controller, adaptor = amr_callback
+    @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
@@ -691,12 +711,14 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         # Refine solver
         @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
                                                cache,
-                                               refined_original_cells)
+                                               refined_original_cells,
+                                               limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations,
                                                            p_dg, p_cache,
-                                                           refined_original_cells)
+                                                           refined_original_cells,
+                                                           limiter!)
         end
     else
         # If there is nothing to refine, create empty array for later use
@@ -710,12 +732,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         # coarsen solver
         @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
                                                 cache,
-                                                coarsened_original_cells)
+                                                coarsened_original_cells, limiter!)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh,
                                                             p_equations,
                                                             p_dg, p_cache,
-                                                            coarsened_original_cells)
+                                                            coarsened_original_cells,
+                                                            limiter!)
         end
     else
         # If there is nothing to coarsen, create empty array for later use
@@ -745,7 +768,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     # Return true if there were any cells coarsened or refined, otherwise false
@@ -759,7 +782,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
                                      passive_args = ())
     has_changed = false
 
-    @unpack controller, adaptor = amr_callback
+    @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     indicators = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg,
@@ -790,7 +813,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
 
         if has_changed
             @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
-                                                  cache, difference)
+                                                  cache, difference, limiter!)
         end
     end
 
@@ -804,7 +827,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
             end
         end
 
-        reinitialize_boundaries!(semi.boundary_conditions, cache)
+        reinit_boundaries!(semi.boundary_conditions, cache)
     end
 
     mesh.unsaved_changes |= has_changed
@@ -813,13 +836,13 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
     return has_changed
 end
 
-function reinitialize_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
-                                  cache)
+function reinit_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
+                            cache)
     # Reinitialize boundary types container because boundaries may have changed.
-    return initialize!(boundary_conditions, cache)
+    return init_boundary_types!(boundary_conditions, cache)
 end
 
-function reinitialize_boundaries!(boundary_conditions, cache)
+function reinit_boundaries!(boundary_conditions, cache)
     return boundary_conditions
 end
 
@@ -849,6 +872,105 @@ function original2refined(original_cell_ids, refined_original_cells, mesh)
     return shifted_cell_ids[original_cell_ids]
 end
 
+# Auxiliary function to compute the new element ids for refined elements
+# Used when applying positivity limiter after refinement step
+# Saves every first id of the `2^ndims` child elements
+# All child elements can be addressed with `element_ids_new[i]:(element_ids_new[i] + 2^ndims - 1)`
+function compute_new_ids_refined_elements(elements_to_refine,
+                                          mesh::Union{TreeMesh, P4estMesh})
+    element_ids_new = copy(elements_to_refine)
+    for i in eachindex(element_ids_new)
+        # Each refined element increases all ids of the following elements by 2^ndims - 1
+        for j in (i + 1):length(element_ids_new)
+            element_ids_new[j] += 2^ndims(mesh) - 1
+        end
+    end
+
+    return element_ids_new
+end
+
+# Auxiliary function to compute the new element ids for coarsened elements
+# Used when applying positivity limiter after coarsening step
+function compute_new_ids_coarsened_elements(elements_to_remove,
+                                            mesh::Union{TreeMesh, P4estMesh})
+    @assert length(elements_to_remove) % (2^ndims(mesh))==0 "The length of `elements_to_remove` must be a multiple of 2^ndims(mesh)."
+
+    element_ids_new = zeros(Int, div(length(elements_to_remove), 2^ndims(mesh)))
+    for i in eachindex(element_ids_new)
+        # New element id is the id of the first child
+        # Additionally, all following ids decrease by (2^ndims - 1) per coarsened element
+        element_ids_new[i] = elements_to_remove[2^ndims(mesh) * (i - 1) + 1] -
+                             (2^ndims(mesh) - 1) * (i - 1)
+    end
+
+    return element_ids_new
+end
+
+# Auxiliary function to compute the new element ids for refined and coarsened elements
+# Used when applying positivity limiter after refinement and coarsening step for T8codeMesh
+function compute_new_ids_refined_coarsened_elements(difference, mesh::T8codeMesh,
+                                                    old_nelems, new_nelems)
+    T8_CHILDREN = 2^ndims(mesh) # number of children elements
+
+    # The `difference` vector has the length `old_nelems`.
+    # It contains a `1` at the specific index (= element id) if the element was refined,
+    # and `T8_CHILDREN` consecutive `-1`s if those elements were coarsened.
+    # Non-refined/coarsened elements have a `0` at their specific index.
+    @assert sum(difference .< 0) % T8_CHILDREN==0 "$(difference .< 0)"
+
+    refined_element_ids_new = Vector{Int}(undef, sum(difference .> 0))
+    coarsened_element_ids_new = Vector{Int}(undef,
+                                            div(sum(difference .< 0), T8_CHILDREN))
+    refined_index = 0
+    coarsened_index = 0
+
+    # Local element indices.
+    old_index = 1
+    new_index = 1
+    while old_index <= old_nelems && new_index <= new_nelems
+        if difference[old_index] > 0 # Refine.
+            refined_index += 1
+            refined_element_ids_new[refined_index] = new_index
+
+            # Increment `old_index` on the original mesh and the `new_index`
+            # on the refined mesh with the number of children, i.e., T8_CHILDREN = 4
+            old_index += 1
+            new_index += T8_CHILDREN
+        elseif difference[old_index] < 0 # Coarsen.
+            coarsened_index += 1
+            coarsened_element_ids_new[coarsened_index] = new_index
+
+            # Increment `old_index` on the original mesh with the number of children
+            # (T8_CHILDREN = 4 in 2D) and the `new_index` by one for the single
+            # coarsened element
+            old_index += T8_CHILDREN
+            new_index += 1
+        else # No changes.
+            # No refinement / coarsening occurred, so increment element index
+            # on each mesh by one
+            old_index += 1
+            new_index += 1
+        end
+    end
+
+    return refined_element_ids_new, coarsened_element_ids_new
+end
+
+@inline function compute_u_mean_refined_elements(u, elements_to_refine, mesh,
+                                                 equations, dg, cache)
+    u_mean_refined_elements = Array{eltype(u), 2}(undef,
+                                                  nvariables(equations),
+                                                  length(elements_to_refine))
+    for idx in eachindex(elements_to_refine)
+        element_id = elements_to_refine[idx]
+        u_mean = compute_u_mean(u, element_id,
+                                mesh, equations, dg, cache)
+        set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, idx)
+    end
+
+    return u_mean_refined_elements
+end
+
 abstract type AbstractController end
 
 """
@@ -876,7 +998,7 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                               med_level = base_level, med_threshold = 0.0,
                               max_level = base_level, max_threshold = 1.0)
     med_threshold, max_threshold = promote(med_threshold, max_threshold)
-    cache = create_cache(ControllerThreeLevel, semi)
+    cache = create_cache_amr_controller(semi)
     return ControllerThreeLevel{typeof(max_threshold), typeof(indicator),
                                 typeof(cache)}(base_level,
                                                med_level,
@@ -889,8 +1011,8 @@ end
 
 max_level(controller::AbstractController) = controller.max_level
 
-function create_cache(controller_type::Type{<:AbstractController}, semi)
-    return create_cache(controller_type, mesh_equations_solver_cache(semi)...)
+function create_cache_amr_controller(semi)
+    return create_cache_amr_controller(mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevel)
@@ -925,17 +1047,22 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevel,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+# Add the values of the indicator(s) used by `controller` to `element_variables`.
+# New controller types used with the `SaveSolutionCallback` must specialize this method.
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevel,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator, amr_callback)
+    return get_element_variables_indicator!(element_variables, controller.indicator,
+                                            amr_callback)
 end
 
-function get_element_variables!(element_variables, indicator::AbstractIndicator,
-                                ::AMRCallback)
+function get_element_variables_indicator!(element_variables,
+                                          indicator::AbstractIndicator,
+                                          ::AMRCallback)
     element_variables[:indicator_amr] = indicator.cache.alpha
     return nothing
 end
@@ -1069,7 +1196,7 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
     med_threshold, max_threshold, max_threshold_secondary = promote(med_threshold,
                                                                     max_threshold,
                                                                     max_threshold_secondary)
-    cache = create_cache(ControllerThreeLevelCombined, semi)
+    cache = create_cache_amr_controller(semi)
     return ControllerThreeLevelCombined{typeof(max_threshold),
                                         typeof(indicator_primary),
                                         typeof(indicator_secondary), typeof(cache)}(base_level,
@@ -1122,14 +1249,16 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevelCombined,
-                                amr_callback::AMRCallback;
-                                kwargs...)
+function get_element_variables_controller!(element_variables, u, mesh, equations,
+                                           solver, cache,
+                                           controller::ControllerThreeLevelCombined,
+                                           amr_callback::AMRCallback;
+                                           kwargs...)
     # call the indicator to get up-to-date values for IO
     controller.indicator_primary(u, mesh, equations, solver, cache; kwargs...)
-    return get_element_variables!(element_variables, controller.indicator_primary,
-                                  amr_callback)
+    return get_element_variables_indicator!(element_variables,
+                                            controller.indicator_primary,
+                                            amr_callback)
 end
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},

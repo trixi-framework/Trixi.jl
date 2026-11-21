@@ -31,7 +31,8 @@ using Trixi
 # Special value for which nonlinear solver can be omitted
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
-# We want kappa = cp * mu = mu_bar to ensure constant enthalpy
+# We want kappa = cp * mu_bar to ensure constant enthalpy
+# See footnote 1 on page 335 in Margolin et al.
 prandtl_number() = 3 / 4
 
 ### Free choices: ###
@@ -89,7 +90,8 @@ initial_condition = initial_condition_viscous_shock
 equations = CompressibleEulerEquations3D(gamma())
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to
-# convert the "isotropic viscosity" to the "deviatoric viscosity"
+# convert the "isotropic/longitudinal viscosity" to the "deviatoric viscosity"
+# See again footnote 1 on page 335 in Margolin et al.
 mu_deviatoric() = mu_bar() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
@@ -102,8 +104,7 @@ coordinates_max = (domain_length / 2, domain_length / 2, domain_length / 2)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = (false, true, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true, true))
 
 ### Inviscid boundary conditions ###
 
@@ -177,7 +178,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 # For this setup, both hyperbolic and parabolic timestep restrictions are relevant, i.e.,
 # may not be increased beyond the given values.
 stepsize_callback = StepsizeCallback(cfl = 0.4,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.15)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
@@ -186,5 +187,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
+sol = solve(ode, CKLLSRK95_4S(thread = Trixi.Threaded()),
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

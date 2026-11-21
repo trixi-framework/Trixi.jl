@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# Adaptive semidiscretization of the pure diffusion equation with mixed 
+# Adaptive semidiscretization of the pure diffusion equation with mixed
 # Dirichlet-Neumann BCs and an initial condition with a boundary layer.
 
 diffusivity() = 0.25
@@ -16,8 +16,7 @@ solver_parabolic = ParabolicFormulationLocalDG()
 
 mesh = TreeMesh((0.0,), (1.0,),
                 initial_refinement_level = 0,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 function initial_condition_boundary_layer(x, t, equations)
     return SVector(amplitude() * (1 - exp(-x[1] / boundary_layer_thickness())) /
@@ -63,8 +62,8 @@ stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 # specify extra node variables to be saved in the `SaveSolutionCallback`
 extra_node_variables = (:dudx,)
 
-# note that using `get_node_variable` to access the gradient exposes Trixi.jl internals 
-# that are not part of the public API, so this usage is not guaranteed to be stable across 
+# note that using `get_node_variable` to access the gradient exposes Trixi.jl internals
+# that are not part of the public API, so this usage is not guaranteed to be stable across
 # releases
 function Trixi.get_node_variable(::Val{:dudx}, u, mesh, equations, dg, cache,
                                  cache_parabolic)
@@ -84,6 +83,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = stepsize_callback(ode), adaptive = false,
             ode_default_options()..., callback = callbacks, maxiters = 500_000)

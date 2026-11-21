@@ -13,7 +13,9 @@ equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4, 1.4),
 A multicomponent two interacting blast wave test taken from
 - T. Plewa & E. Müller (1999)
   The consistent multi-fluid advection method
-  [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
+  Astronomy and Astrophysics 342, 179-191
+  [arXiv: astro-ph/9807241](https://arxiv.org/abs/astro-ph/9807241)
+  [Bibcode: 1999A&A...342..179P](https://ui.adsabs.harvard.edu/abs/1999A%26A...342..179P)
 """
 function initial_condition_two_interacting_blast_waves(x, t,
                                                        equations::CompressibleEulerMulticomponentEquations1D)
@@ -60,7 +62,7 @@ boundary_conditions = boundary_condition_two_interacting_blast_waves
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
@@ -79,7 +81,6 @@ coordinates_min = (0.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 9,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -114,6 +115,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

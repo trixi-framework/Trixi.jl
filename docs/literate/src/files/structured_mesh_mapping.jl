@@ -105,7 +105,7 @@ callbacks = CallbackSet(analysis_callback,
 
 # Running the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 using Plots
@@ -120,7 +120,8 @@ plot!(getmesh(pd))
 # a transformation mapping. Here, we want to present a nice mapping, which is often used to test
 # free-stream preservation. Exact free-stream preservation is a crucial property of any numerical
 # method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
-# [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
+# [Rueda-Ramírez et al. (2021)](https://arxiv.org/abs/2012.12040)
+# ([DOI](https://doi.org/10.1016/j.jcp.2021.110580)), Section 6.1, Eqs. (90)-(93).
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
@@ -134,7 +135,7 @@ initial_condition = initial_condition_constant
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # We define the transformation mapping with variables in $[-1, 1]$ as described in
-# Rueda-Ramírez et al. (2021), p.18 (reduced to 2D):
+# Rueda-Ramírez et al. (2021), Section 6.1, Eqs. (90)-(93) (reduced to 2D):
 function mapping(xi_, eta_)
     ## Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5
@@ -167,7 +168,7 @@ callbacks = CallbackSet(analysis_callback,
                         stepsize_callback)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 # Now, we want to verify the free-stream preservation property and plot the mesh. For the verification,

@@ -15,8 +15,7 @@ coordinates_min = (-1.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 # BC types
 boundary_condition_left = BoundaryConditionDirichlet((x, t, equations_parabolic) -> 1.0)
@@ -61,5 +60,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

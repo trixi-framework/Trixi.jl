@@ -14,6 +14,7 @@ The `slope` parameter controls how sharp the transition is; larger values result
 This is the function ``d_{a,b}`` from the paper
 - Chan, Ranocha, Rueda-Ramírez, Gassner, Warburton (2022):
   On the entropy projection and the robustness of high order entropy stable discontinuous Galerkin schemes for under-resolved flows.
+  [arXiv: 2203.10238](https://arxiv.org/abs/2203.10238)
   [DOI: 10.3389/fphy.2022.898028](https://doi.org/10.3389/fphy.2022.898028)
 """
 @inline function smoothed_discontinuity(x, a, b; slope = 15)
@@ -28,6 +29,7 @@ Initial condition for the Richtmyer-Meshkov instability test case in two dimensi
 Taken from section 3.1.3 of the paper
 - Chan, Ranocha, Rueda-Ramírez, Gassner, Warburton (2022):
   On the entropy projection and the robustness of high order entropy stable discontinuous Galerkin schemes for under-resolved flows.
+  [arXiv: 2203.10238](https://arxiv.org/abs/2203.10238)
   [DOI: 10.3389/fphy.2022.898028](https://doi.org/10.3389/fphy.2022.898028)
 """
 @inline function initial_condition_richtmyer_meshkov_instability(x, t,
@@ -106,6 +108,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-5, reltol = 1.0e-5,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = 1.0e-5, reltol = 1.0e-5,
             adaptive = true, dt = 1e-2,
             ode_default_options()..., callback = callbacks)

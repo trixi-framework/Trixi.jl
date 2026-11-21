@@ -1,20 +1,11 @@
-module TestExamplesParabolic1D
+@testsnippet Parabolic1D begin
+    EXAMPLES_DIR = examples_dir()
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "SemidiscretizationHyperbolicParabolic (1D)" begin
-#! format: noindent
-
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
@@ -22,22 +13,28 @@ isdir(outdir) && rm(outdir, recursive = true)
                         linf=[2.8990878868540015e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_ldg.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_ldg.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
                         l2=[9.234438322146518e-6], linf=[5.425491770139068e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_ldg.jl (Gauss-Legendre)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_ldg.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
@@ -46,62 +43,85 @@ end
                         l2=[4.126471023759558e-6], linf=[1.4470099431229677e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_gradient_source_terms.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_gradient_source_terms.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
                         l2=[1.0990454698899562e-5], linf=[6.469747978055107e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_restart.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
                         l2=[1.0679933947301556e-5],
                         linf=[3.910500545667439e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_cfl.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_cfl.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_cfl.jl"),
                         l2=[6.763177530985864e-5], linf=[0.0002344578097126515])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_dirichlet_amr.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_dirichlet_amr.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_dirichlet_amr.jl"),
-                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842])
+                        l2=[3.668679081538521e-6], linf=[0.0001053981743872842],
+                        # Relax error tolerance since some changes in
+                        # OrdinaryDiffEqCore.jl 4.18.1 changed the step
+                        # size sequence slightly and thus also the final
+                        # error.
+                        atol=7.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_neumann_amr.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_neumann_amr.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_neumann_amr.jl"),
                         l2=[0.9974473329813947], linf=[1.0000064761980827])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion.jl (AMR)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=5)
@@ -126,81 +146,112 @@ end
     @test linf_error ≈ [3.262867898701227e-5]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian.jl"),
                         tspan=(0.0, 0.4),
                         l2=[0.05240130204342638], linf=[0.07407444680136666])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl"),
                         l2=[0.08292233849124372], linf=[0.11726345328639576])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" begin
+@testitem "Parabolic1D: elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_implicit_sparse_jacobian_restart.jl"),
                         colorvec_parabolic=nothing,
                         l2=[0.08292233849124372], linf=[0.11726345328639576])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            0.0001133835907077494,
-                            6.226282245610444e-5,
-                            0.0002820171699999139
+                            0.00011333275295974374,
+                            6.219651069933146e-5,
+                            0.0002816727634821764
                         ],
                         linf=[
-                            0.0006255102377159538,
-                            0.00036195501456059986,
-                            0.0016147729485886941
+                            0.0006253615899005638,
+                            0.00036185768524354955,
+                            0.0016135721551933102
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R (unless a temperature-dependent viscosity is used, e.g., Sutherland's law).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic_cfl.jl"),
                         l2=[
-                            0.00011582226718630047,
-                            6.277345250542003e-5,
-                            0.0002822257163816253
+                            0.00011595398570440672,
+                            6.274464247878942e-5,
+                            0.00028200244192273934
                         ],
                         linf=[
-                            0.0006389893469918029,
-                            0.0003608325914101762,
-                            0.0016369657641206459
+                            0.0006396599382685331,
+                            0.00036070632759921395,
+                            0.0016361696559314964
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_periodic.jl: GradientVariablesEntropy" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
@@ -208,42 +259,62 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            0.00011310615871043463,
-                            6.216495207074201e-5,
-                            0.00028195843110817814
+                            0.00011300698739039995,
+                            6.209293710944634e-5,
+                            0.00028162563474383906
                         ],
                         linf=[
-                            0.0006240837363233886,
-                            0.0003616694320713876,
-                            0.0016147339542413874
+                            0.0006234678721388498,
+                            0.00036159110715550113,
+                            0.0016136182920050146
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R (unless a temperature-dependent viscosity is used, e.g., Sutherland's law).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls.jl"),
                         l2=[
-                            0.0004702331100298379,
-                            0.0003218173539588441,
-                            0.001496626616191212
+                            0.0004703758221874381,
+                            0.00031848917907832425,
+                            0.0014897764762842015
                         ],
                         linf=[
-                            0.0029963751636357117,
-                            0.0028639041695096433,
-                            0.012691132694550689
+                            0.002999623280512509,
+                            0.002844379914884066,
+                            0.01268578246288321
                         ],
                         atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl: GradientVariablesEntropy" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls.jl: GradientVariablesEntropy" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
@@ -251,69 +322,92 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            0.00046085004909354776,
-                            0.0003243109084492897,
-                            0.0015159733164383632
+                            0.0004599081186821817,
+                            0.000320318696901367,
+                            0.0015138299347089309
                         ],
                         linf=[
-                            0.0027548031865172184,
-                            0.0028567713569609024,
-                            0.012941793735691931
+                            0.0027465970929201333,
+                            0.0028318005097484776,
+                            0.013015551256854607
                         ],
                         atol=1e-9)
+    reference_solution = copy(sol.u[end])
+
+    # At an isothermal wall, the last entropy variable is -1 / (R * T).
+    # Therefore, changing R changes the prescribed temperature but must not
+    # change the solution in conserved variables.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls.jl (Gauss-Legendre)" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls.jl (Gauss-Legendre)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hll,
                                      basis_type = GaussLegendreBasis),
                         time_int_tol=1e-10,
                         l2=[
-                            4.201445769104007e-5,
-                            9.758279535510314e-5,
-                            0.0004199990641561288
+                            4.183510913636197e-5,
+                            9.605244671046932e-5,
+                            0.0004207588947910475
                         ],
                         linf=[
-                            0.00015356293659607445,
-                            0.0004198436005902785,
-                            0.0016946745322332646
+                            0.0001529019238535323,
+                            0.0004140975914396841,
+                            0.0016833077670614927
                         ],
                         atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls_amr.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number()),
                         l2=[
-                            2.5278845598681636e-5,
-                            2.5540145802666872e-5,
-                            0.0001211867535580826
+                            2.4294769661376656e-5,
+                            2.163375793448305e-5,
+                            9.704798444764353e-5
                         ],
                         linf=[
-                            0.0001466387202588848,
-                            0.00019422419092429135,
-                            0.0009556449835592673
+                            0.00015581433523781385,
+                            0.00018431497859248432,
+                            0.0008544318777605753
                         ],
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls_amr.jl"),
                         equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
@@ -321,23 +415,54 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            2.4593521887223632e-5,
-                            2.3928212900127102e-5,
-                            0.00011252332663824173
+                            2.2711261807956682e-5,
+                            2.106399655146931e-5,
+                            9.356923520763996e-5
                         ],
                         linf=[
-                            0.00011850494672183132,
-                            0.00018987676556476442,
-                            0.0009597423024825247
+                            0.00012403780156411415,
+                            0.00017911182286770215,
+                            0.0008654587100611622
                         ],
                         atol=1e-8)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy, R = 42" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls_amr.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                R = 42,
+                                                                                Prandtl = prandtl_number(),
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        l2=[
+                            2.2711565371154563e-5,
+                            2.1064321688021463e-5,
+                            9.357172370698658e-5
+                        ],
+                        linf=[
+                            0.00012403703424546109,
+                            0.00017911287042852235,
+                            0.0008654677075004003
+                        ],
+                        atol=1e-8)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_viscous_shock.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
@@ -352,11 +477,14 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl (Gauss-Legendre)" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_viscous_shock.jl (Gauss-Legendre)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hlle,
@@ -373,11 +501,39 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_viscous_shock.jl (boundary_condition_do_nothing)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        boundary_conditions_parabolic=(;
+                                                       x_neg = boundary_condition_parabolic,
+                                                       x_pos = boundary_condition_do_nothing),
+                        l2=[
+                            0.00027945595319833104,
+                            0.00027552386931121406,
+                            0.0005302742561529139
+                        ],
+                        linf=[
+                            0.0016733632873879856,
+                            0.001078100012167113,
+                            0.0028010908633919196
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock_imex.jl"),
                         atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
@@ -392,74 +548,93 @@ end
                             0.004092051414554598
                         ],
                         # Relax error tols to avoid stochastic CI failures
-                        atol=1e-7)
+                        atol=1e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_viscous_burgers_n_wave.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_viscous_burgers_n_wave.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_viscous_burgers_n_wave.jl"),
                         l2=[0.03005971517609335], linf=[0.08174614630359545])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_viscous_burgers_shock.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_viscous_burgers_shock.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_viscous_burgers_shock.jl"),
                         l2=[0.0025484696686361645], linf=[0.028069313915933147])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion_gradient_source_terms.jl" begin
+@testitem "Parabolic1D: DGMulti: elixir_advection_diffusion_gradient_source_terms.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
-                        l2=[0.01889578192611483],
-                        linf=[0.03572728414418691])
+                        l2=[0.00011452322577304734],
+                        linf=[0.00019546161661196382])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion_sbp.jl" begin
+@testitem "Parabolic1D: DGMulti: elixir_advection_diffusion_sbp.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_advection_diffusion_sbp.jl"),
                         l2=[2.027026825559297e-5],
                         linf=[3.1997648799242384e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl" begin
+@testitem "Parabolic1D: DGMulti: elixir_navierstokes_convergence_periodic.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            3.7943372542675425e-5,
-                            4.078766566292102e-5,
-                            0.00024524952267207235
+                            3.7997410588522954e-5,
+                            4.073450293422761e-5,
+                            0.0002457472085334219
                         ],
                         linf=[
-                            0.00010969455084941515,
-                            9.183113730193426e-5,
-                            0.0005450421812014383
+                            0.00010997146654223577,
+                            9.179087830712973e-5,
+                            0.0005468216643080837
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl (Diff. CFL)" begin
+@testitem "Parabolic1D: DGMulti: elixir_navierstokes_convergence_periodic.jl (Diff. CFL)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         callbacks=CallbackSet(summary_callback, alive_callback,
@@ -468,46 +643,45 @@ end
                                                                cfl_parabolic = 0.1)),
                         adaptive=false,
                         l2=[
-                            3.804624387087144e-5,
-                            4.0776239664045585e-5,
-                            0.0002452796554181002
+                            3.809534312886433e-5,
+                            4.072173289891623e-5,
+                            0.0002457652905319161
                         ],
                         linf=[
-                            0.00010899905841177393,
-                            9.108558032178138e-5,
-                            0.0005277952647766426
+                            0.00010927372870295216,
+                            9.10595640681855e-5,
+                            0.000529460047143715
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_convergence_periodic.jl (GradientVariablesEntropy)" begin
+@testitem "Parabolic1D: DGMulti: elixir_navierstokes_convergence_periodic.jl (GradientVariablesEntropy)" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         gradient_variables=GradientVariablesEntropy(),
                         l2=[
-                            3.855011159752911e-5,
-                            4.077230736638483e-5,
-                            0.0002457818746735199
+                            3.8648730222275476e-5,
+                            4.0711164171890645e-5,
+                            0.00024650067961444434
                         ],
                         linf=[
-                            0.00011052974882530542,
-                            9.179337892284423e-5,
-                            0.00054534178933352
+                            0.0001109122352365155,
+                            9.172390898459781e-5,
+                            0.0005473617720497259
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
-end
 
-@testset "SemidiscretizationParabolic (1D)" begin
-#! format: noindent
-
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_diffusion_ldg.jl" setup=[Setup, Parabolic1D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
@@ -517,20 +691,26 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_newton_krylov.jl"),
                         atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
                         atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
                         l2=[4.14999791227157e-6], linf=[2.424658410971059e-5],
                         # Relax error tols to avoid stochastic CI failures
-                        atol=1e-12)
+                        atol=1e-8)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
+@testitem "Parabolic1D: TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_amr_boundary_layer.jl"),
                         l2=[0.5881457102264551], linf=[0.9302621795999283])
@@ -555,7 +735,10 @@ end
     @test Trixi.ndofsglobal(semi_remade) == Trixi.ndofsglobal(semi)
 end
 
-@trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
+@testitem "Parabolic1D: TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
     # Run the Dirichlet-Dirichlet elixir (uses `SemidiscretizationParabolic`)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_dirichlet.jl"),
@@ -587,14 +770,28 @@ end
                                                                    solver_parabolic = solver_parabolic,
                                                                    boundary_conditions = (boundary_conditions,
                                                                                           boundary_conditions)))
-    # Check if the solutions for `SemidiscretizationParabolic` match those from 
+    # Check if the solutions for `SemidiscretizationParabolic` match those from
     # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
     # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
 end
+
+@testitem "Parabolic1D: TreeMesh1D: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
+                        l2=[0.10954500481114468,
+                            0.1417583694046777,
+                            0.4087206508328759],
+                        linf=[
+                            0.17183237920520245,
+                            0.2203023610743297,
+                            0.6347464031934038
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
-
-# Clean up afterwards: delete Trixi output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
-end # module

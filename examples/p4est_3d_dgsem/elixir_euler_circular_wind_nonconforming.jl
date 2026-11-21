@@ -2,12 +2,12 @@
 # on a planetary-sized non-conforming mesh
 #
 # Note that this elixir can take several hours to run.
-# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
-# and `check-bounds=no`, this elixirs takes about 20 minutes to run.
+# Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further),
+# this elixir takes about 20 minutes to run.
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using LinearAlgebra
+using LinearAlgebra: norm
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -69,8 +69,9 @@ function cart_to_sphere(x)
     return lambda, phi, r
 end
 
-function Trixi.get_element_variables!(element_variables, indicator::typeof(indicator_test),
-                                      ::AMRCallback)
+function Trixi.get_element_variables_indicator!(element_variables,
+                                                indicator::typeof(indicator_test),
+                                                ::AMRCallback)
     return nothing
 end
 

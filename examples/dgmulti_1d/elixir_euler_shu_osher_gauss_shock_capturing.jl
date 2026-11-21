@@ -7,7 +7,8 @@ equations = CompressibleEulerEquations1D(gamma_gas)
 ###############################################################################
 # setup the GSBP DG discretization that uses the Gauss operators from
 # Chan, Del Rey Fernandez, Carpenter (2019).
-# [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
+# [arXiv: 1809.01178](https://arxiv.org/abs/1809.01178)
+# [DOI: 10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
 # Example 8 from Shu, Osher (1989).
@@ -78,7 +79,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
@@ -93,6 +94,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # We use a fixed time step here, as the wave speed estimate
 # (which aims to bound the largest eigenvalues from above)
 # in the stepsize callback produced sometimes unphysical values
-sol = solve(ode, SSPRK43(), adaptive = false;
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded());
+            adaptive = false,
             dt = 2e-3,
             callback = callbacks, ode_default_options()...)

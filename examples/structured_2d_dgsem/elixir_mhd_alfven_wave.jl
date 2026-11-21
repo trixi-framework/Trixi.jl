@@ -25,6 +25,7 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://arxiv.org/abs/1809.01178
+# (DOI: https://doi.org/10.1137/18M1209234)
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0, sqrt(2)]
     # Note, we use the domain [0, sqrt(2)]^2 for the Alfvén wave convergence test case
@@ -87,6 +88,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

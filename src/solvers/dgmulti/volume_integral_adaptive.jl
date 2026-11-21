@@ -5,14 +5,15 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMulti{NDIMS, ElemType, <:Polynomial,
-                                  <:SurfaceIntegralWeakForm,
-                                  <:VolumeIntegralAdaptive{<:IndicatorEntropyChange,
-                                                           <:VolumeIntegralWeakForm,
-                                                           <:VolumeIntegralFluxDifferencing}},
-                      RealT, uEltype) where {NDIMS, ElemType}
-    # Construct temporary solvers for each sub-integral to reuse the `create_cache` functions
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
+                                 dg::DGMulti{NDIMS, ElemType, <:Polynomial,
+                                             <:SurfaceIntegralWeakForm,
+                                             <:VolumeIntegralAdaptive{<:IndicatorEntropyChange,
+                                                                      <:VolumeIntegralWeakForm,
+                                                                      <:VolumeIntegralFluxDifferencing}},
+                                 RealT, uEltype) where {NDIMS, ElemType}
+    # Construct temporary solvers for each sub-integral
+    # to reuse the `create_cache_hyperbolic` functions
 
     # `VolumeIntegralAdaptive` for `DGMulti` currently limited to Weak Form & Flux Differencing combi
     dg_WF = DG(dg.basis, dg.mortar, dg.surface_integral,
@@ -20,8 +21,8 @@ function create_cache(mesh::DGMultiMesh, equations,
     dg_FD = DG(dg.basis, dg.mortar, dg.surface_integral,
                dg.volume_integral.volume_integral_stabilized)
 
-    cache_WF = create_cache(mesh, equations, dg_WF, RealT, uEltype)
-    cache_FD = create_cache(mesh, equations, dg_FD, RealT, uEltype)
+    cache_WF = create_cache_hyperbolic(mesh, equations, dg_WF, RealT, uEltype)
+    cache_FD = create_cache_hyperbolic(mesh, equations, dg_FD, RealT, uEltype)
 
     # Set up structures required for `IndicatorEntropyChange`
     rd = dg.basis
@@ -90,7 +91,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # before any surface terms are added.
             fill!(du_local, zero(eltype(du_local)))
 
-            # Recompute using stabilized volume integral. Note that the calculation of this volume integral requires the calculation of the entropy projection, which is done in `rhs!` specialized on the `DGMultiFluxDiff` solver type. 
+            # Recompute using stabilized volume integral. Note that the calculation of this volume integral requires the calculation of the entropy projection, which is done in `rhs_hyperbolic!` specialized on the `DGMultiFluxDiff` solver type.
             volume_integral_kernel!(du, u, e, mesh,
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)

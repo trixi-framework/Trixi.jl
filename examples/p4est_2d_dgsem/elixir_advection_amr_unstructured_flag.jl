@@ -43,6 +43,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 10.0)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# Setting `storage_type` allows to change the array type, e.g., to a GPU array type.
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -80,6 +83,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

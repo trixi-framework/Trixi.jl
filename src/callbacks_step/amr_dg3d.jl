@@ -10,13 +10,13 @@
 # from the parent element into the eight children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have refined elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -29,9 +29,21 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            @trixi_timeit timer() "limiter!" begin
+                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                          elements_to_refine,
+                                                                          mesh,
+                                                                          equations, dg,
+                                                                          cache)
+            end
+        end
 
         if mesh isa P4estMesh
             # Loop over all elements in old container and scale the old solution by the Jacobian
@@ -46,7 +58,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,
@@ -106,6 +118,16 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after refinement
+        element_ids_new = compute_new_ids_refined_elements(elements_to_refine, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new,
+                                                  u_mean_refined_elements)
     end
 
     return nothing
@@ -193,13 +215,13 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have coarsened elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -212,7 +234,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -229,7 +251,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,
@@ -296,6 +318,15 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
         @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after coarsening
+        element_ids_new = compute_new_ids_coarsened_elements(elements_to_remove, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new)
     end
 
     return nothing
@@ -387,14 +418,14 @@ end
 
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
-                dg::DGSEM, cache, difference)
+                dg::DGSEM, cache, difference, limiter!)
 
     # Return early if there is nothing to do.
     if !any(difference .!= 0)
         if mpi_isparallel()
             # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
             # locally (there still might be other MPI ranks that have refined elements)
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         return
     end
@@ -414,9 +445,22 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
 
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            @trixi_timeit timer() "limiter!" begin
+                elements_to_refine = findall(difference .> 0)
+                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                          elements_to_refine,
+                                                                          mesh,
+                                                                          equations, dg,
+                                                                          cache)
+            end
+        end
 
         # Loop over all elements in old container and scale the old solution by the Jacobian
         # prior to interpolation or projection
@@ -429,7 +473,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
@@ -501,6 +545,21 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             end
         end # while
     end # GC.@preserve old_u_ode old_inverse_jacobian
+
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after refinement and coarsening
+        refined_element_ids_new, coarsened_element_ids_new = compute_new_ids_refined_coarsened_elements(difference,
+                                                                                                        mesh,
+                                                                                                        old_nelems,
+                                                                                                        new_nelems)
+        # Refined elements
+        limiter!(u, mesh, equations, dg, cache,
+                 refined_element_ids_new, u_mean_refined_elements)
+
+        # Coarsened elements
+        limiter!(u, mesh, equations, dg, cache, coarsened_element_ids_new)
+    end
 
     return nothing
 end

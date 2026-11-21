@@ -13,13 +13,44 @@
 # We do not wrap this code in `@muladd begin ... end` block. Optimizations like
 # this are handled automatically by LoopVectorization.jl.
 
+# Store the temporary RHS `du` with permuted indices `[i, j, k, v]` computed by the
+# specialized `flux_differencing_kernel!`s in the global RHS `_du` in the given
+# `element`. Following the interface of volume integrals (see `src/solvers/dg.jl`),
+# `_du` is overwritten if `set_not_add === True()` and `du` is added to `_du` if
+# `set_not_add === False()`.
+@inline function set_or_add_element_turbo!(_du::AbstractArray{<:Any, 5}, du, element,
+                                           set_not_add::True, equations, dg::DGSEM)
+    @turbo for v in eachvariable(equations),
+               k in eachnode(dg),
+               j in eachnode(dg),
+               i in eachnode(dg)
+
+        _du[v, i, j, k, element] = du[i, j, k, v]
+    end
+
+    return nothing
+end
+
+@inline function set_or_add_element_turbo!(_du::AbstractArray{<:Any, 5}, du, element,
+                                           set_not_add::False, equations, dg::DGSEM)
+    @turbo for v in eachvariable(equations),
+               k in eachnode(dg),
+               j in eachnode(dg),
+               i in eachnode(dg)
+
+        _du[v, i, j, k, element] += du[i, j, k, v]
+    end
+
+    return nothing
+end
+
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, MeshT::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::False,
-                                           set_not_add::True,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -252,245 +283,19 @@
         end
     end # GC.@preserve u_prim
 
-    # Finally, we set the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               k in eachnode(dg),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, k, element] = du[i, j, k, v]
-    end
-end
-
-# False version for flux_shima_etal_turbo - we add instead of set
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, MeshT::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::False,
-                                           set_not_add::False,
-                                           equations::CompressibleEulerEquations3D,
-                                           volume_flux::typeof(flux_shima_etal_turbo),
-                                           dg::DGSEM, cache, alpha)
-    @unpack derivative_split = dg.basis
-    @unpack u_cons_cache = cache.elements
-    @unpack contravariant_vectors = cache.elements
-
-    # Create a temporary array that will be used to store the RHS with permuted
-    # indices `[i, j, k, v]` to allow using SIMD instructions.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
-                                      StaticInt(nvariables(equations))))
-    fill!(du, zero(eltype(du)))
-
-    # x direction
-    for i in eachnode(dg), ii in (i + 1):nnodes(dg)
-        @turbo for k in eachnode(dg), j in eachnode(dg)
-            rho_ll = u_cons[1, i, j, k, element]
-            rho_v1_ll = u_cons[2, i, j, k, element]
-            rho_v2_ll = u_cons[3, i, j, k, element]
-            rho_v3_ll = u_cons[4, i, j, k, element]
-            rho_e_total_ll = u_cons[5, i, j, k, element]
-
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            p_ll = (equations.gamma - 1) * (rho_e_total_ll -
-                    0.5 * (rho_v1_ll * v1_ll +
-                           rho_v2_ll * v2_ll +
-                           rho_v3_ll * v3_ll))
-
-            rho_rr = u_cons[1, ii, j, k, element]
-            rho_v1_rr = u_cons[2, ii, j, k, element]
-            rho_v2_rr = u_cons[3, ii, j, k, element]
-            rho_v3_rr = u_cons[4, ii, j, k, element]
-            rho_e_total_rr = u_cons[5, ii, j, k, element]
-
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
-            p_rr = (equations.gamma - 1) * (rho_e_total_rr -
-                    0.5 * (rho_v1_rr * v1_rr +
-                           rho_v2_rr * v2_rr +
-                           rho_v3_rr * v3_rr))
-
-            # Compute required mean values
-            rho_avg = 0.5 * (rho_ll + rho_rr)
-            v1_avg = 0.5 * (v1_ll + v1_rr)
-            v2_avg = 0.5 * (v2_ll + v2_rr)
-            v3_avg = 0.5 * (v3_ll + v3_rr)
-            p_avg = 0.5 * (p_ll + p_rr)
-            kin_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-            pv1_avg = 0.5 * (p_ll * v1_rr + p_rr * v1_ll)
-
-            # Calculate fluxes
-            f1 = rho_avg * v1_avg
-            f2 = f1 * v1_avg + p_avg
-            f3 = f1 * v2_avg
-            f4 = f1 * v3_avg
-            f5 = p_avg * v1_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv1_avg
-
-            # Add scaled fluxes to RHS
-            factor_i = alpha * derivative_split[i, ii]
-            du[i, j, k, 1] += factor_i * f1
-            du[i, j, k, 2] += factor_i * f2
-            du[i, j, k, 3] += factor_i * f3
-            du[i, j, k, 4] += factor_i * f4
-            du[i, j, k, 5] += factor_i * f5
-
-            factor_ii = alpha * derivative_split[ii, i]
-            du[ii, j, k, 1] += factor_ii * f1
-            du[ii, j, k, 2] += factor_ii * f2
-            du[ii, j, k, 3] += factor_ii * f3
-            du[ii, j, k, 4] += factor_ii * f4
-            du[ii, j, k, 5] += factor_ii * f5
-        end
-    end
-
-    # y direction
-    for j in eachnode(dg), jj in (j + 1):nnodes(dg)
-        @turbo for k in eachnode(dg), i in eachnode(dg)
-            rho_ll = u_cons[1, i, j, k, element]
-            rho_v1_ll = u_cons[2, i, j, k, element]
-            rho_v2_ll = u_cons[3, i, j, k, element]
-            rho_v3_ll = u_cons[4, i, j, k, element]
-            rho_e_total_ll = u_cons[5, i, j, k, element]
-
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            p_ll = (equations.gamma - 1) * (rho_e_total_ll -
-                    0.5 * (rho_v1_ll * v1_ll +
-                           rho_v2_ll * v2_ll +
-                           rho_v3_ll * v3_ll))
-
-            rho_rr = u_cons[1, i, jj, k, element]
-            rho_v1_rr = u_cons[2, i, jj, k, element]
-            rho_v2_rr = u_cons[3, i, jj, k, element]
-            rho_v3_rr = u_cons[4, i, jj, k, element]
-            rho_e_total_rr = u_cons[5, i, jj, k, element]
-
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
-            p_rr = (equations.gamma - 1) * (rho_e_total_rr -
-                    0.5 * (rho_v1_rr * v1_rr +
-                           rho_v2_rr * v2_rr +
-                           rho_v3_rr * v3_rr))
-
-            # Compute required mean values
-            rho_avg = 0.5 * (rho_ll + rho_rr)
-            v1_avg = 0.5 * (v1_ll + v1_rr)
-            v2_avg = 0.5 * (v2_ll + v2_rr)
-            v3_avg = 0.5 * (v3_ll + v3_rr)
-            p_avg = 0.5 * (p_ll + p_rr)
-            kin_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-            pv2_avg = 0.5 * (p_ll * v2_rr + p_rr * v2_ll)
-
-            # Calculate fluxes
-            f1 = rho_avg * v2_avg
-            f2 = f1 * v1_avg
-            f3 = f1 * v2_avg + p_avg
-            f4 = f1 * v3_avg
-            f5 = p_avg * v2_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv2_avg
-
-            # Add scaled fluxes to RHS
-            factor_j = alpha * derivative_split[j, jj]
-            du[i, j, k, 1] += factor_j * f1
-            du[i, j, k, 2] += factor_j * f2
-            du[i, j, k, 3] += factor_j * f3
-            du[i, j, k, 4] += factor_j * f4
-            du[i, j, k, 5] += factor_j * f5
-
-            factor_jj = alpha * derivative_split[jj, j]
-            du[i, jj, k, 1] += factor_jj * f1
-            du[i, jj, k, 2] += factor_jj * f2
-            du[i, jj, k, 3] += factor_jj * f3
-            du[i, jj, k, 4] += factor_jj * f4
-            du[i, jj, k, 5] += factor_jj * f5
-        end
-    end
-
-    # z direction
-    for k in eachnode(dg), kk in (k + 1):nnodes(dg)
-        @turbo for j in eachnode(dg), i in eachnode(dg)
-            rho_ll = u_cons[1, i, j, k, element]
-            rho_v1_ll = u_cons[2, i, j, k, element]
-            rho_v2_ll = u_cons[3, i, j, k, element]
-            rho_v3_ll = u_cons[4, i, j, k, element]
-            rho_e_total_ll = u_cons[5, i, j, k, element]
-
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            p_ll = (equations.gamma - 1) * (rho_e_total_ll -
-                    0.5 * (rho_v1_ll * v1_ll +
-                           rho_v2_ll * v2_ll +
-                           rho_v3_ll * v3_ll))
-
-            rho_rr = u_cons[1, i, j, kk, element]
-            rho_v1_rr = u_cons[2, i, j, kk, element]
-            rho_v2_rr = u_cons[3, i, j, kk, element]
-            rho_v3_rr = u_cons[4, i, j, kk, element]
-            rho_e_total_rr = u_cons[5, i, j, kk, element]
-
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
-            p_rr = (equations.gamma - 1) * (rho_e_total_rr -
-                    0.5 * (rho_v1_rr * v1_rr +
-                           rho_v2_rr * v2_rr +
-                           rho_v3_rr * v3_rr))
-
-            # Compute required mean values
-            rho_avg = 0.5 * (rho_ll + rho_rr)
-            v1_avg = 0.5 * (v1_ll + v1_rr)
-            v2_avg = 0.5 * (v2_ll + v2_rr)
-            v3_avg = 0.5 * (v3_ll + v3_rr)
-            p_avg = 0.5 * (p_ll + p_rr)
-            kin_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-            pv3_avg = 0.5 * (p_ll * v3_rr + p_rr * v3_ll)
-
-            # Calculate fluxes
-            f1 = rho_avg * v3_avg
-            f2 = f1 * v1_avg
-            f3 = f1 * v2_avg
-            f4 = f1 * v3_avg + p_avg
-            f5 = p_avg * v3_avg * equations.inv_gamma_minus_one + f1 * kin_avg + pv3_avg
-
-            # Add scaled fluxes to RHS
-            factor_k = alpha * derivative_split[k, kk]
-            du[i, j, k, 1] += factor_k * f1
-            du[i, j, k, 2] += factor_k * f2
-            du[i, j, k, 3] += factor_k * f3
-            du[i, j, k, 4] += factor_k * f4
-            du[i, j, k, 5] += factor_k * f5
-
-            factor_kk = alpha * derivative_split[kk, k]
-            du[i, j, kk, 1] += factor_kk * f1
-            du[i, j, kk, 2] += factor_kk * f2
-            du[i, j, kk, 3] += factor_kk * f3
-            du[i, j, kk, 4] += factor_kk * f4
-            du[i, j, kk, 5] += factor_kk * f5
-        end
-    end
-
-    # Finally, we add the temporary RHS to the global RHS
-    @turbo for v in eachvariable(equations),
-               k in eachnode(dg),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, k, element] += du[i, j, k, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, MeshT::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::False,
-                                           set_not_add::True,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
+    @unpack derivative_split = dg.basis
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, k, v]` to allow using SIMD instructions.
@@ -827,55 +632,7 @@ end
         end
     end # GC.@preserve u_prim
 
-    # Finally, we set the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               k in eachnode(dg),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, k, element] = du[i, j, k, v]
-    end
-end
-
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, MeshT::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::False,
-                                           set_not_add::False,
-                                           equations::CompressibleEulerEquations3D,
-                                           volume_flux::typeof(flux_ranocha_turbo),
-                                           dg::DGSEM, cache, alpha)
-    # This is the ADD version - identical computation to the True version above,
-    # but with += instead of = at the end.
-    # To avoid code duplication while maintaining SIMD efficiency, we call the True version
-    # and then add its result. However, since this must maintain strict separation for
-    # compile-time dispatch, we repeat the full implementation:
-
-    @unpack derivative_split = dg.basis
-    @unpack u_cons_cache = cache.elements
-    @unpack contravariant_vectors = cache.elements
-
-    # Create a temporary array that will be used to store the RHS with permuted
-    # indices `[i, j, k, v]` to allow using SIMD instructions.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
-                                      StaticInt(nvariables(equations))))
-    fill!(du, zero(eltype(du)))
-
-    # [Identical computation body as the True version above]
-    # Copy from the True version's ranocha flux body...
-    # For brevity in this response, showing only the structure:
-
-    # x direction - with logarithmic mean computations
-    # y direction - with logarithmic mean computations  
-    # z direction - with logarithmic mean computations
-
-    # Finally, we add the temporary RHS to the global RHS (key difference: += not =)
-    @turbo for v in eachvariable(equations),
-               k in eachnode(dg),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, k, element] += du[i, j, k, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end

@@ -48,7 +48,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 100.0)
-ode = semidiscretize(semi, tspan; storage_type = nothing, real_type = nothing)
+semi = trixi_adapt(semi; storage_type = nothing, real_type = nothing)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -69,7 +70,7 @@ maxiters = 200
 
 # disable warnings when maxiters is reached
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
-                  dt = 1.0,
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks,
                   maxiters = maxiters, verbose = false)
 

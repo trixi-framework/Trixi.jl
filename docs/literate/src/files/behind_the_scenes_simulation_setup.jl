@@ -32,7 +32,6 @@ coarsening_patches = ((type = "box", coordinates_min = [0.0, -2.0],
                        coordinates_max = [2.0, 0.0]),)
 
 mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
-                n_cells_max = 30_000,
                 coarsening_patches = coarsening_patches,
                 periodicity = true)
 
@@ -103,6 +102,18 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![interfaces_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/bc3b6b02-afbc-4371-aaf7-c7bdc5a6c540)
 
+# - `init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)`
+
+#   In order to apply boundary conditions, it is necessary to identify the locations of the
+#   boundaries. Therefore, we initialize a "boundaries" object, which records the elements that
+#   contain boundaries, specifies which side of an element is a boundary, stores the coordinates
+#   of boundary nodes, and allocates containers for managing solutions at these boundaries.
+
+#   In our visualization, boundaries and their corresponding nodes are highlighted with green,
+#   semi-transparent lines.
+
+#   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
+
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
 #   Returning to the consideration of different sizes among adjacent elements, within the
@@ -123,18 +134,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
 
-# - `init_boundaries(leaf_cell_ids, mesh, elements)`
-
-#   In order to apply boundary conditions, it is necessary to identify the locations of the
-#   boundaries. Therefore, we initialize a "boundaries" object, which records the elements that
-#   contain boundaries, specifies which side of an element is a boundary, stores the coordinates
-#   of boundary nodes, and allocates containers for managing solutions at these boundaries.
-
-#   In our visualization, boundaries and their corresponding nodes are highlighted with green,
-#   semi-transparent lines.
-
-#   ![boundaries_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/21996b20-4a22-4dfb-b16a-e2c22c2f29fe)
-
 # All the structures mentioned earlier are collected as a cache of type `NamedTuple`. Subsequently,
 # an object of type `SemidiscretizationHyperbolic` is initialized using this cache, initial and
 # boundary conditions, equations, mesh and solver.
@@ -148,7 +147,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # functions called subsequently. Without delving into details, the structure of the primary calls
 # are illustrated as follows:
 
-# ![SemidiscretizationHyperbolic_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/8bf59422-0537-4d7a-9f13-d9b2253c19d7)
+# ![SemidiscretizationHyperbolic_structure](https://github.com/user-attachments/assets/97439115-79e4-4e32-a0b2-bd52022c35b3)
 
 # ## Overview of the [`semidiscretize`](@ref) function
 
@@ -167,6 +166,11 @@ ode = semidiscretize(semi, (0.0, 1.0));
 
 # The `semidiscretize` function involves a deep tree of subsequent calls, with the primary ones
 # explained below.
+
+# - `default_rhs(semi)`
+
+#   This internal helper returns the function stored in the `ODEProblem`. For the
+#   `SemidiscretizationHyperbolic` in this tutorial, it returns `rhs_hyperbolic!`.
 
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
@@ -196,12 +200,10 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   This is possible because, from a storage perspective, they share the same stored data, while
 #   access to this data is provided in different ways.
 
-# - `compute_coefficients!(u, initial_conditions, t, mesh::DG, equations, solver, cache)`
+# - `compute_coefficients!(backend, u, initial_condition, t, ...)`
 
-#   Now the variable `u`, intended to store solutions, has been allocated and wrapped, it is time
-#   to apply the initial conditions. The `compute_coefficients!` function calculates the initial
-#   conditions for each variable at every node within each element and properly stores them in the
-#   `u` array.
+#   After `u` has been allocated and wrapped, this solver-specific method evaluates the initial
+#   condition for each variable at every node within each element and stores the result in `u`.
 
 # At this stage, the `semidiscretize` function has all the necessary components to initialize and
 # return an `ODEProblem` object, which will be used by the `solve` function to compute the
@@ -210,9 +212,9 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # In summary, the internal workings of `semidiscretize` with brief descriptions can be presented
 # as follows.
 
-# ![semidiscretize_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/491eddc4-aadb-4e29-8c76-a7c821d0674e)
+# ![semidiscretize_structure](https://github.com/user-attachments/assets/54c28659-ee8f-461f-be54-4e7e23195a8f)
 
-# ## Functions `solve` and `rhs!`
+# ## Functions `solve` and `rhs_hyperbolic!`
 
 # Once the `ODEProblem` object is initialized, the `solve` function and one of the ODE solvers from
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
@@ -223,24 +225,30 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01;
 
 # Since the `solve` function and the ODE solver have no knowledge
 # of a particular spatial discretization, it is necessary to define a
-# "right-hand-side function", `rhs!`, within Trixi.jl.
+# right-hand side function within Trixi.jl.
 
-# Trixi.jl includes a set of `rhs!` functions designed to compute `du`, i.e.,
-# ``\frac{\partial u}{\partial t}`` according to the structure
-# of the setup. These `rhs!` functions calculate interface, mortars, and boundary fluxes, in
-# addition to surface and volume integrals, in order to construct the `du` vector. This `du` vector
-# is then used by the time integration method to obtain the solution at the subsequent time step.
-# The `rhs!` function is called by time integration methods in each iteration of the solve loop
-# within OrdinaryDiffEq.jl, with arguments `du`, `u`, `semidiscretization`, and the current time.
+# Trixi.jl includes a set of right-hand side functions designed to compute `du`, i.e.,
+# ``\frac{\partial u}{\partial t}``, according to the structure
+# of the setup. For hyperbolic problems, their methods calculate interface, mortar, and boundary
+# fluxes, in addition to surface and volume integrals, in order to construct the `du` vector. This
+# `du` vector is then used by the time integration method to obtain the solution at the subsequent
+# time step.
 
-# Trixi.jl uses a two-levels approach for `rhs!` functions. The first level is limited to a
-# single function for each `semidiscretization` type, and its role is to redirect data to the
-# target `rhs!` for specific solver and mesh types. This target `rhs!` function is responsible
-# for calculating `du`.
+# The particular right-hand side function used in the `ODEProblem` is determined by the type of
+# semidiscretization when `default_rhs(semi)` is called within `semidiscretize`. For the
+# `SemidiscretizationHyperbolic` in this tutorial, `default_rhs(semi)` returns the generic function
+# `rhs_hyperbolic!`.
 
-# Path from the `solve` function call to the appropriate `rhs!` function call:
+# The generic function `rhs_hyperbolic!` is called by time integration methods in each iteration of
+# the solve loop within OrdinaryDiffEq.jl, with arguments `du`, `u`, `semi`, and the current time.
 
-# ![rhs_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/dbea9a0e-25a4-4afa-855e-01f1ad619982)
+# Trixi.jl uses a two-level approach for right-hand side functions. The first level consists of a
+# method for each semidiscretization type, whose role is to redirect data to a lower-level method
+# for specific solver and mesh types. This lower-level method is responsible for calculating `du`.
+
+# Path from the `solve` function call to the appropriate `rhs_hyperbolic!` function call:
+
+# ![rhs_structure](https://github.com/user-attachments/assets/a5fe936e-1a46-4452-9119-07ab8434dfb3)
 
 # Computed solution:
 

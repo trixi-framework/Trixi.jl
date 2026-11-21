@@ -22,19 +22,19 @@ function rebalance_solver!(u_ode::AbstractVector,
         # solver does not need to be rebalanced on this rank.
         # Container init uses all-to-all communication -> reinitialize even if there is nothing to do
         # locally (there are other MPI ranks that need to be rebalanced if this function is called)
-        reinitialize_containers!(mesh, equations, dg, cache)
+        reinit_containers!(mesh, equations, dg, cache)
         return
     end
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
         # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
         # nicely with non-base array types
         old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
 
         resize!(u_ode,
@@ -93,12 +93,9 @@ function rebalance_solver!(u_ode::AbstractVector,
     return nothing
 end
 
-# Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
-# This method is called when a controller is constructed
-function create_cache(::Union{Type{ControllerThreeLevel},
-                              Type{ControllerThreeLevelCombined}},
-                      mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
-                      equations, dg::DG, cache)
+# Construct the cache of AMR controllers, called from their constructors
+function create_cache_amr_controller(mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
+                                     equations, dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end

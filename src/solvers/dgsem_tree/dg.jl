@@ -16,7 +16,8 @@ end
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `TreeMesh`es.
-function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
+function calc_boundary_flux!(backend::Nothing, cache, t,
+                             boundary_condition::BoundaryConditionPeriodic,
                              mesh::TreeMesh, equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 
@@ -37,7 +38,7 @@ include("dg_parallel.jl")
 # Helper structs for parabolic AMR
 include("containers_parabolic.jl")
 
-# Some functions for a second-order Finite-Volume (MUSCL) alike 
+# Some functions for a second-order Finite-Volume (MUSCL) alike
 # scheme on DG-subcells.
 include("subcell_finite_volume_O2.jl")
 

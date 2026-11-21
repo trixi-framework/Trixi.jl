@@ -421,7 +421,7 @@ However, the mean flow variables are part of the solution vector in
 [`AcousticPerturbationEquations2D`](@ref) and only the **global** mean flow variables are constant,
 similar to the [`LinearizedEulerEquations2D`](@ref).
 
-Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via 
+Moreover, when coupling to the [`CompressibleEulerEquations2D`](@ref) equations via
 [`SemidiscretizationEulerAcoustics`](@ref), the mean field variables are updated
 on the fly, see [`EulerAcousticsCouplingCallback`](@ref).
 

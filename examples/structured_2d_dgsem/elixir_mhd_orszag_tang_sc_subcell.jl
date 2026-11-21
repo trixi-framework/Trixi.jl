@@ -11,7 +11,8 @@ equations = IdealGlmMhdEquations2D(gamma)
 The classical Orszag-Tang vortex test case. Here, the setup is taken from
 - Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
   Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
-  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+  [arXiv: 1708.03537](https://arxiv.org/abs/1708.03537)
+  [DOI: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
 """
 function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
@@ -34,7 +35,7 @@ initial_condition = initial_condition_orszag_tang
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive),
                 flux_nonconservative_powell_local_symmetric)
@@ -55,6 +56,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi, eta)
     y = 0.5 + 0.5 * eta + 1.0 / 15.0 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 
@@ -107,5 +109,5 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

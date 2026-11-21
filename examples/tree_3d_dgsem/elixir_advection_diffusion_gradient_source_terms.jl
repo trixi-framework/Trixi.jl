@@ -16,7 +16,6 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 mesh = TreeMesh((-Float64(pi), -Float64(pi), -Float64(pi)),
                 (Float64(pi), Float64(pi), Float64(pi));
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation3D)
@@ -77,5 +76,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
+sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.Threaded());
+            adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)

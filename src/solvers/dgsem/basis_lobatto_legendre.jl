@@ -409,7 +409,7 @@ function calc_Dhat(derivative_matrix, weights)
 end
 
 # Calculate the Dsplit matrix for split-form differentiation: Dsplit = 2D - M⁻¹B
-# Note that this is the negated version of the matrix that shows up on the RHS of the 
+# Note that this is the negated version of the matrix that shows up on the RHS of the
 # DG update multiplying the two-point numerical volume flux evaluations.
 function calc_Dsplit(derivative_matrix, weights)
     # Start with 2 x the normal D matrix
@@ -495,7 +495,7 @@ w_j = \\frac{1}{ \\prod_{k \\neq j} \\left( x_j - x_k \\right ) }
 For details, see (especially Section 3)
 - Jean-Paul Berrut and Lloyd N. Trefethen (2004).
   Barycentric Lagrange Interpolation.
-  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
+  [DOI: 10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
 """
 function barycentric_weights(nodes)
     n_nodes = length(nodes)
@@ -528,7 +528,7 @@ multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
 For details, see e.g. Section 2 of
 - Jean-Paul Berrut and Lloyd N. Trefethen (2004).
   Barycentric Lagrange Interpolation.
-  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
+  [DOI: 10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
 """
 function lagrange_interpolating_polynomials(x, nodes, wbary)
     n_nodes = length(nodes)
@@ -565,7 +565,7 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 - David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
   Algorithms for scientists and engineers.
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
     # From FLUXO (but really from blue book by Kopriva)
@@ -672,7 +672,7 @@ This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 - David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
   Algorithms for scientists and engineers.
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     RealT = typeof(x)

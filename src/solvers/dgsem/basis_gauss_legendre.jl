@@ -105,7 +105,7 @@ end
     eachnode(basis::GaussLegendreBasis)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `basis`. 
+for the nodes in `basis`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(basis::GaussLegendreBasis) = Base.OneTo(nnodes(basis))
@@ -144,7 +144,7 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 - David A. Kopriva, (2009).
   Implementing spectral methods for partial differential equations:
   Algorithms for scientists and engineers.
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+  [DOI: 10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
     n_iterations = 20
@@ -283,7 +283,7 @@ end
     eachnode(analyzer::GaussLegendreAnalyzer)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the nodes in `analyzer`. 
+for the nodes in `analyzer`.
 In particular, not the nodes themselves are returned.
 """
 @inline eachnode(analyzer::GaussLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))

@@ -205,10 +205,14 @@ struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
     local_values_threaded::lType
 end
 
+@inline function solution_eltype(dg::DGMulti, cache)
+    return eltype(eltype(cache.solution_container.u_values))
+end
+
 # Allocates arrays shared across most DGMulti cache types.
-function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
-                                               dg::DGMulti,
-                                               uEltype)
+function init_dgmulti_solution_container(mesh::DGMultiMesh, equations,
+                                         dg::DGMulti,
+                                         uEltype)
     rd = dg.basis
     md = mesh.md
     nvars = nvariables(equations)
@@ -222,8 +226,8 @@ function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
 end
 
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
-                      uEltype) where {NDIMS}
+function create_cache_hyperbolic(mesh::DGMultiMesh{NDIMS}, equations,
+                                 dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
     rd = dg.basis
     md = mesh.md
 
@@ -254,8 +258,8 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             solution_container, flux_threaded, rotated_flux_threaded)
@@ -727,7 +731,7 @@ end
 # inverts Jacobian using weight-adjusted DG, and scales by -1.0.
 # - Chan, Jesse, Russell J. Hewett, and Timothy Warburton.
 #   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
-#   https://doi.org/10.1137/16M1089198
+#   https://arxiv.org/abs/1608.03836 (DOI: https://doi.org/10.1137/16M1089198)
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                           dg::DGMulti, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
@@ -785,9 +789,11 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs!(du, u, t, mesh, equations,
-              boundary_conditions::BC, source_terms::Source,
-              dg::DGMulti, cache) where {BC, Source}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC, source_terms::Source,
+                         dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" begin

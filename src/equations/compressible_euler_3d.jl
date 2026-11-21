@@ -22,7 +22,7 @@ The compressible Euler equations
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_1 v_3 \\ ( \rho e_{\text{total}} +p) v_2
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ \rho v_2 v_3 \\ ( \rho e_{\text{total}} +p) v_2
 \end{pmatrix}
 +
 \frac{\partial}{\partial z}
@@ -156,13 +156,16 @@ end
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations3D)
 
 A weak blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerEquations3D)
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # From Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Set up spherical coordinates
     RealT = eltype(x)
     inicenter = (0, 0, 0)
@@ -187,15 +190,16 @@ end
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::CompressibleEulerEquations3D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`source_terms_eoc_test_coupled_euler_gravity`](@ref)
 or [`source_terms_eoc_test_euler`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::CompressibleEulerEquations3D)
-    # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+    # Note: this assumes that γ = 2 other manufactured source terms are incorrect
     if equations.gamma != 2
         error("adiabatic constant must be 2 for the coupling convergence test")
     end
@@ -218,9 +222,10 @@ end
     source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations3D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 """
 @inline function source_terms_eoc_test_coupled_euler_gravity(u, x, t,
@@ -251,9 +256,10 @@ end
     source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations3D)
 
 Setup used for convergence tests of the Euler equations with self-gravity used in
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
 
 !!! note
@@ -303,6 +309,14 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
+The implementation is modified to ensure non-negativity of `p_star`. This modification
+preserves entropy stability based on the analysis in the paper:
+- F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
+  Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
+  [arXiv: 1901.04924](https://arxiv.org/abs/1901.04924)
+  [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
+
+
 Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
@@ -335,10 +349,14 @@ Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-        p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                               equations.gamma *
-                                                                               equations.inv_gamma_minus_one)
+        p_scaling_base = (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)
+        if p_scaling_base >= 0
+            p_star = p_local *
+                     p_scaling_base^(2 * equations.gamma *
+                                     equations.inv_gamma_minus_one)
+        else # avoid taking powers if p_scaling_base < 0
+            p_star = zero(p_local)
+        end
     else # v_normal > 0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
@@ -607,8 +625,6 @@ end
 
     v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] +
                   v3_avg * normal_direction[3]
-    p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_total_ll / rho_ll + rho_e_total_rr / rho_rr)
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
@@ -627,6 +643,7 @@ Entropy conserving two-point flux by
 - Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
+  [arXiv: 1209.4994](https://arxiv.org/abs/1209.4994)
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
@@ -1411,8 +1428,8 @@ Computes the HLLC flux (HLL with Contact) for compressible Euler equations devel
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
 """
-function flux_hllc(u_ll, u_rr, orientation::Integer,
-                   equations::CompressibleEulerEquations3D)
+@inline function flux_hllc(u_ll, u_rr, orientation::Integer,
+                           equations::CompressibleEulerEquations3D)
     # Calculate primitive variables and speed of sound
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr = u_rr
@@ -1531,8 +1548,8 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     return SVector(f1, f2, f3, f4, f5)
 end
 
-function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
-                   equations::CompressibleEulerEquations3D)
+@inline function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                           equations::CompressibleEulerEquations3D)
     # Calculate primitive variables and speed of sound
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr, equations)
@@ -1765,7 +1782,12 @@ end
     return abs(v1) + c, abs(v2) + c, abs(v3) + c
 end
 
-# Convert conservative variables to primitive
+"""
+    cons2prim(u, equations::CompressibleEulerEquations3D)
+
+Convert conservative variables `u = (rho, rho*v1, rho*v2, rho*v3, rho*e_total)` to
+primitive variables `(rho, v1, v2, v3, p)`.
+"""
 @inline function cons2prim(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
 
@@ -1847,7 +1869,12 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 
-# Convert primitive to conservative variables
+"""
+    prim2cons(prim, equations::CompressibleEulerEquations3D)
+
+Convert primitive variables `prim = (rho, v1, v2, v3, p)` to
+conservative variables `(rho, rho*v1, rho*v2, rho*v3, rho*e_total)`.
+"""
 @inline function prim2cons(prim, equations::CompressibleEulerEquations3D)
     rho, v1, v2, v3, p = prim
     rho_v1 = rho * v1
@@ -1856,6 +1883,51 @@ end
     rho_e_total = p * equations.inv_gamma_minus_one +
                   0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
+end
+
+@doc raw"""
+    apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations3D)
+
+Calculate the Jacobian for the mapping from entropy variables to conservative
+variables at the entropy variable state `w` and apply it to the vector `dw`.
+
+The explicit Jacobian formula can be found in Barth (1999), p. 205.
+- Barth (1999)
+  Numerical methods for gasdynamic systems on unstructured meshes.
+  [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
+"""
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations3D)
+    @unpack inv_gamma_minus_one = equations
+    u = entropy2cons(w, equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
+    _, v1, v2, v3, p = cons2prim(u, equations)
+
+    # total enthalpy terms from Barth
+    a_squared = equations.gamma * p / rho
+    H = a_squared * inv_gamma_minus_one + 0.5f0 * (v1^2 + v2^2 + v3^2)
+    rho_h_v1 = rho_v1 * H
+    rho_h_v2 = rho_v2 * H
+    rho_h_v3 = rho_v3 * H
+    h55 = rho * H^2 - a_squared * p * inv_gamma_minus_one
+
+    # Apply the Jacobian
+    # [rho          rho_v1          rho_v2          rho_v3          rho_e_total
+    #  rho_v1       rho_v1 * v1 + p rho_v1 * v2    rho_v1 * v3    rho_h_v1
+    #  rho_v2       rho_v1 * v2     rho_v2 * v2 + p rho_v2 * v3    rho_h_v2
+    #  rho_v3       rho_v1 * v3     rho_v2 * v3    rho_v3 * v3 + p rho_h_v3
+    #  rho_e_total  rho_h_v1        rho_h_v2        rho_h_v3        h55]
+    # to the vector dw.
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_v3 * dw[4] +
+                   rho_e_total * dw[5],
+                   rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_v1 * v2 * dw[3] +
+                   rho_v1 * v3 * dw[4] + rho_h_v1 * dw[5],
+                   rho_v2 * dw[1] + rho_v1 * v2 * dw[2] + (rho_v2 * v2 + p) * dw[3] +
+                   rho_v2 * v3 * dw[4] + rho_h_v2 * dw[5],
+                   rho_v3 * dw[1] + rho_v1 * v3 * dw[2] + rho_v2 * v3 * dw[3] +
+                   (rho_v3 * v3 + p) * dw[4] + rho_h_v3 * dw[5],
+                   rho_e_total * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] +
+                   rho_h_v3 * dw[4] + h55 * dw[5])
 end
 
 @inline function density(u, equations::CompressibleEulerEquations3D)
@@ -1882,6 +1954,19 @@ end
     p = (equations.gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
     return p
+end
+
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, _ = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1) * SVector(0.5f0 * v_square, -v1, -v2, -v3, 1)
 end
 
 @inline function density_pressure(u, equations::CompressibleEulerEquations3D)
@@ -1911,6 +1996,12 @@ end
     return S
 end
 
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy(u, equations)
+end
+
 @doc raw"""
     entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)
 
@@ -1919,8 +2010,9 @@ Calculate the modified specific entropy of Guermond et al. (2019):
 s_0 = p * \rho^{-\gamma} / (\gamma-1).
 ```
 Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma)``.
-- Guermond at al. (2019)
+- Guermond et al. (2019)
   Invariant domain preserving discretization-independent schemes and convex limiting for hyperbolic systems.
+  [arXiv: 1807.02563](https://arxiv.org/abs/1807.02563)
   [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
 """
 @inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations3D)

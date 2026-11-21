@@ -102,6 +102,26 @@ macro trixi_timeit_ext(backend, timer_output, label, expr)
     return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
 end
 
+# Compatibility shim for `AcceleratedKernels.mapreduce`, which takes the `backend` as
+# positional argument in AcceleratedKernels.jl v0.4 but as keyword argument in v0.5.
+# We support both versions since AcceleratedKernels.jl v0.5 is required for
+# KernelAbstractions.jl v0.10, while some GPU backends still require
+# KernelAbstractions.jl v0.9 (as of October 2026) and thus AcceleratedKernels.jl v0.4.
+# Since `f` and `op` are only passed through, Julia would not specialize on them
+# without the type parameters `F` and `Op`.
+# TODO: Remove this shim once we require AcceleratedKernels.jl v0.5.
+@static if pkgversion(AcceleratedKernels) >= v"0.5"
+    @inline function mapreduce_accelerated(f::F, op::Op, src, backend;
+                                           kwargs...) where {F, Op}
+        return AcceleratedKernels.mapreduce(f, op, src; backend, kwargs...)
+    end
+else
+    @inline function mapreduce_accelerated(f::F, op::Op, src, backend;
+                                           kwargs...) where {F, Op}
+        return AcceleratedKernels.mapreduce(f, op, src, backend; kwargs...)
+    end
+end
+
 """
     examples_dir()
 
@@ -331,6 +351,20 @@ function register_error_hints()
     return nothing
 end
 
+# Check whether `src_url` points to a host operated by GitHub. Only in this
+# case, we may add the `GITHUB_TOKEN` to the request headers, see
+# [`download`](@ref); sending it to any other host would leak the token.
+function is_github_url(src_url)
+    # Extract the host from a URL of the form
+    # `scheme://[userinfo@]host[:port]/path?query#fragment`
+    m = match(r"^[A-Za-z][A-Za-z0-9+.-]*://(?:[^/?#@]*@)?([^/?#:]*)", String(src_url))
+    m === nothing && return false
+
+    host = lowercase(m.captures[1])
+    return host == "github.com" || endswith(host, ".github.com") ||
+           host == "githubusercontent.com" || endswith(host, ".githubusercontent.com")
+end
+
 """
     Trixi.download(src_url, file_path)
 
@@ -340,9 +374,9 @@ Download a file from given `src_url` to given `file_path` if
 This is a small wrapper of `Downloads.download(src_url, file_path)`
 that avoids race conditions when multiple MPI ranks are used.
 Furthermore, when run as part of a GitHub Action, it uses
-token-authenticated downloads to avoid GitHub's rate limiting
-for unauthenticated HTTP request. To use this feature, provide
-the environment variable `GITHUB_TOKEN`.
+token-authenticated downloads for files hosted on GitHub to avoid
+GitHub's rate limiting for unauthenticated HTTP request. To use this
+feature, provide the environment variable `GITHUB_TOKEN`.
 """
 function download(src_url, file_path)
     # Note that `mpi_isroot()` is also `true` if running
@@ -350,9 +384,10 @@ function download(src_url, file_path)
     if mpi_isroot()
         if !isfile(file_path)
             headers = Pair{String, String}[]
-            # Pass the GITHUB_TOKEN through to prevent rate-limiting
+            # Pass the GITHUB_TOKEN through to prevent rate-limiting - but only
+            # when downloading from GitHub, so that we do not leak the token.
             token = get(ENV, "GITHUB_TOKEN", nothing)
-            if token !== nothing
+            if token !== nothing && is_github_url(src_url)
                 push!(headers, "authorization" => "Bearer $token")
             end
             try

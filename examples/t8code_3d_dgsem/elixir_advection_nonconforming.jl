@@ -16,7 +16,8 @@ trees_per_dimension = (1, 1, 1)
 
 # Note that it is not necessary to use mesh polydeg lower than the solver polydeg
 # on a Cartesian mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 2,
@@ -33,8 +34,8 @@ struct t8_dhex_t
 end
 
 # Refine bottom left quadrant of each second tree to level 2
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if iseven(convert(Int, ltreeid)) && el.x == 0 && el.y == 0 && el.z == 0 &&
@@ -83,6 +84,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

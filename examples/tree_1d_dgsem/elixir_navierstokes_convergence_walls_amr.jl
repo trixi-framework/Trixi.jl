@@ -19,7 +19,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
@@ -30,8 +30,7 @@ coordinates_max = 1.0
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = false)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion1D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion1D`)
@@ -106,17 +105,17 @@ end
     # density equation
     du1 = rho_t + rho_x * v1 + rho * v1_x
 
-    # y-momentum equation
+    # x-momentum equation
     du2 = (rho_t * v1 + rho * v1_t
            + p_x + rho_x * v1^2 + 2 * rho * v1 * v1_x -
-           # stress tensor from y-direction
-           v1_xx * mu_)
+           # stress tensor from x-direction
+           v1_xx * mu_ * 4 / 3)
 
     # total energy equation
     du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
            # stress tensor and temperature gradient terms from x-direction
-           v1_xx * v1 * mu_ -
-           v1_x * v1_x * mu_ -
+           v1_xx * v1 * mu_ * 4 / 3 -
+           v1_x * v1_x * mu_ * 4 / 3 -
            T_const * inv_rho_cubed *
            (p_xx * rho * rho -
             2 * p_x * rho * rho_x +

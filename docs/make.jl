@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterCodeBlocks: CodeBlocks
 import Pkg
 using Changelog: Changelog
 
@@ -136,6 +137,8 @@ makedocs(
                                   # Set canonical URL to GitHub pages URL
                                   canonical = "https://trixi-framework.github.io/TrixiDocumentation/stable",
                                   size_threshold_ignore = ["reference-trixi.md"]),
+         # Improve code blocks in the documentation by using DocumenterCodeBlocks.jl
+         plugins = [CodeBlocks()],
          # Explicitly specify documentation structure
          pages = [
              "Home" => "index.md",

@@ -25,7 +25,7 @@ end
     return u_lr, u_rl
 end
 
-#             Reference element:             
+#             Reference element:
 #  -1 ------------------0------------------ 1 -> x
 # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
 #   .          .                  .         .
@@ -45,9 +45,9 @@ end
 # piecewise linear solution in both subcells next to the subcell interface.
 # Since these subcell boundaries are not aligned with the DG nodes,
 # on each neighboring subcell two linear solutions are reconstructed => 4 point stencil.
-# For the outer interfaces the stencil shrinks since we do not consider values 
+# For the outer interfaces the stencil shrinks since we do not consider values
 # outside the element (volume integral).
-# 
+#
 # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
 # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
@@ -79,6 +79,7 @@ This approach corresponds to equation (79) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
@@ -141,8 +142,9 @@ For the outer, i.e., boundary subcells, constant values are used, i.e, no recons
 This reduces the order of the scheme below 2.
 This approach corresponds to equation (78) described in
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
-  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
    Part II: Subcell finite volume shock capturing"
+  [arXiv: 2012.12040](https://arxiv.org/abs/2012.12040)
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 @inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
@@ -242,7 +244,7 @@ end
     vanleer(sl, sr)
 
 Symmetric limiter by van Leer.
-See for reference page 70 in 
+See for reference page 70 in
 
 - Siddhartha Mishra, Ulrik Skre Fjordholm and Rémi Abgrall
   Numerical methods for conservation laws and related equations.
@@ -270,7 +272,7 @@ end
 A version in left/right slopes `sl, sr` is given by equations (14) and (15) in
 - P. Jenny (2020)
   Time adaptive conservative finite volume method.
-  [DOI:10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
+  [DOI: 10.1016/j.jcp.2019.109067](https://doi.org/10.1016/j.jcp.2019.109067)
 
 This limiter is biased for positive (right-going) velocities.
 For the flipped version, which is biased for negative (left-going) velocities,

@@ -14,7 +14,6 @@ coordinates_max = (90.0,)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 # Initialize density and pressure perturbation with a Gaussian bump
@@ -56,6 +55,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks)

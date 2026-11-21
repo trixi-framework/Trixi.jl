@@ -1,7 +1,8 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
 
-equations = CompressibleEulerEquations1D(1.4)
+RealT = Float64
+equations = CompressibleEulerEquations1D(RealT(1.4))
 
 """
     initial_condition_modified_sod(x, t, equations::CompressibleEulerEquations1D)
@@ -16,15 +17,17 @@ An entropy-satisfying solution should produce a smooth(!) rarefaction wave.
   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction, 3rd Edition.
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-- Lin, Chan (2014)
+- Lin, Chan (2024)
   High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting
+  [arXiv: 2306.12663](https://arxiv.org/abs/2306.12663)
   [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
 """
 function initial_condition_modified_sod(x, t, ::CompressibleEulerEquations1D)
-    if x[1] < 0.3
-        return prim2cons(SVector(1, 0.75, 1), equations)
+    RealT = eltype(x)
+    if x[1] < RealT(0.3)
+        return prim2cons(SVector(one(RealT), 0.75f0, one(RealT)), equations)
     else
-        return prim2cons(SVector(0.125, 0.0, 0.1), equations)
+        return prim2cons(SVector(0.125f0, zero(RealT), RealT(0.1)), equations)
     end
 end
 initial_condition = initial_condition_modified_sod
@@ -38,12 +41,11 @@ volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
 solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
                volume_integral = volume_integral)
 
-coordinates_min = 0.0
-coordinates_max = 1.0
+coordinates_min = zero(RealT)
+coordinates_max = one(RealT)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
-                n_cells_max = 30_000,
+                initial_refinement_level = 6, RealT = RealT,
                 periodicity = false)
 
 # Dirichlet boundary condition is only valid for considered time interval.
@@ -54,7 +56,7 @@ boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 0.2)
+tspan = (zero(RealT), RealT(0.2))
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -78,7 +80,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ode_alg = SSPRK43(; stage_limiter! = stage_limiter!)
 =#
 # Flux-differencing volume integral does not require positivity preservation for this test case.
-ode_alg = SSPRK43()
+ode_alg = SSPRK43(thread = Trixi.Threaded())
 
 sol = solve(ode, ode_alg;
             dt = 4e-4, adaptive = true,

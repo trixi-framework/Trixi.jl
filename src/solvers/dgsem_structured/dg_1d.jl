@@ -8,14 +8,22 @@
 function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations, dg::DG)
     @unpack interfaces_u = cache.elements
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        # Negative side (direction 1, left/negative x face)
-        for v in eachvariable(equations)
-            interfaces_u[v, 1, element] = u[v, 1, element]
-        end
-        # Positive side (direction 2, right/positive x face)
-        for v in eachvariable(equations)
-            interfaces_u[v, 2, element] = u[v, nnodes(dg), element]
+        @inbounds begin
+            # Negative side (direction 1, left/negative x face)
+            for v in eachvariable(equations)
+                interfaces_u[v, 1, element] = u[v, 1, element]
+            end
+            # Positive side (direction 2, right/positive x face)
+            for v in eachvariable(equations)
+                interfaces_u[v, 2, element] = u[v, nnodes(dg), element]
+            end
         end
     end
 
@@ -27,21 +35,30 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations,
     @unpack interfaces_u = cache.elements
     @unpack boundary_interpolation = dg.basis
 
-    @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
-            interface_u_1 = zero(eltype(interfaces_u))
-            interface_u_2 = zero(eltype(interfaces_u))
-            for i in eachnode(dg)
-                # Left/negative x face
-                interface_u_1 = interface_u_1 +
-                                u[v, i, element] * boundary_interpolation[i, 1]
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes(boundary_interpolation, (eachnode(dg), Base.OneTo(2)))
+    end
 
-                # Right/positive x face
-                interface_u_2 = interface_u_2 +
-                                u[v, i, element] * boundary_interpolation[i, 2]
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for v in eachvariable(equations)
+                interface_u_1 = zero(eltype(interfaces_u))
+                interface_u_2 = zero(eltype(interfaces_u))
+                for i in eachnode(dg)
+                    # Left/negative x face
+                    interface_u_1 = interface_u_1 +
+                                    u[v, i, element] * boundary_interpolation[i, 1]
+
+                    # Right/positive x face
+                    interface_u_2 = interface_u_2 +
+                                    u[v, i, element] * boundary_interpolation[i, 2]
+                end
+                interfaces_u[v, 1, element] = interface_u_1
+                interfaces_u[v, 2, element] = interface_u_2
             end
-            interfaces_u[v, 1, element] = interface_u_1
-            interfaces_u[v, 2, element] = interface_u_2
         end
     end
 
@@ -54,19 +71,27 @@ function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
     @unpack surface_flux = surface_integral
     @unpack interfaces_u = cache.elements
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        left_element = cache.elements.left_neighbors[1, element]
-        # => `element` is the right element of the interface
+        @inbounds begin
+            left_element = cache.elements.left_neighbors[1, element]
+            # => `element` is the right element of the interface
 
-        if left_element > 0 # left_element = 0 at boundaries
-            u_ll = get_node_vars(interfaces_u, equations, dg, 2, left_element)
-            u_rr = get_node_vars(interfaces_u, equations, dg, 1, element)
+            if left_element > 0 # left_element = 0 at boundaries
+                u_ll = get_node_vars(interfaces_u, equations, dg, 2, left_element)
+                u_rr = get_node_vars(interfaces_u, equations, dg, 1, element)
 
-            f1 = surface_flux(u_ll, u_rr, 1, equations)
+                f1 = surface_flux(u_ll, u_rr, 1, equations)
 
-            for v in eachvariable(equations)
-                surface_flux_values[v, 2, left_element] = f1[v]
-                surface_flux_values[v, 1, element] = f1[v]
+                for v in eachvariable(equations)
+                    surface_flux_values[v, 2, left_element] = f1[v]
+                    surface_flux_values[v, 1, element] = f1[v]
+                end
             end
         end
     end
@@ -119,15 +144,23 @@ function apply_jacobian!(backend::Nothing, du, mesh::StructuredMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` in the basis setup and 
-            # the comment in `calc_surface_integral!`.
-            factor = -inverse_jacobian[i, element]
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
 
-            for v in eachvariable(equations)
-                du[v, i, element] *= factor
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for i in eachnode(dg)
+                # Negative sign included to account for the negated surface and volume terms,
+                # see e.g. the computation of `derivative_hat` in the basis setup and
+                # the comment in `calc_surface_integral!`.
+                factor = -inverse_jacobian[i, element]
+
+                for v in eachvariable(equations)
+                    du[v, i, element] *= factor
+                end
             end
         end
     end

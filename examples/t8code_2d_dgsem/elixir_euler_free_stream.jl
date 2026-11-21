@@ -17,7 +17,8 @@ initial_condition = initial_condition_constant
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but reduced to 2D
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but reduced to 2D
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5
@@ -43,13 +44,13 @@ mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
                   mapping = mapping,
                   initial_refinement_level = 1)
 
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     vertex = Vector{Cdouble}(undef, 3)
 
-    Trixi.t8_element_vertex_reference_coords(eclass_scheme, elements[1], 0, vertex)
+    Trixi.t8_element_get_vertex_reference_coords(scheme, tree_class, elements[1], 0, vertex)
 
-    level = Trixi.t8_element_level(eclass_scheme, elements[1])
+    level = Trixi.t8_element_get_level(scheme, tree_class, elements[1])
 
     # TODO: Make this condition more general.
     if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 3
@@ -95,6 +96,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

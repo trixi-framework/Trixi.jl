@@ -134,7 +134,7 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::False, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              aux::Nothing, element)
     max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -211,7 +211,7 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::True, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              aux::Nothing, element)
     max_scaled_speed = zero(eltype(u))
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
     for j in eachnode(dg), i in eachnode(dg)
@@ -306,6 +306,40 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
+
+    return dt
+end
+
+function max_dt(u, t, mesh::P4estMeshParallel{2},
+                constant_diffusivity::False, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
+    dt = invoke(max_dt,
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_diffusivity), typeof(equations),
+                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
+                dg, cache)
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
+
+    return dt
+end
+
+function max_dt(u, t, mesh::P4estMeshParallel{2},
+                constant_diffusivity::True, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
+    dt = invoke(max_dt,
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_diffusivity), typeof(equations),
+                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
+                dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 

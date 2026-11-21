@@ -114,8 +114,10 @@ end
     end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-    return save_restart_file(u, t, dt, iter, mesh, equations, solver, cache,
-                             restart_callback)
+    # See the matching comment in `save_solution_file` (save_solution.jl): `u_ode`
+    # must stay alive for as long as `u`, an unsafe alias into its memory, is used.
+    return GC.@preserve u_ode save_restart_file(u, t, dt, iter, mesh, equations, solver,
+                                                cache, restart_callback)
 end
 
 """

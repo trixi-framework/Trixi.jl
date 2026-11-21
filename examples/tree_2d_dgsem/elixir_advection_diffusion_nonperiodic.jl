@@ -17,8 +17,7 @@ coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -81,5 +80,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

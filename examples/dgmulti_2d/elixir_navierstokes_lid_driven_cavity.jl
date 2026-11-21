@@ -70,7 +70,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
@@ -79,5 +79,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, sav
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
+            abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

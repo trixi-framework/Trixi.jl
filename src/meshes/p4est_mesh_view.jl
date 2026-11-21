@@ -158,13 +158,13 @@ function extract_boundaries(mesh::P4estMeshView{2},
             # relative to this one, i.e. left, right, up, down.
             # In 3d one would need to add the third dimension.
             if (interfaces_parent.node_indices[view_idx, interface] ==
-                (:end, :i_forward))
+                (NodeIndex.End, NodeIndex.IForward))
                 push!(boundaries.name, :x_pos)
             elseif (interfaces_parent.node_indices[view_idx, interface] ==
-                    (:begin, :i_forward))
+                    (NodeIndex.Begin, NodeIndex.IForward))
                 push!(boundaries.name, :x_neg)
             elseif (interfaces_parent.node_indices[view_idx, interface] ==
-                    (:i_forward, :end))
+                    (NodeIndex.IForward, NodeIndex.End))
                 push!(boundaries.name, :y_pos)
             else
                 push!(boundaries.name, :y_neg)
@@ -183,9 +183,10 @@ function extract_boundaries(mesh::P4estMeshView{2},
     capacity = length(boundaries.neighbor_ids)
 
     resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
-    boundaries.u = unsafe_wrap(Array, pointer(boundaries._u),
-                               (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
-                                capacity))
+    boundaries.u = unsafe_wrap_or_alloc(Array, boundaries._u,
+                                        (n_variables,
+                                         ntuple(_ -> n_nodes, n_dims - 1)...,
+                                         capacity))
 
     return boundaries
 end
@@ -263,13 +264,13 @@ end
 # Translate the interface indices into boundary names.
 # This works only in 2d currently.
 function node_indices_to_name(node_index)
-    if node_index == (:end, :i_forward)
+    if node_index == (NodeIndex.End, NodeIndex.IForward)
         return :x_pos
-    elseif node_index == (:begin, :i_forward)
+    elseif node_index == (NodeIndex.Begin, NodeIndex.IForward)
         return :x_neg
-    elseif node_index == (:i_forward, :end)
+    elseif node_index == (NodeIndex.IForward, NodeIndex.End)
         return :y_pos
-    elseif node_index == (:i_forward, :begin)
+    elseif node_index == (NodeIndex.IForward, NodeIndex.Begin)
         return :y_neg
     else
         error("Unknown node index: $node_index")
@@ -328,66 +329,6 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     end
 
     return filename
-end
-
-# Interpolate tree_node_coordinates to each quadrant at the specified nodes
-# Note: This is a copy of the corresponding function in src/solvers/dgsem_p4est/containers_2d.jl,
-#       with modifications to skip cells not part of the mesh view
-function calc_node_coordinates!(node_coordinates,
-                                mesh::P4estMeshView{2, NDIMS_AMBIENT},
-                                nodes::AbstractVector) where {NDIMS_AMBIENT}
-    # We use `StrideArray`s here since these buffers are used in performance-critical
-    # places and the additional information passed to the compiler makes them faster
-    # than native `Array`s.
-    tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(NDIMS_AMBIENT), static_length(nodes),
-                       static_length(mesh.parent.nodes))
-    matrix1 = StrideArray(undef, real(mesh),
-                          static_length(nodes), static_length(mesh.parent.nodes))
-    matrix2 = similar(matrix1)
-    baryweights_in = barycentric_weights(mesh.parent.nodes)
-
-    # Macros from `p4est`
-    p4est_root_len = 1 << P4EST_MAXLEVEL
-    p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
-
-    trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
-
-    mesh_view_cell_id = 0
-    for tree_id in eachindex(trees)
-        tree_offset = trees[tree_id].quadrants_offset
-        quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
-
-        for i in eachindex(quadrants)
-            parent_mesh_cell_id = tree_offset + i
-            if !(parent_mesh_cell_id in mesh.cell_ids)
-                # This cell is not part of the mesh view, thus skip it
-                continue
-            end
-            mesh_view_cell_id += 1
-
-            quad = quadrants[i]
-
-            quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
-
-            nodes_out_x = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
-                           quad.x / p4est_root_len) .- 1
-            nodes_out_y = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
-                           quad.y / p4est_root_len) .- 1
-            polynomial_interpolation_matrix!(matrix1, mesh.parent.nodes, nodes_out_x,
-                                             baryweights_in)
-            polynomial_interpolation_matrix!(matrix2, mesh.parent.nodes, nodes_out_y,
-                                             baryweights_in)
-
-            multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
-                                    matrix1, matrix2,
-                                    view(mesh.parent.tree_node_coordinates, :, :, :,
-                                         tree_id),
-                                    tmp1)
-        end
-    end
-
-    return node_coordinates
 end
 
 @inline mpi_parallel(mesh::P4estMeshView) = False()

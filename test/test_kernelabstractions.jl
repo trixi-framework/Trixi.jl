@@ -1,37 +1,49 @@
-module TestExamplesKernelAbstractions
+@testsnippet KernelAbstractionsExamples begin
+    EXAMPLES_DIR = examples_dir()
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
-
-@testset "basic" begin
+@testitem "KernelAbstractions backend preference" setup=[Setup] tags=[:kernelabstractions] begin
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testset "KernelAbstractions CPU 2D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, ode.p, sol, 75_000)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{2, Float64}
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -39,13 +51,35 @@ end
                         linf=[Float32(6.627000273229378e-5)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, ode.p, sol, 60_000)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{2, Float32}
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl native" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -57,13 +91,35 @@ end
                             1.1707525985116263e-5,
                             1.1707525982673772e-5,
                             4.886961559069647e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         l2=Float32[2.4917018095933837e-6,
@@ -76,29 +132,437 @@ end
                                      6.214141845717336e-5],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
-end
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@testset "KernelAbstractions CPU 3D" begin
-#! format: noindent
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Flux Differencing Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
+                        l2=Float32[2.7905685982444506e-6,
+                                   2.7719663804722356e-6,
+                                   2.862595247100584e-6,
+                                   6.59779451858695e-6],
+                        linf=Float32[1.904964447030366e-5,
+                                     2.1734684234164803e-5,
+                                     1.988410949715913e-5,
+                                     5.9757232666157734e-5],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
 
-@trixi_testset "elixir_advection_basic.jl" begin
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=[
+                            7.526028387805706e-5,
+                            6.32127626310509e-5,
+                            6.325543234769327e-5,
+                            0.00011732589843058861,
+                            7.481219049195874e-5,
+                            7.911320579162387e-5,
+                            7.935110683856884e-5,
+                            0.00011470903279325104,
+                            5.034941237145169e-5
+                        ],
+                        linf=[
+                            0.00043327748904631314,
+                            0.000516740973694016,
+                            0.0005212064092713631,
+                            0.0009207747658964149,
+                            0.0004046247762601318,
+                            0.0005735802836948078,
+                            0.000543026062852392,
+                            0.000894462605877569,
+                            0.000298700326760806
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=Float32[7.522484207987927e-5,
+                                   6.320027873022108e-5,
+                                   6.326290061132241e-5,
+                                   0.00011731785274617709,
+                                   7.481423726295819e-5,
+                                   7.911056635500293e-5,
+                                   7.935093823090327e-5,
+                                   0.0001147135801732915,
+                                   5.03544803621344e-5],
+                        linf=Float32[0.0004317760467529297,
+                                     0.0005172195608723826,
+                                     0.0005215731631947051,
+                                     0.0009205658752724083,
+                                     0.0004047385522517599,
+                                     0.0005733146458962723,
+                                     0.0005431522323861016,
+                                     0.0008944143373772057,
+                                     0.0002989873755723238],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advection_nonconforming_flag.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[3.198940059144588e-5],
+                        linf=Float32[0.00030636069494005547],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{2, Float32}
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[
+                            0.0034516244508588046,
+                            0.0023420334036925493,
+                            0.0024261923964557187,
+                            0.004731710454271893
+                        ],
+                        linf=[
+                            0.04155789011775046,
+                            0.024772109862748914,
+                            0.03759938693042297,
+                            0.08039824959535657
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> NodeIndex.IBackward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_mhd_alfven_wave_nonconforming.jl (combined fluxes)" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Load the fluxes combining conservative and nonconservative terms,
+    # which are equivalent to the fluxes used in the elixir below.
+    # We do not need to run this simulation, so we replace `sol = solve(...)`
+    # by `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  sol = nothing)
+
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.03218873485054769,
+                            0.036104237528919156,
+                            0.03565782684252082,
+                            0.05290171901682014,
+                            0.03363060793396599,
+                            0.03881219835771841,
+                            0.03870276636879549,
+                            0.05291025814280089,
+                            0.022494653302015218
+                        ],
+                        linf=[
+                            0.17957235749398837,
+                            0.1403110675224628,
+                            0.13219291731458857,
+                            0.21691023663331951,
+                            0.11730522693720624,
+                            0.1452058059708733,
+                            0.144259629027772,
+                            0.21753737360583258,
+                            0.07672851650342119
+                        ],
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = flux_hlle_nonconservative_powell,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell)),
+                        tspan=(0.0, 0.25))
+    # The elixir does not adapt `semi`, so `semidiscretize` uses it as it is
+    @test semi === ode.p
+
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=1, tspan=(0.0, 0.2),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.0003811978986531135,
+                            0.0005874314969137914,
+                            0.0009142898787681551,
+                            0.0011613918893790497
+                        ],
+                        linf=[
+                            0.0021633623985426453,
+                            0.009484348273965089,
+                            0.0042315720663082534,
+                            0.011661660264076446
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 2D: elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00028716166408816073,
+                            0.08101204560401647,
+                            0.02099595625377768,
+                            0.05008149754143295
+                        ],
+                        linf=[
+                            0.014804500261322406,
+                            0.9513271652357098,
+                            0.7223919625994717,
+                            1.4846907331004786
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 450_000)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float64}
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -106,59 +570,615 @@ end
                         linf=[Float32(0.0014537194925779984)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 370_000)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float32}
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl native" begin
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_euler_source_terms.jl"),
-                        l2=[
-                            4.893619139889976e-5,
-                            5.3526950567182756e-5,
-                            5.35269505672133e-5,
-                            5.352695056735998e-5,
-                            0.00015172095200428318
-                        ],
-                        linf=[
-                            0.00031179856625374036,
-                            0.0003368725355339386,
-                            0.0003368725355383795,
-                            0.00033687253560787944,
-                            0.0013193387520935573
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 400_000)
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=[0.0014517629881062517,
+                            0.0014469623017050836,
+                            0.001446962301705153,
+                            0.0014469623017051368,
+                            0.002934065359862918],
+                        linf=[0.01031578086475382,
+                            0.011300883615913193,
+                            0.011300883615896096,
+                            0.011300883615918522,
+                            0.02090696711453477],
+                        volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: boundary flux with an empty boundary condition type" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # A boundary condition type without any boundaries (e.g., on a rank that
+    # does not own boundaries of this name in parallel runs) must not stop the
+    # processing of the remaining boundary condition types in
+    # `calc_boundary_flux_by_type!`.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_euler_source_terms_nonperiodic.jl"),
+                  tspan = (0.0, 0.0))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    (; mesh, equations, solver, cache, boundary_conditions) = semi
+    @test boundary_conditions isa Trixi.UnstructuredSortedBoundaryTypes
+    u_ode = copy(ode.u0)
+    u = Trixi.wrap_array(u_ode, semi)
+    backend = Trixi.trixi_backend(u_ode)
+    t = first(ode.tspan)
+    surface_flux_values = cache.elements.surface_flux_values
+
+    # Reference boundary fluxes with the original boundary conditions
+    Trixi.prolong2boundaries!(backend, cache, u, mesh, equations, solver)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
+                              solver.surface_integral, solver)
+    surface_flux_values_reference = copy(surface_flux_values)
+    @test any(!iszero, surface_flux_values_reference)
+
+    # Prepend a boundary condition type without any boundaries
+    boundary_condition_types = (boundary_condition_do_nothing,
+                                boundary_conditions.boundary_condition_types...)
+    boundary_indices = (Int[], boundary_conditions.boundary_indices...)
+    boundary_conditions_empty_first = Trixi.UnstructuredSortedBoundaryTypes{length(boundary_condition_types),
+                                                                            typeof(boundary_condition_types),
+                                                                            Vector{Int},
+                                                                            typeof(boundary_conditions.boundary_conditions)}(boundary_condition_types,
+                                                                                                                             boundary_indices,
+                                                                                                                             boundary_conditions.boundary_conditions,
+                                                                                                                             boundary_conditions.boundary_symbol_indices)
+    fill!(surface_flux_values, 0)
+    Trixi.calc_boundary_flux!(backend, cache, t, boundary_conditions_empty_first, mesh,
+                              equations, solver.surface_integral, solver)
+    @test surface_flux_values == surface_flux_values_reference
+end
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_euler_source_terms.jl"),
-                        l2=Float32[4.912578089985958e-5,
-                                   5.3683407014580115e-5,
-                                   5.368099834769191e-5,
-                                   5.371664525206341e-5,
-                                   0.00015186256300882088],
-                        linf=Float32[0.00032772542853032327,
-                                     0.00035144807715092874,
-                                     0.0003549051465479014,
-                                     0.00035573961157475686,
-                                     0.0013591384887696734],
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=Float32[0.0014518665391031068,
+                                   0.0014470701356811022,
+                                   0.0014470866449955344,
+                                   0.00144707575575548,
+                                   0.0029342928549885568],
+                        linf=Float32[0.010317440030529479,
+                                     0.011303550618318114,
+                                     0.011295533976851013,
+                                     0.011299068214785102,
+                                     0.0209091211162149],
+                        volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 400_000)
-end
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-# Clean up afterwards: delete Trixi.jl output directory
-Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=[
+                            0.00020523607157908708,
+                            0.000636037375360857,
+                            0.0002768722721598528,
+                            0.000780404043245244,
+                            0.000709669882361381,
+                            0.0006335012491207207,
+                            0.0003174622818755188,
+                            0.0007723389125485991,
+                            0.00023680042414966782
+                        ],
+                        linf=[
+                            0.0011634542712232188,
+                            0.004143013256670491,
+                            0.0016758874736150725,
+                            0.004705809053315052,
+                            0.0043527912850840345,
+                            0.00389837136357718,
+                            0.0014571305070021356,
+                            0.00445327133732587,
+                            0.0011999511085407923
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
 
-end # module
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=Float32[0.00020525117656966933,
+                                   0.0006360228815289537,
+                                   0.0002768843174099056,
+                                   0.0007803905033283389,
+                                   0.0007096877693750141,
+                                   0.0006334907401971527,
+                                   0.00031746218801771323,
+                                   0.0007723227422473114,
+                                   0.00023680544707528988],
+                        linf=Float32[0.0011634305119514465,
+                                     0.004142922370076324,
+                                     0.0016762695564673177,
+                                     0.004706167449922888,
+                                     0.004352995157241857,
+                                     0.0038981913494133824,
+                                     0.0014574094164283569,
+                                     0.004453214425426177,
+                                     0.0011997520958011896],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advection_nonconforming.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advection_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[0.00253595715323843],
+                        linf=Float32[0.016486952252155795],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float32}
+
+    # Make sure that the mortar kernels are used
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonconforming_unstructured_curved.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[
+                            4.070355207909268e-5,
+                            4.4993257426833716e-5,
+                            5.10588457841744e-5,
+                            5.102840924036687e-5,
+                            0.00019986264001630542
+                        ],
+                        linf=[
+                            0.0016987332417202072,
+                            0.003622956808262634,
+                            0.002029576258317789,
+                            0.0024206977281964193,
+                            0.008526972236273522
+                        ],
+                        tspan=(0.0, 0.01))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    # Make sure that the mortar kernels are used, including mortars
+    # whose large side runs backwards (flipped orientation)
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test any(indices -> NodeIndex.IBackward in indices || NodeIndex.JBackward in indices,
+              Array(semi.cache.mortars.node_indices)[2, :])
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl nonconforming native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    using Trixi
+    # Create a non-conforming mesh by refining the bottom left front octant of each tree
+    # to level 3 as in `elixir_mhd_alfven_wave_nonconforming.jl`, but without
+    # periodicity to match the boundary conditions of the elixir used below
+    mesh_nonconforming = P4estMesh((2, 2, 2), polydeg = 3, initial_refinement_level = 1,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0),
+                                   periodicity = false)
+    function refine_fn(p8est, which_tree, quadrant)
+        quadrant_obj = unsafe_load(quadrant)
+        if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
+           quadrant_obj.level < 3
+            # return true (refine)
+            return Cint(1)
+        else
+            # return false (don't refine)
+            return Cint(0)
+        end
+    end
+    refine_fn_c = @cfunction(refine_fn, Cint,
+                             (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                              Ptr{Trixi.p8est_quadrant_t}))
+    Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        # Reference errors computed on the CPU with `Float64` for this
+                        # mesh, which is not used by any CPU test item
+                        l2=[0.0016563504697881934,
+                            0.005878912164586567,
+                            0.0030351693310069093,
+                            0.006415910708712913,
+                            0.006315360797389436,
+                            0.0062358105416640275,
+                            0.002844337960841682,
+                            0.006547611570440987,
+                            0.00337707567249393],
+                        linf=[0.011726707425792737,
+                            0.04375833459728863,
+                            0.018828037099487202,
+                            0.044739187284319665,
+                            0.04765527094779598,
+                            0.04068120133668507,
+                            0.02570557246571148,
+                            0.04804236486857292,
+                            0.02426849447339827],
+                        mesh=mesh_nonconforming,
+                        tspan=(0.0, 0.25))
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    # Make sure that the mortar kernels are used with the combined conservative
+    # and nonconservative fluxes
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.combine_conservative_and_nonconservative_fluxes(semi.solver.surface_integral.surface_flux,
+                                                                semi.equations) ==
+          Trixi.True()
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[0.00519048662880307],
+                        linf=[0.026769982125784075])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache.aux_vars.aux isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_shear_flow.jl (flux differencing)" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors) on Cartesian meshes
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()),
+                        l2=[0.005190486628803072],
+                        linf=[0.02676998212578452])
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        tuning=Tuning(flux_differencing_kernel = FullSweepGlobal()),
+                        l2=[0.005190486628803072],
+                        linf=[0.02676998212578452])
+
+    # `FluxTurbo` results in the same discretization as the plain `flux_central`
+    # (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        tuning=Tuning(flux_differencing_kernel = FullSweep()),
+                        l2=[0.005190486628803072],
+                        linf=[0.02676998212578452])
+end
+
+@testitem "KernelAbstractions CPU 3D: FluxTurbo with auxiliary variables" setup=[Setup] tags=[:kernelabstractions] begin
+    # Compare with the plain CPU code since the kernels without `FluxTurbo`
+    # support nonconservative terms only with combined fluxes
+    function aux_field(x, equations)
+        return SVector(1 + 0.5 * sinpi(x[2]), 0.5 + 0.25 * sinpi(x[1]),
+                       0.25 * cospi(x[3]))
+    end
+    initial_condition(x, t, equations) = SVector(1 + 0.5 * sinpi(x[1] + x[2] + x[3]))
+    function mapping(xi, eta, zeta)
+        return SVector(xi + 0.1 * sinpi(eta) * sinpi(zeta),
+                       eta + 0.1 * sinpi(xi) * sinpi(zeta),
+                       zeta + 0.1 * sinpi(xi) * sinpi(eta))
+    end
+    mesh = P4estMesh((2, 2, 2), polydeg = 3, mapping = mapping, periodicity = true)
+
+    function volume_integral(backend, equations, volume_flux, flux_differencing_kernel)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                       volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field = aux_field)
+        semi = trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = zero(u_ode)
+        # `wrap_array` may not keep `u_ode` and `du_ode` alive
+        GC.@preserve u_ode du_ode begin
+            u = Trixi.wrap_array(u_ode, semi)
+            du = Trixi.wrap_array(du_ode, semi)
+            Trixi.calc_volume_integral!(backend, du, u,
+                                        semi.mesh,
+                                        Trixi.have_nonconservative_terms(semi.equations),
+                                        semi.equations,
+                                        semi.solver.volume_integral,
+                                        semi.solver,
+                                        semi.cache)
+        end
+        return du_ode
+    end
+
+    cases = ((ConservativeLinearScalarAdvectionEquation3D(), flux_central,
+              FluxTurbo(flux_central)),
+             (NonconservativeLinearScalarAdvectionEquation3D(),
+              (flux_central, flux_nonconservative_central),
+              FluxTurbo(flux_central, flux_nonconservative_central)))
+    for (equations, volume_flux, volume_flux_turbo) in cases
+        du_cpu = volume_integral(nothing, equations, volume_flux, FullSweep())
+        du_turbo = volume_integral(Trixi.KernelAbstractions.CPU(), equations,
+                                   volume_flux_turbo, FullSweep())
+        @test du_turbo ≈ du_cpu
+        @test maximum(abs, du_cpu) > 0.1
+    end
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_source_terms_nonconforming.jl conforming" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # Without refinement, the mesh is conforming as required for auxiliary variables on GPUs
+    no_refine = @cfunction((p8est, which_tree, quadrant)->Cint(0), Cint,
+                           (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                            Ptr{Trixi.p8est_quadrant_t}))
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[0.010905711222904933],
+                        linf=[0.08350130805195932],
+                        refine_fn_c=no_refine)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test isempty(Trixi.eachmortar(semi.solver, semi.cache))
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[
+                            0.00026599105557723507,
+                            0.00046187779448444603,
+                            0.0005424899076194272,
+                            0.00046187779448445546,
+                            0.0015846392584275121
+                        ],
+                        linf=[
+                            0.0025241668964857134,
+                            0.006308461684409397,
+                            0.004334939668473314,
+                            0.006308461684396753,
+                            0.03176343483364796
+                        ])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache_parabolic.parabolic_container.u_transformed isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end

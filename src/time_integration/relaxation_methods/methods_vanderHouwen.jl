@@ -8,7 +8,7 @@
 @doc raw"""
     vanderHouwenAlgorithm
 
-Abstract type for sub-diagonal Runge-Kutta methods, i.e., 
+Abstract type for sub-diagonal Runge-Kutta methods, i.e.,
 methods with a Butcher tableau of the form
 ```math
 \begin{array}
@@ -17,8 +17,8 @@ methods with a Butcher tableau of the form
     \hline
     1 & 0 & & & & & & \\
     2 & c_2 & a_{21} & & & & & \\
-    3 & c_3 & b_1 & a_{32} & & & & \\ 
-    4 & c_4 & b_1 & b_2 & a_{43} & & & \\ 
+    3 & c_3 & b_1 & a_{32} & & & & \\
+    4 & c_4 & b_1 & b_2 & a_{43} & & & \\
     \vdots & \vdots & \vdots & \vdots & \ddots & \ddots & & \\
     S & c_S & b_1 & b_2 & \dots & b_{S-2} & a_{S, S-1} & \\
     \hline
@@ -27,7 +27,7 @@ methods with a Butcher tableau of the form
 ```
 
 Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order method [`CKL43`](@ref)
-and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`CKL54`](@ref) which are optimized for the 
+and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`CKL54`](@ref) which are optimized for the
 compressible Navier-Stokes equations.
 """
 abstract type vanderHouwenAlgorithm <: AbstractTimeIntegrationAlgorithm end
@@ -35,7 +35,7 @@ abstract type vanderHouwenAlgorithm <: AbstractTimeIntegrationAlgorithm end
 """
     vanderHouwenRelaxationAlgorithm
 
-Abstract type for van-der-Houwen type Runge-Kutta algorithms (see [`vanderHouwenAlgorithm`](@ref)) 
+Abstract type for van-der-Houwen type Runge-Kutta algorithms (see [`vanderHouwenAlgorithm`](@ref))
 with relaxation to achieve entropy-conservation/stability.
 In addition to the standard Runge-Kutta method, these algorithms are equipped with a
 relaxation solver [`AbstractRelaxationSolver`](@ref) which is used to compute the relaxation parameter ``\\gamma``.
@@ -44,13 +44,15 @@ This allows the relaxation methods to suppress entropy defects due to the time s
 For details on the relaxation procedure, see
 - Ketcheson (2019)
   Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms
+  [arXiv: 1905.09847](https://arxiv.org/abs/1905.09847)
   [DOI: 10.1137/19M1263662](https://doi.org/10.1137/19M1263662)
 - Ranocha et al. (2020)
-  Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations  
+  Relaxation Runge-Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations
+  [arXiv: 1905.09129](https://arxiv.org/abs/1905.09129)
   [DOI: 10.1137/19M1263480](https://doi.org/10.1137/19M1263480)
 
 Currently implemented methods are the Carpenter-Kennedy-Lewis 4-stage, 3rd-order method [`RelaxationCKL43`](@ref)
-and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`RelaxationCKL54`](@ref) which are optimized for the 
+and the Carpenter-Kennedy-Lewis 5-stage, 4th-order method [`RelaxationCKL54`](@ref) which are optimized for the
 compressible Navier-Stokes equations.
 """
 abstract type vanderHouwenRelaxationAlgorithm <:
@@ -94,7 +96,7 @@ end
 """
     RelaxationCKL43(; relaxation_solver = RelaxationSolverNewton())
 
-Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL43()`](@ref), 
+Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL43()`](@ref),
 implemented as a [`vanderHouwenRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
@@ -147,7 +149,7 @@ end
 """
     RelaxationCKL54(; relaxation_solver = RelaxationSolverNewton())
 
-Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL54()`](@ref), 
+Relaxation version of the 4-stage, 3rd-order low-storage Runge-Kutta method [`CKL54()`](@ref),
 implemented as a [`vanderHouwenRelaxationAlgorithm`](@ref).
 The default relaxation solver [`AbstractRelaxationSolver`](@ref) is [`RelaxationSolverNewton`](@ref).
 """
@@ -161,7 +163,7 @@ end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
-# https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
+# https://docs.sciml.ai/DiffEqDocs/stable/basics/integrator/#Handling-Integrators
 # which are used in Trixi.jl.
 mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType <: AbstractVector,
                                                 Params, Sol, F, Alg,
@@ -188,7 +190,7 @@ mutable struct vanderHouwenRelaxationIntegrator{RealT <: Real, uType <: Abstract
     gamma::RealT # Relaxation parameter
     S_old::RealT # Entropy of previous iterate
     const relaxation_solver::AbstractRelaxationSolver
-    # Note: Could add another register which would store the summed-up 
+    # Note: Could add another register which would store the summed-up
     # dot products ∑ₖ (wₖ ⋅ kₖ) and then integrate only once and not per stage k
     # Could also add option `recompute_entropy` for entropy-conservative problems
     # to save redundant computations.
@@ -202,6 +204,7 @@ function init(ode::ODEProblem, alg::vanderHouwenRelaxationAlgorithm;
     k_prev = similar(u)
 
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
 
     # For entropy relaxation

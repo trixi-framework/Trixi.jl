@@ -87,11 +87,12 @@ end
                                               faces, orientation, interface_id)
     # Iterate over primary and secondary element
     for side in 1:2
-        # Align interface at the primary element (primary element has surface indices (:i_forward, :j_forward)).
+        # Align interface at the primary element (primary element has surface indices
+        # (NodeIndex.IForward, NodeIndex.JForward)).
         # The secondary element needs to be indexed differently.
         if side == 1
-            surface_index1 = :i_forward
-            surface_index2 = :j_forward
+            surface_index1 = NodeIndex.IForward
+            surface_index2 = NodeIndex.JForward
         else
             surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2],
                                                                           faces[1],
@@ -100,28 +101,34 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (:begin, surface_index1,
+            interfaces.node_indices[side, interface_id] = (NodeIndex.Begin,
+                                                           surface_index1,
                                                            surface_index2)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (:end, surface_index1,
+            interfaces.node_indices[side, interface_id] = (NodeIndex.End,
+                                                           surface_index1,
                                                            surface_index2)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, :begin,
+            interfaces.node_indices[side, interface_id] = (surface_index1,
+                                                           NodeIndex.Begin,
                                                            surface_index2)
         elseif faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, :end,
+            interfaces.node_indices[side, interface_id] = (surface_index1,
+                                                           NodeIndex.End,
                                                            surface_index2)
         elseif faces[side] == 4
             # Index face in negative z-direction
             interfaces.node_indices[side, interface_id] = (surface_index1,
-                                                           surface_index2, :begin)
+                                                           surface_index2,
+                                                           NodeIndex.Begin)
         else # faces[side] == 5
             # Index face in positive z-direction
             interfaces.node_indices[side, interface_id] = (surface_index1,
-                                                           surface_index2, :end)
+                                                           surface_index2,
+                                                           NodeIndex.End)
         end
     end
 
@@ -133,25 +140,71 @@ end
                                              face, boundary_id)
     if face == 0
         # Index face in negative x-direction
-        boundaries.node_indices[boundary_id] = (:begin, :i_forward, :j_forward)
+        boundaries.node_indices[boundary_id] = (NodeIndex.Begin,
+                                                NodeIndex.IForward,
+                                                NodeIndex.JForward)
     elseif face == 1
         # Index face in positive x-direction
-        boundaries.node_indices[boundary_id] = (:end, :i_forward, :j_forward)
+        boundaries.node_indices[boundary_id] = (NodeIndex.End,
+                                                NodeIndex.IForward,
+                                                NodeIndex.JForward)
     elseif face == 2
         # Index face in negative y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :begin, :j_forward)
+        boundaries.node_indices[boundary_id] = (NodeIndex.IForward,
+                                                NodeIndex.Begin,
+                                                NodeIndex.JForward)
     elseif face == 3
         # Index face in positive y-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :end, :j_forward)
+        boundaries.node_indices[boundary_id] = (NodeIndex.IForward,
+                                                NodeIndex.End,
+                                                NodeIndex.JForward)
     elseif face == 4
         # Index face in negative z-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :j_forward, :begin)
+        boundaries.node_indices[boundary_id] = (NodeIndex.IForward,
+                                                NodeIndex.JForward,
+                                                NodeIndex.Begin)
     else # face == 5
         # Index face in positive z-direction
-        boundaries.node_indices[boundary_id] = (:i_forward, :j_forward, :end)
+        boundaries.node_indices[boundary_id] = (NodeIndex.IForward,
+                                                NodeIndex.JForward,
+                                                NodeIndex.End)
     end
 
     return boundaries
+end
+
+# Check whether the arrays in `mortars` and the thread-local storage used on CPUs
+# have the axes we assume they must have in the inner loops of Trixi.jl.
+function check_axes(mortars::P4estMortarContainer{3}, equations, solver::DG, cache)
+    check_axes_mortar_container(mortars, equations, solver, cache)
+
+    # Thread-local storage used for the mortar fluxes and projections
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver),
+                  Base.OneTo(4))
+    buffer_axes = (eachvariable(equations),
+                   eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp_threaded, buffer_axes)
+    check_axes_threaded(cache.u_threaded, buffer_axes)
+    return nothing
+end
+
+# Check only the arrays stored in `mortars`. This is used by the GPU kernels, which
+# do not use the thread-local storage. The thread-local storage size depends on
+# `Threads.maxthreadid()`, which can grow at runtime, e.g., when CUDA.jl adopts foreign
+# threads.
+function check_axes_mortar_container(mortars::P4estMortarContainer{3}, equations,
+                                     solver::DG, cache)
+    check_axes(mortars.u,
+               (Base.OneTo(2), eachvariable(equations),
+                Base.OneTo(4),
+                eachnode(solver), eachnode(solver),
+                eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(5), eachmortar(solver, cache)))
+    check_axes(mortars.node_indices, (Base.OneTo(2), eachmortar(solver, cache)))
+    return nothing
 end
 
 # Initialize node_indices of mortar container
@@ -162,8 +215,8 @@ end
         # Align mortar at small side.
         # The large side needs to be indexed differently.
         if side == 1
-            surface_index1 = :i_forward
-            surface_index2 = :j_forward
+            surface_index1 = NodeIndex.IForward
+            surface_index2 = NodeIndex.JForward
         else
             surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2],
                                                                           faces[1],
@@ -172,28 +225,34 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            mortars.node_indices[side, mortar_id] = (:begin, surface_index1,
+            mortars.node_indices[side, mortar_id] = (NodeIndex.Begin,
+                                                     surface_index1,
                                                      surface_index2)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            mortars.node_indices[side, mortar_id] = (:end, surface_index1,
+            mortars.node_indices[side, mortar_id] = (NodeIndex.End,
+                                                     surface_index1,
                                                      surface_index2)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, :begin,
+            mortars.node_indices[side, mortar_id] = (surface_index1,
+                                                     NodeIndex.Begin,
                                                      surface_index2)
         elseif faces[side] == 3
             # Index face in positive y-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, :end,
+            mortars.node_indices[side, mortar_id] = (surface_index1,
+                                                     NodeIndex.End,
                                                      surface_index2)
         elseif faces[side] == 4
             # Index face in negative z-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2,
-                                                     :begin)
+            mortars.node_indices[side, mortar_id] = (surface_index1,
+                                                     surface_index2,
+                                                     NodeIndex.Begin)
         else # faces[side] == 5
             # Index face in positive z-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2,
-                                                     :end)
+            mortars.node_indices[side, mortar_id] = (surface_index1,
+                                                     surface_index2,
+                                                     NodeIndex.End)
         end
     end
 
@@ -234,8 +293,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑            ↑
             #     │            │
             #     └───> ξ      └───> ξ
-            surface_index1 = :i_forward
-            surface_index2 = :j_forward
+            surface_index1 = NodeIndex.IForward
+            surface_index2 = NodeIndex.JForward
         elseif ((lower && orientation_code == 2) # Corner 0 of my side matches corner 2 of other side
                 ||
                 (!lower && orientation_code == 1)) # Corner 0 of other side matches corner 1 of my side
@@ -247,8 +306,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑            │
             #     │            ↓
             #     └───> ξ      ξ
-            surface_index1 = :j_backward
-            surface_index2 = :i_forward
+            surface_index1 = NodeIndex.JBackward
+            surface_index2 = NodeIndex.IForward
         elseif ((lower && orientation_code == 1) # Corner 0 of my side matches corner 1 of other side
                 ||
                 (!lower && orientation_code == 2)) # Corner 0 of other side matches corner 2 of my side
@@ -260,8 +319,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑                 ↑
             #     │                 │
             #     └───> ξ     η <───┘
-            surface_index1 = :j_forward
-            surface_index2 = :i_backward
+            surface_index1 = NodeIndex.JForward
+            surface_index2 = NodeIndex.IBackward
         else # orientation_code == 3
             # Corner 0 of my side matches corner 3 of other side and
             # corner 0 of other side matches corner 3 of my side.
@@ -273,8 +332,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑                 │
             #     │                 ↓
             #     └───> ξ           η
-            surface_index1 = :i_backward
-            surface_index2 = :j_backward
+            surface_index1 = NodeIndex.IBackward
+            surface_index2 = NodeIndex.JBackward
         end
     else # flipped
         if orientation_code == 0
@@ -287,8 +346,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑            ↑
             #     │            │
             #     └───> ξ      └───> η
-            surface_index1 = :j_forward
-            surface_index2 = :i_forward
+            surface_index1 = NodeIndex.JForward
+            surface_index2 = NodeIndex.IForward
         elseif orientation_code == 2
             # Corner 0 of my side matches corner 2 of other side and
             # corner 0 of other side matches corner 2 of my side.
@@ -300,8 +359,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑            │
             #     │            ↓
             #     └───> ξ      η
-            surface_index1 = :i_forward
-            surface_index2 = :j_backward
+            surface_index1 = NodeIndex.IForward
+            surface_index2 = NodeIndex.JBackward
         elseif orientation_code == 1
             # Corner 0 of my side matches corner 1 of other side and
             # corner 0 of other side matches corner 1 of my side.
@@ -313,8 +372,8 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑                 ↑
             #     │                 │
             #     └───> ξ     ξ <───┘
-            surface_index1 = :i_backward
-            surface_index2 = :j_forward
+            surface_index1 = NodeIndex.IBackward
+            surface_index2 = NodeIndex.JForward
         else # orientation_code == 3
             # Corner 0 of my side matches corner 3 of other side and
             # corner 0 of other side matches corner 3 of my side.
@@ -326,11 +385,198 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
             #     ↑                 │
             #     │                 ↓
             #     └───> ξ           ξ
-            surface_index1 = :j_backward
-            surface_index2 = :i_backward
+            surface_index1 = NodeIndex.JBackward
+            surface_index2 = NodeIndex.IBackward
         end
     end
 
     return surface_index1, surface_index2
+end
+
+# Auxiliary variables at the interface and mortar nodes, cf. `prolong2interfaces!` and
+# `prolong2mortars!`. For parallel meshes, the auxiliary variables at the MPI interfaces
+# and MPI mortars are initialized afterwards, see `init_aux_mpi_surface_node_vars!`.
+function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations,
+                                     solver, cache)
+    @unpack aux, aux_interface = aux_vars
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy the auxiliary variables from the primary element using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_interface[1, v, i, j, interface] = aux[v,
+                                                               i_primary,
+                                                               j_primary,
+                                                               k_primary,
+                                                               primary_element]
+                end
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+            end
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+        end
+
+        # Copy the auxiliary variables from the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_interface[2, v, i, j, interface] = aux[v,
+                                                               i_secondary,
+                                                               j_secondary,
+                                                               k_secondary,
+                                                               secondary_element]
+                end
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver, cache)
+    init_aux_mpi_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
+
+    return nothing
+end
+
+# Serial meshes do not have MPI interfaces and MPI mortars
+init_aux_mpi_surface_node_vars!(aux_vars, mesh::P4estMeshSerial, equations, solver, cache) = nothing
+
+# The auxiliary variables are treated as the solution in `prolong2mortars!`: the values
+# of the small elements are copied and the values of the large element are interpolated
+# to the surface nodes of the small elements. Thus, the auxiliary variables do not need to
+# be continuous across mortars.
+function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{3}, equations,
+                                    mortar_l2::LobattoLegendreMortarL2, solver, cache)
+    @unpack aux, aux_mortar = aux_vars
+    @unpack neighbor_ids, node_indices = cache.mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmortar(solver, cache)
+        # Copy the auxiliary variables from the small elements using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
+        small_indices = node_indices[1, mortar]
+
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        for position in 1:4
+            i_small = i_small_start
+            j_small = j_small_start
+            k_small = k_small_start
+            element = neighbor_ids[position, mortar]
+            for j in eachnode(solver)
+                for i in eachnode(solver)
+                    for v in eachauxvariable(equations)
+                        aux_mortar[1, v, position, i, j, mortar] = aux[v,
+                                                                       i_small,
+                                                                       j_small,
+                                                                       k_small,
+                                                                       element]
+                    end
+                    i_small += i_small_step_i
+                    j_small += j_small_step_i
+                    k_small += k_small_step_i
+                end
+                i_small += i_small_step_j
+                j_small += j_small_step_j
+                k_small += k_small_step_j
+            end
+        end
+
+        # Buffers to copy the auxiliary variables of the large element face in the
+        # correct orientation before interpolating. This is done only once, so we do not
+        # need pre-allocated buffers.
+        aux_buffer = similar(aux, nauxvariables(equations), nnodes(solver),
+                             nnodes(solver))
+        aux_tmp = similar(aux_buffer)
+
+        large_indices = node_indices[2, mortar]
+
+        i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                                                               index_range)
+        j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                                                               index_range)
+        k_large_start, k_large_step_i, k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                                                               index_range)
+
+        i_large = i_large_start
+        j_large = j_large_start
+        k_large = k_large_start
+        element = neighbor_ids[5, mortar]
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_buffer[v, i, j] = aux[v, i_large, j_large, k_large, element]
+                end
+                i_large += i_large_step_i
+                j_large += j_large_step_i
+                k_large += k_large_step_i
+            end
+            i_large += i_large_step_j
+            j_large += j_large_step_j
+            k_large += k_large_step_j
+        end
+
+        # Interpolate the auxiliary variables of the large element face to the surface
+        # nodes of the small elements
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 1, :, :, mortar),
+                                mortar_l2.forward_lower, mortar_l2.forward_lower,
+                                aux_buffer, aux_tmp)
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 2, :, :, mortar),
+                                mortar_l2.forward_upper, mortar_l2.forward_lower,
+                                aux_buffer, aux_tmp)
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 3, :, :, mortar),
+                                mortar_l2.forward_lower, mortar_l2.forward_upper,
+                                aux_buffer, aux_tmp)
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 4, :, :, mortar),
+                                mortar_l2.forward_upper, mortar_l2.forward_upper,
+                                aux_buffer, aux_tmp)
+    end
+
+    return nothing
 end
 end # @muladd

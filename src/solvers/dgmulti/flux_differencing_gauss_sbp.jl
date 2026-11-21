@@ -395,14 +395,16 @@ end
     return nothing
 end
 
-# For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
+# For now, this is mostly the same as `create_cache_hyperbolic`
+# for `DGMultiFluxDiff{<:Polynomial}`.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
-function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Line, Quad, Hex}}, RealT,
-                      uEltype)
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
+                                 dg::DGMultiFluxDiff{<:GaussSBP,
+                                                     <:Union{Line, Quad, Hex}},
+                                 RealT, uEltype)
 
     # call general Polynomial flux differencing constructor
-    cache = invoke(create_cache,
+    cache = invoke(create_cache_hyperbolic,
                    Tuple{typeof(mesh), typeof(equations),
                          DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
                    mesh, equations, dg, RealT, uEltype)
@@ -443,11 +445,10 @@ function create_cache(mesh::DGMultiMesh, equations,
             rhs_volume_local_threaded, gauss_volume_local_threaded,
             interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
             interp_matrix_gauss_to_face,
-            create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
+            # add cache specialized on the volume integral
+            create_cache_volume_integral(mesh, equations, dg.volume_integral, dg, cache,
+                                         uEltype)...)
 end
-
-# by default, return an empty tuple for volume integral caches
-create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
@@ -588,9 +589,12 @@ end
 
 # Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
 # since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
-function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
-              cache) where {Source, BC}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC,
+                         source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
+                         cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously

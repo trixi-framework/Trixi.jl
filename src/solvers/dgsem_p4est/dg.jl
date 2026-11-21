@@ -8,8 +8,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMesh, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh)
@@ -24,9 +24,15 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
+    # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
+    # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
+    # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
+    # backend without calling `trixi_adapt`.
+    cache = (; cache..., tuning = default_tuning())
 
     return cache
 end
@@ -34,8 +40,8 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMeshView, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
     balance!(mesh.parent)
@@ -61,9 +67,15 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
+    # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
+    # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
+    # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
+    # backend without calling `trixi_adapt`.
+    cache = (; cache..., tuning = default_tuning())
 
     return cache
 end
@@ -71,7 +83,9 @@ end
 # Extract outward-pointing normal direction
 # (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
-@inline function get_normal_direction(direction, contravariant_vectors, indices...)
+Base.@propagate_inbounds function get_normal_direction(direction,
+                                                       contravariant_vectors,
+                                                       indices...)
     orientation = (direction + 1) >> 1
     normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
 
@@ -89,11 +103,13 @@ include("containers.jl")
 include("dg_2d.jl")
 include("dg_2d_parabolic.jl")
 include("dg_2d_gpu.jl")
+include("dg_2d_parabolic_gpu.jl")
 
 include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
 include("dg_3d_gpu.jl")
+include("dg_3d_parabolic_gpu.jl")
 
 # Subcell limiters
 include("subcell_limiters.jl")

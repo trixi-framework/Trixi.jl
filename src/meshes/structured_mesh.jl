@@ -118,6 +118,20 @@ function StructuredMesh(cells_per_dimension, faces::Tuple;
                           mapping_as_string = mapping_as_string)
 end
 
+# Format a coordinate tuple as a plain Julia float-literal tuple string.
+# Uses `string(x)` (no type wrapper) so the result is always eval-able without
+# external imports.  Appends ".0" when `string(x)` produces an integer-like
+# token (e.g. Quadmath v1's `string(Float128(-1.0))` returns "-1").
+function coords_to_str(x::Real)
+    s = string(x)
+    return any(c -> c in ".eEfFinNaA", s) ? s : s * ".0"
+end
+
+function coords_to_str(coords::NTuple{N}) where {N}
+    strs = map(coords_to_str, coords)
+    return N == 1 ? "($(only(strs)),)" : "($(join(strs, ", ")))"
+end
+
 """
     StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                    periodicity = false)
@@ -139,7 +153,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
 
-    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
+    mapping_as_string = """coordinates_min = $(coords_to_str(coordinates_min));coordinates_max = $(coords_to_str(coordinates_max));mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
@@ -405,6 +419,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
+            # TODO: `@eval` is evil
             coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
             coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
             dims = length(coordinates_max)

@@ -13,7 +13,8 @@ boundary_conditions = (; all = boundary_condition)
 
 # Solver with polydeg=4 to ensure free stream preservation (FSP) on non-conforming meshes.
 # The polydeg of the solver must be at least twice as big as the polydeg of the mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+# See https://arxiv.org/abs/1809.05206
+# (DOI: https://doi.org/10.1007/s10915-018-00897-9), Section 6.
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
@@ -25,7 +26,8 @@ boundary_conditions = (; all = boundary_condition)
 solver = DGSEM(polydeg = 4, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
-# Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
+# Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580) but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
 # the geometry interpolant. The original mapping applied to this unstructured mesh
 # causes some Jacobians to be negative, which makes the mesh invalid.
@@ -72,8 +74,8 @@ struct t8_dhex_t
     # [...] # See `p8est.h` in `p4est` for more info.
 end
 
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if el.x == 0 && el.y == 0 && el.z == 0 && el.level < 2
@@ -119,6 +121,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

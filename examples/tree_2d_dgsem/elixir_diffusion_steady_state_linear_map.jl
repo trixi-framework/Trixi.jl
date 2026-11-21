@@ -11,7 +11,6 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 80_000,
                 periodicity = false)
 
 # Analytical/continuous steady-state solution
@@ -80,7 +79,8 @@ callbacks = CallbackSet(summary_callback,
 # Choice of ODE Solver does not matter here
 using OrdinaryDiffEqLowStorageRK
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
             dt = 1e-4,
             ode_default_options()..., callback = callbacks);
 

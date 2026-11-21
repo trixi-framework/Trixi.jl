@@ -327,9 +327,13 @@ function unstructured_3d_to_1d_curve(u,
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Get the number of variables after applying the transformation to solution variables.
     u_node = get_node_vars(u, equations, dg, 1, 1, 1, 1)
-    var_node = solution_variables(u_node, equations)
+    aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, aux_node..., equations)
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
@@ -381,7 +385,8 @@ function unstructured_3d_to_1d_curve(u,
         # before interpolation.
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            val = solution_variables(u_node, equations)
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+            val = solution_variables(u_node, aux_node..., equations)
             for v in eachindex(val)
                 unstructured_data[i, j, k, v] = val[v]
             end
@@ -661,14 +666,16 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     # Note: This assumes that we are in 3D and that the element is a hexahedron.
     user_data = Ptr{Ptr{Float64}}(t8_forest_get_user_data(forest))
     vertex = PtrArray(unsafe_load(user_data, 2), (3,))
-    eclass_scheme = t8_forest_get_eclass_scheme(forest, T8_ECLASS_HEX)
-    t8_element_vertex_reference_coords(eclass_scheme, element, 0, vertex)
+    scheme = t8_forest_get_scheme(forest)
+    tree_class = t8_forest_get_tree_class(forest, ltreeid)
+
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 0, vertex)
     r000 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 1, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 1, vertex)
     r100 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 2, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 2, vertex)
     r010 = SVector(vertex[1], vertex[2], vertex[3])
-    t8_element_vertex_reference_coords(eclass_scheme, element, 4, vertex)
+    t8_element_get_vertex_reference_coords(scheme, tree_class, element, 4, vertex)
     r001 = SVector(vertex[1], vertex[2], vertex[3])
 
     # Get the bounding physical coordinates of the tree.
