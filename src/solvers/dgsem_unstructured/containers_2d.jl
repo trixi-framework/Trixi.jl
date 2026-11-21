@@ -106,7 +106,9 @@ Base.@propagate_inbounds function get_surface_normal(vec, indices...)
     return surface_vector
 end
 
-function init_elements(mesh::UnstructuredMesh2D, equations, basis, RealT, uEltype)
+# Create element container and initialize element data
+function init_elements(mesh::UnstructuredMesh2D{RealT}, equations, basis,
+                       ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     elements = UnstructuredElementContainer2D{RealT, uEltype}(mesh.n_elements,
                                                               nvariables(equations),
                                                               nnodes(basis))
