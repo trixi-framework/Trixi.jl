@@ -62,7 +62,7 @@ end
 # solution are not known. Thus, the conversion is only supported for the
 # Legendre-Gauss-Lobatto nodes of the `LobattoLegendreBasis`, which are assumed for
 # both the restart file and the solver.
-function restart_conversion_matrix(polydeg_file, dg::DG{<:LobattoLegendreBasis},
+function restart_conversion_matrix(polydeg_file, dg::DGSEM{<:LobattoLegendreBasis},
                                    interpolate_high2low)
     RealT = real(dg)
     nodes_file = gauss_lobatto_nodes_weights(polydeg_file + 1, RealT)[1]
@@ -76,17 +76,9 @@ function restart_conversion_matrix(polydeg_file, dg::DG{<:LobattoLegendreBasis},
     end
 end
 
-function restart_conversion_matrix(polydeg_file, dg::DG, interpolate_high2low)
-    throw(ArgumentError("restart mismatch: the polynomial degree in the restart file " *
-                        "($polydeg_file) differs from the one of the solver " *
-                        "($(polydeg(dg))). Converting the solution to a different " *
-                        "polynomial degree is only supported for a `DGSEM` solver " *
-                        "with a `LobattoLegendreBasis`, but the solver uses a " *
-                        "$(nameof(typeof(dg.basis)))."))
-end
-
-# Inverse Jacobian at the LGL nodes of the polynomial degree `polydeg_file` of the
+# Reconstruct inverse Jacobian at the LGL nodes of the polynomial degree `polydeg_file` of the
 # restart file, i.e., the inverse Jacobian used by the simulation that wrote it.
+
 # On the `TreeMesh`, the Jacobian is constant per element and thus independent of the
 # polynomial degree.
 function inverse_jacobian_restart_file(mesh::TreeMesh, equations, dg, cache,
@@ -269,6 +261,7 @@ function save_restart_file(u, time, dt, timestep,
     end
 end
 
+# Version for parallel HDF5, where each rank writes its own part of the restart file
 function save_restart_file_parallel(u, time, dt, timestep,
                                     mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                 T8codeMeshParallel},
@@ -316,6 +309,7 @@ function save_restart_file_parallel(u, time, dt, timestep,
     return filename
 end
 
+# Version for serial HDF5, but parallel execution (only root rank writes the restart file)
 function save_restart_file_on_root(u, time, dt, timestep,
                                    mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                T8codeMeshParallel},
@@ -386,6 +380,7 @@ function load_restart_file(mesh::Union{TreeMeshParallel, P4estMeshParallel,
     end
 end
 
+# Version for parallel HDF5, where each rank reads its own part of the restart file
 function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                 T8codeMeshParallel},
                                     equations, dg::DG, cache,
@@ -465,6 +460,7 @@ function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParal
     return u_ode
 end
 
+# Version for serial HDF5, but parallel execution (only root rank reads the restart file)
 function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParallel,
                                                T8codeMeshParallel},
                                    equations, dg::DG, cache,
