@@ -15,6 +15,10 @@ for human readability.
   advection velocity ([#3438]).
 
 #### Changed
+- The default reference length of `HyperbolicDiffusionEquations1D`,
+  `HyperbolicDiffusionEquations2D`, and `HyperbolicDiffusionEquations3D` now uses
+  the floating-point type of `nu`, avoiding promotion of `Float32` diffusion
+  coefficients to `Float64` when `Lr` is omitted.
 
 #### Deprecated
 

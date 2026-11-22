@@ -22,7 +22,8 @@ struct HyperbolicDiffusionEquations3D{RealT <: Real} <:
     nu::RealT     # diffusion constant
 end
 
-function HyperbolicDiffusionEquations3D(; nu = 1.0, Lr = inv(2pi))
+function HyperbolicDiffusionEquations3D(; nu = 1.0,
+                                        Lr = inv(2 * oftype(float(nu), pi)))
     Tr = Lr^2 / nu
     return HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
 end
