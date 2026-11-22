@@ -97,7 +97,7 @@ function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
         # On all other ranks we need to add one, since Julia has one-based indices
         first_element_global_id += 1
     end
-    # TODO reuse existing structures
+
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
                        mpi_send_buffers, mpi_recv_buffers,

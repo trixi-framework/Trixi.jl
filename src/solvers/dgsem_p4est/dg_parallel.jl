@@ -370,7 +370,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
     mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
     mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
 
-    # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
                        mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
