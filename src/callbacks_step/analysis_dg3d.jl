@@ -92,7 +92,7 @@ function create_cache_analysis(analyzer,
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(dg)))
 
-    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer,
+    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer, mesh,
                                                               equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
@@ -147,7 +147,7 @@ function create_cache_analysis(analyzer,
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(dg)))
 
-    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer,
+    aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer, mesh,
                                                               equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
@@ -156,7 +156,8 @@ end
 
 # Buffers to interpolate the auxiliary variables to the analysis nodes,
 # or `nothing` if the equations do not have auxiliary variables
-function create_cache_analysis_aux(analyzer, equations, dg::DG, cache)
+function create_cache_analysis_aux(analyzer, mesh::AbstractMesh{3}, equations, dg::DG,
+                                   cache)
     aux = get_aux_vars(cache)
     aux === nothing && return nothing, nothing, nothing
 

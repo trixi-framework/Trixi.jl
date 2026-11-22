@@ -458,6 +458,33 @@ end
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
+
+            # Axis curves created from `slice` and `point`, starting at the boundary
+            # of the domain
+            point = (0.3, -0.4)
+            for slice in (:x, :y)
+                pd_axis = @inferred PlotData1D(ode_p4est.u0, ode_p4est.p; slice, point)
+                for i in eachindex(pd_axis.x)
+                    if slice === :x
+                        x = SVector(coordinates_min[1] + pd_axis.x[i], point[2])
+                    else
+                        x = SVector(point[1], coordinates_min[2] + pd_axis.x[i])
+                    end
+                    prim = SVector(pd_axis.data[i, 1],
+                                   pd_axis.data[i, 2],
+                                   pd_axis.data[i, 3],
+                                   pd_axis.data[i, 4])
+                    u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                    @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+                end
+            end
+
+            # Only the first two coordinates of `point` are used in 2D. The default
+            # `point` is the origin.
+            pd_origin = PlotData1D(ode_p4est.u0, ode_p4est.p; point = (0.0, 0.0))
+            @test (@inferred PlotData1D(ode_p4est.u0, ode_p4est.p)).data == pd_origin.data
+            @test PlotData1D(ode_p4est.u0, ode_p4est.p; point = (0.0, 0.0, 0.5)).data ==
+                  pd_origin.data
         end
 
         @testset "T8codeMesh" begin
@@ -477,6 +504,14 @@ end
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 5.0e-3)
             end
+
+            # Only the first two coordinates of `point` are used in 2D. The default
+            # `point` is the origin.
+            pd_origin = PlotData1D(ode_t8code.u0, ode_t8code.p; point = (0.0, 0.0))
+            @test (@inferred PlotData1D(ode_t8code.u0, ode_t8code.p)).data ==
+                  pd_origin.data
+            @test PlotData1D(ode_t8code.u0, ode_t8code.p; point = (0.0, 0.0, 0.5)).data ==
+                  pd_origin.data
         end
 
         @testset "StructuredMesh" begin

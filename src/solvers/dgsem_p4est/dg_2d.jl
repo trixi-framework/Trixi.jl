@@ -299,12 +299,15 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
+    # `nothing` if the equations do not have auxiliary variables
+    aux_interface = get_aux_interface_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_interface(aux_interface, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -312,7 +315,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, interface,
+                                                     cache.interfaces.u, aux_interface,
+                                                     interface,
                                                      neighbor_ids, node_indices,
                                                      contravariant_vectors,
                                                      index_range)
@@ -330,6 +334,7 @@ Base.@propagate_inbounds function calc_interface_flux_per_interface!(surface_flu
                                                                      surface_integral,
                                                                      SolverT::Type{<:DGSEM{<:LobattoLegendreBasis}},
                                                                      u_interface,
+                                                                     aux_interface,
                                                                      interface,
                                                                      neighbor_ids,
                                                                      node_indices,
@@ -377,7 +382,8 @@ Base.@propagate_inbounds function calc_interface_flux_per_interface!(surface_flu
                                                 primary_element)
 
         calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                             equations, surface_integral, SolverT, u_interface,
+                             equations, surface_integral, SolverT,
+                             u_interface, aux_interface,
                              interface, normal_direction, node,
                              primary_direction, primary_element,
                              node_secondary,
@@ -466,8 +472,10 @@ Base.@propagate_inbounds function calc_interface_flux_per_interface!(surface_flu
         normal_direction = SVector(normal_directions[1, node, interface],
                                    normal_directions[2, node, interface])
 
+        # Auxiliary variables are only supported for Gauss-Lobatto-Legendre nodes
         calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                             equations, surface_integral, SolverT, u_interface,
+                             equations, surface_integral, SolverT,
+                             u_interface, nothing,
                              interface, normal_direction, node,
                              primary_direction, primary_element,
                              node_secondary,
@@ -490,6 +498,7 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                                        surface_integral,
                                                        SolverT::Type{<:DG},
                                                        u_interface,
+                                                       aux_interface,
                                                        interface_index,
                                                        normal_direction,
                                                        primary_node_index,
@@ -502,8 +511,10 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
 
     u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_node_index, interface_index)
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, SolverT,
+                                         primary_node_index, interface_index)
 
-    flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     for v in eachvariable(equations)
         surface_flux_values[v, primary_node_index,
@@ -524,6 +535,7 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                                        surface_integral,
                                                        SolverT::Type{<:DG},
                                                        u_interface,
+                                                       aux_interface,
                                                        interface_index,
                                                        normal_direction,
                                                        primary_node_index,
@@ -536,7 +548,8 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
     calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                          combine_conservative_and_nonconservative_fluxes(surface_flux,
                                                                          equations),
-                         equations, surface_integral, SolverT, u_interface,
+                         equations, surface_integral, SolverT,
+                         u_interface, aux_interface,
                          interface_index, normal_direction,
                          primary_node_index,
                          primary_direction_index, primary_element_index,
@@ -554,6 +567,7 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                                        surface_integral,
                                                        SolverT::Type{<:DG},
                                                        u_interface,
+                                                       aux_interface,
                                                        interface_index,
                                                        normal_direction,
                                                        primary_node_index,
@@ -566,12 +580,16 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
 
     u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_node_index, interface_index)
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, SolverT,
+                                         primary_node_index, interface_index)
 
-    flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Compute both nonconservative fluxes
-    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
+                                           normal_direction, equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
+                                             normal_direction, equations)
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
@@ -599,6 +617,7 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
                                                        surface_integral,
                                                        SolverT::Type{<:DG},
                                                        u_interface,
+                                                       aux_interface,
                                                        interface_index,
                                                        normal_direction,
                                                        primary_node_index,
@@ -611,8 +630,11 @@ Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
 
     u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_node_index, interface_index)
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, SolverT,
+                                         primary_node_index, interface_index)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
 
     for v in eachvariable(equations)
         surface_flux_values[v, primary_node_index,
@@ -686,6 +708,7 @@ function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
         check_axes(boundaries, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -751,7 +774,13 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
-    flux_ = boundary_condition(u_inner, normal_direction, x, t,
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
+                                  i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, aux_inner...,
+                               normal_direction, x, t,
                                surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
@@ -850,9 +879,15 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
+                                  i_index, j_index, element_index)
+
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux, noncons_flux = boundary_condition(u_inner, normal_direction, x, t,
+    flux, noncons_flux = boundary_condition(u_inner, aux_inner...,
+                                            normal_direction, x, t,
                                             surface_integral.surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
@@ -895,9 +930,15 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
+                                  i_index, j_index, element_index)
+
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, normal_direction, x, t,
+    flux = boundary_condition(u_inner, aux_inner...,
+                              normal_direction, x, t,
                               surface_integral.surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
@@ -1008,12 +1049,15 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     index_range = eachnode(dg)
+    # `nothing` if the equations do not have auxiliary variables
+    aux_mortar = get_aux_mortar_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_mortar(aux_mortar, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1046,10 +1090,16 @@ function calc_mortar_flux!(surface_flux_values,
                                                             contravariant_vectors,
                                                             i_small, j_small, element)
 
+                    # Auxiliary variables on the small (primary) and the large
+                    # (secondary) side, cf. `init_aux_mortar_node_vars!`
+                    aux_node = get_aux_surface_node_vars(aux_mortar, equations,
+                                                         typeof(dg),
+                                                         position, node, mortar)
+
                     calc_mortar_flux!(fstar_primary, fstar_secondary,
                                       mesh, have_nonconservative_terms, equations,
                                       surface_integral, dg, cache,
-                                      mortar, position, normal_direction,
+                                      mortar, position, normal_direction, aux_node,
                                       node)
 
                     i_small += i_small_step
@@ -1084,7 +1134,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     equations,
                                                     surface_integral, dg::DG, cache,
                                                     mortar_index, position_index,
-                                                    normal_direction,
+                                                    normal_direction, aux_node,
                                                     node_index)
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
@@ -1092,7 +1142,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        position_index, node_index, mortar_index)
 
-    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, dg, node_index)
@@ -1110,14 +1160,14 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     equations,
                                                     surface_integral, dg::DG, cache,
                                                     mortar_index, position_index,
-                                                    normal_direction,
+                                                    normal_direction, aux_node,
                                                     node_index)
     calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                       have_nonconservative_terms,
                       combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                       equations),
                       equations, surface_integral, dg, cache,
-                      mortar_index, position_index, normal_direction,
+                      mortar_index, position_index, normal_direction, aux_node,
                       node_index)
     return nothing
 end
@@ -1130,7 +1180,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     equations,
                                                     surface_integral, dg::DG, cache,
                                                     mortar_index, position_index,
-                                                    normal_direction,
+                                                    normal_direction, aux_node,
                                                     node_index)
     @unpack u = cache.mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -1139,14 +1189,16 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                        position_index, node_index, mortar_index)
 
     # Compute conservative flux
-    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
 
     # Compute nonconservative flux and add it to the conservative flux.
     # The nonconservative flux is scaled by a factor of 0.5 based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_node...,
+                                           normal_direction, equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, reverse(aux_node)...,
+                                             normal_direction, equations)
 
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
@@ -1168,7 +1220,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
                                                     equations,
                                                     surface_integral, dg::DG, cache,
                                                     mortar_index, position_index,
-                                                    normal_direction,
+                                                    normal_direction, aux_node,
                                                     node_index)
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
@@ -1179,6 +1231,7 @@ Base.@propagate_inbounds function calc_mortar_flux!(fstar_primary, fstar_seconda
     # The combined flux returns the conservative flux plus 0.5 times the
     # nonconservative flux for the small (primary) and large (secondary) side
     flux_plus_noncons_primary, flux_plus_noncons_secondary = surface_flux(u_ll, u_rr,
+                                                                          aux_node...,
                                                                           normal_direction,
                                                                           equations)
 
