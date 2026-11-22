@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Data structures for the MPI communication, valid for all dimensions
-mutable struct MPICache{uEltype <: Real}
+mutable struct TreeMPICache{uEltype <: Real}
     mpi_neighbor_ranks::Vector{Int}
     mpi_neighbor_interfaces::Vector{Vector{Int}}
     mpi_neighbor_mortars::Vector{Vector{Int}}
@@ -19,10 +19,10 @@ mutable struct MPICache{uEltype <: Real}
     first_element_global_id::Int
 end
 
-function MPICache(uEltype)
+function TreeMPICache(uEltype)
     # MPI communication "just works" for bitstypes only
     if !isbitstype(uEltype)
-        throw(ArgumentError("MPICache only supports bitstypes, $uEltype is not a bitstype."))
+        throw(ArgumentError("TreeMPICache only supports bitstypes, $uEltype is not a bitstype."))
     end
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
     mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
@@ -35,16 +35,16 @@ function MPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    return MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                             mpi_neighbor_mortars,
-                             mpi_send_buffers, mpi_recv_buffers,
-                             mpi_send_requests, mpi_recv_requests,
-                             n_elements_by_rank, n_elements_global,
-                             first_element_global_id)
+    return TreeMPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                                 mpi_neighbor_mortars,
+                                 mpi_send_buffers, mpi_recv_buffers,
+                                 mpi_send_requests, mpi_recv_requests,
+                                 n_elements_by_rank, n_elements_global,
+                                 first_element_global_id)
 end
-@inline Base.eltype(::MPICache{uEltype}) where {uEltype} = uEltype
+@inline Base.eltype(::TreeMPICache{uEltype}) where {uEltype} = uEltype
 
-function start_mpi_receive!(mpi_cache::MPICache)
+function start_mpi_receive!(mpi_cache::TreeMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
         mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
                                                         rank, rank, mpi_comm())
@@ -53,13 +53,13 @@ function start_mpi_receive!(mpi_cache::MPICache)
     return nothing
 end
 
-function finish_mpi_send!(mpi_cache::MPICache)
+function finish_mpi_send!(mpi_cache::TreeMPICache)
     return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
 function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
                         nvars, nnodes, uEltype)
-    mpi_cache = MPICache(uEltype)
+    mpi_cache = TreeMPICache(uEltype)
 
     init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars,
                     nnodes, uEltype)

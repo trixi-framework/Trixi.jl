@@ -8,7 +8,7 @@
 # Data structures and MPI communication of the 2D `TreeMesh`, currently limited to
 # Lobatto-Legendre nodes
 
-function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
+function start_mpi_send!(backend::Nothing, mpi_cache::TreeMPICache,
                          mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
@@ -104,7 +104,7 @@ function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
     return nothing
 end
 
-function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
+function finish_mpi_receive!(backend::Nothing, mpi_cache::TreeMPICache,
                              mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
