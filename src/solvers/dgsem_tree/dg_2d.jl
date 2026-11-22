@@ -126,8 +126,8 @@ function create_cache(mesh::TreeMesh{2}, equations,
     return cache
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_ec::LobattoLegendreMortarEC, uEltype)
+function create_cache_mortar(mesh::TreeMesh{2}, equations,
+                             mortar_ec::LobattoLegendreMortarEC, uEltype)
     # Thread-local storage for the standard mortar fluxes as for `MortarL2`.
     # Only the primary fluxes are used since only conservative equations
     # are supported.
