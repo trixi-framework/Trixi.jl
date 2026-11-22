@@ -512,6 +512,89 @@ end
                         linf=[0.042584955404490143])
 end
 
+@testitem "KernelAbstractions CPU 2D: auxiliary variables with combined fluxes" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    # The kernels support nonconservative terms only with fluxes combining the
+    # conservative and nonconservative terms. These fluxes are equivalent to the tuples
+    # of fluxes used in the elixirs below.
+    @inline function flux_lax_friedrichs_nonconservative_central(u_ll, u_rr,
+                                                                 aux_ll, aux_rr,
+                                                                 normal_direction,
+                                                                 equations)
+        f = flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+        g_ll = flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                            normal_direction, equations)
+        g_rr = flux_nonconservative_central(u_rr, u_ll, aux_rr, aux_ll,
+                                            normal_direction, equations)
+        return f + 0.5f0 * g_ll, f + 0.5f0 * g_rr
+    end
+
+    @inline function flux_central_nonconservative_central(u_ll, u_rr,
+                                                          aux_ll, aux_rr,
+                                                          normal_direction,
+                                                          equations)
+        f = flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+        g_ll = flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                            normal_direction, equations)
+        g_rr = flux_nonconservative_central(u_rr, u_ll, aux_rr, aux_ll,
+                                            normal_direction, equations)
+        return f + 0.5f0 * g_ll, f + 0.5f0 * g_rr
+    end
+
+    @inline function Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_lax_friedrichs_nonconservative_central),
+                                                                           ::NonconservativeLinearScalarAdvectionEquation2D)
+        return Trixi.True()
+    end
+
+    @inline function Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_central_nonconservative_central),
+                                                                           ::NonconservativeLinearScalarAdvectionEquation2D)
+        return Trixi.True()
+    end
+
+    # For nonperiodic boundary conditions, the boundary flux must also be specialized
+    # such that it returns only the first contribution of the surface flux function.
+    @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                      normal_direction::AbstractVector,
+                                                                      x, t,
+                                                                      surface_flux_function::typeof(flux_lax_friedrichs_nonconservative_central),
+                                                                      equations)
+        u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+        flux, _ = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                        normal_direction, equations)
+        return flux
+    end
+
+    # Use the same reference values as for the tuples of fluxes on CPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        surface_flux=flux_lax_friedrichs_nonconservative_central,
+                        volume_flux=flux_central_nonconservative_central,
+                        l2=[0.0020945051403072766],
+                        linf=[0.01650967141933235])
+    # Make sure that the combined fluxes are used at mortars
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    # The velocity is discontinuous at interfaces and mortars, so the free stream is only
+    # preserved if the auxiliary variables of both sides are passed in the correct order
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        surface_flux=flux_lax_friedrichs_nonconservative_central,
+                        volume_flux=flux_central_nonconservative_central,
+                        l2=[3.303220339577821e-16],
+                        linf=[3.9968028886505635e-15])
+    @test Trixi.nmortars(semi.solver, semi.cache) > 0
+end
+
 @testitem "KernelAbstractions CPU 2D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples
