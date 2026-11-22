@@ -8,6 +8,43 @@
 # everything related to a DG semidiscretization in 2D using MPI,
 # currently limited to Lobatto-Legendre nodes
 
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache_hyperbolic(mesh::TreeMeshParallel{2}, equations,
+                                 dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
+    # Get cells for which an element needs to be created (i.e. all leaf cells)
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
+
+    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
+
+    mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
+
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
+
+    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
+
+    mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
+
+    mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
+                               nvariables(equations), nnodes(dg), uEltype)
+
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
+
+    # Add Volume-Integral cache
+    cache = (; cache...,
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
+    # Add Mortar cache
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
+
+    return cache
+end
+
 function start_mpi_send!(backend::Nothing, mpi_cache::TreeMPICache,
                          mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
@@ -309,43 +346,6 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
             nmpiinterfaces(mpi_interfaces)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
-end
-
-# This method is called when a SemidiscretizationHyperbolic is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache_hyperbolic(mesh::TreeMeshParallel{2}, equations,
-                                 dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
-
-    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
-                               nvariables(equations), nnodes(dg), uEltype)
-
-    # Container cache
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
-             mpi_mortars, mpi_cache)
-
-    # Add Volume-Integral cache
-    cache = (; cache...,
-             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
-                                               dg, cache, uEltype)...)
-    # Add Mortar cache
-    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
-
-    return cache
 end
 
 # This function is valid for all MPI-parallelized non-conforming mesh types, i.e.,
