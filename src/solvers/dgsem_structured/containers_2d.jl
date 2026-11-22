@@ -27,7 +27,7 @@ function init_elements!(elements, mesh::Union{StructuredMesh{2}, StructuredMeshV
         calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
     end
 
-    initialize_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
+    init_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
 
     return nothing
 end
@@ -151,10 +151,10 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, eleme
 end
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors,
-                                                mesh::Union{StructuredMesh{2},
-                                                            StructuredMeshView{2}},
-                                                linear_indices)
+function init_left_neighbor_connectivity!(left_neighbors,
+                                          mesh::Union{StructuredMesh{2},
+                                                      StructuredMeshView{2}},
+                                          linear_indices)
     # Neighbors in x-direction
     for cell_y in 1:size(mesh, 2)
         # Inner elements
@@ -343,9 +343,8 @@ end
 
 # For `TreeMesh`, no subcell normal vectors need to be computed
 resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
-# Non-Cartesian meshes without AMR: the normal vectors are created with the correct
-# size. This is called only when the cache is created, see
-# `create_volume_integral_caches`.
+# Non-Cartesian meshes without AMR: the normal vectors are created with the correct size.
+# This is called only when the cache is created, see `create_cache_all_volume_integrals`.
 function resize_normal_vectors!(cache, mesh::Union{StructuredMesh, UnstructuredMesh2D},
                                 capacity)
     return nothing

@@ -19,11 +19,11 @@
 
 # BlockFV does not need a separate `normal_directions` array in the interface
 # container: face normals are looked up directly from `cache.normal_x`/`normal_y`
-# (computed once in `create_cache`)
+# (computed once in `create_cache_volume_integral`)
 
 @inline trivial_interface_normals(::UniformFiniteVolumeBasis) = true
 
-# Face normals are computed once in `create_cache` (`normal_x`, `normal_y`)
+# Face normals are computed once in `create_cache_volume_integral` (`normal_x`, `normal_y`)
 
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
                                  basis::UniformFiniteVolumeBasis, elements)
@@ -72,10 +72,12 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::UniformFiniteVolume
 end
 
 # BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
-# The shared rhs_hyperbolic! (TreeMesh/P4estMesh) calls create_cache, prolong2mortars!, and
-# calc_mortar_flux! with dg.mortar. BlockFV on P4estMesh needs none of these,
-# since mortars are not yet supported.
-function create_cache(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis, ::Any)
+# The shared `create_cache_hyperbolic` (TreeMesh/P4estMesh) calls `create_cache_mortar`,
+# and the shared `rhs_hyperbolic!` calls `prolong2mortars!` and `calc_mortar_flux!`
+# with `dg.mortar`.
+# BlockFV on P4estMesh needs none of these, since mortars are not yet supported.
+function create_cache_mortar(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis,
+                             ::Any)
     if count_required_surfaces(mesh).mortars > 0
         throw(ArgumentError("BlockFV on P4estMesh does not yet support non-conforming " *
                             "meshes with hanging nodes (mortars)"))
@@ -87,13 +89,13 @@ prolong2mortars!(_, _, ::P4estMesh{2}, _, ::UniformFiniteVolumeBasis, ::BlockFV)
 calc_mortar_flux!(_, _, ::P4estMesh{2}, _, _, ::UniformFiniteVolumeBasis, _, ::BlockFV,
 _) = nothing
 
-# create_cache computes and stores for every FV cell face the
+# `create_cache_volume_integral` computes and stores for every FV cell face the
 # scaled face-normal vector (`normal_x`/`normal_y`, scaled by the interface length)
 # and the midpoint of the face (`midpoint_x`/`midpoint_y`)
 
-function create_cache(mesh::P4estMesh{2}, equations,
-                      volume_integral::VolumeIntegralFiniteVolume,
-                      dg::BlockFV, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::P4estMesh{2}, equations,
+                                      volume_integral::VolumeIntegralFiniteVolume,
+                                      dg::BlockFV, cache_containers, uEltype)
     n_nodes = nnodes(dg)
     nv = nvariables(equations)
 
@@ -182,7 +184,7 @@ end
 end
 
 # Exact physical midpoint of an FV cell's face at an element boundary, taken
-# from `midpoint_x`/`midpoint_y` computed in `create_cache`.
+# from `midpoint_x`/`midpoint_y` computed in `create_cache_volume_integral`.
 @inline function get_fv_boundary_midpoint(direction, midpoint_x, midpoint_y, i, j,
                                           element, n_nodes)
     if direction == 1 # -x
@@ -212,6 +214,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     n_nodes = nnodes(dg)
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
+    # `nothing` if the equations do not have auxiliary variables
+    aux_interface = get_aux_interface_vars(cache)
 
     @threaded for interface in eachinterface(dg, cache)
         primary_element = neighbor_ids[1, interface]
@@ -247,7 +251,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
-                                 cache.interfaces.u, interface,
+                                 cache.interfaces.u, aux_interface, interface,
                                  normal_direction, node,
                                  primary_direction, primary_element,
                                  node_secondary,
