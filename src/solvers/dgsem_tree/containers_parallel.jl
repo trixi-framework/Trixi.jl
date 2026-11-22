@@ -6,8 +6,6 @@
 #! format: noindent
 
 # Data structures for the MPI communication, valid for all dimensions
-
-# TODO: MPI dimension agnostic
 mutable struct MPICache{uEltype <: Real}
     mpi_neighbor_ranks::Vector{Int}
     mpi_neighbor_interfaces::Vector{Vector{Int}}

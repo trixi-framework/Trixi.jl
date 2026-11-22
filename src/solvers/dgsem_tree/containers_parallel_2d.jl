@@ -8,9 +8,8 @@
 # Data structures and MPI communication of the 2D `TreeMesh`, currently limited to
 # Lobatto-Legendre nodes
 
-# TODO: MPI dimension agnostic
 function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
-                         mesh, equations, dg, cache)
+                         mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
@@ -105,9 +104,8 @@ function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
     return nothing
 end
 
-# TODO: MPI dimension agnostic
 function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
-                             mesh, equations, dg, cache)
+                             mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     # Start receiving and unpack received data until all communication is finished
@@ -188,9 +186,8 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
 end
 
 # Initialize connectivity between MPI neighbor ranks
-# TODO: MPI dimension agnostic
 function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
-                                        mesh::TreeMesh2D)
+                                        mesh::TreeMeshParallel{2})
     tree = mesh.tree
 
     # Determine neighbor ranks and sides for MPI interfaces
