@@ -8,6 +8,14 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- New experimental solver `MacroCellFV` on the 1D `TreeMesh`: finite volumes with
+  high-order reconstruction of the face states on blocks of `n_cells` subcells per
+  element, built on the data structures of `BlockFV`. The reconstructions
+  `ReconstructionConstant`, `ReconstructionMUSCL`, `ReconstructionWENO5JS`, and
+  `ReconstructionWENO5Z` can be combined with the positivity limiter
+  `ReconstructionPositivity`, and fourth-order moment inversions to point values
+  (`MomentInversionCentral`, `MomentInversionWENO`) allow high-order reconstruction of
+  primitive variables.
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at
