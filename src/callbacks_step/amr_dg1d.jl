@@ -36,7 +36,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         end
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         @assert nelements(dg, cache) > old_n_elements
 
@@ -150,7 +150,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
         @trixi_timeit timer() "reinitialize data structures" begin
-            reinitialize_containers!(mesh, equations, dg, cache)
+            reinit_containers!(mesh, equations, dg, cache)
         end
         @assert nelements(dg, cache) < old_n_elements
 

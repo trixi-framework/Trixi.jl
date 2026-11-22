@@ -613,6 +613,9 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
     return nothing
 end
 
+# Currently only used for debugging/providing info in error/warning messages
+@inline get_boundary_element(boundaries::P4estBoundaryContainer, boundary_index) = boundaries.neighbor_ids[boundary_index]
+
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
     return ArrayT
 end
@@ -790,7 +793,7 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
                                                     _u, _neighbor_ids, _node_indices)
 end
 
-function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     n_cells = ncells(mesh)
 
     # Re-initialize elements container
@@ -799,7 +802,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     required = count_required_surfaces(mesh)
 
