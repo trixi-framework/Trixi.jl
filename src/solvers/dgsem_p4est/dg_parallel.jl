@@ -189,10 +189,6 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
     return nothing
 end
 
-function finish_mpi_send!(mpi_cache::P4estMPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
 function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
                              mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
