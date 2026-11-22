@@ -176,4 +176,8 @@ nnodes(fluxes::AbstractContainerAntidiffusiveFlux) = size(fluxes.antidiffusive_f
 include("containers_1d.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")
+
+# MPI-parallel data structures
+include("containers_parallel.jl")
+include("containers_parallel_2d.jl")
 end # @muladd

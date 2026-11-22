@@ -335,8 +335,8 @@ function create_cache_hyperbolic(mesh::P4estMeshParallel, equations::AbstractEqu
     return cache
 end
 
-function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
-                        nnodes, uEltype)
+function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes,
                     uEltype)
