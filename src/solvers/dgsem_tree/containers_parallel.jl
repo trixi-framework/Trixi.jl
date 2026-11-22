@@ -35,7 +35,8 @@ function TreeMPICache(uEltype)
     n_elements_global = 0
     first_element_global_id = 0
 
-    return TreeMPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+    return TreeMPICache{uEltype}(mpi_neighbor_ranks,
+                                 mpi_neighbor_interfaces,
                                  mpi_neighbor_mortars,
                                  mpi_send_buffers, mpi_recv_buffers,
                                  mpi_send_requests, mpi_recv_requests,
@@ -61,8 +62,8 @@ function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
                         nvars, nnodes, uEltype)
     mpi_cache = TreeMPICache(uEltype)
 
-    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars,
-                    nnodes, uEltype)
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
+                    nvars, nnodes, uEltype)
     return mpi_cache
 end
 
