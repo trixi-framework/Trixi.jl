@@ -56,6 +56,14 @@ function transform_to_solution_variables!(u, solution_variables, equations)
     end
 end
 
+# Equations with auxiliary variables: `aux` contains the auxiliary variables at the same
+# nodes as `u`.
+function transform_to_solution_variables!(u, aux, solution_variables, equations)
+    for i in eachindex(u, aux)
+        u[i] = solution_variables(u[i], aux[i], equations)
+    end
+end
+
 #     global_plotting_triangulation_triplot(u_plot, rst_plot, xyz_plot)
 #
 # Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
@@ -144,8 +152,6 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
     r, s = reference_node_coordinates_2d(dg)
 
     # extract node coordinates
-    uEltype = eltype(first(u))
-    nvars = nvariables(equations)
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
     x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d,
@@ -171,8 +177,10 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
                face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp = map(reshape_and_interpolate, (x, y))
-    ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate,
-                                                   StructArrays.components(u)))
+    # `u` can also contain the auxiliary variables, so the element type is taken from `u`
+    # instead of `equations`.
+    ufp = StructArray{eltype(u)}(map(reshape_and_interpolate,
+                                     StructArrays.components(u)))
 
     return xfp, yfp, ufp
 end

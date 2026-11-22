@@ -497,11 +497,51 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
 
-    transform_to_solution_variables!(uplot, solution_variables_, equations)
-    transform_to_solution_variables!(ufp, solution_variables_, equations)
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+    if aux === nothing
+        transform_to_solution_variables!(uplot, solution_variables_, equations)
+        transform_to_solution_variables!(ufp, solution_variables_, equations)
+    else
+        auxplot, auxfp = interpolate_aux_to_plotting_nodes(aux, mesh, equations, dg,
+                                                           cache,
+                                                           plotting_interp_matrix,
+                                                           nvisnodes)
+        transform_to_solution_variables!(uplot, auxplot, solution_variables_,
+                                         equations)
+        transform_to_solution_variables!(ufp, auxfp, solution_variables_, equations)
+    end
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names,
                                   visualize_point_values(mesh, dg), nothing, 1, 2)
+end
+
+# Interpolate the auxiliary variables to the volume and wireframe plotting nodes in the
+# same way as the conservative variables in `PlotData2DTriangulated`, so that
+# `solution_variables(u, aux, equations)` can be evaluated at the plotting nodes.
+function interpolate_aux_to_plotting_nodes(aux, mesh, equations, dg::DGSEM, cache,
+                                           plotting_interp_matrix, nvisnodes)
+    n_nodes_2d = nnodes(dg)^ndims(mesh)
+    n_elements = nelements(dg, cache)
+    n_aux = nauxvariables(equations)
+
+    aux_components = ntuple(_ -> similar(aux, (n_nodes_2d, n_elements)), n_aux)
+    aux_extracted = StructArray{SVector{n_aux, eltype(aux)}}(aux_components)
+    for element in eachelement(dg, cache)
+        sk = 1
+        for j in eachnode(dg), i in eachnode(dg)
+            aux_node, = get_aux_node_vars(aux, equations, dg, i, j, element)
+            aux_extracted[sk, element] = aux_node
+            sk += 1
+        end
+    end
+
+    auxplot = StructArray{eltype(aux_extracted)}(map(x -> plotting_interp_matrix * x,
+                                                     StructArrays.components(aux_extracted)))
+    _, _, auxfp = mesh_plotting_wireframe(aux_extracted, mesh, equations, dg, cache;
+                                          nvisnodes = nvisnodes)
+
+    return auxplot, auxfp
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
@@ -1033,10 +1073,13 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
+        # Only the first two coordinates of `point` are used in 2D (as for the `TreeMesh`)
+        # so that the default `point` with three coordinates also works here.
+        point_2d = (point[1], point[2])
         x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
                                                                solver, cache,
                                                                curve, slice,
-                                                               point, nvisnodes,
+                                                               point_2d, nvisnodes,
                                                                solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
