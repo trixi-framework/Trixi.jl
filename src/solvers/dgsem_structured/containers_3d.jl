@@ -27,7 +27,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, basis::LobattoLegendr
         calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
     end
 
-    initialize_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
+    init_left_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
 
     return nothing
 end
@@ -285,8 +285,8 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, eleme
 end
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3},
-                                                linear_indices)
+function init_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{3},
+                                          linear_indices)
     # Neighbors in x-direction
     for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2)
         # Inner elements
@@ -346,9 +346,10 @@ end
 
 # Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
 # equations (14) and (B.53) in:
-# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 #   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
-#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+#   [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                         normal_vectors_3,
                                         mesh::Union{StructuredMesh{3},

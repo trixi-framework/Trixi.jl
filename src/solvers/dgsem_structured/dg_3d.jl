@@ -4,8 +4,9 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Preallocated storage for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::Union{StructuredMesh{3},
                                              P4estMesh{3}, T8codeMesh{3}},
                                  equations, dg::DG, cache_containers, uEltype)
@@ -22,7 +23,7 @@ function create_cache_subcell_fv(mesh::Union{StructuredMesh{3},
             normal_vectors)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::Union{StructuredMesh{3},
                                            P4estMesh{3}, T8codeMesh{3}},
@@ -439,9 +440,10 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
 end
 
 # Compute the normal flux for the FV method on curvilinear subcells, see
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+# [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+# [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                                fstar3_L, fstar3_R,
                                                u,

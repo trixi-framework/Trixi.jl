@@ -15,7 +15,7 @@ Expressions and notation follow:
 - R. Klein, B. Sanderse, P. Costa, R. Pecnik, R. Henkes (2026)
   Generalized Tadmor Conditions and Structure-Preserving Numerical Fluxes for the
   Compressible Flow of Real Gases
-  [arXiv:2603.15112](https://arxiv.org/abs/2603.15112)
+  [arXiv: 2603.15112](https://arxiv.org/abs/2603.15112)
 """
 abstract type AbstractHelmholtzEOS <: AbstractEquationOfState end
 

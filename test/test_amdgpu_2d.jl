@@ -322,7 +322,7 @@ end
     # Make sure that the mortar kernels are used, including mortars
     # whose large side runs backwards (flipped orientation)
     @test Trixi.nmortars(semi.solver, semi.cache) > 0
-    @test any(indices -> :i_backward in indices,
+    @test any(indices -> NodeIndex.IBackward in indices,
               Array(semi.cache.mortars.node_indices)[2, :])
     @test ode.u0 isa ROCArray
     @test semi.solver.basis.derivative_matrix isa ROCArray
@@ -572,6 +572,7 @@ end
                         storage_type=ROCArray)
     # The elixir adapts `semi` before creating the ODE problem
     @test semi === ode.p
+    @test !isempty(Trixi.eachmortar(semi.solver, semi.cache))
     @test real(semi.solver) == Float32
     @test ode.u0 isa ROCArray{Float32}
     @test semi.cache.aux_vars.aux isa ROCArray{Float32}

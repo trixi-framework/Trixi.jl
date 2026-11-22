@@ -298,6 +298,8 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
+# Convert entropy variables to conservative variables
+@inline entropy2cons(u, equation::LinearScalarAdvectionEquation2D) = u
 
 # Calculate entropy for a conservative state `u`
 @inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5f0 * u^2

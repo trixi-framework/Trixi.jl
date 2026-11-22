@@ -62,7 +62,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       aux_field = nothing)
     @assert ndims(mesh) == ndims(equations)
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
 
     # Whether auxiliary variables are used is a fixed property of the `equations`.
     # They are only stored for equations with `nauxvariables(equations) > 0`. Otherwise,

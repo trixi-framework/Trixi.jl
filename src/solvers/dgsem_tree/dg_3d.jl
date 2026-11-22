@@ -75,8 +75,9 @@ function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
     return nothing
 end
 
-# Buffers for the finite volume fluxes on the subcells, called from `create_cache` of
-# subcell-based volume integrals (`AbstractVolumeIntegralSubcell`)
+# Preallocated storage for the finite volume fluxes on the subcells, called from
+# `create_cache_volume_integral` of subcell-based volume integrals
+# (`AbstractVolumeIntegralSubcell`).
 function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
                                  dg::DG, cache_containers, uEltype)
     fstar1_L_threaded, fstar1_R_threaded,
@@ -89,7 +90,7 @@ function create_cache_subcell_fv(mesh::TreeMesh{3}, equations,
             fstar3_L_threaded, fstar3_R_threaded)
 end
 
-# Check whether the buffers created by `create_cache_subcell_fv` have the axes we
+# Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
 function check_axes_subcell_fv(mesh::TreeMesh{3}, equations, dg::DG, cache)
     check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
@@ -101,9 +102,9 @@ function check_axes_subcell_fv(mesh::TreeMesh{3}, equations, dg::DG, cache)
 end
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+# and called from `create_cache_hyperbolic`.
+function create_cache_mortar(mesh::TreeMesh{3}, equations,
+                             mortar_l2::LobattoLegendreMortarL2, uEltype)
     A3d = Array{uEltype, 3}
     fstar_primary_upper_left_threaded = A3d[A3d(undef, nvariables(equations),
                                                 nnodes(mortar_l2),
@@ -392,9 +393,10 @@ Base.@propagate_inbounds function fvO2_kernel!(du, u,
 end
 
 # Compute the normal flux for the FV method on cartesian subcells, see
-# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+# Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2021)
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
-# [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+# [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+# [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 Base.@propagate_inbounds function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                                fstar3_L, fstar3_R,
                                                u, ::Type{<:TreeMesh{3}},

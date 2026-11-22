@@ -112,6 +112,6 @@ end
 end
 
 # Convert conservative variables to primitive and entropy variables
-@inline cons2prim(u, ::NonconservativeLinearScalarAdvectionEquation2D) = u
-@inline cons2entropy(u, ::NonconservativeLinearScalarAdvectionEquation2D) = u
+@inline cons2prim(u, aux, ::NonconservativeLinearScalarAdvectionEquation2D) = u
+@inline cons2entropy(u, aux, ::NonconservativeLinearScalarAdvectionEquation2D) = u
 end # @muladd

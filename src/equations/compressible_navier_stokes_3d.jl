@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion3D(equations; mu, Pr, R=1,
+    CompressibleNavierStokesDiffusion3D(equations; mu, Prandtl, R=1,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -15,7 +15,7 @@ the [`CompressibleEulerEquations3D`](@ref).
 
 - `equations`: instance of the [`CompressibleEulerEquations3D`](@ref)
 - `mu`: dynamic viscosity,
-- `Pr`: Prandtl number,
+- `Prandtl`: Prandtl number,
 - `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
@@ -122,7 +122,7 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     # and the relation (gamma - 1) * kappa = gamma * mu * R / Pr
     # which follows from Pr = c_p * mu / kappa and c_p = gamma * R / (gamma - 1)
     gamma_over_Pr = gamma / Pr
-    max_visc_cond = max(4 / 3, gamma_over_Pr)
+    max_visc_cond = max(convert(typeof(gamma_over_Pr), 4) / 3, gamma_over_Pr)
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
@@ -198,7 +198,10 @@ end
     _, dv1dz, dv2dz, dv3dz, dTdz = convert_derivative_to_primitive(u, gradients[3],
                                                                    equations)
 
-    # Components of viscous stress tensor
+    # Components of viscous stress tensor of a Newtonian fluid with zero bulk viscosity
+    # (Stokes' hypothesis), see, e.g.,
+    # https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case
+    # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
 
     # Diagonal parts
     # (4 * (v1)_x / 3 - 2 * ((v2)_y + (v3)_z)) / 3)
@@ -275,8 +278,9 @@ and `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
-- Krais et. al (2021)
+- Krais et al. (2021)
   FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+  [arXiv: 1910.02858](https://arxiv.org/abs/1910.02858)
   [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
 
 For details on the derivation of eigenvalues of the diffusivity matrix

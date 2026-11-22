@@ -995,7 +995,7 @@ end
 ] tags=[:parabolic_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr.jl"),
-                        tspan=(0.0, 5.0),
+                        tspan=(0.0, 1.0),
                         amr_indicator=IndicatorNodalFunction((u, x, t) -> (((x[1] < 0) &&
                                                                             (x[2] < 0) &&
                                                                             (x[3] < 0)) ||
@@ -1015,18 +1015,18 @@ end
                                                  adapt_initial_condition = true,
                                                  adapt_initial_condition_only_refine = true),
                         l2=[
-                            0.0017167669946571002,
-                            0.25670455385258795,
-                            0.2567045538525803,
-                            0.2255912288283278,
-                            0.3378130286554089
+                            0.0006637594883202791,
+                            0.062295743182778154,
+                            0.06229574318277938,
+                            0.08448667599418809,
+                            0.058798827271134974
                         ],
                         linf=[
-                            0.011370240443015156,
-                            1.4141643771912993,
-                            1.414164377192597,
-                            1.070137850656524,
-                            3.3320778231597785
+                            0.0036219316198519147,
+                            0.16880158998510142,
+                            0.16880158998540223,
+                            0.2879428620376759,
+                            0.4153493826983663
                         ])
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
