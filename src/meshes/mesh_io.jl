@@ -329,10 +329,9 @@ end
 @inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
 # To save the data needed to reconstruct a DGMultiMesh object, we must include additional
-# information contained within `dg.basis`. Currently, only the element shape and polynomial
-# degree are stored, and it is assumed that the solution is stored at the default node
-# positions for the `Polynomial` or `TensorProductWedge` approximation of that element
-# shape and polynomial degree.
+# information contained within `dg.basis`. Currently, the element shape, the polynomial
+# degree, and the approximation type (see `get_approximation_type_string`) are stored.
+# Together, they determine the node positions of the solution.
 function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0)
 
     # Create output directory (if it does not exist).
@@ -362,6 +361,7 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
 
         attributes(file)["element_type"] = basis.element_type |> typeof |> nameof |>
                                            string
+        attributes(file)["approximation_type"] = get_approximation_type_string(basis.approximation_type)
 
         # Mesh-coordinates per element.
         for idim in 1:ndims(mesh)
@@ -559,10 +559,18 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
             end
         end
 
-        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge`
-        # with 2-tuple polynomial degree or a `Polynomial` with integer polynomial degree.
-        # TODO: Add support for other approximation types. This would requires further
-        # information to be saved to the HDF5 file.
+        # Mesh files written by older versions of Trixi.jl do not store the approximation
+        # type, in which case we assume the default `Polynomial` approximation.
+        approximation_type_str = h5open(mesh_file, "r") do file
+            if haskey(attributes(file), "approximation_type")
+                return read(attributes(file)["approximation_type"])
+            else
+                return "Polynomial"
+            end
+        end
+
+        # A `TensorProductWedge` is reconstructed from the 2-tuple polynomial degree,
+        # assuming `Polynomial` approximations for both factors.
         if etype isa StartUpDG.Wedge && polydeg isa NTuple{2}
             factor_a = RefElemData(StartUpDG.Tri(), Polynomial(), polydeg[1])
             factor_b = RefElemData(StartUpDG.Line(), Polynomial(), polydeg[2])
@@ -570,7 +578,8 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
             tensor = StartUpDG.TensorProductWedge(factor_a, factor_b)
             rd = RefElemData(etype, tensor)
         else
-            rd = RefElemData(etype, Polynomial(), polydeg)
+            approximation_type = get_approximation_type_from_string(approximation_type_str)
+            rd = RefElemData(etype, approximation_type, polydeg)
         end
 
         # Load physical nodes.
