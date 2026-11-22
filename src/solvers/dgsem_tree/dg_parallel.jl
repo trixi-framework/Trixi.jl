@@ -5,6 +5,19 @@
 @muladd begin
 #! format: noindent
 
+function start_mpi_receive!(mpi_cache::TreeMPICache)
+    for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
+        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
+                                                        rank, rank, mpi_comm())
+    end
+
+    return nothing
+end
+
+function finish_mpi_send!(mpi_cache::TreeMPICache)
+    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
+end
+
 # Function to output the mpi rank for visualization
 function get_element_variables_mesh!(element_variables,
                                      mesh::Union{TreeMeshParallel, P4estMeshParallel,

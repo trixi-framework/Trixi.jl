@@ -45,19 +45,6 @@ function TreeMPICache(uEltype)
 end
 @inline Base.eltype(::TreeMPICache{uEltype}) where {uEltype} = uEltype
 
-function start_mpi_receive!(mpi_cache::TreeMPICache)
-    for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
-                                                        rank, rank, mpi_comm())
-    end
-
-    return nothing
-end
-
-function finish_mpi_send!(mpi_cache::TreeMPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
 function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
                         nvars, nnodes, uEltype)
     mpi_cache = TreeMPICache(uEltype)
