@@ -8,6 +8,11 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
+  serial `P4estMesh{2}`es without AMR. The new equations
+  `ConservativeLinearScalarAdvectionEquation2D` and
+  `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
+  advection velocity ([#3438]).
 
 #### Changed
 - The time derivative `du` is no longer reset to zero at the beginning of
