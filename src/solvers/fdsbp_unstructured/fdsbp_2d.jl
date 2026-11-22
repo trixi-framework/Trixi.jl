@@ -8,7 +8,7 @@
 # 2D unstructured cache
 function create_cache_hyperbolic(mesh::UnstructuredMesh2D, equations, dg::FDSBP,
                                  RealT, uEltype)
-    elements = init_elements(mesh, equations, dg.basis, RealT, uEltype)
+    elements = init_elements(mesh, equations, dg.basis, uEltype)
 
     interfaces = init_interfaces(mesh, elements)
 
