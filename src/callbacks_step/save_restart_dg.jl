@@ -86,18 +86,11 @@ function inverse_jacobian_restart_file(mesh::TreeMesh, equations, dg, cache,
     return cache.elements.inverse_jacobian
 end
 
-function inverse_jacobian_restart_file(mesh::Union{StructuredMesh, P4estMesh,
-                                                   T8codeMesh},
+function inverse_jacobian_restart_file(mesh::Union{StructuredMesh, UnstructuredMesh2D,
+                                                   P4estMesh, T8codeMesh},
                                        equations, dg, cache, polydeg_file)
     basis_file = LobattoLegendreBasis(real(dg), polydeg_file)
     elements_file = init_elements(mesh, equations, basis_file, real(dg))
-    return elements_file.inverse_jacobian
-end
-
-function inverse_jacobian_restart_file(mesh::UnstructuredMesh2D, equations, dg, cache,
-                                       polydeg_file)
-    basis_file = LobattoLegendreBasis(real(dg), polydeg_file)
-    elements_file = init_elements(mesh, equations, basis_file, real(dg), real(dg))
     return elements_file.inverse_jacobian
 end
 
