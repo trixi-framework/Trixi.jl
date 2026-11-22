@@ -45,7 +45,7 @@ function TreeMPICache(uEltype)
 end
 @inline Base.eltype(::TreeMPICache{uEltype}) where {uEltype} = uEltype
 
-function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
+function init_mpi_cache(mesh::TreeMeshParallel, elements, mpi_interfaces, mpi_mortars,
                         nvars, nnodes, uEltype)
     mpi_cache = TreeMPICache(uEltype)
 
@@ -54,7 +54,8 @@ function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
     return mpi_cache
 end
 
-function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
+function init_mpi_cache!(mpi_cache::TreeMPICache, mesh::TreeMeshParallel,
+                         elements, mpi_interfaces, mpi_mortars,
                          nvars, nnodes, uEltype)
     mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(elements,
                                                                                                        mpi_interfaces,
