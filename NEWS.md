@@ -5,6 +5,102 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.18 lifecycle
+
+#### Added
+- Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
+  serial `P4estMesh{2}`es without AMR. The new equations
+  `ConservativeLinearScalarAdvectionEquation2D` and
+  `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
+  advection velocity ([#3438]).
+
+#### Changed
+
+#### Deprecated
+
+
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+- The internal function `create_cache` was split into separate functions for the
+  different parts of the storage, which affects packages extending or calling it:
+  `create_cache_hyperbolic` (cache of a hyperbolic semidiscretization),
+  `create_cache_volume_integral`, `create_cache_mortar`, `create_cache_indicator`,
+  `create_cache_subcell_limiter`, `create_cache_amr_controller`,
+  `create_cache_averaging_callback`, and `create_cache_euler_acoustics`.
+  `create_cache_indicator_for_amr` was merged into `create_cache_indicator`. The functions
+  handling the storage of all nested volume integrals were renamed to
+  `create_cache_all_volume_integrals`,
+  `resize_cache_all_volume_integrals!`, and `reinit_cache_all_volume_integrals!`;
+  the methods for a single volume integral to `resize_cache_volume_integral!` and
+  `reinit_cache_volume_integral!`. Furthermore, `resize_subcell_limiter_cache!` was
+  renamed to `resize_cache_subcell_limiter!`. For `DGMulti`,
+  `create_cache_volume_integral` now receives the storage created so far instead of the
+  real type `RealT`, as for the other solvers ([#3398]).
+- Internal functions were renamed to use the abbreviations `init` and `reinit`
+  consistently, which affects packages extending or calling them:
+  `reinitialize_containers!` to `reinit_containers!`, `reinitialize_boundaries!` to
+  `reinit_boundaries!`, `initialize_left_neighbor_connectivity!` to
+  `init_left_neighbor_connectivity!`, `initialize_mean_values` to `init_mean_values`,
+  `initialize_cache!` (`AveragingCallback`) to `init_cache_averaging_callback!`, and
+  `initialize_dgmulti_solution_container` to `init_dgmulti_solution_container`. The
+  methods of `initialize!` for `TreeMesh` and `UnstructuredSortedBoundaryTypes` were
+  renamed to `init_refinement!` and `init_boundary_types!`; `initialize!` now only refers
+  to the initialization of callbacks ([#3402]).
+- The node indices describing the faces of interfaces, boundaries, and mortars of
+  `P4estMesh`es and `T8codeMesh`es are now stored as values of the new enumeration
+  `NodeIndex` (e.g., `NodeIndex.Begin` and `NodeIndex.IForward`) instead of `Symbol`s
+  (e.g., `:begin` and `:i_forward`). Packages that use these internal node indices
+  directly (e.g., comparisons such as `:i_backward in indices`) need to be updated
+  accordingly ([#3332]).
+- The `indices` of a `BoundaryConditionCoupled` must now be given as `NodeIndex`
+  values, e.g., `(NodeIndex.End, NodeIndex.IForward)` instead of `(:end, :i_forward)`
+  ([#3332]).
+- For the `CompressibleNavierStokesDiffusion1D` equations, the viscous stress `tau_xx`
+  is now computed as `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`
+  ([#3202]). Here, `mu` is the user-given dynamic viscosity.
+  This is the 1D reduction of the stress tensor of a Newtonian fluid with zero bulk
+  viscosity (Stokes' hypothesis), consistent with `CompressibleNavierStokesDiffusion2D`
+  and `CompressibleNavierStokesDiffusion3D`.
+  Thus, the results of all 1D compressible Navier-Stokes simulations with the same
+  parameters change. Moreover, `max_diffusivity` now uses `max(4/3, gamma / Prandtl)`
+  instead of `max(1, gamma / Prandtl)`, so parabolic time step estimates (e.g., via
+  `StepsizeCallback` with `cfl_parabolic`) are smaller if `gamma / Prandtl < 4/3`.
+  To recover the previous results, pass `mu = (3/4) * mu_old` *and*
+  `Prandtl = (3/4) * Prandtl_old`; the second factor keeps the thermal conductivity
+  `kappa = gamma * mu * R / ((gamma - 1) * Prandtl)` unchanged.
+  A viscosity function `mu(u, equations)` needs to be scaled by `3/4` accordingly.
+- The methods of `get_element_variables!` for the different components were split
+  into separate functions: `get_element_variables_volume_integral!`,
+  `get_element_variables_mesh!`, `get_element_variables_callback!`,
+  `get_element_variables_controller!`, and `get_element_variables_indicator!`. Only the
+  methods for the semidiscretization and the solver remain `get_element_variables!`.
+  Custom indicators used for AMR must now specialize `get_element_variables_indicator!`
+  instead of `get_element_variables!(element_variables, indicator, ::AMRCallback)`.
+  Similarly, custom callbacks and AMR controllers must specialize
+  `get_element_variables_callback!` and `get_element_variables_controller!`. As part of
+  this change, the `SaveSolutionCallback` now also works when a `ContinuousCallback` is
+  passed to the ODE solver ([#3399]).
+- For equations with auxiliary variables (i.e., `nauxvariables(equations) > 0`), the
+  auxiliary variables at a node are now also passed to functions of the conservative
+  variables used for analysis and output, e.g., `cons2prim(u, aux, equations)` instead
+  of `cons2prim(u, equations)`. This applies to `cons2prim`, `cons2entropy`, `entropy`,
+  the `solution_variables` of the `SaveSolutionCallback` and of plots, and the functions
+  passed to `integrate` and `calc_error_norms`. Such equations must now implement
+  `cons2entropy(u, aux, equations)` to use the `AnalysisCallback` and
+  `cons2prim(u, aux, equations)` to use the `SaveSolutionCallback` with their default
+  settings ([#3466]).
+
+#### Removed
+- The deprecated keyword arguments `storage_type`, `real_type`, and
+  `flux_differencing_kernel` of `semidiscretize` were removed. Use
+  `semi = trixi_adapt(semi; storage_type, real_type, tuning = Tuning(; flux_differencing_kernel))`
+  before calling `semidiscretize(semi, tspan)` instead, and use the adapted `semi`
+  afterwards, e.g., to create callbacks ([#3404]).
+- The deprecated keyword argument `flux_differencing_kernel` of `trixi_adapt` was removed.
+  Use `trixi_adapt(semi; tuning = Tuning(; flux_differencing_kernel))` instead ([#3404]).
+
+
 ## Changes in the v0.17 lifecycle
 
 #### Added

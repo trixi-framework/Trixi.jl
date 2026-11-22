@@ -57,8 +57,9 @@ function cart_to_sphere(x)
     return lambda, phi, r
 end
 
-function Trixi.get_element_variables!(element_variables, indicator::typeof(indicator_test),
-                                      ::AMRCallback)
+function Trixi.get_element_variables_indicator!(element_variables,
+                                                indicator::typeof(indicator_test),
+                                                ::AMRCallback)
     return nothing
 end
 

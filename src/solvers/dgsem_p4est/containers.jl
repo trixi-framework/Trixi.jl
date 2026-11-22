@@ -262,13 +262,13 @@ mutable struct P4estInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                        Union{DenseArray{RealT, NDIMSP1}, Nothing},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
-                                       DenseMatrix{NTuple{NDIMS, Symbol}},
+                                       DenseMatrix{NTuple{NDIMS, NodeIndex.T}},
                                        uVector <: DenseVector{uEltype},
                                        NormalVector <:
                                        Union{DenseVector{RealT}, Nothing},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
-                                       DenseVector{NTuple{NDIMS, Symbol}}} <:
+                                       DenseVector{NTuple{NDIMS, NodeIndex.T}}} <:
                AbstractInterfaceContainer
     # 2D: [primary/secondary, variable, i, interface]
     # 3D: [primary/secondary, variable, i, j, interface]
@@ -395,7 +395,7 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap_or_alloc(Array, _neighbor_ids, (2, n_interfaces))
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
+    _node_indices = Vector{NTuple{NDIMS, NodeIndex.T}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, RealT, uEltype,
@@ -473,7 +473,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       uArray <: DenseArray{uEltype, NDIMSP1},
                                       IdsVector <: DenseVector{Int},
                                       IndicesVector <:
-                                      DenseVector{NTuple{NDIMS, Symbol}},
+                                      DenseVector{NTuple{NDIMS, NodeIndex.T}},
                                       uVector <: DenseVector{uEltype}} <:
                AbstractBoundaryContainer
     # 2D: [variable, i, boundary]
@@ -558,7 +558,7 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                               n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
-    node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
+    node_indices = Vector{NTuple{NDIMS, NodeIndex.T}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1, typeof(u),
@@ -613,6 +613,9 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
     return nothing
 end
 
+# Currently only used for debugging/providing info in error/warning messages
+@inline get_boundary_element(boundaries::P4estBoundaryContainer, boundary_index) = boundaries.neighbor_ids[boundary_index]
+
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
     return ArrayT
 end
@@ -661,11 +664,11 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     uArray <: DenseArray{uEltype, NDIMSP3},
                                     IdsMatrix <: DenseMatrix{Int},
                                     IndicesMatrix <:
-                                    DenseMatrix{NTuple{NDIMS, Symbol}},
+                                    DenseMatrix{NTuple{NDIMS, NodeIndex.T}},
                                     uVector <: DenseVector{uEltype},
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
-                                    DenseVector{NTuple{NDIMS, Symbol}}} <:
+                                    DenseVector{NTuple{NDIMS, NodeIndex.T}}} <:
                AbstractMortarContainer
 
     # 2D: [small/large side, variable, position, i, mortar]
@@ -736,7 +739,7 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
     neighbor_ids = unsafe_wrap_or_alloc(Array, _neighbor_ids,
                                         (2^(NDIMS - 1) + 1, n_mortars))
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+    _node_indices = Vector{NTuple{NDIMS, NodeIndex.T}}(undef, 2 * n_mortars)
     node_indices = unsafe_wrap_or_alloc(Array, _node_indices, (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
@@ -790,7 +793,7 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
                                                     _u, _neighbor_ids, _node_indices)
 end
 
-function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     n_cells = ncells(mesh)
 
     # Re-initialize elements container
@@ -799,7 +802,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    reinitialize_volume_integral_caches!(cache, mesh, dg, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     required = count_required_surfaces(mesh)
 
@@ -1093,30 +1096,30 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 # Return direction of the face, which is indexed by node_indices
-@inline function indices2direction(indices::NTuple{3, Symbol})
-    if indices[1] === :begin
+@inline function indices2direction(indices::NTuple{3, NodeIndex.T})
+    if indices[1] === NodeIndex.Begin
         return 1
-    elseif indices[1] === :end
+    elseif indices[1] === NodeIndex.End
         return 2
-    elseif indices[2] === :begin
+    elseif indices[2] === NodeIndex.Begin
         return 3
-    elseif indices[2] === :end
+    elseif indices[2] === NodeIndex.End
         return 4
-    elseif indices[3] === :begin
+    elseif indices[3] === NodeIndex.Begin
         return 5
-    else # if indices[3] === :end
+    else # if indices[3] === NodeIndex.End
         return 6
     end
 end
 
-@inline function indices2direction(indices::NTuple{2, Symbol})
-    if indices[1] === :begin
+@inline function indices2direction(indices::NTuple{2, NodeIndex.T})
+    if indices[1] === NodeIndex.Begin
         return 1
-    elseif indices[1] === :end
+    elseif indices[1] === NodeIndex.End
         return 2
-    elseif indices[2] === :begin
+    elseif indices[2] === NodeIndex.Begin
         return 3
-    else # if indices[2] === :end
+    else # if indices[2] === NodeIndex.End
         return 4
     end
 end

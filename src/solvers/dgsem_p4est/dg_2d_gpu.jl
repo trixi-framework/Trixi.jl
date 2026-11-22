@@ -791,7 +791,8 @@ Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_
     large_element = neighbor_ids[3, mortar]
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
-    large_node_index = :i_backward in large_indices ? last(index_range) + 1 - node :
+    large_node_index = NodeIndex.IBackward in large_indices ?
+                       last(index_range) + 1 - node :
                        node
 
     # The flux is calculated in the outward direction of the small elements,
