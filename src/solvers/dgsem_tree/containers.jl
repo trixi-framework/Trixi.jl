@@ -179,5 +179,4 @@ include("containers_3d.jl")
 
 # MPI-parallel data structures
 include("containers_parallel.jl")
-include("containers_parallel_2d.jl")
 end # @muladd
