@@ -185,8 +185,8 @@ Base.@propagate_inbounds function get_interface_indices(neighbor_ids, node_indic
             i_secondary_node, j_secondary_node)
 end
 
-Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbor_ids,
-                                                       node_indices,
+Base.@propagate_inbounds function get_interface_values(u, aux, equations, dg,
+                                                       neighbor_ids, node_indices,
                                                        contravariant_vectors,
                                                        index_range, i, interface)
     (primary_direction, primary_element, i_primary, j_primary,
@@ -200,31 +200,17 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
     u_rr = get_node_vars(u, equations, dg, i_secondary_node, j_secondary_node,
                          secondary_element)
 
-    normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
-                                            i_primary, j_primary, primary_element)
-
-    return (u_ll, u_rr, normal_direction, primary_direction, primary_element,
-            i_secondary, secondary_direction, secondary_element)
-end
-
-# Auxiliary variables on both sides of an interface for the surface node `i`, read from
-# the volume nodes in the same way as `u` in `get_interface_values`
-Base.@propagate_inbounds function get_interface_aux_values(aux, equations, dg,
-                                                           neighbor_ids, node_indices,
-                                                           index_range, i, interface)
-    (_, primary_element, i_primary, j_primary,
-    _, _, secondary_element,
-    i_secondary_node, j_secondary_node) = get_interface_indices(neighbor_ids,
-                                                                node_indices,
-                                                                index_range, i,
-                                                                interface)
-
     aux_ll = get_aux_node_vars(aux, equations, dg, i_primary, j_primary,
                                primary_element)
     aux_rr = get_aux_node_vars(aux, equations, dg, i_secondary_node, j_secondary_node,
                                secondary_element)
+    aux_node = (aux_ll..., aux_rr...)
 
-    return (aux_ll..., aux_rr...)
+    normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                            i_primary, j_primary, primary_element)
+
+    return (u_ll, u_rr, aux_node, normal_direction, primary_direction, primary_element,
+            i_secondary, secondary_direction, secondary_element)
 end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
@@ -245,8 +231,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                        interface)
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, secondary_direction, secondary_element = get_interface_values(u,
+    u_ll, u_rr, aux_node, normal_direction, primary_direction, primary_element,
+    i_secondary, secondary_direction, secondary_element = get_interface_values(u, aux,
                                                                                equations,
                                                                                dg,
                                                                                neighbor_ids,
@@ -255,9 +241,6 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                index_range,
                                                                                i,
                                                                                interface)
-
-    aux_node = get_interface_aux_values(aux, equations, dg, neighbor_ids, node_indices,
-                                        index_range, i, interface)
 
     flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     for v in eachvariable(equations)
@@ -317,8 +300,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                        interface)
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, secondary_direction, secondary_element = get_interface_values(u,
+    u_ll, u_rr, aux_node, normal_direction, primary_direction, primary_element,
+    i_secondary, secondary_direction, secondary_element = get_interface_values(u, aux,
                                                                                equations,
                                                                                dg,
                                                                                neighbor_ids,
@@ -327,9 +310,6 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                index_range,
                                                                                i,
                                                                                interface)
-
-    aux_node = get_interface_aux_values(aux, equations, dg, neighbor_ids, node_indices,
-                                        index_range, i, interface)
 
     flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
                                          normal_direction, equations)
