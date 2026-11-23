@@ -306,11 +306,7 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
     u_node_type = SVector{nvariables(equations), eltype(u)}
     u0 = zero(u_node_type)
     x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
-    if aux === nothing
-        aux0 = ()
-    else
-        aux0 = (zero(SVector{nauxvariables(equations), eltype(aux)}),)
-    end
+    aux0 = zero_aux_node_vars(aux, equations)
     error0 = zero_return_type(func, u_node_type, map(typeof, aux0)...,
                               typeof(equations))
     volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
@@ -368,6 +364,13 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
     l2_error = @. sqrt(l2_error / total_volume)
 
     return l2_error, linf_error
+end
+
+# Zero of the same shape as the result of `get_aux_node_vars`, i.e., an empty tuple if
+# the equations do not have auxiliary variables
+@inline zero_aux_node_vars(::Nothing, equations) = ()
+@inline function zero_aux_node_vars(aux, equations)
+    return (zero(SVector{nauxvariables(equations), eltype(aux)}),)
 end
 
 # Use quadrature to numerically integrate a single element.
