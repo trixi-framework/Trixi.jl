@@ -153,61 +153,6 @@ end
                         tspan=(0.0, 0.1))
 end
 
-@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
-                        l2=[1.1944825857548282, 4.241513259108338, 15.335780201884392],
-                        linf=[3.2653242300179475, 11.460858046777963, 38.37747179449188],
-                        tspan=(0.0, 0.5))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
-end
-
-@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl with WENO5-JS and central inversion" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
-                        l2=[1.190219649654911, 4.228981130067419, 15.303140294050143],
-                        linf=[3.10995150700578, 11.035530536359744, 38.31271215773018],
-                        reconstruction=ReconstructionPositivity(ReconstructionWENO5JS()),
-                        moment_inversion=MomentInversionCentral(),
-                        tspan=(0.0, 0.5))
-end
-
-@testitem "MacroCellFV 1D: positivity limiter for a strong double rarefaction" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    # Double rarefaction (similar to Toro's test 2, with stronger rarefactions): the
-    # density and pressure in the center approach zero. Without the limiter, the WENO
-    # face states become inadmissible and the run stops with a NaN time step.
-    function initial_condition_double_rarefaction(x, t,
-                                                  equations::CompressibleEulerEquations1D)
-        RealT = eltype(x)
-        v = x[1] < 0.5f0 ? -3 * one(RealT) : 3 * one(RealT)
-        return prim2cons(SVector(one(RealT), v, convert(RealT, 0.4)), equations)
-    end
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sod.jl"),
-                        initial_condition=initial_condition_double_rarefaction,
-                        solver=MacroCellFV(n_cells = 8, surface_flux = flux_hll,
-                                           reconstruction = ReconstructionPositivity(ReconstructionWENO5Z()),
-                                           initial_condition_nodes = 3),
-                        stepsize_callback=StepsizeCallback(cfl = 0.25),
-                        tspan=(0.0, 0.1))
-    u = Trixi.wrap_array_native(sol.u[end], semi)
-    rho = u[1, :, :]
-    p = [Trixi.pressure(Trixi.get_node_vars(u, equations, solver, i, element), equations)
-         for i in Trixi.eachnode(solver), element in Trixi.eachelement(solver, semi.cache)]
-    @test minimum(rho) > 0
-    @test minimum(p) > 0
-    # The limiter is active: the minimum density is far below the initial density
-    @test minimum(rho) < 0.1
-end
-
 @testitem "MacroCellFV 1D: types" setup=[Setup] tags=[:tree_part1] begin
     solver = MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
                          reconstruction = ReconstructionMUSCL(vanleer))
@@ -228,88 +173,29 @@ end
     @test ReconstructionMUSCL().slope_limiter === minmod
     @test Trixi.nhalo(MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
                                   reconstruction = ReconstructionConstant())) == 1
-    # The moment inversion adds one cell to the halo of the reconstruction
+    # The identity moment inversion adds no halo cells
     @test Trixi.nhalo(MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
-                                  reconstruction = ReconstructionWENO5Z(),
-                                  moment_inversion = MomentInversionWENO())) == 4
+                                  moment_inversion = MomentInversionIdentity())) == 2
 
     @test_throws ArgumentError MacroCellFV(n_cells = 4,
                                            surface_flux = flux_lax_friedrichs,
                                            initial_condition_nodes = 0)
-    # The moment inversions to point values support only WENO reconstructions
-    @test_throws ArgumentError MacroCellFV(n_cells = 4,
-                                           surface_flux = flux_lax_friedrichs,
-                                           reconstruction = ReconstructionMUSCL(),
-                                           moment_inversion = MomentInversionCentral())
-    @test_throws ArgumentError MomentInversionWENO(linear_weight = 0.5)
-    @test_throws ArgumentError ReconstructionPositivity(ReconstructionMUSCL();
-                                                        omega = 0.6)
-
-    solver_point = MacroCellFV(n_cells = 8, surface_flux = flux_lax_friedrichs,
-                               reconstruction = ReconstructionPositivity(ReconstructionWENO5Z()),
-                               moment_inversion = MomentInversionWENO())
     # The halos are copied from the direct neighbors, so the halo width is limited by
-    # the number of subcells per macro-cell (WENO5 with moment inversion: 4 halo
-    # subcells)
+    # the number of subcells per macro-cell (MUSCL: 2 halo subcells)
     mesh = TreeMesh(0.0, 1.0, initial_refinement_level = 2, periodicity = true)
     @test_throws ArgumentError SemidiscretizationHyperbolic(mesh,
                                                             LinearScalarAdvectionEquation1D(1.0),
                                                             initial_condition_constant,
-                                                            MacroCellFV(n_cells = 3,
+                                                            MacroCellFV(n_cells = 1,
                                                                         surface_flux = flux_lax_friedrichs,
-                                                                        reconstruction = ReconstructionWENO5Z(),
-                                                                        moment_inversion = MomentInversionWENO());
+                                                                        reconstruction = ReconstructionMUSCL());
                                                             boundary_conditions = boundary_condition_periodic)
 
-    for item in (solver, solver.volume_integral, solver_point.volume_integral)
+    for item in (solver, solver.volume_integral)
         @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                           item)
         @test_nowarn show(IOContext(IOBuffer(), :compact => false),
                           MIME"text/plain"(), item)
-    end
-end
-
-@testitem "MacroCellFV 1D: elixir_advection_high_order.jl" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
-                        l2=[0.000655400913147737],
-                        linf=[0.001231816024114707])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
-end
-
-@testitem "MacroCellFV 1D: elixir_advection_high_order.jl with MomentInversionWENO" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
-                        l2=[0.0006552566913937183],
-                        linf=[0.0012328898533147115],
-                        moment_inversion=MomentInversionWENO())
-    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
-end
-
-@testitem "MacroCellFV 1D: elixir_advection_high_order.jl convergence" setup=[
-    Setup,
-    TreeMesh1DMacroCellFV
-] tags=[:tree_part1] begin
-    # Orders of the errors against the exact subcell averages, with a small time step
-    # (fourth-order time integration): fifth order of WENO5-Z on the averages, fourth
-    # order of the WENO interpolation of the point values of the moment inversions
-    for (moment_inversion, eoc_min) in ((MomentInversionIdentity(), 4.8),
-                                        (MomentInversionCentral(), 3.8),
-                                        (MomentInversionWENO(), 3.8))
-        errors = map((3, 4)) do level
-            trixi_include(@__MODULE__,
-                          joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl");
-                          moment_inversion, initial_refinement_level = level,
-                          stepsize_callback = StepsizeCallback(cfl = 0.2))
-            return subcell_average_error(@__MODULE__)
-        end
-        @test log2(errors[1] / errors[2]) > eoc_min
     end
 end
 
@@ -318,9 +204,9 @@ end
     TreeMesh1DMacroCellFV
 ] tags=[:tree_part1] begin
     # The pads of the threads are reused for all elements; repeated evaluations of the
-    # right-hand side give the same result (moment inversion with point values in the
-    # pads, physical boundaries)
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+    # right-hand side give the same result (reconstruction of primitive variables,
+    # physical boundaries)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sod.jl"),
                         tspan=(0.0, 0.1))
     u_ode = copy(sol.u[end])
     du_ode = similar(u_ode)
@@ -328,9 +214,9 @@ end
     du_first = copy(du_ode)
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
     @test du_ode == du_first
-    # The pads hold `n_cells + 2 nhalo` subcells with point values and averages
+    # The pads hold `n_cells + 2 nhalo` subcells
     @test all(pad -> size(pad) ==
-                     (2 * nvariables(equations), n_cells + 2 * Trixi.nhalo(solver)),
+                     (nvariables(equations), n_cells + 2 * Trixi.nhalo(solver)),
               semi.cache.pad_threaded)
     @test length(semi.cache.pad_threaded) == Threads.maxthreadid()
 end

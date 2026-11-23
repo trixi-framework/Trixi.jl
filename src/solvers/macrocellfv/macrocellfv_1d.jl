@@ -272,53 +272,8 @@ end
     return nothing
 end
 
-# Moment inversion to point values at the subcell centers (all pad cells, with
-# one-sided second differences at the ends of the pad): the point values are stored
-# in the variables `1:nvariables` and the averages in `nvariables + 1:2 nvariables`,
-# both converted to the reconstruction variables
-@inline function invert_and_transform_pad!(pad, inversion::MomentInversionPoint,
-                                           equations, volume_integral)
-    @unpack cons2recon = volume_integral
-    n_variables = nvariables(equations)
-    n_pad = size(pad, 2)
-
-    # Point values (conservative) into the second half
-    for a in 1:n_pad
-        line = @inline(offset->get_pad_vars(pad, equations, a + offset))
-        u_average = line(0)
-        correction = center_correction(inversion, line, 1 - a, n_pad - a)
-        u_center = center_point_value(u_average, correction, equations)
-        for v in eachvariable(equations)
-            pad[n_variables + v, a] = u_center[v]
-        end
-    end
-    # Point values to the first, averages to the second half, both converted
-    for a in 1:n_pad
-        u_average = get_pad_vars(pad, equations, a)
-        u_center = SVector(ntuple(@inline(v->pad[n_variables + v, a]),
-                                  Val(n_variables)))
-        w_center = cons2recon(u_center, equations)
-        w_average = cons2recon(u_average, equations)
-        for v in eachvariable(equations)
-            pad[v, a] = w_center[v]
-            pad[n_variables + v, a] = w_average[v]
-        end
-    end
-    return nothing
-end
-
-# Pad with point values and averages: the reconstructions read both halves (see
-# `ReconstructionPointValues`)
-struct PointPad{Data}
-    data::Data
-end
-
+# Pad as seen by the reconstruction (the pad itself without point values)
 @inline macrocell_pad_1d(pad, ::False) = pad
-@inline macrocell_pad_1d(pad, ::True) = PointPad(pad)
-
-@inline function get_pad_vars(pad::PointPad, equations, a)
-    return SVector(ntuple(@inline(v->pad.data[v, a]), Val(2 * nvariables(equations))))
-end
 
 # Coordinate line through the pad, with `line(0)` the subcell left of the face with
 # local index `face` (the face between the subcells `face - 1` and `face`) and

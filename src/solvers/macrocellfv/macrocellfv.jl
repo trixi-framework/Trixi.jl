@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# Macro-cell finite volume (MacroCellFV) solver: finite volumes with high-order face
-# reconstruction on blocks of subcells.
+# Macro-cell finite volume (MacroCellFV) solver: finite volumes with face reconstruction
+# on blocks of subcells.
 #
 # Each mesh element (macro-cell) holds an equidistant block of `n_cells` finite volume
 # subcells per coordinate direction, stored with a `UniformFiniteVolumeBasis` as for
@@ -17,7 +17,8 @@
 # on each side. The pipeline of each RHS evaluation is, per macro-cell,
 #   1. gather the subcells and the halos (from the neighbors or the ghost subcells of
 #      physical boundaries) into the pad of the thread,
-#   2. moment inversion (cell averages -> point values),
+#   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
+#      the averages),
 #   3. transformation to the reconstruction variables,
 #   4. face reconstruction, numerical fluxes, and flux differences in one loop over the
 #      subcell faces,
@@ -25,22 +26,11 @@
 # macro-cell with the interface flux, which is computed only once, by the macro-cell on
 # its left side.
 #
-# The pad holds the transformed state (reconstruction variables, or point values and
-# averages) of a contiguous line of subcells across the macro-cell boundaries. The same
-# kernel thus serves the faces inside a macro-cell and at its boundaries, for averages
-# and point values alike, without index branching or repeated variable transformations
-# in the stencils. Each thread owns one pad of `n_cells + 2 nhalo` subcells, so the
+# The pad holds the transformed state (reconstruction variables) of a contiguous line of
+# subcells across the macro-cell boundaries. The same kernel thus serves the faces
+# inside a macro-cell and at its boundaries without index branching or repeated
+# variable transformations in the stencils. Each thread owns one pad of `n_cells + 2 nhalo` subcells, so the
 # memory of the pads does not grow with the number of elements.
-
-const MomentInversionPoint = Union{MomentInversionCentral, MomentInversionWENO}
-
-# The one-sided second differences at the ends of the available subcells keep the
-# halo of the inversion at one subcell
-@inline nhalo(::MomentInversionPoint) = 1
-
-# `True()` if the moment inversion provides point values at the subcell centers
-@inline has_point_values(::MomentInversionIdentity) = False()
-@inline has_point_values(::MomentInversionPoint) = True()
 
 """
     VolumeIntegralMacroCellFV(; moment_inversion, reconstruction,
@@ -112,29 +102,24 @@ end
 
 Create a macro-cell finite volume solver with `n_cells` equidistant finite volume
 subcells per coordinate direction in each element (macro-cell) of the mesh, with
-high-order reconstruction of the face states. As for [`BlockFV`](@ref), the subcells
+reconstruction of the face states. As for [`BlockFV`](@ref), the subcells
 are stored with a [`UniformFiniteVolumeBasis`](@ref); for consistency with `BlockFV`,
 the number of subcells can also be given as `n_nodes`. Currently supported on the 1D
 [`TreeMesh`](@ref).
 
 - `surface_flux`: numerical flux at the subcell faces, e.g.,
   [`flux_lax_friedrichs`](@ref) or [`flux_hllc`](@ref).
-- `reconstruction`: [`ReconstructionConstant`](@ref), [`ReconstructionMUSCL`](@ref),
-  [`ReconstructionWENO5JS`](@ref), [`ReconstructionWENO5Z`](@ref), or one of these
-  with the positivity limiter [`ReconstructionPositivity`](@ref). The reconstruction
-  reads the neighboring macro-cells through `nhalo` halo subcells per side, which
-  requires `n_cells >= nhalo`.
-- `moment_inversion`: [`MomentInversionIdentity`](@ref) (the averages are used as point
-  values, second order for nonlinear `cons2recon`), [`MomentInversionCentral`](@ref), or
-  [`MomentInversionWENO`](@ref) (fourth-order point values at the subcell centers,
-  converted to the reconstruction variables pointwise, and WENO interpolation of the
-  point values to the faces).
+- `reconstruction`: [`ReconstructionConstant`](@ref) or [`ReconstructionMUSCL`](@ref).
+  The reconstruction reads the neighboring macro-cells through `nhalo` halo subcells
+  per side, which requires `n_cells >= nhalo`.
+- `moment_inversion`: conversion of the subcell averages to point values before the
+  reconstruction; currently [`MomentInversionIdentity`](@ref) (the averages are used as
+  point values).
 - `cons2recon`/`recon2cons`: transformation from conservative variables to the
   variables used for the reconstruction (e.g., [`cons2prim`](@ref)) and back.
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
   for the subcell averages of the initial condition. The default `1` uses the value
-  at the subcell center, which is second-order accurate; reconstructions of higher
-  order need the exact averages.
+  at the subcell center, which is second-order accurate.
 
 With `reconstruction = ReconstructionConstant()`, the right-hand side is identical to
 the one of `BlockFV(; n_nodes = n_cells, surface_flux)`.
@@ -182,14 +167,13 @@ end
 
 @inline nhalo(dg::MacroCellFV) = nhalo(dg.volume_integral)
 
-# Number of variables of the pads: twice the number of variables for the point values
-# and the averages
+# Number of variables of the pads (the number of variables of the equations for the
+# averages)
 @inline function npadvariables(volume_integral::VolumeIntegralMacroCellFV,
                                equations)
     return npadvariables(has_point_values(volume_integral.moment_inversion), equations)
 end
 @inline npadvariables(::False, equations) = nvariables(equations)
-@inline npadvariables(::True, equations) = 2 * nvariables(equations)
 
 # Same as `wrap_array` for `DGSEM`: with Polyester.jl threading, use a `PtrArray`, which
 # does not allocate (the general fallback for `DG` allocates an array header for each
@@ -212,15 +196,13 @@ end
     end
 end
 
-# Conversion applied when the pads, ghost buffers, and halo layers are filled: the
-# moment inversions to point values work on the conservative averages and convert to
-# the reconstruction variables afterward
+# Conversion applied when the pads, ghost buffers, and halo layers are filled (the
+# averages are converted to the reconstruction variables directly)
 @inline function pad_cons2recon(volume_integral::VolumeIntegralMacroCellFV)
     return pad_cons2recon(has_point_values(volume_integral.moment_inversion),
                           volume_integral.cons2recon)
 end
 @inline pad_cons2recon(::False, cons2recon) = cons2recon
-@inline pad_cons2recon(::True, cons2recon) = cons2cons
 
 #####################################################################
 # Coupling of the moment inversion, the reconstruction, and the numerical flux
@@ -229,29 +211,11 @@ end
 # The reconstruction used with the moment inversion
 point_reconstruction(::MomentInversionIdentity, reconstruction) = reconstruction
 
-function point_reconstruction(::MomentInversionPoint,
-                              reconstruction::ReconstructionWENO5)
-    return ReconstructionPointValues(reconstruction)
-end
-
-function point_reconstruction(inversion::MomentInversionPoint,
-                              reconstruction::ReconstructionPositivity)
-    return ReconstructionPositivity(point_reconstruction(inversion,
-                                                         reconstruction.reconstruction),
-                                    reconstruction.epsilon, reconstruction.omega)
-end
-
-function point_reconstruction(::MomentInversionPoint, reconstruction)
-    throw(ArgumentError("the moment inversions to point values support only the WENO " *
-                        "reconstructions (with or without `ReconstructionPositivity`)"))
-end
-
 # Reconstructed left and right states at the face between the pad cells `0` and
 # `1` of the coordinate line `line(offset)`
-@inline function reconstruct_face_states(reconstruction, line, equations, recon2cons)
-    _, w_ll = reconstruct_cell(reconstruction, line, equations, recon2cons)
-    w_rr, _ = reconstruct_cell(reconstruction, @inline(offset->line(offset + 1)),
-                               equations, recon2cons)
+@inline function reconstruct_face_states(reconstruction, line)
+    _, w_ll = reconstruct_cell(reconstruction, line)
+    w_rr, _ = reconstruct_cell(reconstruction, @inline(offset->line(offset + 1)))
     return w_ll, w_rr
 end
 
@@ -261,7 +225,7 @@ end
                                      volume_integral::VolumeIntegralMacroCellFV)
     @unpack reconstruction, surface_flux, recon2cons = volume_integral
 
-    w_ll, w_rr = reconstruct_face_states(reconstruction, line, equations, recon2cons)
+    w_ll, w_rr = reconstruct_face_states(reconstruction, line)
     u_ll = recon2cons(w_ll, equations)
     u_rr = recon2cons(w_rr, equations)
 
