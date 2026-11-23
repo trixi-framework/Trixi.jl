@@ -76,10 +76,6 @@ function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1}, equation
         end
     end
 
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
-    end
-
     return nothing
 end
 
@@ -99,30 +95,48 @@ function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sid
     g = nhalo(dg)
     n = nnodes(dg)
 
-    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
-                          cache)
+    # copy data from the macrocell and the halo values from its neighbors or the boundaries.
+    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
+    # Moment inversion cell averages bar(u) to u_^star (approximate point values) 
+    # Then cons2recon
     invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
                               volume_integral)
     line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
 
     inv_h = inv_subcell_width(mesh, dg, cache, element)
 
+    # Each subcell is reconstructed once; `w_ll` carries the state at the +x face of the
+    # previous subcell to the next face
+    reconstruction = volume_integral.reconstruction
     if boundary_ids[1, element] != 0
-        line = pad_line_1d(line_pad, equations, 1, g)
-        flux_boundary = macrocell_face_flux(line, 1, equations, volume_integral)
+        # Boundary face at -x between the ghost subcell 0 and the subcell 1
+        _, w_ll = reconstruct_cell(reconstruction,
+                                   pad_line_1d(line_pad, equations, 0, g))
+        w_rr, w_plus = reconstruct_cell(reconstruction,
+                                        pad_line_1d(line_pad, equations, 1, g))
+        flux_boundary = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
         set_node_vars!(surface_flux_values, flux_boundary, equations, dg, 1, element)
+    else
+        _, w_plus = reconstruct_cell(reconstruction,
+                                     pad_line_1d(line_pad, equations, 1, g))
     end
+    w_ll = w_plus
 
     # Flux at the +x face of the first subcell (completed later)
-    line = pad_line_1d(line_pad, equations, 2, g)
-    flux_left = macrocell_face_flux(line, 1, equations, volume_integral)
+    w_rr, w_plus = reconstruct_cell(reconstruction,
+                                    pad_line_1d(line_pad, equations, 2, g))
+    flux_left = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
     set_node_vars!(du, flux_left, equations, dg, 1, element)
-    for face in 3:(n + 1)
-        line = pad_line_1d(line_pad, equations, face, g)
-        flux_right = macrocell_face_flux(line, 1, equations, volume_integral)
-        set_node_vars!(du, -inv_h * (flux_right - flux_left), equations, dg, face - 1,
+    w_ll = w_plus
+    # Faces between the subcells `cell - 1` and `cell`
+    for cell in 3:(n + 1)
+        w_rr, w_plus = reconstruct_cell(reconstruction,
+                                        pad_line_1d(line_pad, equations, cell, g))
+        flux_right = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
+        set_node_vars!(du, -inv_h * (flux_right - flux_left), equations, dg, cell - 1,
                        element)
         flux_left = flux_right
+        w_ll = w_plus
     end
     # The face at +x (for `n = 1`, the face at +x of the first subcell): computed once,
     # stored for both elements
@@ -261,12 +275,25 @@ end
     return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
 end
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> macrocellfv-1d-second-order
 # Without point values, the filled pad cells `a >= a_first` are transformed to the
 # reconstruction variables (the unfilled cell is skipped, since a transformation such as
 # `cons2entropy` may fail for arbitrary values)
 @inline function invert_and_transform_pad!(pad, a_first, ::MomentInversionIdentity,
                                            equations, volume_integral)
     transform_pad!(pad, a_first, volume_integral.cons2recon, equations)
+<<<<<<< HEAD
+=======
+=======
+# Without point values, the pad cells are transformed to the reconstruction variables only
+@inline function invert_and_transform_pad!(pad, ::MomentInversionIdentity, equations,
+                                           volume_integral)
+    transform_pad!(pad, volume_integral.cons2recon, equations)
+>>>>>>> 1773a2aea4fc61c18e47a4c80b97b2ec4db80eae
+>>>>>>> macrocellfv-1d-second-order
     return nothing
 end
 
@@ -285,11 +312,11 @@ end
 # Pad as seen by the reconstruction (the pad itself without point values)
 @inline macrocell_pad_1d(pad, ::False) = pad
 
-# Coordinate line through the pad, with `line(0)` the subcell left of the face with
-# local index `face` (the face between the subcells `face - 1` and `face`) and
-# `line(1)` the subcell right of it
-@inline function pad_line_1d(pad, equations, face, g)
-    return @inline(offset->get_pad_vars(pad, equations, face - 1 + g + offset))
+# Coordinate line through the pad centered at the subcell `cell` of the element
+# (`line(0)`; `cell = 0` and `cell = n + 1` are halo subcells), as stencil of its
+# reconstruction
+@inline function pad_line_1d(pad, equations, cell, g)
+    return @inline(offset->get_pad_vars(pad, equations, cell + g + offset))
 end
 
 # Inverse subcell width of `element` (`inverse_jacobian = 2 / dx` of the element)
