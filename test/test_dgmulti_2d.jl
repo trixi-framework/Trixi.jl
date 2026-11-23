@@ -52,24 +52,50 @@ end
 end
 
 @testitem "DGMulti2D: Kubatko Legendre-face-node SBP" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
-    approximation_type =
-        SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}}()
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}}(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+                        # division by 2.0 corresponds to normalization by the square root of the size of the domain
+                        l2=[
+                            0.01005590903586074,
+                            0.007578995273560596,
+                            0.007578995273550845,
+                            0.021022516884288217
+                        ] ./ 2.0,
+                        linf=[
+                            0.02614966265293317,
+                            0.02263375213018981,
+                            0.02263375212915042,
+                            0.03802561273137961
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
 
-    for volume_integral in (VolumeIntegralWeakForm(),
-                            VolumeIntegralFluxDifferencing(flux_ranocha))
-        dg = DGMulti(polydeg = 3, element_type = Tri(),
-                     approximation_type = approximation_type,
-                     surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
-                     volume_integral = volume_integral)
-        mesh = DGMultiMesh(dg, (2, 2); periodicity = true)
-        semi = SemidiscretizationHyperbolic(mesh, CompressibleEulerEquations2D(1.4),
-                                            initial_condition_constant, dg;
-                                            boundary_conditions = boundary_condition_periodic)
-        u_ode = compute_coefficients(0.0, semi)
-        du_ode = zero(u_ode)
-        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
-        @test all(isfinite, du_ode)
-    end
+@testitem "DGMulti2D: Kubatko Legendre-face-node SBP (EC)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}}(),
+                        volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
+                        surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
+                        # division by 2.0 corresponds to normalization by the square root of the size of the domain
+                        l2=[
+                            0.014161478279797577,
+                            0.011223887429204691,
+                            0.01122388742917848,
+                            0.02933035750334887
+                        ] ./ 2.0,
+                        linf=[
+                            0.04892111862143156,
+                            0.03471802027408866,
+                            0.034718020273905914,
+                            0.06466664359748453
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements)" setup=[
