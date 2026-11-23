@@ -96,7 +96,10 @@ function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sid
     g = nhalo(dg)
     n = nnodes(dg)
 
+    # copy data from the macrocell and the halo values from its neighbors or the boundaries.
     gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
+    # Moment inversion cell averages bar(u) to u_^star (approximate point values) 
+    # Then cons2recon
     invert_and_transform_pad!(pad, volume_integral.moment_inversion, equations,
                               volume_integral)
     line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
@@ -253,7 +256,7 @@ end
     return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
 end
 
-# Without point values, the pad cells are transformed to the reconstruction variables
+# Without point values, the pad cells are transformed to the reconstruction variables only
 @inline function invert_and_transform_pad!(pad, ::MomentInversionIdentity, equations,
                                            volume_integral)
     transform_pad!(pad, volume_integral.cons2recon, equations)
