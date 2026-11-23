@@ -14,7 +14,7 @@ for human readability.
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
   advection velocity ([#3438]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
-  `CompressibleEulerEquations1D`.
+  `CompressibleEulerEquations1D` ([#3489]).
 
 #### Changed
 
