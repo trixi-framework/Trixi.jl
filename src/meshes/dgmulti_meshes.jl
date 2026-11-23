@@ -63,7 +63,6 @@ end
 # only in the quadrature, which is why they are all represented by `Polynomial()`.
 get_approximation_type_string(::Polynomial) = "Polynomial"
 get_approximation_type_string(::Polynomial{<:Gauss}) = "GaussSBP"
-get_approximation_type_string(::SBP{StartUpDG.DefaultSBPType}) = "SBP"
 function get_approximation_type_string(::SBP{StartUpDG.TensorProductLobatto})
     return "SBP{TensorProductLobatto}"
 end
@@ -87,8 +86,6 @@ function get_approximation_type_from_string(input::String)
         return Polynomial()
     elseif input == "GaussSBP"
         return Polynomial(Gauss())
-    elseif input == "SBP"
-        return SBP()
     elseif input == "SBP{TensorProductLobatto}"
         return SBP{StartUpDG.TensorProductLobatto}()
     elseif input == "SBP{Kubatko{LobattoFaceNodes}}"

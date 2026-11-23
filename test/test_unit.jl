@@ -4138,7 +4138,10 @@ end
     # with the correct nodes when loading the mesh
     for (element_type, approximation_type) in ((Tri(), Polynomial()), (Tri(), SBP()),
                                                (Quad(), SBP()), (Quad(), GaussSBP()),
-                                               (Tri(), SBP{Trixi.StartUpDG.Hicken}()))
+                                               (Tri(), SBP{Trixi.StartUpDG.Hicken}()),
+                                               (Tri(),
+                                                SBP{Trixi.StartUpDG.Kubatko{
+                                                    Trixi.StartUpDG.LegendreFaceNodes}}()))
         dg = DGMulti(polydeg = 3, element_type = element_type,
                      approximation_type = approximation_type)
         approximation_type_str = Trixi.get_approximation_type_string(dg.basis.approximation_type)
