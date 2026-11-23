@@ -16,12 +16,15 @@
 # work array (pad) that holds the subcells of the macro-cell and `nhalo` halo subcells
 # on each side. The pipeline of each RHS evaluation is, per macro-cell,
 #   1. gather the subcells and the halos (from the neighbors or the ghost subcells of
-#      physical boundaries) into the pad of the thread,
+#      physical boundaries) into the pad of the thread; only the halo subcells read by
+#      the reconstruction are filled (`nhalo - 1` at -x towards a neighbor, whose
+#      macro-cell computes the face at -x),
 #   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
 #      the averages),
 #   3. transformation to the reconstruction variables,
-#   4. face reconstruction, numerical fluxes, and flux differences in one loop over the
-#      subcell faces,
+#   4. face reconstruction, numerical fluxes, and flux differences in one sweep over the
+#      subcells: each subcell is reconstructed once, and its state at the +x face is
+#      carried to the next face,
 # followed by the completion of the flux differences of the first subcell of each
 # macro-cell with the interface flux, which is computed only once, by the macro-cell on
 # its left side.
@@ -211,21 +214,12 @@ end
 # The reconstruction used with the moment inversion
 point_reconstruction(::MomentInversionIdentity, reconstruction) = reconstruction
 
-# Reconstructed left and right states at the face between the pad cells `0` and
-# `1` of the coordinate line `line(offset)`
-@inline function reconstruct_face_states(reconstruction, line)
-    _, w_ll = reconstruct_cell(reconstruction, line)
-    w_rr, _ = reconstruct_cell(reconstruction, @inline(offset->line(offset + 1)))
-    return w_ll, w_rr
-end
-
-# Numerical flux at the face between the pad cells `0` and `1` of `line` from the
-# reconstructed states
-@inline function macrocell_face_flux(line, orientation, equations,
+# Numerical flux at a subcell face from the reconstructed states `w_ll` and `w_rr` (in
+# reconstruction variables) on its two sides
+@inline function macrocell_face_flux(w_ll, w_rr, orientation, equations,
                                      volume_integral::VolumeIntegralMacroCellFV)
-    @unpack reconstruction, surface_flux, recon2cons = volume_integral
+    @unpack surface_flux, recon2cons = volume_integral
 
-    w_ll, w_rr = reconstruct_face_states(reconstruction, line)
     u_ll = recon2cons(w_ll, equations)
     u_rr = recon2cons(w_rr, equations)
 
