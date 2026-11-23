@@ -8,6 +8,12 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- New experimental solver `MacroCellFV` on the 1D `TreeMesh`: finite volumes with
+  reconstruction of the face states on blocks of `n_cells` subcells per element, built
+  on the data structures of `BlockFV`. Each element is evaluated on a thread-local
+  padded array with halo subcells of its neighbors (ghost subcells at physical
+  boundaries), so that wider reconstruction stencils can be added. Supported
+  reconstructions: `ReconstructionConstant` and `ReconstructionMUSCL`.
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
   serial `P4estMesh{2}`es without AMR. The new equations
   `ConservativeLinearScalarAdvectionEquation2D` and
@@ -104,12 +110,6 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
-- New experimental solver `MacroCellFV` on the 1D `TreeMesh`: finite volumes with
-  reconstruction of the face states on blocks of `n_cells` subcells per element, built
-  on the data structures of `BlockFV`. Each element is evaluated on a thread-local
-  padded array with halo subcells of its neighbors (ghost subcells at physical
-  boundaries), so that wider reconstruction stencils can be added. Supported
-  reconstructions: `ReconstructionConstant` and `ReconstructionMUSCL`.
 - `PositivityPreservingLimiterZhangShu` now supports `DGMulti` solvers with `SBP()`
   approximation types, e.g., on triangles ([#3450]).
 - Auxiliary variables, i.e., spatially varying but time-independent fields stored at

@@ -11,9 +11,9 @@
 # The neighbors of each element are looked up in `neighbor_elements[side, element]`
 # (`side = 1` at -x, `2` at +x; `0` at a physical boundary) and the boundaries in
 # `boundary_ids[side, element]`.
-function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralMacroCellFV,
-                      dg::MacroCellFV, cache_containers, uEltype)
+function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
+                                      volume_integral::VolumeIntegralMacroCellFV,
+                                      dg::MacroCellFV, cache_containers, uEltype)
     n = nnodes(dg)
     g = nhalo(dg)
     # The halos are copied from the direct neighbors only
@@ -44,7 +44,7 @@ function create_cache(mesh::TreeMesh{1}, equations,
     return (; pad_threaded, neighbor_elements, boundary_ids)
 end
 
-function resize_volume_integral_cache!(cache, mesh::TreeMesh{1},
+function resize_cache_volume_integral!(cache, mesh::TreeMesh{1},
                                        volume_integral::VolumeIntegralMacroCellFV,
                                        dg::MacroCellFV, new_size)
     # Only check the size here; AMR is not supported yet.
