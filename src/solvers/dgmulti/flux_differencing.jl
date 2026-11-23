@@ -111,8 +111,8 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFlux
     return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
-                      RealT, uEltype)
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
+                                 RealT, uEltype)
     rd = dg.basis
     md = mesh.md
 
@@ -126,21 +126,22 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
-    # this calls the `create_cache` for the shock capturing volume integral
-    volume_integral_cache = create_cache(mesh, equations, dg.volume_integral,
-                                         dg, RealT, uEltype)
+    cache = (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
+             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
+             solution_container, du_local_threaded)
 
-    return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
-            invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            solution_container, du_local_threaded,
-            volume_integral_cache...)
+    # add cache specialized on the volume integral, e.g., for shock capturing
+    return (; cache...,
+            create_cache_volume_integral(mesh, equations, dg.volume_integral, dg, cache,
+                                         uEltype)...)
 end
 
-# most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, uEltype)
+# most general `create_cache_hyperbolic`: works for `DGMultiFluxDiff{<:Polynomial}`
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff,
+                                 RealT, uEltype)
     rd = dg.basis
     @unpack md = mesh
 

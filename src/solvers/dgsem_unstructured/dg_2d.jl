@@ -8,9 +8,9 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredMesh2D, equations,
-                      dg::DG, RealT, uEltype)
-    elements = init_elements(mesh, equations, dg.basis, RealT, uEltype)
+function create_cache_hyperbolic(mesh::UnstructuredMesh2D, equations,
+                                 dg::DG, RealT, uEltype)
+    elements = init_elements(mesh, equations, dg.basis, uEltype)
 
     interfaces = init_interfaces(mesh, elements)
 
@@ -30,8 +30,8 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
 
     return cache
 end
