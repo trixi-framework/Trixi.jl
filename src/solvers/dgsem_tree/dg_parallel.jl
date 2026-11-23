@@ -43,7 +43,6 @@ function TreeMPICache(uEltype)
                                  n_elements_by_rank, n_elements_global,
                                  first_element_global_id)
 end
-@inline Base.eltype(::TreeMPICache{uEltype}) where {uEltype} = uEltype
 
 function init_mpi_cache(mesh::TreeMeshParallel, elements, mpi_interfaces, mpi_mortars,
                         nvars, nnodes, uEltype)
