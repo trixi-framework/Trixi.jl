@@ -272,16 +272,12 @@ struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
 end
 
 function Adapt.adapt_structure(to, analyzer::LobattoLegendreAnalyzer)
-    RealT = eltype(analyzer.vandermonde)
-    nnodes_ = nnodes(analyzer)
-
-    nodes = SVector{nnodes_, RealT}(analyzer.nodes)
-    weights = SVector{nnodes_, RealT}(analyzer.weights)
     vandermonde = adapt(to, analyzer.vandermonde)
-
-    return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(nodes,
-                                                                                       weights,
-                                                                                       vandermonde)
+    RealT = eltype(vandermonde)
+    nodes = SVector{<:Any, RealT}(analyzer.nodes)
+    weights = SVector{<:Any, RealT}(analyzer.weights)
+    return LobattoLegendreAnalyzer{RealT, nnodes(analyzer), typeof(nodes),
+                                   typeof(vandermonde)}(nodes, weights, vandermonde)
 end
 
 function SolutionAnalyzer(basis::LobattoLegendreBasis;
