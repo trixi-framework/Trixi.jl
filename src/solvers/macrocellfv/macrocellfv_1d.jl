@@ -95,8 +95,10 @@ function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sid
     g = nhalo(dg)
     n = nnodes(dg)
 
-    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
-                          cache)
+    # copy data from the macrocell and the halo values from its neighbors or the boundaries.
+    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
+    # Moment inversion cell averages bar(u) to u_^star (approximate point values) 
+    # Then cons2recon
     invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
                               volume_integral)
     line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
@@ -273,12 +275,19 @@ end
     return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
 end
 
+<<<<<<< HEAD
 # Without point values, the filled pad cells `a >= a_first` are transformed to the
 # reconstruction variables (the unfilled cell is skipped, since a transformation such as
 # `cons2entropy` may fail for arbitrary values)
 @inline function invert_and_transform_pad!(pad, a_first, ::MomentInversionIdentity,
                                            equations, volume_integral)
     transform_pad!(pad, a_first, volume_integral.cons2recon, equations)
+=======
+# Without point values, the pad cells are transformed to the reconstruction variables only
+@inline function invert_and_transform_pad!(pad, ::MomentInversionIdentity, equations,
+                                           volume_integral)
+    transform_pad!(pad, volume_integral.cons2recon, equations)
+>>>>>>> 1773a2aea4fc61c18e47a4c80b97b2ec4db80eae
     return nothing
 end
 
