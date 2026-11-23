@@ -280,9 +280,9 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
     end
 
     l2_error, linf_error, total_volume = mapreduce_accelerated(local_reduce,
-                                                                      1:n_elements,
-                                                                      backend; init,
-                                                                      neutral) do element
+                                                               1:n_elements,
+                                                               backend; init,
+                                                               neutral) do element
         l2_error_element, linf_error_element, volume_element = neutral
 
         # Naive versions of multiply_(scalar_)dimensionwise
@@ -291,13 +291,12 @@ function calc_error_norms(func, backend::Backend, u, t, analyzer,
             x_local = x0
             jacobian_local = zero(eltype(inverse_jacobian))
             for jj in 1:n_nodes, ii in 1:n_nodes
-                u_local += vandermonde[j, jj] * vandermonde[i, ii] *
-                           get_node_vars(u, equations, dg, ii, jj, element)
-                x_local += vandermonde[j, jj] * vandermonde[i, ii] *
+                factor = vandermonde[j, jj] * vandermonde[i, ii]
+                u_local += factor * get_node_vars(u, equations, dg, ii, jj, element)
+                x_local += factor *
                            get_node_coords(node_coordinates, equations, dg, ii, jj,
                                            element)
-                jacobian_local += vandermonde[j, jj] * vandermonde[i, ii] *
-                                  inv(inverse_jacobian[ii, jj, element])
+                jacobian_local += factor * inv(inverse_jacobian[ii, jj, element])
             end
 
             # Calculate errors at the analysis node
