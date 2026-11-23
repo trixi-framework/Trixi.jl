@@ -100,11 +100,11 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
         check_axes(cache.interfaces, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
-        check_axes_aux_interface(get_aux_interface_vars(cache), equations, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, get_aux_interface_vars(cache), typeof(mesh),
+    kernel!(surface_flux_values, u, get_aux_vars(cache), typeof(mesh),
             have_nonconservative_terms, equations,
             surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
             index_range,
@@ -115,7 +115,7 @@ end
 
 @kernel inbounds=true function prolong2interfaces_and_calc_interface_flux_KAkernel!(surface_flux_values,
                                                                                     u,
-                                                                                    aux_interface,
+                                                                                    aux,
                                                                                     MeshT::Type{<:Union{P4estMesh{2},
                                                                                                         P4estMeshView{2},
                                                                                                         T8codeMesh{2}}},
@@ -129,7 +129,7 @@ end
                                                                                     index_range)
     i, interface = @index(Global, NTuple)
     prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u,
-                                                         aux_interface, MeshT,
+                                                         aux, MeshT,
                                                          have_nonconservative_terms,
                                                          equations,
                                                          surface_integral, dg,
@@ -207,9 +207,29 @@ Base.@propagate_inbounds function get_interface_values(u, equations, dg, neighbo
             i_secondary, secondary_direction, secondary_element)
 end
 
+# Auxiliary variables on both sides of an interface for the surface node `i`, read from
+# the volume nodes in the same way as `u` in `get_interface_values`
+Base.@propagate_inbounds function get_interface_aux_values(aux, equations, dg,
+                                                           neighbor_ids, node_indices,
+                                                           index_range, i, interface)
+    (_, primary_element, i_primary, j_primary,
+    _, _, secondary_element,
+    i_secondary_node, j_secondary_node) = get_interface_indices(neighbor_ids,
+                                                                node_indices,
+                                                                index_range, i,
+                                                                interface)
+
+    aux_ll = get_aux_node_vars(aux, equations, dg, i_primary, j_primary,
+                               primary_element)
+    aux_rr = get_aux_node_vars(aux, equations, dg, i_secondary_node, j_secondary_node,
+                               secondary_element)
+
+    return (aux_ll..., aux_rr...)
+end
+
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
-                                                                                       aux_interface,
+                                                                                       aux,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -236,10 +256,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                i,
                                                                                interface)
 
-    # Auxiliary variables on both sides of the interface at the surface node `i`,
-    # counted along the primary side as for `surface_flux_values`
-    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
-                                         i, interface)
+    aux_node = get_interface_aux_values(aux, equations, dg, neighbor_ids, node_indices,
+                                        index_range, i, interface)
 
     flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     for v in eachvariable(equations)
@@ -252,7 +270,7 @@ end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
-                                                                                       aux_interface,
+                                                                                       aux,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -267,7 +285,7 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                        i,
                                                                                        interface)
     prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u,
-                                                         aux_interface, MeshT,
+                                                         aux, MeshT,
                                                          have_nonconservative_terms,
                                                          combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                                                          equations),
@@ -282,7 +300,7 @@ end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
-                                                                                       aux_interface,
+                                                                                       aux,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -310,10 +328,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                i,
                                                                                interface)
 
-    # Auxiliary variables on both sides of the interface at the surface node `i`,
-    # counted along the primary side as for `surface_flux_values`
-    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
-                                         i, interface)
+    aux_node = get_interface_aux_values(aux, equations, dg, neighbor_ids, node_indices,
+                                        index_range, i, interface)
 
     flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
                                          normal_direction, equations)
