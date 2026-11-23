@@ -1,4 +1,4 @@
-function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     n_cells = ncells(mesh)
 
     # Re-initialize elements container.
@@ -7,9 +7,7 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     count_required_surfaces!(mesh)
 

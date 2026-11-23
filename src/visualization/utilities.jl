@@ -56,6 +56,14 @@ function transform_to_solution_variables!(u, solution_variables, equations)
     end
 end
 
+# Equations with auxiliary variables: `aux` contains the auxiliary variables at the same
+# nodes as `u`.
+function transform_to_solution_variables!(u, aux, solution_variables, equations)
+    for i in eachindex(u, aux)
+        u[i] = solution_variables(u[i], aux[i], equations)
+    end
+end
+
 #     global_plotting_triangulation_triplot(u_plot, rst_plot, xyz_plot)
 #
 # Returns (plotting_coordinates_x, plotting_coordinates_y, ..., plotting_values, plotting_triangulation).
@@ -144,8 +152,6 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
     r, s = reference_node_coordinates_2d(dg)
 
     # extract node coordinates
-    uEltype = eltype(first(u))
-    nvars = nvariables(equations)
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
     x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d,
@@ -171,8 +177,10 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
                face_first_reshape(x, nnodes(dg), n_nodes_2d, n_elements)
     end
     xfp, yfp = map(reshape_and_interpolate, (x, y))
-    ufp = StructArray{SVector{nvars, uEltype}}(map(reshape_and_interpolate,
-                                                   StructArrays.components(u)))
+    # `u` can also contain the auxiliary variables, so the element type is taken from `u`
+    # instead of `equations`.
+    ufp = StructArray{eltype(u)}(map(reshape_and_interpolate,
+                                     StructArrays.components(u)))
 
     return xfp, yfp, ufp
 end
@@ -271,7 +279,13 @@ end
 # - Otherwise, use `cons2cons`, which is defined for all systems of equations
 digest_solution_variables(equations, solution_variables) = solution_variables
 function digest_solution_variables(equations, solution_variables::Nothing)
-    if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
+    # Equations with auxiliary variables use `cons2prim(u, aux, equations)`
+    if nauxvariables(equations) > 0
+        argument_types = Tuple{AbstractVector, AbstractVector, typeof(equations)}
+    else
+        argument_types = Tuple{AbstractVector, typeof(equations)}
+    end
+    if hasmethod(cons2prim, argument_types)
         return cons2prim
     else
         return cons2cons
@@ -1274,20 +1288,24 @@ function unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Get the number of variables after applying the transformation to solution variables.
     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
-    var_node = solution_variables(u_node, equations)
+    aux_node = get_aux_node_vars(aux, equations, solver, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, aux_node..., equations)
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
     nodes = cache.elements.node_coordinates
-    interpolation_cache = get_value_at_point_3d_cache(u)
+    interpolation_cache = get_value_at_point_3d_cache(u, aux)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
         get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
-                               nodes, u, equations, solver;
+                               nodes, u, aux, equations, solver;
                                cache = interpolation_cache)
     end
 
@@ -1382,7 +1400,7 @@ function squared_distances_from_single_point!(distances, nodes, point)
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point_3d_cache(u)
+function get_value_at_point_3d_cache(u, aux)
     n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(u)
     @assert n_x_nodes == n_y_nodes == n_z_nodes
     n_nodes = n_x_nodes
@@ -1390,17 +1408,21 @@ function get_value_at_point_3d_cache(u)
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
+    if aux === nothing
+        aux_tetrahedron = nothing
+    else
+        aux_tetrahedron = Array{eltype(aux)}(undef, size(aux, 1), 4)
+    end
 
-    cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
+    cache = (; distances, coordinates_tetrahedron, value_tetrahedron, aux_tetrahedron)
     return cache
 end
 
 function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variables,
-                                nodes, u, equations, solver;
-                                cache = get_value_at_point_3d_cache(u))
+                                nodes, u, aux, equations, solver;
+                                cache = get_value_at_point_3d_cache(u, aux))
     # Set up data structures.
-    n_variables = size(u, 1)
-    (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
+    (; distances, coordinates_tetrahedron, value_tetrahedron, aux_tetrahedron) = cache
 
     maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
                                                                       point)
@@ -1416,7 +1438,9 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
     if nodes_at_index == point
         u_node = get_node_vars(u, equations, solver,
                                index[1], index[2], index[3], index[4])
-        data_on_curve_at_point .= solution_variables(u_node, equations)
+        aux_node = get_aux_node_vars(aux, equations, solver,
+                                     index[1], index[2], index[3], index[4])
+        data_on_curve_at_point .= solution_variables(u_node, aux_node..., equations)
         return data_on_curve_at_point
     end
 
@@ -1436,10 +1460,17 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
                                                       index[1], index[2], index[3],
                                                       closest_element]
             end
-            for v in 1:n_variables
+            for v in eachvariable(equations)
                 value_tetrahedron[v, i] = u[v,
                                             index[1], index[2], index[3],
                                             closest_element]
+            end
+            if aux !== nothing
+                for v in eachauxvariable(equations)
+                    aux_tetrahedron[v, i] = aux[v,
+                                                index[1], index[2], index[3],
+                                                closest_element]
+                end
             end
 
             # Look for another point if current tetrahedron is not valid.
@@ -1467,10 +1498,14 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
     u2 = get_node_vars(value_tetrahedron, equations, solver, 2)
     u3 = get_node_vars(value_tetrahedron, equations, solver, 3)
     u4 = get_node_vars(value_tetrahedron, equations, solver, 4)
-    val1 = solution_variables(u1, equations)
-    val2 = solution_variables(u2, equations)
-    val3 = solution_variables(u3, equations)
-    val4 = solution_variables(u4, equations)
+    aux1 = get_aux_node_vars(aux_tetrahedron, equations, solver, 1)
+    aux2 = get_aux_node_vars(aux_tetrahedron, equations, solver, 2)
+    aux3 = get_aux_node_vars(aux_tetrahedron, equations, solver, 3)
+    aux4 = get_aux_node_vars(aux_tetrahedron, equations, solver, 4)
+    val1 = solution_variables(u1, aux1..., equations)
+    val2 = solution_variables(u2, aux2..., equations)
+    val3 = solution_variables(u3, aux3..., equations)
+    val4 = solution_variables(u4, aux4..., equations)
     for v in eachindex(val1)
         values = SVector(val1[v],
                          val2[v],
@@ -1958,6 +1993,88 @@ function calc_fv_cell_corners(mesh::P4estMesh{2}, solver::BlockFV, cache)
     calc_node_coordinates!(corner_coordinates, mesh, boundary_nodes)
 
     return corner_coordinates[1, :, :, :], corner_coordinates[2, :, :, :]
+end
+
+# Returns an array of shape (n+1, n+1, n_elements) that assigns the same group to all
+# corners of FV cells that belong to the same mesh vertex. Inside an element, such corners
+# are the same array entry anyway. Across elements, the corners along each interface are
+# traversed on both sides in the same way as `prolong2interfaces!` traverses the solver
+# nodes. Corners shared by more than two elements are connected through their faces. Since
+# periodic boundaries are interfaces as well, corners on opposite sides of a periodic domain
+# belong to the same group. Mortars are not considered, since `BlockFV` does not support
+# non-conforming meshes yet.
+function calc_fv_corner_groups(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    @assert nmortars(cache.mortars)==0 "Corner groups of finite volume cells are not supported for meshes with mortars."
+
+    n = nnodes(solver)
+    corner_range = Base.OneTo(n + 1)
+    corners = LinearIndices((n + 1, n + 1, nelements(solver, cache)))
+    @unpack neighbor_ids, node_indices = cache.interfaces
+
+    # Union-find: each corner points to another corner of the same group, and the
+    # representative of a group (the corner with the smallest index) points to itself.
+    groups = reshape(collect(corners), size(corners))
+    for interface in eachinterface(solver, cache)
+        primary_element = neighbor_ids[1, interface]
+        secondary_element = neighbor_ids[2, interface]
+        primary_indices = node_indices[1, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_primary, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                           corner_range)
+        j_primary, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                           corner_range)
+        i_secondary, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                               corner_range)
+        j_secondary, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                               corner_range)
+        for _ in corner_range
+            primary = find_group!(groups,
+                                  corners[i_primary, j_primary, primary_element])
+            secondary = find_group!(groups,
+                                    corners[i_secondary, j_secondary,
+                                            secondary_element])
+            groups[max(primary, secondary)] = min(primary, secondary)
+
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
+
+    # Let each corner point to the representative of its group
+    for corner in eachindex(groups)
+        groups[corner] = find_group!(groups, corner)
+    end
+
+    return groups
+end
+
+# Returns the representative of the group of `index` in the union-find structure `groups`
+# and shortens the path to it on the way.
+function find_group!(groups, index)
+    while groups[index] != index
+        groups[index] = groups[groups[index]]
+        index = groups[index]
+    end
+    return index
+end
+
+# Returns the mean of `data` over all entries with the same group, for each entry.
+function calc_group_means(data, groups)
+    sums = zeros(eltype(data), maximum(groups))
+    counts = zeros(Int, maximum(groups))
+    for i in eachindex(data, groups)
+        sums[groups[i]] += data[i]
+        counts[groups[i]] += 1
+    end
+
+    means = similar(data)
+    for i in eachindex(means, groups)
+        means[i] = sums[groups[i]] / counts[groups[i]]
+    end
+    return means
 end
 
 # Edge segments for all FV cell boundaries.

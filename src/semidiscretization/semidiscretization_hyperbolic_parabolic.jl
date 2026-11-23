@@ -92,7 +92,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
 
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
@@ -155,13 +155,15 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, solver;
-                                                 solver_parabolic, source_terms,
-                                                 source_terms_parabolic,
-                                                 boundary_conditions = (boundary_conditions,
-                                                                        boundary_conditions_parabolic),
-                                                 uEltype)
+    semi_new = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     solver_parabolic, source_terms,
+                                                     source_terms_parabolic,
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions_parabolic),
+                                                     uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
@@ -265,7 +267,7 @@ end
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
@@ -279,17 +281,11 @@ Optional keyword arguments:
   The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
-
-The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
-deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
-                        storage_type = nothing,
-                        real_type = nothing,
-                        flux_differencing_kernel = nothing)
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -297,8 +293,6 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         Polyester.reset_threads!()
     end
 
-    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
-                                  flux_differencing_kernel)
     tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi)
@@ -336,7 +330,7 @@ end
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.

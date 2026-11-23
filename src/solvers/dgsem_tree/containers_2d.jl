@@ -1484,6 +1484,13 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
+    # The antidiffusive fluxes at the element interfaces are not computed but
+    # assumed to be zero, see `calcflux_antidiffusive!`
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R)
+
     return nothing
 end
 
@@ -1505,8 +1512,8 @@ function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_
     return nothing
 end
 
-function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
-                                  dg::Union{DGSEM, BlockFV}, cache)
+function reinit_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                            dg::Union{DGSEM, BlockFV}, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
     n_cells = length(leaf_cell_ids)
@@ -1517,9 +1524,7 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     # re-initialize interfaces container
     @unpack interfaces = cache

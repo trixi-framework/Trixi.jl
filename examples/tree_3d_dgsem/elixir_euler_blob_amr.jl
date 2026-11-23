@@ -10,12 +10,13 @@ equations = CompressibleEulerEquations3D(gamma)
     initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
 
 The blob test case taken from
-- Agertz et al. (2006)
+- Agertz et al. (2007)
   Fundamental differences between SPH and grid methods
   [arXiv: astro-ph/0610051](https://arxiv.org/abs/astro-ph/0610051)
+  [DOI: 10.1111/j.1365-2966.2007.12183.x](https://doi.org/10.1111/j.1365-2966.2007.12183.x)
 """
 function initial_condition_blob(x, t, equations::CompressibleEulerEquations3D)
-    # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # blob test case, see Agertz et al. https://arxiv.org/abs/astro-ph/0610051
     # other reference: https://doi.org/10.1111/j.1365-2966.2007.12183.x
     # change discontinuity to tanh
     # typical domain is rectangular, we change it to a square

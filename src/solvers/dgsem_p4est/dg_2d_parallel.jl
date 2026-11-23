@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::Union{P4estMeshParallel{2},
                                             T8codeMeshParallel{2}},
                                 equations, surface_integral, dg::DG)
@@ -52,7 +52,7 @@ function prolong2mpiinterfaces!(cache, u,
     return nothing
 end
 
-function calc_mpi_interface_flux!(surface_flux_values,
+function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                                   mesh::Union{P4estMeshParallel{2},
                                               T8codeMeshParallel{2}},
                                   have_nonconservative_terms,
@@ -77,7 +77,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
 
             # Initiate the node index to be used in the surface for loop,
             # the surface flux storage must be indexed in alignment with the local element indexing
-            if :i_backward in local_indices
+            if NodeIndex.IBackward in local_indices
                 surface_node = index_end
                 surface_node_step = -1
             else
@@ -258,7 +258,7 @@ Base.@propagate_inbounds function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
@@ -336,7 +336,7 @@ function prolong2mpimortars!(cache, u,
     return nothing
 end
 
-function calc_mpi_mortar_flux!(surface_flux_values,
+function calc_mpi_mortar_flux!(backend::Nothing, surface_flux_values,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                                have_nonconservative_terms, equations,
                                mortar_l2::LobattoLegendreMortarL2,
@@ -541,7 +541,7 @@ Base.@propagate_inbounds function mpi_mortar_fluxes_to_elements!(surface_flux_va
             # correct orientation.
             # Note that the index of the small sides will always run forward but
             # the index of the large side might need to run backwards for flipped sides.
-            if :i_backward in large_indices
+            if NodeIndex.IBackward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         surface_flux_values[v, end + 1 - i, large_direction, element] = u_buffer[v,

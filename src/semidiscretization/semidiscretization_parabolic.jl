@@ -56,7 +56,10 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                      RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    # The solver uses the same basic storage (e.g., the containers of elements and
+    # interfaces) as for hyperbolic problems. The additional storage of the parabolic
+    # terms (e.g., for the gradients) is created by `create_cache_parabolic` below.
+    cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
@@ -96,11 +99,12 @@ function remake(semi::SemidiscretizationParabolic; uEltype = real(semi.solver),
                 solver_parabolic = semi.solver_parabolic,
                 source_terms = semi.source_terms,
                 boundary_conditions = semi.boundary_conditions)
-    return SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
-                                       solver_parabolic = solver_parabolic,
-                                       source_terms = source_terms,
-                                       boundary_conditions = boundary_conditions,
-                                       uEltype = uEltype)
+    semi_new = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
+                                           solver_parabolic = solver_parabolic,
+                                           source_terms = source_terms,
+                                           boundary_conditions = boundary_conditions,
+                                           uEltype = uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationParabolic)

@@ -28,11 +28,17 @@ function set_zero!(::Backend, du, dg, cache)
     return nothing
 end
 
+# Abstract supertype of the GPU kernels for `VolumeIntegralFluxDifferencing`, which can
+# be selected via `Tuning(; flux_differencing_kernel)`
+abstract type AbstractFluxDifferencingKernel end
+
 """
     HalfSweep()
 
 Selects the "half sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref). This is the default.
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref). This is the default on GPUs. The
+KernelAbstractions.jl CPU backend does not support this kernel and uses
+[`FullSweep`](@ref) instead.
 
 All diagonal entries of `derivative_split` are zero. Thus, we can skip the
 computation of the diagonal terms. In addition, we use the symmetry of the
@@ -56,34 +62,36 @@ configurations.
 See also [`FullSweep`](@ref) and [`FullSweepGlobal`](@ref).
 
 For details on the cyclic distribution see Section 4.1 (Eq. 6) of
-- Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+- Waterhouse, Waruszewski, Wilcox, Warburton, Giraldo (2027)
   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
   with Non-Conservative Terms
   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+  [DOI: 10.1016/j.jcp.2026.115543](https://doi.org/10.1016/j.jcp.2026.115543)
 """
-struct HalfSweep end
+struct HalfSweep <: AbstractFluxDifferencingKernel end
 
 """
     FullSweep()
 
 Selects the "full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref).
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref).
 
 All two-point fluxes are computed for each node.
 This doubles the number of flux evaluations,
 but no flux has to be exchanged between the threads.
 Shared memory is used to avoid repeated slow reads
-from the solution vector `u`.
+from the solution vector `u` and the auxiliary variables
+(see [`nauxvariables`](@ref)).
 
 See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
 """
-struct FullSweep end
+struct FullSweep <: AbstractFluxDifferencingKernel end
 
 """
     FullSweepGlobal()
 
 Selects the "global full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
-see [`Tuning`](@ref).
+see [`Tuning`](@ref) and [`trixi_adapt`](@ref).
 
 Same sweep as [`FullSweep`](@ref), but the solution is read from global memory
 instead of being copied in shared memory. Therefore, the kernel does not need
@@ -93,7 +101,7 @@ in case the faster kernels [`FullSweep`](@ref) and [`HalfSweep`](@ref)
 are limited by the shared memory, due to either high number of variables, high
 polynomial degree, or both.
 """
-struct FullSweepGlobal end
+struct FullSweepGlobal <: AbstractFluxDifferencingKernel end
 
 # Return the flux differencing kernel used on the `backend` for the setting `kernel` of a
 # `Tuning`. `nothing` selects the default of the `backend`.
@@ -115,9 +123,12 @@ struct FullSweepGlobal end
     Tuning(; flux_differencing_kernel = nothing)
 
 Performance settings of the GPU and KernelAbstractions.jl kernels of a semidiscretization
-on a `P4estMesh` or `T8codeMesh`. They do not change the discretization, but they can
-change the performance and the resources required on a GPU. Pass them to
-[`trixi_adapt`](@ref), e.g.,
+on a [`P4estMesh`](@ref) or [`T8codeMesh`](@ref). They select between different
+implementations of the same discretization, which are equivalent in exact arithmetic.
+Thus, they do not change the numerical method, but they can change the performance, the
+resources required on a GPU (e.g., shared memory), and the results at the level of
+floating-point round-off errors (e.g., due to a different order of operations).
+Pass them to [`trixi_adapt`](@ref), e.g.,
 ```julia
 semi = trixi_adapt(semi; storage_type = CuArray, real_type = Float32,
                    tuning = Tuning(flux_differencing_kernel = FullSweep()))
@@ -141,7 +152,12 @@ Optional keyword arguments:
   (but at least one element). Default: `128`. The value is stored as `Val(n)` so that
   the kernels can be specialized on it.
 """
-struct Tuning{FluxDifferencingKernel, VolumeIntegralWorkgroupSize}
+struct Tuning{FluxDifferencingKernel <:
+              Union{Nothing, AbstractFluxDifferencingKernel},
+              VolumeIntegralWorkgroupSize <: Union{Nothing, Val}}
+    # The type parameters restrict the settings to the accepted values (or `nothing`),
+    # so that invalid settings throw an error when creating the `Tuning` instead of
+    # when launching a kernel.
     flux_differencing_kernel::FluxDifferencingKernel
     volume_integral_workgroup_size::VolumeIntegralWorkgroupSize
 end

@@ -55,6 +55,6 @@ steps:
     agents:
       queue: "metal"
     if: build.message !~ /\[skip ci\]/
-    timeout_in_minutes: 60
+    timeout_in_minutes: 30
     soft_fail:
       - exit_status: 3

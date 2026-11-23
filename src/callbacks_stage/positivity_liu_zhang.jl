@@ -16,7 +16,8 @@ with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
 The Davis-Yin splitting implementation of the global cell-average limiter is from:
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
-  [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
+  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
+  [DOI: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
 
 The "Liu-Zhang" naming convention reflects that, while other co-authors have been involved,
 C. Liu and X. Zhang are the main developers of the optimization-based limiter, and are the
@@ -26,13 +27,14 @@ two authors who are on all of the other optimization-based limiter papers.
   [arXiv: 2605.10929](https://arxiv.org/abs/2605.10929)
 - Liu, Hu, Taitano, Zhang (2025)
   An optimization-based positivity-preserving limiter in semi-implicit discontinuous Galerkin schemes solving Fokker-Planck equations
-  [doi: 10.1016/j.camwa.2025.05.008](https://doi.org/10.1016/j.camwa.2025.05.008)
+  [DOI: 10.1016/j.camwa.2025.05.008](https://doi.org/10.1016/j.camwa.2025.05.008)
 - Liu, Riviere, Shen, Zhang (2024)
   A simple and efficient convex optimization based bound-preserving high order accurate limiter for Cahn-Hilliard-Navier-Stokes system
-  [doi: 10.1137/23M1587853](https://doi.org/10.1137/23M1587853)
+  [arXiv: 2307.09726](https://arxiv.org/abs/2307.09726)
+  [DOI: 10.1137/23M1587853](https://doi.org/10.1137/23M1587853)
 - Liu, Buzzard, Zhang (2024)
   An optimization based limiter for enforcing positivity in a semi-implicit discontinuous Galerkin scheme for compressible Navier-Stokes equations
-  [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
+  [DOI: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets

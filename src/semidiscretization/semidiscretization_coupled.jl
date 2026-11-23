@@ -421,7 +421,8 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 - `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
                       from which the values are copied
 - `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
-                    semidiscretization. See examples below.
+                    semidiscretization given as [`NodeIndex`](@ref) values.
+                    See examples below.
 - `uEltype::Type`: element type of solution
 - `coupling_converter::CouplingConverter`: function to call for converting the solution
                                            state of one system to the other system
@@ -430,13 +431,10 @@ This is currently only implemented for [`StructuredMesh`](@ref).
 ```julia
 # Connect the left boundary of mesh 2 to our boundary such that our positive
 # boundary direction will match the positive y direction of the other boundary
-BoundaryConditionCoupled(2, (:begin, :i), Float64, fun)
+BoundaryConditionCoupled(2, (NodeIndex.Begin, NodeIndex.IForward), Float64, fun)
 
 # Connect the same two boundaries oppositely oriented
-BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64, fun)
-
-# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
-BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
+BoundaryConditionCoupled(2, (NodeIndex.Begin, NodeIndex.IBackward), Float64, fun)
 ```
 
 !!! warning "Experimental code"
@@ -456,16 +454,17 @@ mutable struct BoundaryConditionCoupled{NDIMS,
     const indices            :: Indices
     const coupling_converter :: CouplingConverter
 
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
+    function BoundaryConditionCoupled(other_semi_index,
+                                      indices::Tuple{Vararg{NodeIndex.T}}, uEltype,
                                       coupling_converter)
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
-        if indices[1] in (:begin, :end)
+        if indices[1] in (NodeIndex.Begin, NodeIndex.End)
             other_orientation = 1
-        elseif indices[2] in (:begin, :end)
+        elseif indices[2] in (NodeIndex.Begin, NodeIndex.End)
             other_orientation = 2
-        else # indices[3] in (:begin, :end)
+        else # indices[3] in (NodeIndex.Begin, NodeIndex.End)
             other_orientation = 3
         end
 
@@ -594,11 +593,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
     linear_indices = LinearIndices(size(mesh_other))
 
-    if other_orientation == 1
-        cells = axes(mesh_other, 2)
-    else # other_orientation == 2
-        cells = axes(mesh_other, 1)
-    end
+    cells = other_orientation == 1 ? axes(mesh_other, 2) : axes(mesh_other, 1)
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
