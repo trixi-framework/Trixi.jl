@@ -4136,12 +4136,13 @@ end
 @testitem "Unit: DGMultiMesh mesh file with approximation type" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The approximation type is stored in the mesh file to reconstruct the `RefElemData`
     # with the correct nodes when loading the mesh
-    for (element_type, approximation_type) in ((Tri(), Polynomial()), (Tri(), SBP()),
-                                               (Quad(), SBP()), (Quad(), GaussSBP()),
+    for (element_type, approximation_type) in ((Tri(), Polynomial()),
+                                               (Tri(), SBP()),
+                                               (Quad(), SBP()),
+                                               (Quad(), GaussSBP()),
                                                (Tri(), SBP{Trixi.StartUpDG.Hicken}()),
                                                (Tri(),
-                                                SBP{Trixi.StartUpDG.Kubatko{
-                                                    Trixi.StartUpDG.LegendreFaceNodes}}()))
+                                                SBP{Trixi.StartUpDG.Kubatko{Trixi.StartUpDG.LegendreFaceNodes}}()))
         dg = DGMulti(polydeg = 3, element_type = element_type,
                      approximation_type = approximation_type)
         approximation_type_str = Trixi.get_approximation_type_string(dg.basis.approximation_type)
