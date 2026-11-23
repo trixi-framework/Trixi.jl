@@ -16,7 +16,9 @@
 # work array (pad) that holds the subcells of the macro-cell and `nhalo` halo subcells
 # on each side. The pipeline of each RHS evaluation is, per macro-cell,
 #   1. gather the subcells and the halos (from the neighbors or the ghost subcells of
-#      physical boundaries) into the pad of the thread,
+#      physical boundaries) into the pad of the thread; only the halo subcells read by
+#      the reconstruction are filled (`nhalo - 1` at -x towards a neighbor, whose
+#      macro-cell computes the face at -x),
 #   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
 #      the averages),
 #   3. transformation to the reconstruction variables,
@@ -109,9 +111,13 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
 
 - `surface_flux`: numerical flux at the subcell faces, e.g.,
   [`flux_lax_friedrichs`](@ref) or [`flux_hllc`](@ref).
-- `reconstruction`: [`ReconstructionConstant`](@ref) or [`ReconstructionMUSCL`](@ref).
-  The reconstruction reads the neighboring macro-cells through `nhalo` halo subcells
-  per side, which requires `n_cells >= nhalo`.
+- `reconstruction`: [`ReconstructionConstant`](@ref) (first order, `nhalo = 1`),
+  [`ReconstructionMUSCL`](@ref) (second order, `nhalo = 2`), or
+  [`ReconstructionWENO5JS`](@ref)/[`ReconstructionWENO5Z`](@ref) (fifth order for
+  smooth solutions, `nhalo = 3`). The reconstruction reads the neighboring macro-cells
+  through `nhalo` halo subcells per side, which requires `n_cells >= nhalo`.
+  Orders above two require subcell averages as initial data, see
+  `initial_condition_nodes`.
 - `moment_inversion`: conversion of the subcell averages to point values before the
   reconstruction; currently [`MomentInversionIdentity`](@ref) (the averages are used as
   point values).

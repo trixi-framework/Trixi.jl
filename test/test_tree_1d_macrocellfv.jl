@@ -182,6 +182,96 @@ end
                         tspan=(0.0, 0.1))
 end
 
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        l2=[0.0006554009131478032],
+                        linf=[0.0012318160241164833])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
+end
+
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl with WENO5-JS" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        l2=[0.0008736186419141591],
+                        linf=[0.002023947818738492],
+                        reconstruction=ReconstructionWENO5JS())
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
+end
+
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl convergence" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # Orders of the errors against the exact subcell averages, with a small time step
+    # (fourth-order time integration): fifth order of WENO5-Z; WENO5-JS loses accuracy
+    # at the critical points of the solution on these coarse meshes
+    for (reconstruction, eoc_min) in ((ReconstructionWENO5Z(), 4.8),
+                                      (ReconstructionWENO5JS(), 4.2))
+        errors = map((3, 4)) do level
+            trixi_include(@__MODULE__,
+                          joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl");
+                          reconstruction, initial_refinement_level = level,
+                          stepsize_callback = StepsizeCallback(cfl = 0.2))
+            return subcell_average_error(@__MODULE__)
+        end
+        @test log2(errors[1] / errors[2]) > eoc_min
+    end
+end
+
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl block decomposition" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # The same subcells split into blocks of 3 subcells (the halo width of WENO5, so
+    # that the halos span whole neighbors) and into 1 block give the same
+    # solution up to round-off errors (the subcell centers, and thus the initial
+    # subcell averages, differ by a few ulps between the decompositions, which the
+    # nonlinear WENO weights amplify slightly; an error in the halos would give
+    # differences of the order of the truncation error): periodic advection with 48
+    # subcells
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        n_cells=48, initial_refinement_level=0, tspan=(0.0, 0.1))
+    u_1block = copy(sol.u[end])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        n_cells=3, initial_refinement_level=4, tspan=(0.0, 0.1))
+    @test isapprox(u_1block, sol.u[end]; atol = 1.0e-13, rtol = 0)
+end
+
+@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl block decomposition" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # The same 96 subcells split into 2 blocks and into blocks of 3 subcells (the halo
+    # width of WENO5) give the same solution up to round-off errors, also with ghost
+    # subcells at the transmissive boundaries
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        n_cells=48, initial_refinement_level=1, tspan=(0.0, 0.1))
+    u_2blocks = copy(sol.u[end])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        n_cells=3, initial_refinement_level=5, tspan=(0.0, 0.1))
+    @test isapprox(u_2blocks, sol.u[end]; atol = 1.0e-13, rtol = 0)
+end
+
+@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        l2=[1.1929652719920263, 4.23670862934106, 15.323415000350867],
+                        linf=[3.25549904946853, 11.435937173461083, 38.31689116352348],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
+end
+
 @testitem "MacroCellFV 1D: types" setup=[Setup] tags=[:tree_part1] begin
     solver = MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
                          reconstruction = ReconstructionMUSCL(vanleer))
@@ -209,6 +299,15 @@ end
     @test_throws ArgumentError MacroCellFV(n_cells = 4,
                                            surface_flux = flux_lax_friedrichs,
                                            initial_condition_nodes = 0)
+
+    solver_weno = MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
+                              reconstruction = ReconstructionWENO5Z())
+    @test Trixi.nhalo(solver_weno) == 3
+    @test Trixi.nhalo(MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
+                                  reconstruction = ReconstructionWENO5JS())) == 3
+    @test ReconstructionWENO5JS().epsilon == 1.0e-6
+    @test ReconstructionWENO5Z().epsilon == 1.0e-40
+    @test ReconstructionWENO5Z(epsilon = 1.0f-20).epsilon isa Float32
     # The halos are copied from the direct neighbors, so the halo width is limited by
     # the number of subcells per macro-cell (MUSCL: 2 halo subcells)
     mesh = TreeMesh(0.0, 1.0, initial_refinement_level = 2, periodicity = true)
@@ -219,8 +318,16 @@ end
                                                                         surface_flux = flux_lax_friedrichs,
                                                                         reconstruction = ReconstructionMUSCL());
                                                             boundary_conditions = boundary_condition_periodic)
+    # WENO5: 3 halo subcells
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh,
+                                                            LinearScalarAdvectionEquation1D(1.0),
+                                                            initial_condition_constant,
+                                                            MacroCellFV(n_cells = 2,
+                                                                        surface_flux = flux_lax_friedrichs,
+                                                                        reconstruction = ReconstructionWENO5Z());
+                                                            boundary_conditions = boundary_condition_periodic)
 
-    for item in (solver, solver.volume_integral)
+    for item in (solver, solver.volume_integral, solver_weno.volume_integral)
         @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                           item)
         @test_nowarn show(IOContext(IOBuffer(), :compact => false),
@@ -241,6 +348,11 @@ end
     du_ode = similar(u_ode)
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
     du_first = copy(du_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+    @test du_ode == du_first
+    # Only the halo cells read by the reconstruction are filled and transformed: with a
+    # left neighbor, the first pad cell is neither filled nor read
+    foreach(pad -> fill!(pad, NaN), semi.cache.pad_threaded)
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
     @test du_ode == du_first
     # The pads hold `n_cells + 2 nhalo` subcells

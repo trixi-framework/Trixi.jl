@@ -8,7 +8,10 @@
 # Thread-local pads `pad[v, a]` with the pad index `a = i + nhalo` for the subcell `i`
 # of the current element; the halo cells `a <= nhalo` and `a > n + nhalo` hold the
 # subcells of the neighboring elements or the ghost subcells of physical boundaries.
-# The neighbors of each element are looked up in `neighbor_elements[side, element]`
+# Only the halo cells read by the reconstruction are filled: the face at -x of the
+# element is computed by the left neighbor, so with a left neighbor the stencils reach
+# only `nhalo - 1` cells to the left and the pad cell `a = 1` stays unused; at a physical
+# boundary at -x, the boundary face needs all `nhalo` ghost subcells. The neighbors of each element are looked up in `neighbor_elements[side, element]`
 # (`side = 1` at -x, `2` at +x; `0` at a physical boundary) and the boundaries in
 # `boundary_ids[side, element]`.
 function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
@@ -96,8 +99,9 @@ function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sid
     g = nhalo(dg)
     n = nnodes(dg)
 
-    gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
-    invert_and_transform_pad!(pad, volume_integral.moment_inversion, equations,
+    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
+                          cache)
+    invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
                               volume_integral)
     line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
 
@@ -144,7 +148,8 @@ end
 end
 
 # The subcells of `element` and the halos from the neighbors or the ghost subcells of
-# physical boundaries, in conservative variables
+# physical boundaries, in conservative variables. Returns the first filled pad index
+# (`1` at a physical boundary at -x, otherwise `2`).
 @inline function gather_pad!(pad, u, t, element, boundary_conditions_sides, equations,
                              dg, cache)
     @unpack neighbor_elements, boundary_ids = cache
@@ -157,12 +162,15 @@ end
 
     left_element = neighbor_elements[1, element]
     if left_element != 0
-        for k in 1:g, v in eachvariable(equations)
+        # The face at -x is computed by the left neighbor: `g - 1` halo cells suffice
+        for k in 1:(g - 1), v in eachvariable(equations)
             pad[v, g + 1 - k] = u[v, n + 1 - k, left_element]
         end
+        a_first = 2
     else
         gather_boundary_halo!(pad, u, t, boundary_conditions_sides[1], 1,
                               boundary_ids[1, element], element, equations, dg, cache)
+        a_first = 1
     end
 
     right_element = neighbor_elements[2, element]
@@ -175,7 +183,7 @@ end
                               boundary_ids[2, element], element, equations, dg, cache)
     end
 
-    return nothing
+    return a_first
 end
 
 # Periodic meshes have no physical boundaries
@@ -253,17 +261,19 @@ end
     return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
 end
 
-# Without point values, the pad cells are transformed to the reconstruction variables
-@inline function invert_and_transform_pad!(pad, ::MomentInversionIdentity, equations,
-                                           volume_integral)
-    transform_pad!(pad, volume_integral.cons2recon, equations)
+# Without point values, the filled pad cells `a >= a_first` are transformed to the
+# reconstruction variables (the unfilled cell is skipped, since a transformation such as
+# `cons2entropy` may fail for arbitrary values)
+@inline function invert_and_transform_pad!(pad, a_first, ::MomentInversionIdentity,
+                                           equations, volume_integral)
+    transform_pad!(pad, a_first, volume_integral.cons2recon, equations)
     return nothing
 end
 
-@inline transform_pad!(pad, ::typeof(cons2cons), equations) = nothing
+@inline transform_pad!(pad, a_first, ::typeof(cons2cons), equations) = nothing
 
-@inline function transform_pad!(pad, cons2recon, equations)
-    for a in axes(pad, 2)
+@inline function transform_pad!(pad, a_first, cons2recon, equations)
+    for a in a_first:size(pad, 2)
         w = cons2recon(get_pad_vars(pad, equations, a), equations)
         for v in eachvariable(equations)
             pad[v, a] = w[v]

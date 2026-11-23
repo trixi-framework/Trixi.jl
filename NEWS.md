@@ -13,7 +13,8 @@ for human readability.
   on the data structures of `BlockFV`. Each element is evaluated on a thread-local
   padded array with halo subcells of its neighbors (ghost subcells at physical
   boundaries), so that wider reconstruction stencils can be added. Supported
-  reconstructions: `ReconstructionConstant` and `ReconstructionMUSCL`.
+  reconstructions: `ReconstructionConstant`, `ReconstructionMUSCL`, and the fifth-order
+  `ReconstructionWENO5JS` and `ReconstructionWENO5Z`.
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
   serial `P4estMesh{2}`es without AMR. The new equations
   `ConservativeLinearScalarAdvectionEquation2D` and
