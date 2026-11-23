@@ -122,8 +122,8 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
     integral, volume = mapreduce_accelerated(local_plus, 1:num_elements,
-                                                    backend; init,
-                                                    neutral) do element
+                                             backend; init,
+                                             neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
 

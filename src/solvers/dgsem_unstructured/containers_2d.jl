@@ -106,7 +106,9 @@ Base.@propagate_inbounds function get_surface_normal(vec, indices...)
     return surface_vector
 end
 
-function init_elements(mesh::UnstructuredMesh2D, equations, basis, RealT, uEltype)
+# Create element container and initialize element data
+function init_elements(mesh::UnstructuredMesh2D{RealT}, equations, basis,
+                       ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     elements = UnstructuredElementContainer2D{RealT, uEltype}(mesh.n_elements,
                                                               nvariables(equations),
                                                               nnodes(basis))
@@ -409,4 +411,7 @@ function init_boundaries!(boundaries::UnstructuredBoundaryContainer2D, edge_info
 
     return nothing
 end
+
+# Currently only used for debugging/providing info in error/warning messages
+@inline get_boundary_element(boundaries::UnstructuredBoundaryContainer2D, boundary_index) = boundaries.element_id[boundary_index]
 end # @muladd
