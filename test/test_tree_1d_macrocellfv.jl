@@ -96,6 +96,35 @@ end
     @test all(eocs[:linf] .> 1.9)
 end
 
+@testitem "MacroCellFV 1D: initial condition as subcell averages" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # Maximum error of the initial data against the exact subcell averages of
+    # sin(2πx) on 8 * 2^level subcells
+    function initial_average_error(level, initial_condition_nodes)
+        equations = LinearScalarAdvectionEquation1D(1.0)
+        initial_condition(x, t, equations) = SVector(sinpi(2 * x[1]))
+        solver = MacroCellFV(n_cells = 8, surface_flux = flux_lax_friedrichs,
+                             initial_condition_nodes = initial_condition_nodes)
+        mesh = TreeMesh(0.0, 1.0, initial_refinement_level = level, periodicity = true)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        u = Trixi.wrap_array_native(compute_coefficients(0.0, semi), semi)
+        x = semi.cache.elements.node_coordinates # subcell centers
+        h = 1 / (8 * 2^level)
+        u_exact = @. (cospi(2 * (x - h / 2)) - cospi(2 * (x + h / 2))) / (2 * pi * h)
+        return maximum(abs, u .- u_exact)
+    end
+
+    # Point values at the subcell centers: second order
+    errors = [initial_average_error(level, 1) for level in 2:3]
+    @test 1.9 < log2(errors[1] / errors[2]) < 2.1
+    # Gauss-Legendre quadrature with 3 nodes: sixth order
+    errors = [initial_average_error(level, 3) for level in 2:3]
+    @test log2(errors[1] / errors[2]) > 5.8
+end
+
 @testitem "MacroCellFV 1D: constant state and block decomposition" setup=[
     Setup,
     TreeMesh1DMacroCellFV
