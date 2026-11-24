@@ -34,7 +34,7 @@ slope_limiter = minmod
 surface_flux = flux_lax_friedrichs
 solver = MacroCellFV(n_cells = n_cells, surface_flux = surface_flux,
                      reconstruction = ReconstructionMUSCL(slope_limiter),
-                     cons2recon = cons2prim, recon2cons = prim2cons)
+                     center2recon = cons2prim, face2flux = prim2cons)
 
 coordinates_min = 0.0
 coordinates_max = 1.0

@@ -21,10 +21,12 @@
 #      macro-cell computes the face at -x),
 #   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
 #      the averages),
-#   3. transformation to the reconstruction variables,
-#   4. face reconstruction, numerical fluxes, and flux differences in one sweep over the
-#      subcells: each subcell is reconstructed once, and its state at the +x face is
-#      carried to the next face,
+#   3. transformation to the reconstruction variables (`center2recon`),
+#   4. face reconstruction of each subcell (once, both faces, one variable at a time)
+#      into thread-local line buffers,
+#   5. transformation of the face values to the variables of the numerical flux
+#      (`face2flux`), numerical fluxes at all faces of the line, and the flux
+#      differences,
 # followed by the completion of the flux differences of the first subcell of each
 # macro-cell with the interface flux, which is computed only once, by the macro-cell on
 # its left side.
@@ -32,12 +34,15 @@
 # The pad holds the transformed state (reconstruction variables) of a contiguous line of
 # subcells across the macro-cell boundaries. The same kernel thus serves the faces
 # inside a macro-cell and at its boundaries without index branching or repeated
-# variable transformations in the stencils. Each thread owns one pad of `n_cells + 2 nhalo` subcells, so the
-# memory of the pads does not grow with the number of elements.
+# variable transformations in the stencils. Each thread owns one pad of
+# `n_cells + 2 nhalo` subcells and one set of line buffers, so their memory does not grow
+# with the number of elements. Pad and line buffers store each variable contiguously
+# along the line; steps 4 and 5 are loops over the subcells or faces of the line, which
+# vectorize.
 
 """
     VolumeIntegralMacroCellFV(; moment_inversion, reconstruction,
-                                             surface_flux, cons2recon, recon2cons,
+                                             surface_flux, center2recon, face2flux,
                                              initial_condition_nodes)
 
 Volume integral of the [`MacroCellFV`](@ref) solver. It collects the components of the
@@ -48,13 +53,13 @@ directly.
     This code is experimental and may change in any future release.
 """
 struct VolumeIntegralMacroCellFV{MomentInversion, Reconstruction,
-                                 SurfaceFlux, Cons2Recon, Recon2Cons} <:
+                                 SurfaceFlux, Center2Recon, Face2Flux} <:
        AbstractVolumeIntegral
     moment_inversion::MomentInversion
     reconstruction::Reconstruction
     surface_flux::SurfaceFlux
-    cons2recon::Cons2Recon
-    recon2cons::Recon2Cons
+    center2recon::Center2Recon
+    face2flux::Face2Flux
     # Gauss-Legendre nodes per direction for the cell averages of the initial
     # condition (1: point value at the subcell center)
     initial_condition_nodes::Int
@@ -64,15 +69,14 @@ function VolumeIntegralMacroCellFV(;
                                    moment_inversion = MomentInversionIdentity(),
                                    reconstruction = ReconstructionMUSCL(),
                                    surface_flux,
-                                   cons2recon = cons2cons,
-                                   recon2cons = cons2cons,
+                                   center2recon = cons2cons,
+                                   face2flux = cons2cons,
                                    initial_condition_nodes = 1)
     initial_condition_nodes >= 1 ||
         throw(ArgumentError("`initial_condition_nodes` must be at least 1"))
     reconstruction = point_reconstruction(moment_inversion, reconstruction)
     return VolumeIntegralMacroCellFV(moment_inversion, reconstruction,
-                                     surface_flux, cons2recon,
-                                     recon2cons,
+                                     surface_flux, center2recon, face2flux,
                                      Int(initial_condition_nodes))
 end
 
@@ -82,7 +86,8 @@ function Base.show(io::IO, ::MIME"text/plain",
     setup = ["moment inversion" => integral.moment_inversion,
         "reconstruction" => integral.reconstruction,
         "surface flux" => integral.surface_flux,
-        "reconstruction variables" => integral.cons2recon]
+        "reconstruction variables" => integral.center2recon,
+        "flux variables" => integral.face2flux]
     summary_box(io, "VolumeIntegralMacroCellFV", setup)
 end
 
@@ -98,8 +103,8 @@ end
                   surface_flux,
                   reconstruction = ReconstructionMUSCL(),
                   moment_inversion = MomentInversionIdentity(),
-                  cons2recon = cons2cons,
-                  recon2cons = cons2cons,
+                  center2recon = cons2cons,
+                  face2flux = cons2cons,
                   initial_condition_nodes = 1,
                   RealT = Float64)
 
@@ -118,8 +123,17 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
 - `moment_inversion`: conversion of the subcell averages to point values before the
   reconstruction; currently [`MomentInversionIdentity`](@ref) (the averages are used as
   point values).
-- `cons2recon`/`recon2cons`: transformation from conservative variables to the
-  variables used for the reconstruction (e.g., [`cons2prim`](@ref)) and back.
+- `center2recon`: transformation of the subcell values from conservative variables to
+  the variables used for the reconstruction (e.g., [`cons2prim`](@ref)), applied after
+  the moment inversion. With `MomentInversionIdentity`, it acts on the subcell
+  averages, so a nonlinear transformation is only second-order accurate.
+- `face2flux`: transformation of the reconstructed face values to the variables
+  expected by `surface_flux` (conservative variables for the numerical fluxes of
+  Trixi.jl, e.g., [`prim2cons`](@ref) after `center2recon = cons2prim`).
+  The names differ from `cons2recon`/`recon2cons` of the subcell finite volume volume
+  integrals of DGSEM, since the two transformations act at different places: on the
+  subcell values before and on the face values after the reconstruction. This is more 
+  explicit about their function. Potentially primitive flux fuctions should be added. 
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
   for the subcell averages of the initial condition. The default `1` uses the value
   at the subcell center, which is second-order accurate.
@@ -140,8 +154,8 @@ function MacroCellFV(; n_cells = nothing, n_nodes = nothing,
                      surface_flux,
                      reconstruction = ReconstructionMUSCL(),
                      moment_inversion = MomentInversionIdentity(),
-                     cons2recon = cons2cons,
-                     recon2cons = cons2cons,
+                     center2recon = cons2cons,
+                     face2flux = cons2cons,
                      initial_condition_nodes = 1,
                      RealT = Float64)
     if (n_cells === nothing) == (n_nodes === nothing)
@@ -151,7 +165,7 @@ function MacroCellFV(; n_cells = nothing, n_nodes = nothing,
     n_cells = n_cells === nothing ? n_nodes : n_cells
     basis = UniformFiniteVolumeBasis(RealT, n_cells)
     volume_integral = VolumeIntegralMacroCellFV(; moment_inversion, reconstruction,
-                                                surface_flux, cons2recon, recon2cons,
+                                                surface_flux, center2recon, face2flux,
                                                 initial_condition_nodes)
     # The surface integral is not used by the right-hand side, but it keeps the `DG`
     # interface (e.g., for callbacks) intact. As for `BlockFV`, the basis is passed as
@@ -199,14 +213,6 @@ end
     end
 end
 
-# Conversion applied when the pads, ghost buffers, and halo layers are filled (the
-# averages are converted to the reconstruction variables directly)
-@inline function pad_cons2recon(volume_integral::VolumeIntegralMacroCellFV)
-    return pad_cons2recon(has_point_values(volume_integral.moment_inversion),
-                          volume_integral.cons2recon)
-end
-@inline pad_cons2recon(::False, cons2recon) = cons2recon
-
 #####################################################################
 # Coupling of the moment inversion, the reconstruction, and the numerical flux
 # (the schemes are in `schemes/`)
@@ -218,10 +224,10 @@ point_reconstruction(::MomentInversionIdentity, reconstruction) = reconstruction
 # reconstruction variables) on its two sides
 @inline function macrocell_face_flux(w_ll, w_rr, orientation, equations,
                                      volume_integral::VolumeIntegralMacroCellFV)
-    @unpack surface_flux, recon2cons = volume_integral
+    @unpack surface_flux, face2flux = volume_integral
 
-    u_ll = recon2cons(w_ll, equations)
-    u_rr = recon2cons(w_rr, equations)
+    u_ll = face2flux(w_ll, equations)
+    u_rr = face2flux(w_rr, equations)
 
     return surface_flux(u_ll, u_rr, orientation, equations)
 end

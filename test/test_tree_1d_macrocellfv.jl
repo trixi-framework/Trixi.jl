@@ -245,12 +245,16 @@ end
     @test du_ode == du_first
     # Only the halo cells read by the reconstruction are filled and transformed: with a
     # left neighbor, the first pad cell is neither filled nor read
+    # (also the line buffers are written before they are read)
     foreach(pad -> fill!(pad, NaN), semi.cache.pad_threaded)
+    foreach(buffers -> foreach(b -> fill!(b, NaN), buffers),
+            semi.cache.line_buffers_threaded)
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
     @test du_ode == du_first
-    # The pads hold `n_cells + 2 nhalo` subcells
+    # The pads hold `n_cells + 2 nhalo` subcells, each variable contiguously
     @test all(pad -> size(pad) ==
-                     (nvariables(equations), n_cells + 2 * Trixi.nhalo(solver)),
+                     (n_cells + 2 * Trixi.nhalo(solver), nvariables(equations)),
               semi.cache.pad_threaded)
     @test length(semi.cache.pad_threaded) == Threads.maxthreadid()
+    @test length(semi.cache.line_buffers_threaded) == Threads.maxthreadid()
 end
