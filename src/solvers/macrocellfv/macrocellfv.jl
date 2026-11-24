@@ -130,10 +130,12 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
 - `face2flux`: transformation of the reconstructed face values to the variables
   expected by `surface_flux` (conservative variables for the numerical fluxes of
   Trixi.jl, e.g., [`prim2cons`](@ref) after `center2recon = cons2prim`).
-  The names differ from `cons2recon`/`recon2cons` of the subcell finite volume volume
-  integrals of DGSEM, since the two transformations act at different places: on the
-  subcell values before and on the face values after the reconstruction. This is more 
-  explicit about their functions. Potentially primitive flux fuctions should be added.
+  The names differ from `cons2recon`/`recon2cons` of the subcell finite volume methods
+  in the DGSEM volume integrals, since the two transformations act at different places:
+  on the subcell values before and on the face values after the reconstruction. A
+  numerical flux that takes the reconstruction variables directly (e.g., primitive
+  variables) can be used with `face2flux = cons2cons`, which avoids the conversion at
+  the faces.
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
   for the subcell averages of the initial condition. The default `1` uses the value
   at the subcell center, which is second-order accurate.
