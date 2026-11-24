@@ -568,8 +568,9 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                                        equations_parabolic, dg, cache)
     end
 
-    # Load the array once, outside of the loop (see `calc_interface_flux!` for
-    # `P4estMesh{3}`)
+    # Load the array once, outside of the loop: the container is mutable and stores
+    # the array (including its size) inline, so that reading the field in the loop
+    # body reloads the size for every interface.
     interfaces_u = cache.interfaces.u
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin

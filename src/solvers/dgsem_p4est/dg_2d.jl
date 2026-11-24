@@ -310,15 +310,18 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         check_axes_aux_interface(aux_interface, equations, dg, cache)
     end
 
-    # Load the array once, outside of the loop (see `calc_interface_flux!` for
-    # `P4estMesh{3}`)
+    # Load the array once, outside of the loop: the container is mutable and stores
+    # the array (including its size) inline, so that reading the field in the loop
+    # body reloads the size for every interface. See `static_view_interfaces` for
+    # the static sizes.
     interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     interfaces_u, aux_interface, interface,
+                                                     interfaces_u, aux_interface,
+                                                     interface,
                                                      neighbor_ids, node_indices,
                                                      contravariant_vectors,
                                                      index_range)
@@ -420,8 +423,10 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
-    # Load the array once, outside of the loop (see `calc_interface_flux!` for
-    # `P4estMesh{3}`)
+    # Load the array once, outside of the loop: the container is mutable and stores
+    # the array (including its size) inline, so that reading the field in the loop
+    # body reloads the size for every interface. See `static_view_interfaces` for
+    # the static sizes.
     interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @threaded for interface in eachinterface(dg, cache)
         @inbounds calc_interface_flux_per_interface!(surface_flux_values, MeshT,

@@ -207,9 +207,11 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::BlockFV, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
-    # Load the array once, outside of the loop (see `calc_interface_flux!` for
-    # `P4estMesh{3}`)
-    interfaces_u = cache.interfaces.u
+    # Load the array once, outside of the loop: the container is mutable and stores
+    # the array (including its size) inline, so that reading the field in the loop
+    # body reloads the size for every interface. See `static_view_interfaces` for
+    # the static sizes.
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @unpack normal_x, normal_y = cache
     index_range = eachnode(dg)
     index_end = last(index_range)

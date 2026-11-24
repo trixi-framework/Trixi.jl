@@ -80,6 +80,11 @@ in each cell of the mesh and the `surface_flux` as numerical flux.
 """
 const BlockFV = DG{Basis} where {Basis <: UniformFiniteVolumeBasis}
 
+# The number of nodes of the `UniformFiniteVolumeBasis` is known at compile time
+@inline function static_view_interfaces(u::VectorBackedArray, equations, dg::BlockFV)
+    return wrap_interfaces_static(u, equations, dg)
+end
+
 function BlockFV(; n_nodes::Integer,
                  surface_flux,
                  RealT = Float64)
