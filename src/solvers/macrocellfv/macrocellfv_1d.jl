@@ -120,9 +120,9 @@ function calc_macrocell_element!(du, pad, line_buffers, u, t, element,
     # transformation to the reconstruction variables
     a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
                           cache)
-    invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
-                              volume_integral)
-    line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
+    line_pad = pad_moment_inversion!(pad, a_first, volume_integral.moment_inversion,
+                                     equations)
+    pad_center2recon!(line_pad, a_first, volume_integral.center2recon, equations)
 
     # The first face: the boundary face at -x (between the ghost subcell 0 and the
     # subcell 1) at a physical boundary, otherwise the +x face of the subcell 1
@@ -154,7 +154,7 @@ end
 
 # Reconstruct the subcells `c_first:c_last` of the line in the pad, one variable at a
 # time (vectorized over the subcells). The passes over the line are separate (not
-# inlined) functions: inlined into the element kernel, their loops are not vectorized.
+# inlined) functions. Inlined into the element kernel, their loops were not vectorized.
 # The pad has `nhalo(dg) >= nhalo(reconstruction)` halo cells on each side, so the
 # stencils of the subcells `0:(n + 1)` lie inside the pad (checked by the test suite
 # with `--check-bounds=yes`).
@@ -318,29 +318,27 @@ Base.@propagate_inbounds function get_pad_vars(pad, equations, a)
     return SVector(ntuple(@inline(v->@inbounds(pad[a, v])), Val(nvariables(equations))))
 end
 
-# Without point values, the filled pad cells `a >= a_first` are transformed to the
-# reconstruction variables (the unfilled cell is skipped, since a transformation such as
-# `cons2entropy` may fail for arbitrary values)
-@inline function invert_and_transform_pad!(pad, a_first, ::MomentInversionIdentity,
-                                           equations, volume_integral)
-    transform_pad!(pad, a_first, volume_integral.cons2recon, equations)
-    return nothing
+# Moment inversion of the filled pad cells `a >= a_first`; returns the pad read by the
+# reconstruction (`MomentInversionIdentity`: the averages in the pad itself)
+@inline function pad_moment_inversion!(pad, a_first, ::MomentInversionIdentity,
+                                       equations)
+    return pad
 end
 
-@inline transform_pad!(pad, a_first, ::typeof(cons2cons), equations) = nothing
+# Transformation of the filled pad cells `a >= a_first` to the reconstruction variables
+# (the unfilled cell is skipped, since a transformation such as `cons2entropy` may fail
+# for arbitrary values)
+@inline pad_center2recon!(pad, a_first, ::typeof(cons2cons), equations) = nothing
 
-@inline function transform_pad!(pad, a_first, cons2recon, equations)
+@inline function pad_center2recon!(pad, a_first, center2recon, equations)
     @inbounds for a in a_first:size(pad, 1)
-        w = cons2recon(get_pad_vars(pad, equations, a), equations)
+        w = center2recon(get_pad_vars(pad, equations, a), equations)
         for v in eachvariable(equations)
             pad[a, v] = w[v]
         end
     end
     return nothing
 end
-
-# Pad as seen by the reconstruction (the pad itself without point values)
-@inline macrocell_pad_1d(pad, ::False) = pad
 
 # Inverse subcell width of `element` (`inverse_jacobian = 2 / dx` of the element)
 @inline function inv_subcell_width(mesh::TreeMesh{1}, dg::MacroCellFV, cache,
