@@ -10,7 +10,6 @@
 
 """
     ReconstructionWENO5JS(; epsilon = 1.0e-6)
-    ReconstructionWENO5Z(; epsilon = 1.0e-40)
 
 Fifth-order weighted essentially non-oscillatory (WENO) reconstruction of the face
 states of each subcell from the five cell averages centered at the subcell, applied
@@ -28,8 +27,9 @@ and `ReconstructionWENO5Z` the weights of
   conservation laws
   [DOI: 10.1016/j.jcp.2007.11.038](https://doi.org/10.1016/j.jcp.2007.11.038)
 
-(with the exponent 1 of the global smoothness ratio). `epsilon` avoids divisions by
-zero in the nonlinear weights.
+(with the exponent 1 of the global smoothness ratio), see
+[`ReconstructionWENO5Z`](@ref). `epsilon` avoids divisions by zero in the nonlinear
+weights.
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -41,10 +41,14 @@ end
 ReconstructionWENO5JS(; epsilon = 1.0e-6) = ReconstructionWENO5JS(epsilon)
 
 """
-    ReconstructionWENO5Z(; epsilon = 1.0e-40)
+    ReconstructionWENO5Z(; epsilon = nothing)
 
 WENO5 reconstruction with the WENO-Z weights of Borges et al. (2008); see
-[`ReconstructionWENO5JS`](@ref).
+[`ReconstructionWENO5JS`](@ref). The default `epsilon = nothing` uses
+`max(1.0e-40, sqrt(floatmin(RealT)))` in the floating point type `RealT` of the
+solution, i.e., `1.0e-40` for `Float64` and about `1.1e-19` for `Float32`. A smaller
+`epsilon` lets the factor `1 + tau5 / (beta + epsilon)` of a smooth substencil next to
+a discontinuity overflow.
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -53,7 +57,7 @@ struct ReconstructionWENO5Z{RealT}
     epsilon::RealT
 end
 
-ReconstructionWENO5Z(; epsilon = 1.0e-40) = ReconstructionWENO5Z(epsilon)
+ReconstructionWENO5Z(; epsilon = nothing) = ReconstructionWENO5Z(epsilon)
 
 const ReconstructionWENO5 = Union{ReconstructionWENO5JS, ReconstructionWENO5Z}
 
@@ -115,9 +119,16 @@ end
 
 @inline function weno5_factors(reconstruction::ReconstructionWENO5Z, beta0, beta1,
                                beta2)
-    epsilon = convert(typeof(beta0), reconstruction.epsilon)
+    epsilon = weno5z_epsilon(reconstruction.epsilon, typeof(beta0))
     tau5 = abs(beta0 - beta2)
     return (1 + tau5 / (beta0 + epsilon), 1 + tau5 / (beta1 + epsilon),
             1 + tau5 / (beta2 + epsilon))
+end
+
+# `epsilon` of WENO-Z in the type `RealT` (default: `1.0e-40`, at least
+# `sqrt(floatmin(RealT))`, see `ReconstructionWENO5Z`)
+@inline weno5z_epsilon(epsilon, RealT) = convert(RealT, epsilon)
+@inline function weno5z_epsilon(::Nothing, RealT)
+    return max(convert(RealT, 1.0e-40), sqrt(floatmin(RealT)))
 end
 end # @muladd

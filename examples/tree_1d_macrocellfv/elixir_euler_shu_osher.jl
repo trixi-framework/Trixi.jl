@@ -30,7 +30,10 @@ initial_condition = initial_condition_shu_osher
 
 # Macro-cell finite volume solver with WENO5-Z reconstruction of the conservative
 # variables from the subcell averages. The initial condition is set to the subcell
-# averages (Gauss-Legendre quadrature with 5 nodes per subcell).
+# averages (Gauss-Legendre quadrature with 5 nodes per subcell). The primitive
+# variables can be reconstructed instead with `center2recon = cons2prim` and
+# `face2flux = prim2cons` (then only second-order accurate for smooth solutions, since
+# `cons2prim` acts on the subcell averages).
 n_cells = 8
 surface_flux = flux_hllc
 reconstruction = ReconstructionWENO5Z()

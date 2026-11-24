@@ -141,8 +141,9 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
   variables) can be used with `face2flux = cons2cons`, which avoids the conversion at
   the faces.
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
-  for the subcell averages of the initial condition. The default `1` uses the value
-  at the subcell center, which is second-order accurate.
+  for the subcell averages of the initial condition and of the ghost subcells of
+  Dirichlet boundaries. The default `1` uses the value at the subcell center, which is
+  second-order accurate.
 
 With `reconstruction = ReconstructionConstant()`, the right-hand side is identical to
 the one of `BlockFV(; n_nodes = n_cells, surface_flux)`.

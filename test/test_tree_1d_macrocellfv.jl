@@ -11,11 +11,15 @@
     # the `AnalysisCallback` compare the averages with point values, which is only
     # second-order accurate)
     function subcell_average_error(sol, semi)
-        u = Trixi.wrap_array_native(sol.u[end], semi)
-        u_exact = Trixi.wrap_array_native(Trixi.compute_coefficients(sol.t[end], semi),
-                                          semi)
-        difference = selectdim(u, 1, 1) .- selectdim(u_exact, 1, 1)
-        return sqrt(sum(abs2, difference) / length(difference))
+        # `wrap_array_native` does not keep the wrapped vectors alive
+        u_ode = sol.u[end]
+        u_exact_ode = Trixi.compute_coefficients(sol.t[end], semi)
+        GC.@preserve u_ode u_exact_ode begin
+            u = Trixi.wrap_array_native(u_ode, semi)
+            u_exact = Trixi.wrap_array_native(u_exact_ode, semi)
+            difference = selectdim(u, 1, 1) .- selectdim(u_exact, 1, 1)
+            return sqrt(sum(abs2, difference) / length(difference))
+        end
     end
 
     # The same for `sol` and `semi` defined in `mod` by a preceding `trixi_include`
@@ -110,11 +114,15 @@ end
         mesh = TreeMesh(0.0, 1.0, initial_refinement_level = level, periodicity = true)
         semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                             boundary_conditions = boundary_condition_periodic)
-        u = Trixi.wrap_array_native(compute_coefficients(0.0, semi), semi)
-        x = semi.cache.elements.node_coordinates # subcell centers
-        h = 1 / (8 * 2^level)
-        u_exact = @. (cospi(2 * (x - h / 2)) - cospi(2 * (x + h / 2))) / (2 * pi * h)
-        return maximum(abs, u .- u_exact)
+        # `wrap_array_native` does not keep `u_ode` alive
+        u_ode = compute_coefficients(0.0, semi)
+        GC.@preserve u_ode begin
+            u = Trixi.wrap_array_native(u_ode, semi)
+            x = semi.cache.elements.node_coordinates # subcell centers
+            h = 1 / (8 * 2^level)
+            u_exact = @. (cospi(2 * (x - h / 2)) - cospi(2 * (x + h / 2))) / (2 * pi * h)
+            return maximum(abs, u .- u_exact)
+        end
     end
 
     # Point values at the subcell centers: second order
@@ -225,6 +233,24 @@ end
     end
 end
 
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl convergence with Dirichlet boundaries" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # Dirichlet boundaries with the exact solution: the ghost subcells hold the averages
+    # of the boundary values (with the quadrature of the initial condition), so that
+    # WENO5-Z keeps its order (point values at the ghost subcell centers would reduce
+    # it to second order)
+    errors = map((3, 4)) do level
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl");
+                      initial_refinement_level = level, periodicity = false,
+                      stepsize_callback = StepsizeCallback(cfl = 0.2))
+        return subcell_average_error(@__MODULE__)
+    end
+    @test log2(errors[1] / errors[2]) > 4.5
+end
+
 @testitem "MacroCellFV 1D: elixir_advection_high_order.jl block decomposition" setup=[
     Setup,
     TreeMesh1DMacroCellFV
@@ -297,6 +323,38 @@ end
         errors_fine = face_errors(reconstruction, 0.05)
         @test all(log2.(errors_coarse ./ errors_fine) .> 4.8)
     end
+    # Float32: a constant state next to a step (zero smoothness indicators of two
+    # substencils) gives finite face values with the default `epsilon` of WENO-Z
+    for reconstruction in (ReconstructionWENO5JS(), ReconstructionWENO5Z())
+        w_minus, w_plus = Trixi.weno5_cell(reconstruction, 0.0f0, 0.0f0, 0.0f0, 0.0f0,
+                                           1.0f0)
+        @test w_minus isa Float32
+        @test isfinite(w_minus) && isfinite(w_plus)
+    end
+end
+
+@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl with Float32" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # One right-hand side evaluation in Float32 for the initial condition, which has
+    # constant states next to the shock
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        tspan=(0.0, 0.0))
+    solver_f32 = MacroCellFV(n_cells = n_cells, surface_flux = surface_flux,
+                             reconstruction = reconstruction,
+                             initial_condition_nodes = 5, RealT = Float32)
+    mesh_f32 = TreeMesh(-5.0f0, 5.0f0, initial_refinement_level = 5,
+                        periodicity = false, RealT = Float32)
+    equations_f32 = CompressibleEulerEquations1D(1.4f0)
+    semi_f32 = SemidiscretizationHyperbolic(mesh_f32, equations_f32, initial_condition,
+                                            solver_f32;
+                                            boundary_conditions = boundary_condition_do_nothing)
+    u_ode = compute_coefficients(0.0f0, semi_f32)
+    du_ode = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_f32, 0.0f0)
+    @test eltype(du_ode) == Float32
+    @test all(isfinite, du_ode)
 end
 
 @testitem "MacroCellFV 1D: types" setup=[Setup] tags=[:tree_part1] begin
@@ -333,8 +391,12 @@ end
     @test Trixi.nhalo(MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
                                   reconstruction = ReconstructionWENO5JS())) == 3
     @test ReconstructionWENO5JS().epsilon == 1.0e-6
-    @test ReconstructionWENO5Z().epsilon == 1.0e-40
+    # WENO-Z: default `epsilon = 1.0e-40`, at least `sqrt(floatmin)` of the solution type
+    @test ReconstructionWENO5Z().epsilon === nothing
+    @test Trixi.weno5z_epsilon(nothing, Float64) === 1.0e-40
+    @test Trixi.weno5z_epsilon(nothing, Float32) === sqrt(floatmin(Float32))
     @test ReconstructionWENO5Z(epsilon = 1.0f-20).epsilon isa Float32
+    @test Trixi.weno5z_epsilon(1.0f-20, Float32) === 1.0f-20
     # The halos are copied from the direct neighbors, so the halo width is limited by
     # the number of subcells per macro-cell (MUSCL: 2 halo subcells)
     mesh = TreeMesh(0.0, 1.0, initial_refinement_level = 2, periodicity = true)

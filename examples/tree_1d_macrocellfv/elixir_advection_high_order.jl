@@ -30,12 +30,17 @@ solver = MacroCellFV(n_cells = n_cells, surface_flux = flux_lax_friedrichs,
 coordinates_min = 0.0
 coordinates_max = 1.0
 initial_refinement_level = 3
+# Periodic boundaries, or Dirichlet boundaries with the exact solution
+# (`periodicity = false`)
+periodicity = true
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
-                periodicity = true)
+                periodicity = periodicity)
 
+boundary_conditions = periodicity ? boundary_condition_periodic :
+                      BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -59,7 +59,14 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
         boundary_ids[side, element] = boundary
     end
 
-    return (; pad_threaded, line_buffers_threaded, neighbor_elements, boundary_ids)
+    # Gauss-Legendre quadrature on [-1, 1] for the subcell averages of the initial
+    # condition and of the Dirichlet ghost subcells
+    nodes, weights = gauss_nodes_weights(volume_integral.initial_condition_nodes,
+                                         real(dg))
+    subcell_quadrature = (; nodes, weights)
+
+    return (; pad_threaded, line_buffers_threaded, neighbor_elements, boundary_ids,
+            subcell_quadrature)
 end
 
 function resize_cache_volume_integral!(cache, mesh::TreeMesh{1},
@@ -264,8 +271,8 @@ end
         # Index of the ghost subcell `layer` in the pad
         a = side == 1 ? g + 1 - layer : g + n + layer
         x_ghost = SVector(x_face + (layer - 0.5f0) * h * normal)
-        u_ghost = macrocell_ghost_layer(boundary_condition, interior, layer, x_ghost, t,
-                                        equations)
+        u_ghost = macrocell_ghost_layer(boundary_condition, interior, layer, x_ghost, h,
+                                        t, cache.subcell_quadrature, equations)
         for v in eachvariable(equations)
             pad[a, v] = u_ghost[v]
         end
@@ -291,24 +298,34 @@ end
 end
 
 # Transmissive boundary: the ghost subcells mirror the interior subcells
-@inline function macrocell_ghost_state(::BoundaryConditionDoNothing, u_mirror, x, t,
-                                       equations)
+@inline function macrocell_ghost_state(::BoundaryConditionDoNothing, u_mirror, x, h, t,
+                                       quadrature, equations)
     return u_mirror
 end
 
-# Dirichlet boundary: the boundary values evaluated at the ghost subcell centers
+# Dirichlet boundary: the averages of the boundary values over the ghost subcells (of
+# width `h`, centered at `x`) with the quadrature of the initial condition, see
+# `initial_condition_nodes` (with one node: the value at the ghost subcell center)
 @inline function macrocell_ghost_state(boundary_condition::BoundaryConditionDirichlet,
-                                       u_mirror, x, t, equations)
-    return boundary_condition.boundary_value_function(x, t, equations)
+                                       u_mirror, x, h, t, quadrature, equations)
+    @unpack boundary_value_function = boundary_condition
+    @unpack nodes, weights = quadrature
+    u_avg = 0.5f0 * weights[1] *
+            boundary_value_function(SVector(x[1] + 0.5f0 * h * nodes[1]), t, equations)
+    for q in 2:length(nodes)
+        x_q = SVector(x[1] + 0.5f0 * h * nodes[q])
+        u_avg = u_avg + 0.5f0 * weights[q] * boundary_value_function(x_q, t, equations)
+    end
+    return u_avg
 end
 
 # Ghost state of the halo layer `layer` (1 next to the face) of a boundary face;
 # `interior(l)` returns the conservative variables of the interior subcell `l` (1 next
 # to the face), which is the mirror image of the ghost subcell `layer = l`
-@inline function macrocell_ghost_layer(boundary_condition, interior, layer, x_ghost, t,
-                                       equations)
-    return macrocell_ghost_state(boundary_condition, interior(layer), x_ghost, t,
-                                 equations)
+@inline function macrocell_ghost_layer(boundary_condition, interior, layer, x_ghost, h,
+                                       t, quadrature, equations)
+    return macrocell_ghost_state(boundary_condition, interior(layer), x_ghost, h, t,
+                                 quadrature, equations)
 end
 
 # Read the state vector (conservative or reconstruction variables) of pad cell `a`
@@ -357,7 +374,7 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::TreeMesh{1},
                             AbstractMesh{1}, typeof(equations), DG, typeof(cache)},
                       backend, u, func, t, mesh, equations, dg, cache)
     end
-    nodes, weights = gauss_nodes_weights(n_quadrature, real(dg))
+    @unpack nodes, weights = cache.subcell_quadrature
     @threaded for element in eachelement(dg, cache)
         h = 1 / inv_subcell_width(mesh, dg, cache, element)
         for i in eachnode(dg)
