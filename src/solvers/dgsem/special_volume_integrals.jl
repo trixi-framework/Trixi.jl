@@ -18,9 +18,9 @@ end
 
 # The storage created by `create_cache_subcell_fv` is checked by
 # `check_axes_subcell_fv`, which dispatches on the mesh type as well.
-function check_axes_volume_integral(mesh, equations,
-                                    volume_integral::AbstractVolumeIntegralSubcell,
-                                    dg::DGSEM, cache)
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::AbstractVolumeIntegralSubcell,
+                                            dg::DGSEM, cache)
     check_axes_subcell_fv(mesh, equations, dg, cache)
 
     return nothing
@@ -30,9 +30,9 @@ end
 # subcell interfaces, i.e., for the nodes `2:nnodes(dg)`. The coordinates are computed
 # from the `basis` passed to the constructor, which must have as many nodes as the
 # basis of the solver `dg`.
-function check_axes_volume_integral(mesh, equations,
-                                    volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                                    dg::DGSEM, cache)
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                                            dg::DGSEM, cache)
     check_axes_subcell_fv(mesh, equations, dg, cache)
     check_axes(volume_integral.sc_interface_coords, (Base.OneTo(nnodes(dg) - 1),))
 
@@ -104,9 +104,9 @@ function resize_cache_volume_integral!(cache, mesh,
     return nothing
 end
 
-function check_axes_volume_integral(mesh, equations,
-                                    volume_integral::VolumeIntegralEntropyCorrection,
-                                    dg::DGSEM, cache)
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::VolumeIntegralEntropyCorrection,
+                                            dg::DGSEM, cache)
     (; indicator) = volume_integral
     check_axes(indicator.cache.alpha, (eachelement(dg, cache),))
     check_axes_volume_integral_values_threaded(indicator, mesh, equations, dg)
@@ -129,9 +129,9 @@ end
 # The blending factors of `indicator_shock_capturing` are resized lazily when the
 # indicator is called and are checked in `calc_volume_integral!` afterward. The
 # blending factors of `indicator_entropy_correction` are not used.
-function check_axes_volume_integral(mesh, equations,
-                                    volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
-                                    dg::DGSEM, cache)
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                            dg::DGSEM, cache)
     (; indicator_entropy_correction) = volume_integral.indicator
     check_axes_volume_integral_values_threaded(indicator_entropy_correction,
                                                mesh, equations, dg)
@@ -161,8 +161,8 @@ function create_cache_volume_integral(mesh, equations,
     return NamedTuple()
 end
 
-function check_axes_volume_integral_values_threaded(indicator::IndicatorEntropyCorrection,
-                                                    mesh, equations, dg::DGSEM)
+@inline function check_axes_volume_integral_values_threaded(indicator::IndicatorEntropyCorrection,
+                                                            mesh, equations, dg::DGSEM)
     check_axes_threaded(indicator.cache.volume_integral_values_threaded,
                         (eachvariable(equations),
                          ntuple(_ -> eachnode(dg), Val(ndims(mesh)))...))

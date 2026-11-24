@@ -95,8 +95,9 @@ end
 # `cache` and its per-instance state, has the axes we assume in the inner loops of
 # Trixi.jl. This allows assuming inbounds access in the kernels of the volume integral.
 # By default, there is nothing to check.
-function check_axes_volume_integral(mesh, equations,
-                                    volume_integral::AbstractVolumeIntegral, dg, cache)
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::AbstractVolumeIntegral, dg,
+                                            cache)
     return nothing
 end
 

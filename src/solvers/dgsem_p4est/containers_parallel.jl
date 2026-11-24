@@ -75,8 +75,9 @@ end
 
 # Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_interfaces::P4estMPIInterfaceContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
+@inline function check_axes(mpi_interfaces::P4estMPIInterfaceContainer{NDIMS},
+                            equations,
+                            solver::DG, cache) where {NDIMS}
     check_axes(mpi_interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 ntuple(_ -> eachnode(solver), NDIMS - 1)...,

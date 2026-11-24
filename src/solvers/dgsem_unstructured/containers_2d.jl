@@ -67,8 +67,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::UnstructuredElementContainer2D, equations,
-                    solver::DG, cache)
+@inline function check_axes(elements::UnstructuredElementContainer2D, equations,
+                            solver::DG, cache)
     check_axes(elements.node_coordinates,
                (Base.OneTo(2),
                 eachnode(solver), eachnode(solver),
@@ -187,8 +187,8 @@ end
 
 # Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(interfaces::UnstructuredInterfaceContainer2D, equations,
-                    solver::DG, cache)
+@inline function check_axes(interfaces::UnstructuredInterfaceContainer2D, equations,
+                            solver::DG, cache)
     check_axes(interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -345,8 +345,8 @@ end
 
 # Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(boundaries::UnstructuredBoundaryContainer2D, equations,
-                    solver::DG, cache)
+@inline function check_axes(boundaries::UnstructuredBoundaryContainer2D, equations,
+                            solver::DG, cache)
     check_axes(boundaries.u,
                (eachvariable(equations),
                 eachnode(solver),

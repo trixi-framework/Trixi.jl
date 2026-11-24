@@ -68,7 +68,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::TreeElementContainer1D, equations, solver::DG, cache)
+@inline function check_axes(elements::TreeElementContainer1D, equations, solver::DG,
+                            cache)
     check_axes(elements.node_coordinates,
                (Base.OneTo(1),
                 eachnode(solver),
@@ -183,7 +184,8 @@ end
 
 # Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(interfaces::TreeInterfaceContainer1D, equations, solver::DG, cache)
+@inline function check_axes(interfaces::TreeInterfaceContainer1D, equations, solver::DG,
+                            cache)
     check_axes(interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachinterface(solver, cache)))
@@ -352,7 +354,8 @@ end
 
 # Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG, cache)
+@inline function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG,
+                            cache)
     check_axes(boundaries.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachboundary(solver, cache)))

@@ -69,7 +69,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::TreeElementContainer2D, equations, solver::DG, cache)
+@inline function check_axes(elements::TreeElementContainer2D, equations, solver::DG,
+                            cache)
     check_axes(elements.node_coordinates,
                (Base.OneTo(2),
                 eachnode(solver), eachnode(solver),
@@ -186,7 +187,8 @@ end
 
 # Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(interfaces::TreeInterfaceContainer2D, equations, solver::DG, cache)
+@inline function check_axes(interfaces::TreeInterfaceContainer2D, equations, solver::DG,
+                            cache)
     check_axes(interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -371,7 +373,8 @@ end
 
 # Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG, cache)
+@inline function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG,
+                            cache)
     check_axes(boundaries.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -676,7 +679,8 @@ end
 
 # Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG, cache)
+@inline function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG,
+                            cache)
     u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
                      eachnode(solver),
                      eachmortar(solver, cache))
@@ -912,8 +916,9 @@ end
 
 # Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations, solver::DG,
-                    cache)
+@inline function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations,
+                            solver::DG,
+                            cache)
     check_axes(mpi_interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -1111,8 +1116,9 @@ end
 
 # Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations, solver::DG,
-                    cache)
+@inline function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations,
+                            solver::DG,
+                            cache)
     u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
                      eachnode(solver),
                      eachmpimortar(solver, cache))

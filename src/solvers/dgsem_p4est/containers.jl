@@ -478,8 +478,8 @@ end
 
 # Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(boundaries::P4estBoundaryContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
+@inline function check_axes(boundaries::P4estBoundaryContainer{NDIMS}, equations,
+                            solver::DG, cache) where {NDIMS}
     check_axes(boundaries.u,
                (eachvariable(equations),
                 ntuple(_ -> eachnode(solver), NDIMS - 1)...,

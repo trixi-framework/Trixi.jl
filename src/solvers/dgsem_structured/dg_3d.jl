@@ -25,9 +25,9 @@ end
 
 # Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
-function check_axes_subcell_fv(mesh::Union{StructuredMesh{3},
-                                           P4estMesh{3}, T8codeMesh{3}},
-                               equations, dg::DG, cache)
+@inline function check_axes_subcell_fv(mesh::Union{StructuredMesh{3},
+                                                   P4estMesh{3}, T8codeMesh{3}},
+                                       equations, dg::DG, cache)
     check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
                           cache.fstar2_L_threaded, cache.fstar2_R_threaded,
                           cache.fstar3_L_threaded, cache.fstar3_R_threaded,

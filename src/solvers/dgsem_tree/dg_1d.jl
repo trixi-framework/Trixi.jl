@@ -55,8 +55,9 @@ end
 
 # Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
-function check_axes_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
-                               dg::DG, cache)
+@inline function check_axes_subcell_fv(mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                       equations,
+                                       dg::DG, cache)
     f1_axes = (eachvariable(equations), Base.OneTo(nnodes(dg) + 1))
     check_axes_threaded(cache.fstar1_L_threaded, f1_axes)
     check_axes_threaded(cache.fstar1_R_threaded, f1_axes)

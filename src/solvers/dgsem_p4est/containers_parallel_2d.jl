@@ -81,8 +81,9 @@ end
 
 # Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_mortars::P4estMPIMortarContainer{2}, equations, solver::DG,
-                    cache)
+@inline function check_axes(mpi_mortars::P4estMPIMortarContainer{2}, equations,
+                            solver::DG,
+                            cache)
     check_axes(mpi_mortars.u,
                (Base.OneTo(2), eachvariable(equations),
                 Base.OneTo(2),
