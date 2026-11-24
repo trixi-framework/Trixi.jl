@@ -375,6 +375,41 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D MHD: elixir_mhd_blast_wave_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_blast_wave_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.3247754116639885,
+                            5.32482192591987,
+                            2.5626277973348754,
+                            0.0,
+                            391.0908977704841,
+                            2.6242851429335765,
+                            1.6778148532197759,
+                            0.0,
+                            0.19832335671838938
+                        ],
+                        linf=[
+                            2.341654720645791,
+                            47.09881753432488,
+                            8.77534574438636,
+                            0.0,
+                            2324.2179160970345,
+                            7.863137423898934,
+                            5.304324907164754,
+                            0.0,
+                            1.0384185858325683
+                        ],
+                        atol=5e-2, # limiters are not smooth, so we need bigger tolerances
+                        rtol=1e-2)
+    # the global cell-average limiter is triggered at least once
+    @test length(global_limiter!.history_davis_yin_iterations) >= 1
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D MHD: elixir_mhd_blast_wave.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
                         l2=[

@@ -42,6 +42,16 @@ the maximum number of Davis-Yin iterations per global limiting step.
 
 If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
 global limiting step is saved to the field `history_davis_yin_iterations` of the limiter.
+
+The projection onto the admissible set is implemented for scalar equations
+(`variables = (first,)`), for `CompressibleEulerEquations1D` and
+`CompressibleEulerEquations2D`, and for the ideal GLM-MHD equations
+(`IdealGlmMhdEquations1D`, `IdealGlmMhdEquations2D`, and `IdealGlmMhdEquations3D`). For
+the latter two, the local limiter must use `variables = (density, energy_internal)` or
+`variables = (density, pressure)`. For the ideal GLM-MHD equations, the projection uses the
+slicing algorithm of Liu, Shu, Zhang (2026) with the divergence cleaning field treated as an
+additional magnetic field component; in one space dimension, the constant normal magnetic
+field component is kept fixed.
 """
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
@@ -68,12 +78,16 @@ end
 
 # For compressible Euler, convert local limiter variables and thresholds
 # to `(rho_floor, rho_e_floor)` with variables `(Trixi.density, energy_internal)`.
+# The same applies to the ideal GLM-MHD equations, whose internal energy also includes
+# the magnetic energy and the energy of the divergence cleaning field.
 function convert_variables_and_thresholds(thresholds, variables,
                                           equations::Union{CompressibleEulerEquations1D,
-                                                           CompressibleEulerEquations2D})
+                                                           CompressibleEulerEquations2D,
+                                                           AbstractIdealGlmMhdEquations})
     if length(thresholds) != 2 || length(variables) != 2
-        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
-              "two limiter variables: one for density and one for internal energy or pressure.")
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler and ideal GLM-MHD ",
+              "requires exactly two limiter variables: one for density and one for ",
+              "internal energy or pressure.")
     end
 
     rho_floor = nothing
@@ -88,14 +102,15 @@ function convert_variables_and_thresholds(thresholds, variables,
             # for ideal gas, p / (gamma - 1) = rho_e
             rho_e_floor = equations.inv_gamma_minus_one * threshold
         else
-            error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
-                  "variables = (density, energy_internal) or (density, pressure) ",
-                  "(in either order); got unsupported variable.")
+            error("PositivityPreservingLimiterLiuZhang for compressible Euler and ideal ",
+                  "GLM-MHD requires variables = (density, energy_internal) or ",
+                  "(density, pressure) (in either order); got unsupported variable.")
         end
     end
     if rho_floor === nothing || rho_e_floor === nothing
-        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
-              "one limiter variable for density and one for internal energy or pressure.")
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler and ideal GLM-MHD ",
+              "requires exactly one limiter variable for density and one for internal ",
+              "energy or pressure.")
     end
 
     # return sorted thresholds and variables

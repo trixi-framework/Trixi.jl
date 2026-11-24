@@ -492,4 +492,114 @@ end
 @inline function a_minus_sqrt_b_rationalized(a, b, sqrt_b)
     return (a * a - b) / (a + sqrt_b)
 end
+
+"""
+    find_zero_brent(f, a, b; reltol = 2 * eps(T), abstol = zero(T), maxiter = 200)
+
+Find a root of the scalar function `f` in the interval `[a, b]`, where `f(a)` and `f(b)`
+must have opposite signs (or one of them must be zero), using the root-finding method of
+- Richard P. Brent (1973)
+  Algorithms for Minimization Without Derivatives, Chapter 4
+  Prentice-Hall
+which combines bisection with the secant method and inverse quadratic interpolation
+(see also `zbrent` in Numerical Recipes). Here, `T` is the floating point type of
+`a` and `b`.
+
+The iteration stops when the half-width of the interval bracketing the root is at most
+`reltol * abs(x) + abstol`, where `x` is the returned approximation of the root. The
+bracketing interval is at least halved every two iterations, so that `maxiter` should be
+larger than twice the number of bisection steps required for the desired accuracy.
+
+Used in `project_to_admissible_set` for the ideal GLM-MHD equations as part of
+[`PositivityPreservingLimiterLiuZhang`](@ref).
+"""
+function find_zero_brent(f, a::T, b::T; reltol = 2 * eps(T), abstol = zero(T),
+                         maxiter = 200) where {T <: AbstractFloat}
+    fa = f(a)
+    fb = f(b)
+    if iszero(fa)
+        return a
+    elseif iszero(fb)
+        return b
+    elseif sign(fa) == sign(fb)
+        throw(ArgumentError("`f(a)` and `f(b)` must have opposite signs, but got " *
+                            "f($a) = $fa and f($b) = $fb"))
+    end
+
+    # Throughout the iteration, `b` is the current best approximation of the root,
+    # `a` is the previous iterate, and `c` is chosen such that `b` and `c` bracket the root.
+    c = b
+    fc = fb
+    d = b - a # step of the current iteration
+    e = b - a # step of the previous iteration
+
+    for _ in 1:maxiter
+        if sign(fb) == sign(fc)
+            # `b` and `c` do not bracket the root anymore, but `a` and `b` do
+            c = a
+            fc = fa
+            d = b - a
+            e = b - a
+        end
+        if abs(fc) < abs(fb)
+            # make `b` the best approximation of the root
+            a = b
+            b = c
+            c = a
+            fa = fb
+            fb = fc
+            fc = fa
+        end
+
+        tol = reltol * abs(b) + abstol
+        m = (c - b) / 2
+        if abs(m) <= tol || iszero(fb)
+            return b
+        end
+
+        if abs(e) >= tol && abs(fa) > abs(fb)
+            # Try a secant step (if only two distinct points are available) or
+            # inverse quadratic interpolation.
+            s = fb / fa
+            if a == c
+                p = 2 * m * s
+                q = 1 - s
+            else
+                q = fa / fc
+                r = fb / fc
+                p = s * (2 * m * q * (q - r) - (b - a) * (r - 1))
+                q = (q - 1) * (r - 1) * (s - 1)
+            end
+            if p > 0
+                q = -q
+            else
+                p = -p
+            end
+            if 2 * p < min(3 * m * q - abs(tol * q), abs(e * q))
+                # accept the interpolation step
+                e = d
+                d = p / q
+            else
+                # interpolation step rejected; bisect
+                d = m
+                e = m
+            end
+        else
+            # interpolation would not make sufficient progress; bisect
+            d = m
+            e = m
+        end
+
+        a = b
+        fa = fb
+        if abs(d) > tol
+            b = b + d
+        else
+            b = b + copysign(tol, m)
+        end
+        fb = f(b)
+    end
+
+    error("`find_zero_brent` did not converge within $maxiter iterations")
+end
 end # @muladd
