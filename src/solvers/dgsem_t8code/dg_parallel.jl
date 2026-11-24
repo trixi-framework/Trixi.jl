@@ -35,8 +35,8 @@ function create_cache_hyperbolic(mesh::T8codeMeshParallel, equations::AbstractEq
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                               uEltype)
+    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info,
+                               nvariables(equations), nnodes(dg), uEltype)
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)
@@ -67,7 +67,8 @@ function create_cache_hyperbolic(mesh::T8codeMeshParallel, equations::AbstractEq
     return cache
 end
 
-function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info, nvars, nnodes, uEltype)
+function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvars, nnodes, uEltype)
     return mpi_cache

@@ -8,58 +8,45 @@
 # everything related to a DG semidiscretization in 2D using MPI,
 # currently limited to Lobatto-Legendre nodes
 
-# TODO: MPI dimension agnostic
-mutable struct MPICache{uEltype <: Real}
-    mpi_neighbor_ranks::Vector{Int}
-    mpi_neighbor_interfaces::Vector{Vector{Int}}
-    mpi_neighbor_mortars::Vector{Vector{Int}}
-    mpi_send_buffers::Vector{Vector{uEltype}}
-    mpi_recv_buffers::Vector{Vector{uEltype}}
-    mpi_send_requests::Vector{MPI.Request}
-    mpi_recv_requests::Vector{MPI.Request}
-    n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
-    n_elements_global::Int
-    first_element_global_id::Int
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache_hyperbolic(mesh::TreeMeshParallel{2}, equations,
+                                 dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
+    # Get cells for which an element needs to be created (i.e. all leaf cells)
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
+
+    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
+
+    mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
+
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
+
+    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
+
+    mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
+
+    mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
+                               nvariables(equations), nnodes(dg), uEltype)
+
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
+
+    # Add Volume-Integral cache
+    cache = (; cache...,
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
+    # Add Mortar cache
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
+
+    return cache
 end
 
-function MPICache(uEltype)
-    # MPI communication "just works" for bitstypes only
-    if !isbitstype(uEltype)
-        throw(ArgumentError("MPICache only supports bitstypes, $uEltype is not a bitstype."))
-    end
-    mpi_neighbor_ranks = Vector{Int}(undef, 0)
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0)
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0)
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0)
-    mpi_send_requests = Vector{MPI.Request}(undef, 0)
-    mpi_recv_requests = Vector{MPI.Request}(undef, 0)
-    n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
-    n_elements_global = 0
-    first_element_global_id = 0
-
-    return MPICache{uEltype}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                             mpi_neighbor_mortars,
-                             mpi_send_buffers, mpi_recv_buffers,
-                             mpi_send_requests, mpi_recv_requests,
-                             n_elements_by_rank, n_elements_global,
-                             first_element_global_id)
-end
-@inline Base.eltype(::MPICache{uEltype}) where {uEltype} = uEltype
-
-# TODO: MPI dimension agnostic
-function start_mpi_receive!(mpi_cache::MPICache)
-    for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
-                                                        rank, rank, mpi_comm())
-    end
-
-    return nothing
-end
-
-# TODO: MPI dimension agnostic
-function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
-                         mesh, equations, dg, cache)
+function start_mpi_send!(backend::Nothing, mpi_cache::TreeMPICache,
+                         mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
@@ -154,14 +141,8 @@ function start_mpi_send!(backend::Nothing, mpi_cache::MPICache,
     return nothing
 end
 
-# TODO: MPI dimension agnostic
-function finish_mpi_send!(mpi_cache::MPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
-# TODO: MPI dimension agnostic
-function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
-                             mesh, equations, dg, cache)
+function finish_mpi_receive!(backend::Nothing, mpi_cache::TreeMPICache,
+                             mesh::TreeMeshParallel{2}, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     # Start receiving and unpack received data until all communication is finished
@@ -241,95 +222,9 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache,
     return nothing
 end
 
-# This method is called when a SemidiscretizationHyperbolic is constructed.
-# It constructs the basic `cache` used throughout the simulation to compute
-# the RHS etc.
-function create_cache_hyperbolic(mesh::TreeMeshParallel{2}, equations,
-                                 dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
-    # Get cells for which an element needs to be created (i.e. all leaf cells)
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-    elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
-
-    interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
-
-    mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
-
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
-
-    mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    mpi_mortars = init_mpi_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
-
-    mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars,
-                               nvariables(equations), nnodes(dg), uEltype)
-
-    # Container cache
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
-             mpi_mortars, mpi_cache)
-
-    # Add Volume-Integral cache
-    cache = (; cache...,
-             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
-                                               dg, cache, uEltype)...)
-    # Add Mortar cache
-    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
-
-    return cache
-end
-
-function init_mpi_cache(mesh, elements, mpi_interfaces, mpi_mortars, nvars, nnodes,
-                        uEltype)
-    mpi_cache = MPICache(uEltype)
-
-    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars,
-                    nnodes, uEltype)
-    return mpi_cache
-end
-
-function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars,
-                         nnodes, uEltype)
-    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(elements,
-                                                                                                       mpi_interfaces,
-                                                                                                       mpi_mortars,
-                                                                                                       mesh)
-
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                                                                        mpi_neighbor_mortars,
-                                                                                                        ndims(mesh),
-                                                                                                        nvars,
-                                                                                                        nnodes,
-                                                                                                        uEltype)
-
-    # Determine local and total number of elements
-    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
-    n_elements_by_rank[mpi_rank() + 1] = nelements(elements)
-    MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
-    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
-    n_elements_global = MPI.Allreduce(nelements(elements), +, mpi_comm())
-    @assert n_elements_global==sum(n_elements_by_rank) "error in total number of elements"
-
-    # Determine the global element id of the first element
-    first_element_global_id = MPI.Exscan(nelements(elements), +, mpi_comm())
-    if mpi_isroot()
-        # With Exscan, the result on the first rank is undefined
-        first_element_global_id = 1
-    else
-        # On all other ranks we need to add one, since Julia has one-based indices
-        first_element_global_id += 1
-    end
-    # TODO reuse existing structures
-    @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                       mpi_neighbor_mortars,
-                       mpi_send_buffers, mpi_recv_buffers,
-                       mpi_send_requests, mpi_recv_requests,
-                       n_elements_by_rank, n_elements_global,
-                       first_element_global_id
-end
-
 # Initialize connectivity between MPI neighbor ranks
 function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
-                                        mesh::TreeMesh2D)
+                                        mesh::TreeMeshParallel{2})
     tree = mesh.tree
 
     # Determine neighbor ranks and sides for MPI interfaces
@@ -453,10 +348,14 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
+# This function is valid for all MPI-parallelized non-conforming mesh types, i.e.,
+# the 2D `TreeMesh`es as well as the 2D/3D `P4estMesh`es and `T8codeMesh`es.
 function rhs_hyperbolic!(backend::Nothing,
                          du, u, t,
-                         mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
-                                     T8codeMeshParallel{2}}, equations,
+                         mesh::Union{TreeMeshParallel{2},
+                                     P4estMeshParallel{2}, T8codeMeshParallel{2},
+                                     P4estMeshParallel{3}, T8codeMeshParallel{3}},
+                         equations,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
     # Start to receive MPI data
@@ -489,7 +388,6 @@ function rhs_hyperbolic!(backend::Nothing,
     end
 
     # Prolong solution to interfaces
-    # TODO: Taal decide order of arguments, consistent vs. modified cache first?
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(backend, cache, u, mesh, equations, dg)
     end
