@@ -275,25 +275,13 @@ end
     return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
 end
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> macrocellfv-1d-second-order
+
 # Without point values, the filled pad cells `a >= a_first` are transformed to the
 # reconstruction variables (the unfilled cell is skipped, since a transformation such as
 # `cons2entropy` may fail for arbitrary values)
 @inline function invert_and_transform_pad!(pad, a_first, ::MomentInversionIdentity,
                                            equations, volume_integral)
     transform_pad!(pad, a_first, volume_integral.cons2recon, equations)
-<<<<<<< HEAD
-=======
-=======
-# Without point values, the pad cells are transformed to the reconstruction variables only
-@inline function invert_and_transform_pad!(pad, ::MomentInversionIdentity, equations,
-                                           volume_integral)
-    transform_pad!(pad, volume_integral.cons2recon, equations)
->>>>>>> 1773a2aea4fc61c18e47a4c80b97b2ec4db80eae
->>>>>>> macrocellfv-1d-second-order
     return nothing
 end
 
