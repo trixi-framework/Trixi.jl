@@ -17,6 +17,8 @@ for human readability.
   `CompressibleEulerEquations1D` ([#3489]).
 
 #### Changed
+- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
+  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 
 #### Deprecated
 

@@ -13,6 +13,22 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D FDSBP: elixir_advection_extended.jl with Dirichlet boundary conditions" setup=[
+    Setup,
+    TreeMesh2DFDSBP
+] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[2.1163663204763806e-6],
+                        linf=[8.098005086831783e-6],
+                        periodicity=false,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
+                        tspan=(0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D FDSBP: elixir_advection_extended.jl with periodic operators" setup=[
     Setup,
     TreeMesh2DFDSBP
