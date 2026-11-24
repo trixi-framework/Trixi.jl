@@ -133,7 +133,7 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
   The names differ from `cons2recon`/`recon2cons` of the subcell finite volume volume
   integrals of DGSEM, since the two transformations act at different places: on the
   subcell values before and on the face values after the reconstruction. This is more 
-  explicit about their function. Potentially primitive flux fuctions should be added. 
+  explicit about their functions. Potentially primitive flux fuctions should be added.
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
   for the subcell averages of the initial condition. The default `1` uses the value
   at the subcell center, which is second-order accurate.
