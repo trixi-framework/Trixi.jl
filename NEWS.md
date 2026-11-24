@@ -17,7 +17,7 @@ for human readability.
   (`IdealGlmMhdEquations1D`, `IdealGlmMhdEquations2D`, and `IdealGlmMhdEquations3D`)
   using the slicing algorithm of Liu, Shu, and Zhang (2026) for the projection onto the
   admissible set, with the divergence cleaning field treated as an additional magnetic
-  field component ([#XXXX]).
+  field component ([#3491]).
 
 #### Changed
 
