@@ -413,10 +413,13 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
     return count
 end
 
-# For Lobtto points, we can simply use the outer nodes of the elements as boundary nodes.
+# For Lobatto points, we can simply use the outer nodes of the elements as boundary nodes.
+# The same holds for the SBP operators from SummationByPartsOperators.jl used by `FDSBP`,
+# whose first and last nodes are the boundary nodes of the element.
 function calc_boundary_node_coordinates!(boundaries, element, count, direction,
                                          elements, mesh::TreeMesh1D,
-                                         basis::LobattoLegendreBasis)
+                                         basis::Union{LobattoLegendreBasis,
+                                                      AbstractDerivativeOperator})
     el_node_coords = elements.node_coordinates
     bnd_node_coords = boundaries.node_coordinates
 
