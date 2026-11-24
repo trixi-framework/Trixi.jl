@@ -96,7 +96,8 @@ function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sid
     n = nnodes(dg)
 
     # copy data from the macrocell and the halo values from its neighbors or the boundaries.
-    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
+    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
+                          cache)
     # Moment inversion cell averages bar(u) to u_^star (approximate point values) 
     # Then cons2recon
     invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
