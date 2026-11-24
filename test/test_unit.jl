@@ -5565,6 +5565,212 @@ end
     end
 end
 
+@testitem "Unit: find_zero_brent" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    x = Trixi.find_zero_brent(x -> x^2 - 2, 0.0, 2.0)
+    @test x≈sqrt(2) rtol=10 * eps()
+
+    x = Trixi.find_zero_brent(x -> cos(x) - x, 0.0, 1.0)
+    @test x≈0.7390851332151607 rtol=10 * eps()
+
+    # decreasing function
+    x = Trixi.find_zero_brent(x -> 1 - exp(x), -1.0, 3.0; abstol = 1e-15)
+    @test x≈0 atol=1e-14
+
+    # Triple root: interpolation steps make little progress and the method falls back to
+    # bisection. Since the sign of the function is exact, the root is still found accurately.
+    x = Trixi.find_zero_brent(x -> (x - 0.3)^3, 0.0, 1.0)
+    @test x≈0.3 rtol=1e-12
+
+    # roots at the end points are returned directly
+    @test Trixi.find_zero_brent(x -> x - 1, 1.0, 2.0) == 1.0
+    @test Trixi.find_zero_brent(x -> x - 2, 1.0, 2.0) == 2.0
+
+    # no sign change
+    @test_throws ArgumentError Trixi.find_zero_brent(x -> x^2 + 1, 0.0, 1.0)
+
+    # the result has the floating point type of the interval
+    x = Trixi.find_zero_brent(x -> x^2 - 2, 0.0f0, 2.0f0)
+    @test x isa Float32
+    @test x≈sqrt(2.0f0) rtol=10 * eps(Float32)
+end
+
+@testitem "Unit: ideal GLM-MHD admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    variables = (density, energy_internal)
+
+    # The projection `x` of `y` onto the convex set G = {rho >= rho_floor, rho_e >= rho_e_floor}
+    # is characterized by the KKT conditions
+    #   x - y = lambda * e_rho + mu * grad(rho_e)(x),  lambda, mu >= 0,
+    #   lambda * (rho - rho_floor) = 0,  mu * (rho_e - rho_e_floor) = 0.
+    # Since `e_rho` has no energy component and d(rho_e)/d(rho_e_total) = 1, the
+    # multipliers are mu = x[5] - y[5] and lambda = (x[1] - y[1]) - mu * grad(rho_e)(x)[1].
+    # Components in `fixed` (B1 in 1D) are kept fixed by the projection and are excluded
+    # from the residual.
+    function check_kkt(y, x, lower_bounds, equations; fixed = ())
+        rho_floor, rho_e_floor = lower_bounds
+        grad_rho_e = ForwardDiff.gradient(u -> energy_internal(u, equations), x)
+        e_rho = SVector(ntuple(i -> i == 1 ? 1.0 : 0.0, length(x)))
+        mu = x[5] - y[5]
+        lambda = (x[1] - y[1]) - mu * grad_rho_e[1]
+        residual = x - y - lambda * e_rho - mu * grad_rho_e
+        residual_norm = sqrt(sum(abs2(residual[i]) for i in eachindex(x) if !(i in fixed)))
+        scale = norm(y)
+        @test residual_norm <= 1e-12 * scale
+        @test lambda >= -1e-12 * scale
+        @test mu >= -1e-12 * scale
+        slack_rho = x[1] - rho_floor
+        slack_rho_e = energy_internal(x, equations) - rho_e_floor
+        @test slack_rho >= -1e-13 * scale
+        @test slack_rho_e >= -1e-13 * scale
+        @test abs(lambda * slack_rho) <= 1e-12 * scale^2
+        @test abs(mu * slack_rho_e) <= 1e-12 * scale^2
+        return nothing
+    end
+
+    # Independent check with a generic convex solver. The internal energy constraint is a
+    # rotated second-order cone constraint, `quadoverlin(m, rho) = |m|^2 / rho`.
+    # The interior point solver reaches a relative accuracy of about 1e-8 in the objective,
+    # i.e., only about 1e-4 in the minimizer, so the comparison of the minimizers is loose
+    # and the squared distances to the input state are compared in addition.
+    function check_convex_solver(y, x, lower_bounds; fixed_B1 = false)
+        x_convex = project_with_convex_solver(y, lower_bounds; fixed_B1)
+        @test x≈x_convex rtol=1e-3
+        @test sum(abs2, x - y)≈sum(abs2, x_convex - y) rtol=1e-6
+        return nothing
+    end
+
+    function project_with_convex_solver(y, lower_bounds; fixed_B1 = false)
+        rho_floor, rho_e_floor = lower_bounds
+        n = length(y)
+        x = Convex.Variable(n)
+        magnetic = fixed_B1 ? x[7:n] : x[6:n]
+        magnetic_energy_fixed = fixed_B1 ? y[6]^2 / 2 : 0.0
+        constraints = [x[1] >= rho_floor,
+            Convex.quadoverlin(x[2:4], x[1]) / 2 + Convex.sumsquares(magnetic) / 2 +
+            magnetic_energy_fixed + rho_e_floor <= x[5]]
+        if fixed_B1
+            push!(constraints, x[6] == y[6])
+        end
+        problem = Convex.minimize(Convex.sumsquares(x - collect(y)), constraints)
+        Convex.solve!(problem, Optimizer; silent = true)
+        return SVector{n}(vec(Convex.evaluate(x)))
+    end
+
+    @testset "2D: manufactured point of Liu, Shu, Zhang (2026), Section 4.1" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        lower_bounds = (1e-13, 1e-13)
+        y = SVector(1.0, 1.25, 2.0, 0.0, 2.0, 5.0, 1.7, 0.0, 0.0)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        # the reference reports the minimizer beta* ≈ 5.44 of the magnetic energy
+        @test sum(abs2, x[6:9])≈5.44 atol=5e-3
+        @test x[8] == 0 && x[9] == 0
+        check_kkt(y, x, lower_bounds, equations)
+        check_convex_solver(y, x, lower_bounds)
+    end
+
+    @testset "2D: nonzero divergence cleaning field" begin
+        equations = IdealGlmMhdEquations2D(5 / 3)
+        lower_bounds = (1e-6, 1e-6)
+        y = SVector(0.8, 1.0, -0.5, 0.3, 1.0, 2.0, -1.0, 0.5, 1.5)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        check_kkt(y, x, lower_bounds, equations)
+        check_convex_solver(y, x, lower_bounds)
+        # the magnetic field and the divergence cleaning field are rescaled by the same
+        # factor in (0, 1), and the momentum keeps its direction
+        scale = x[9] / y[9]
+        @test 0 < scale < 1
+        @test x[6:8] ≈ scale * y[6:8]
+        @test x[2:4] ≈ (norm(x[2:4]) / norm(y[2:4])) * y[2:4]
+    end
+
+    @testset "2D: negative density and negative internal energy" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        lower_bounds = (1e-6, 1e-6)
+        for y in (SVector(-0.2, 0.3, 0.1, 0.0, 2.0, 1.0, 0.5, 0.0, 0.2),
+                  SVector(0.5, 2.0, -1.0, 0.5, 0.5, 0.3, -0.2, 0.1, -0.4))
+            x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+            check_kkt(y, x, lower_bounds, equations)
+            check_convex_solver(y, x, lower_bounds)
+        end
+    end
+
+    @testset "2D: only the density floor is violated" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        lower_bounds = (1.0, 0.1)
+        y = SVector(0.5, 0.0, 0.0, 0.0, 10.0, 1.0, 0.0, 0.0, 0.0)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        @test x≈SVector(1.0, 0.0, 0.0, 0.0, 10.0, 1.0, 0.0, 0.0, 0.0) rtol=1e-14
+    end
+
+    @testset "2D: vanishing magnetic field reduces to the Euler projection" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        lower_bounds = (1.0, 0.1)
+        y = SVector(0.5, 1.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        # same values as in the 1D Euler projection test above
+        @test x[1] ≈ 1.0
+        @test x[2]≈0.7709169970592479 rtol=1e-12
+        @test x[5]≈0.39715650817742415 rtol=1e-12
+        @test x[3] == 0 && x[4] == 0 && all(iszero, x[6:9])
+    end
+
+    @testset "3D" begin
+        equations = IdealGlmMhdEquations3D(5 / 3)
+        lower_bounds = (1e-6, 1e-6)
+        y = SVector(-0.1, 0.2, 0.1, -0.4, 3.0, 1.0, 2.0, -1.0, 0.7)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        check_kkt(y, x, lower_bounds, equations)
+        check_convex_solver(y, x, lower_bounds)
+    end
+
+    @testset "1D: normal magnetic field component is kept fixed" begin
+        equations = IdealGlmMhdEquations1D(1.4)
+        lower_bounds = (1e-3, 1e-3)
+        y = SVector(0.5, 1.0, -0.3, 0.2, 0.4, 1.0, 0.6, -0.4)
+        x = Trixi.project_to_admissible_set(y, lower_bounds, variables, equations)
+        @test x[6] == y[6]
+        check_kkt(y, x, lower_bounds, equations; fixed = (6,))
+        check_convex_solver(y, x, lower_bounds; fixed_B1 = true)
+        @test x[7] / y[7] ≈ x[8] / y[8]
+    end
+
+    @testset "admissible states are returned unchanged" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        lower_bounds = (1e-6, 1e-6)
+        y = SVector(1.0, 0.1, 0.2, 0.3, 5.0, 1.0, -1.0, 0.5, 0.1)
+        @test Trixi.project_to_admissible_set(y, lower_bounds, variables, equations) === y
+    end
+
+    @testset "type stability, allocations, and Float32" begin
+        equations = IdealGlmMhdEquations2D(1.4)
+        # The floors must exceed the arithmetic tolerance `10 * eps(T)` of the Euler
+        # projection also for `T = Float32`.
+        lower_bounds = (1e-3, 1e-3)
+        y = SVector(0.8, 1.0, -0.5, 0.3, 1.0, 2.0, -1.0, 0.5, 1.5)
+        x = @inferred Trixi.project_to_admissible_set(y, lower_bounds, variables,
+                                                      equations)
+        function allocations(y, lower_bounds, variables, equations)
+            return @allocated Trixi.project_to_admissible_set(y, lower_bounds, variables,
+                                                              equations)
+        end
+        allocations(y, lower_bounds, variables, equations)
+        @test allocations(y, lower_bounds, variables, equations) == 0
+
+        equations32 = IdealGlmMhdEquations2D(1.4f0)
+        y32 = Float32.(y)
+        lower_bounds32 = (1.0f-3, 1.0f-3)
+        x32 = @inferred Trixi.project_to_admissible_set(y32, lower_bounds32, variables,
+                                                        equations32)
+        @test eltype(x32) == Float32
+        @test x32≈x rtol=1e-3
+        @test x32[1] >= lower_bounds32[1]
+        @test energy_internal(x32, equations32) >=
+              lower_bounds32[2] - 10 * eps(Float32) * norm(y32)
+    end
+end
+
 @testitem "Unit: check_axes with explicit axes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     A = zeros(2, 3)
     @test Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(3))) === nothing

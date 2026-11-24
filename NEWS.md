@@ -13,6 +13,11 @@ for human readability.
   `ConservativeLinearScalarAdvectionEquation2D` and
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
   advection velocity ([#3438]).
+- Extended `PositivityPreservingLimiterLiuZhang` to the ideal GLM-MHD equations
+  (`IdealGlmMhdEquations1D`, `IdealGlmMhdEquations2D`, and `IdealGlmMhdEquations3D`)
+  using the slicing algorithm of Liu, Shu, and Zhang (2026) for the projection onto the
+  admissible set, with the divergence cleaning field treated as an additional magnetic
+  field component ([#XXXX]).
 
 #### Changed
 
