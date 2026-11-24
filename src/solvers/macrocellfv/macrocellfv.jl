@@ -22,9 +22,9 @@
 #   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
 #      the averages),
 #   3. transformation to the reconstruction variables,
-#   4. face reconstruction, numerical fluxes, and flux differences in one sweep over the
-#      subcells: each subcell is reconstructed once, and its state at the +x face is
-#      carried to the next face,
+#   4. face reconstruction of each subcell (once, both faces, one variable at a time)
+#      into thread-local line buffers,
+#   5. numerical fluxes at all faces of the line and the flux differences,
 # followed by the completion of the flux differences of the first subcell of each
 # macro-cell with the interface flux, which is computed only once, by the macro-cell on
 # its left side.
@@ -32,8 +32,11 @@
 # The pad holds the transformed state (reconstruction variables) of a contiguous line of
 # subcells across the macro-cell boundaries. The same kernel thus serves the faces
 # inside a macro-cell and at its boundaries without index branching or repeated
-# variable transformations in the stencils. Each thread owns one pad of `n_cells + 2 nhalo` subcells, so the
-# memory of the pads does not grow with the number of elements.
+# variable transformations in the stencils. Each thread owns one pad of
+# `n_cells + 2 nhalo` subcells and one set of line buffers, so their memory does not grow
+# with the number of elements. Pad and line buffers store each variable contiguously
+# along the line; steps 4 and 5 are loops over the subcells or faces of the line, which
+# vectorize.
 
 """
     VolumeIntegralMacroCellFV(; moment_inversion, reconstruction,

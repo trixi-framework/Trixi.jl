@@ -272,6 +272,33 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
 end
 
+@testitem "MacroCellFV 1D: WENO5 face values" setup=[Setup] tags=[:tree_part1] begin
+    # Mirrored data give mirrored face values bitwise (e.g., at reflecting walls)
+    data = ((1.0, 2.0, 4.0, 3.5, -1.0), (0.3, -0.2, 0.1, 5.0, 7.0),
+            (1.0, 1.0, 1.0, 1.0, 1.0), (0.0, 0.0, 1.0, 0.0, 0.0))
+    for reconstruction in (ReconstructionWENO5JS(), ReconstructionWENO5Z()),
+        values in data
+
+        w_minus, w_plus = Trixi.weno5_cell(reconstruction, values...)
+        w_minus_mirror, w_plus_mirror = Trixi.weno5_cell(reconstruction,
+                                                         reverse(values)...)
+        @test w_minus === w_plus_mirror
+        @test w_plus === w_minus_mirror
+    end
+    # Fifth order of both face values for smooth data: averages of exp(x) over the
+    # cells [(i - 1/2) h, (i + 1/2) h], whose face values are exp(-h / 2), exp(h / 2)
+    function face_errors(reconstruction, h)
+        averages = Tuple((exp((i + 0.5) * h) - exp((i - 0.5) * h)) / h for i in -2:2)
+        w_minus, w_plus = Trixi.weno5_cell(reconstruction, averages...)
+        return abs(w_minus - exp(-h / 2)), abs(w_plus - exp(h / 2))
+    end
+    for reconstruction in (ReconstructionWENO5JS(), ReconstructionWENO5Z())
+        errors_coarse = face_errors(reconstruction, 0.1)
+        errors_fine = face_errors(reconstruction, 0.05)
+        @test all(log2.(errors_coarse ./ errors_fine) .> 4.8)
+    end
+end
+
 @testitem "MacroCellFV 1D: types" setup=[Setup] tags=[:tree_part1] begin
     solver = MacroCellFV(n_cells = 4, surface_flux = flux_lax_friedrichs,
                          reconstruction = ReconstructionMUSCL(vanleer))
@@ -352,12 +379,16 @@ end
     @test du_ode == du_first
     # Only the halo cells read by the reconstruction are filled and transformed: with a
     # left neighbor, the first pad cell is neither filled nor read
+    # (also the line buffers are written before they are read)
     foreach(pad -> fill!(pad, NaN), semi.cache.pad_threaded)
+    foreach(buffers -> foreach(b -> fill!(b, NaN), buffers),
+            semi.cache.line_buffers_threaded)
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
     @test du_ode == du_first
-    # The pads hold `n_cells + 2 nhalo` subcells
+    # The pads hold `n_cells + 2 nhalo` subcells, each variable contiguously
     @test all(pad -> size(pad) ==
-                     (nvariables(equations), n_cells + 2 * Trixi.nhalo(solver)),
+                     (n_cells + 2 * Trixi.nhalo(solver), nvariables(equations)),
               semi.cache.pad_threaded)
     @test length(semi.cache.pad_threaded) == Threads.maxthreadid()
+    @test length(semi.cache.line_buffers_threaded) == Threads.maxthreadid()
 end

@@ -7,10 +7,12 @@
 
 # Face reconstructions of the `MacroCellFV` solver
 
-# `reconstruct_cell(reconstruction, stencil)` returns the reconstructed states of one
-# subcell at its two faces along a coordinate line, where `stencil(offset)` returns the
-# state of the subcell `offset` cells away along the line: `(w_minus, w_plus)`, the
-# states at the face in negative and in positive line direction.
+# `reconstruct_cell(reconstruction, stencil)` returns the reconstructed values of one
+# variable of one subcell at its two faces along a coordinate line, where
+# `stencil(offset)` returns the value of the subcell `offset` cells away along the line:
+# `(w_minus, w_plus)`, the values at the face in negative and in positive line
+# direction. The reconstructions are applied to each variable separately, so that the
+# loops over the subcells of a line vectorize.
 
 """
     ReconstructionConstant()
@@ -58,7 +60,7 @@ ReconstructionMUSCL() = ReconstructionMUSCL(minmod)
 
     # Equidistant subcells: the slope is expressed per subcell width, and the
     # faces are half a subcell away from the cell center.
-    slope = slope_limiter.(u_0 - u_m, u_p - u_0)
+    slope = slope_limiter(u_0 - u_m, u_p - u_0)
     return u_0 - 0.5f0 * slope, u_0 + 0.5f0 * slope
 end
 end # @muladd

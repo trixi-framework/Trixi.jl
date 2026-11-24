@@ -5,13 +5,20 @@
 @muladd begin
 #! format: noindent
 
-# Thread-local pads `pad[v, a]` with the pad index `a = i + nhalo` for the subcell `i`
+# Thread-local pads `pad[a, v]` with the pad index `a = i + nhalo` for the subcell `i`
 # of the current element; the halo cells `a <= nhalo` and `a > n + nhalo` hold the
 # subcells of the neighboring elements or the ghost subcells of physical boundaries.
+# The pad index runs fastest, so that each variable of the line is contiguous and the
+# reconstruction loops over the subcells vectorize.
 # Only the halo cells read by the reconstruction are filled: the face at -x of the
 # element is computed by the left neighbor, so with a left neighbor the stencils reach
 # only `nhalo - 1` cells to the left and the pad cell `a = 1` stays unused; at a physical
-# boundary at -x, the boundary face needs all `nhalo` ghost subcells. The neighbors of each element are looked up in `neighbor_elements[side, element]`
+# boundary at -x, the boundary face needs all `nhalo` ghost subcells.
+# Thread-local line buffers hold the reconstructed states `w_minus[c + 1, v]` and
+# `w_plus[c + 1, v]` of the subcells `c = 0, ..., n + 1` at their faces in negative and
+# positive x direction and the numerical fluxes `flux[f, v]` at the faces
+# `f = 1, ..., n + 1` (face `f` between the subcells `f - 1` and `f`).
+# The neighbors of each element are looked up in `neighbor_elements[side, element]`
 # (`side = 1` at -x, `2` at +x; `0` at a physical boundary) and the boundaries in
 # `boundary_ids[side, element]`.
 function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
@@ -23,9 +30,17 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
     g <= n ||
         throw(ArgumentError("the reconstruction needs $g halo subcells, which " *
                             "requires `n_cells >= $g`"))
-    pad_threaded = [Matrix{uEltype}(undef, npadvariables(volume_integral, equations),
-                                    n + 2 * g)
+    pad_threaded = [Matrix{uEltype}(undef, n + 2 * g,
+                                    npadvariables(volume_integral, equations))
                     for _ in 1:Threads.maxthreadid()]
+    line_buffers_threaded = [(;
+                              w_minus = Matrix{uEltype}(undef, n + 2,
+                                                        nvariables(equations)),
+                              w_plus = Matrix{uEltype}(undef, n + 2,
+                                                       nvariables(equations)),
+                              flux = Matrix{uEltype}(undef, n + 1,
+                                                     nvariables(equations)))
+                             for _ in 1:Threads.maxthreadid()]
 
     @unpack elements, interfaces, boundaries = cache_containers
     n_elements = nelements(elements)
@@ -44,7 +59,7 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
         boundary_ids[side, element] = boundary
     end
 
-    return (; pad_threaded, neighbor_elements, boundary_ids)
+    return (; pad_threaded, line_buffers_threaded, neighbor_elements, boundary_ids)
 end
 
 function resize_cache_volume_integral!(cache, mesh::TreeMesh{1},
@@ -65,8 +80,10 @@ function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1}, equation
     @trixi_timeit timer() "subcell fluxes and divergence" begin
         @threaded for element in eachelement(dg, cache)
             pad = cache.pad_threaded[Threads.threadid()]
-            calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sides,
-                                    mesh, equations, dg.volume_integral, dg, cache)
+            line_buffers = cache.line_buffers_threaded[Threads.threadid()]
+            calc_macrocell_element!(du, pad, line_buffers, u, t, element,
+                                    boundary_conditions_sides, mesh, equations,
+                                    dg.volume_integral, dg, cache)
         end
     end
 
@@ -87,65 +104,87 @@ end
 # boundary (the interface flux at -x is computed by the left neighbor). The flux
 # differences are stored in `du`, except for the first subcell, which holds the flux at
 # its +x face until `finish_macrocell_first_subcell!` subtracts the flux at -x.
-function calc_macrocell_element!(du, pad, u, t, element, boundary_conditions_sides,
-                                 mesh::TreeMesh{1}, equations, volume_integral,
-                                 dg::MacroCellFV, cache)
+# The line is processed in two passes, each a loop that vectorizes: all subcells are
+# reconstructed (one variable at a time), then the fluxes at all faces are computed.
+function calc_macrocell_element!(du, pad, line_buffers, u, t, element,
+                                 boundary_conditions_sides, mesh::TreeMesh{1},
+                                 equations, volume_integral, dg::MacroCellFV, cache)
     @unpack surface_flux_values = cache.elements
     @unpack neighbor_elements, boundary_ids = cache
+    @unpack w_minus, w_plus, flux = line_buffers
     g = nhalo(dg)
     n = nnodes(dg)
 
-    # copy data from the macrocell and the halo values from its neighbors or the boundaries.
-    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg, cache)
-    # Moment inversion cell averages bar(u) to u_^star (approximate point values) 
-    # Then cons2recon
+    # Copy the subcells of the macro-cell and the halos from the neighbors or the
+    # boundaries, then the moment inversion (cell averages to point values) and the
+    # transformation to the reconstruction variables
+    a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
+                          cache)
     invert_and_transform_pad!(pad, a_first, volume_integral.moment_inversion, equations,
                               volume_integral)
     line_pad = macrocell_pad_1d(pad, has_point_values(volume_integral.moment_inversion))
 
+    # The first face: the boundary face at -x (between the ghost subcell 0 and the
+    # subcell 1) at a physical boundary, otherwise the +x face of the subcell 1
+    f_first = boundary_ids[1, element] != 0 ? 1 : 2
+    reconstruct_line!(w_minus, w_plus, line_pad, volume_integral.reconstruction,
+                      f_first - 1, n + 1, g, equations)
+    calc_line_fluxes!(flux, w_minus, w_plus, f_first, n + 1, equations, volume_integral)
+
     inv_h = inv_subcell_width(mesh, dg, cache, element)
-
-    # Each subcell is reconstructed once; `w_ll` carries the state at the +x face of the
-    # previous subcell to the next face
-    reconstruction = volume_integral.reconstruction
-    if boundary_ids[1, element] != 0
-        # Boundary face at -x between the ghost subcell 0 and the subcell 1
-        _, w_ll = reconstruct_cell(reconstruction,
-                                   pad_line_1d(line_pad, equations, 0, g))
-        w_rr, w_plus = reconstruct_cell(reconstruction,
-                                        pad_line_1d(line_pad, equations, 1, g))
-        flux_boundary = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
-        set_node_vars!(surface_flux_values, flux_boundary, equations, dg, 1, element)
-    else
-        _, w_plus = reconstruct_cell(reconstruction,
-                                     pad_line_1d(line_pad, equations, 1, g))
-    end
-    w_ll = w_plus
-
-    # Flux at the +x face of the first subcell (completed later)
-    w_rr, w_plus = reconstruct_cell(reconstruction,
-                                    pad_line_1d(line_pad, equations, 2, g))
-    flux_left = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
-    set_node_vars!(du, flux_left, equations, dg, 1, element)
-    w_ll = w_plus
-    # Faces between the subcells `cell - 1` and `cell`
-    for cell in 3:(n + 1)
-        w_rr, w_plus = reconstruct_cell(reconstruction,
-                                        pad_line_1d(line_pad, equations, cell, g))
-        flux_right = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
-        set_node_vars!(du, -inv_h * (flux_right - flux_left), equations, dg, cell - 1,
-                       element)
-        flux_left = flux_right
-        w_ll = w_plus
-    end
-    # The face at +x (for `n = 1`, the face at +x of the first subcell): computed once,
-    # stored for both elements
-    set_node_vars!(surface_flux_values, flux_left, equations, dg, 2, element)
     right_element = neighbor_elements[2, element]
-    if right_element != 0
-        set_node_vars!(surface_flux_values, flux_left, equations, dg, 1, right_element)
+    @inbounds for v in eachvariable(equations)
+        if f_first == 1
+            surface_flux_values[v, 1, element] = flux[1, v]
+        end
+        # The flux at the +x face of the first subcell (completed later)
+        du[v, 1, element] = flux[2, v]
+        for i in 2:n
+            du[v, i, element] = -inv_h * (flux[i + 1, v] - flux[i, v])
+        end
+        # The face at +x: computed once, stored for both elements
+        surface_flux_values[v, 2, element] = flux[n + 1, v]
+        if right_element != 0
+            surface_flux_values[v, 1, right_element] = flux[n + 1, v]
+        end
     end
 
+    return nothing
+end
+
+# Reconstruct the subcells `c_first:c_last` of the line in the pad, one variable at a
+# time (vectorized over the subcells). The passes over the line are separate (not
+# inlined) functions: inlined into the element kernel, their loops are not vectorized.
+# The pad has `nhalo(dg) >= nhalo(reconstruction)` halo cells on each side, so the
+# stencils of the subcells `0:(n + 1)` lie inside the pad (checked by the test suite
+# with `--check-bounds=yes`).
+@noinline function reconstruct_line!(w_minus, w_plus, pad, reconstruction, c_first,
+                                     c_last, g, equations)
+    for v in eachvariable(equations)
+        @inbounds @simd ivdep for c in c_first:c_last
+            a = c + g
+            wm, wp = reconstruct_cell(reconstruction,
+                                      @inline(offset->@inbounds(pad[a + offset, v])))
+            w_minus[c + 1, v] = wm
+            w_plus[c + 1, v] = wp
+        end
+    end
+    return nothing
+end
+
+# Numerical fluxes at the faces `f_first:f_last` (vectorized over the faces)
+@noinline function calc_line_fluxes!(flux, w_minus, w_plus, f_first, f_last, equations,
+                                     volume_integral)
+    @inbounds @simd ivdep for f in f_first:f_last
+        # The subcell `f - 1` on the left, the subcell `f` on the right of the face
+        w_ll = SVector(ntuple(@inline(v->w_plus[f, v]), Val(nvariables(equations))))
+        w_rr = SVector(ntuple(@inline(v->w_minus[f + 1, v]),
+                              Val(nvariables(equations))))
+        flux_face = macrocell_face_flux(w_ll, w_rr, 1, equations, volume_integral)
+        for v in eachvariable(equations)
+            flux[f, v] = flux_face[v]
+        end
+    end
     return nothing
 end
 
@@ -170,15 +209,17 @@ end
     g = nhalo(dg)
     n = nnodes(dg)
 
-    for i in eachnode(dg), v in eachvariable(equations)
-        pad[v, i + g] = u[v, i, element]
+    # (`create_cache_volume_integral` ensures `n >= g`, so all halo subcells lie in the
+    # neighbors)
+    @inbounds for v in eachvariable(equations), i in eachnode(dg)
+        pad[i + g, v] = u[v, i, element]
     end
 
     left_element = neighbor_elements[1, element]
     if left_element != 0
         # The face at -x is computed by the left neighbor: `g - 1` halo cells suffice
-        for k in 1:(g - 1), v in eachvariable(equations)
-            pad[v, g + 1 - k] = u[v, n + 1 - k, left_element]
+        @inbounds for v in eachvariable(equations), k in 1:(g - 1)
+            pad[g + 1 - k, v] = u[v, n + 1 - k, left_element]
         end
         a_first = 2
     else
@@ -189,8 +230,8 @@ end
 
     right_element = neighbor_elements[2, element]
     if right_element != 0
-        for k in 1:g, v in eachvariable(equations)
-            pad[v, n + g + k] = u[v, k, right_element]
+        @inbounds for v in eachvariable(equations), k in 1:g
+            pad[n + g + k, v] = u[v, k, right_element]
         end
     else
         gather_boundary_halo!(pad, u, t, boundary_conditions_sides[2], 2,
@@ -226,7 +267,7 @@ end
         u_ghost = macrocell_ghost_layer(boundary_condition, interior, layer, x_ghost, t,
                                         equations)
         for v in eachvariable(equations)
-            pad[v, a] = u_ghost[v]
+            pad[a, v] = u_ghost[v]
         end
     end
     return nothing
@@ -271,10 +312,11 @@ end
 end
 
 # Read the state vector (conservative or reconstruction variables) of pad cell `a`
-@inline function get_pad_vars(pad, equations, a)
-    return SVector(ntuple(@inline(v->pad[v, a]), Val(nvariables(equations))))
+# (as `get_node_vars`: one explicit bounds check, removed by calling it with `@inbounds`)
+Base.@propagate_inbounds function get_pad_vars(pad, equations, a)
+    @boundscheck checkbounds(pad, a, eachvariable(equations))
+    return SVector(ntuple(@inline(v->@inbounds(pad[a, v])), Val(nvariables(equations))))
 end
-
 
 # Without point values, the filled pad cells `a >= a_first` are transformed to the
 # reconstruction variables (the unfilled cell is skipped, since a transformation such as
@@ -288,10 +330,10 @@ end
 @inline transform_pad!(pad, a_first, ::typeof(cons2cons), equations) = nothing
 
 @inline function transform_pad!(pad, a_first, cons2recon, equations)
-    for a in a_first:size(pad, 2)
+    @inbounds for a in a_first:size(pad, 1)
         w = cons2recon(get_pad_vars(pad, equations, a), equations)
         for v in eachvariable(equations)
-            pad[v, a] = w[v]
+            pad[a, v] = w[v]
         end
     end
     return nothing
@@ -299,13 +341,6 @@ end
 
 # Pad as seen by the reconstruction (the pad itself without point values)
 @inline macrocell_pad_1d(pad, ::False) = pad
-
-# Coordinate line through the pad centered at the subcell `cell` of the element
-# (`line(0)`; `cell = 0` and `cell = n + 1` are halo subcells), as stencil of its
-# reconstruction
-@inline function pad_line_1d(pad, equations, cell, g)
-    return @inline(offset->get_pad_vars(pad, equations, cell + g + offset))
-end
 
 # Inverse subcell width of `element` (`inverse_jacobian = 2 / dx` of the element)
 @inline function inv_subcell_width(mesh::TreeMesh{1}, dg::MacroCellFV, cache,

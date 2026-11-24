@@ -60,38 +60,34 @@ const ReconstructionWENO5 = Union{ReconstructionWENO5JS, ReconstructionWENO5Z}
 @inline nhalo(::ReconstructionWENO5) = 3
 
 @inline function reconstruct_cell(reconstruction::ReconstructionWENO5, stencil)
-    u_m2 = stencil(-2)
-    u_m1 = stencil(-1)
-    u_0 = stencil(0)
-    u_p1 = stencil(1)
-    u_p2 = stencil(2)
-
-    pairs = map(@inline((a, b, c, d, e)->weno5_cell(reconstruction, a, b, c, d, e)),
-                u_m2, u_m1, u_0, u_p1, u_p2)
-    return map(first, pairs), map(last, pairs)
+    return weno5_cell(reconstruction, stencil(-2), stencil(-1), stencil(0), stencil(1),
+                      stencil(2))
 end
 
 # WENO5 values at the faces between the cells `b` and `c` (`w_minus`) and between `c`
 # and `d` (`w_plus`) of the cell `c` from the cell averages `a, b, c, d, e` (Jiang and
-# Shu, 1996). The face in negative direction is the mirrored reconstruction, whose
-# smoothness indicators are those of the face in positive direction in reverse order.
+# Shu, 1996). The face in negative direction is the mirrored reconstruction: its
+# smoothness indicators are those of the face in positive direction in reverse order,
+# so both faces share the three nonlinear factors. The candidate values are not divided
+# by 6 and the linear weights (1, 6, 3) / 10 not by 10; both constants are applied
+# once in the normalization. This leaves 5 divisions per cell, which dominate its cost.
 @inline function weno5_cell(reconstruction, a, b, c, d, e)
-    # Smoothness indicators of the three third-order substencils
+    # Smoothness indicators and nonlinear factors of the three third-order substencils
     beta0, beta1, beta2 = weno5_smoothness(a, b, c, d, e)
+    s0, s1, s2 = weno5_factors(reconstruction, beta0, beta1, beta2)
 
-    # Candidate values at the face in positive direction ...
-    p0 = (2 * a - 7 * b + 11 * c) / 6
-    p1 = (-b + 5 * c + 2 * d) / 6
-    p2 = (2 * c + 5 * d - e) / 6
-    alpha0, alpha1, alpha2 = weno5_alphas(reconstruction, beta0, beta1, beta2)
-    w_plus = (alpha0 * p0 + alpha1 * p1 + alpha2 * p2) / (alpha0 + alpha1 + alpha2)
+    # 6 times the candidate values at the face in positive direction ...
+    p0 = 2 * a - 7 * b + 11 * c
+    p1 = -b + 5 * c + 2 * d
+    p2 = 2 * c + 5 * d - e
+    w_plus = (s0 * p0 + 6 * s1 * p1 + 3 * s2 * p2) / (6 * (s0 + 6 * s1 + 3 * s2))
 
-    # ... and in negative direction (mirrored stencils)
-    q0 = (2 * e - 7 * d + 11 * c) / 6
-    q1 = (-d + 5 * c + 2 * b) / 6
-    q2 = (2 * c + 5 * b - a) / 6
-    gamma0, gamma1, gamma2 = weno5_alphas(reconstruction, beta2, beta1, beta0)
-    w_minus = (gamma0 * q0 + gamma1 * q1 + gamma2 * q2) / (gamma0 + gamma1 + gamma2)
+    # ... and in negative direction (mirrored stencils, written as the exact mirror of
+    # the expressions above so that mirrored data give mirrored face values bitwise)
+    q0 = 2 * e - 7 * d + 11 * c
+    q1 = -d + 5 * c + 2 * b
+    q2 = 2 * c + 5 * b - a
+    w_minus = (s2 * q0 + 6 * s1 * q1 + 3 * s0 * q2) / (6 * (s2 + 6 * s1 + 3 * s0))
 
     return w_minus, w_plus
 end
@@ -109,20 +105,19 @@ end
     return beta0, beta1, beta2
 end
 
-# Unnormalized nonlinear weights with the linear weights (1, 6, 3) / 10
-@inline function weno5_alphas(reconstruction::ReconstructionWENO5JS, beta0, beta1,
-                              beta2)
+# Nonlinear factors of the substencils, which multiply the linear weights; the result
+# is symmetric: `weno5_factors(r, beta2, beta1, beta0)` gives the factors in reverse order
+@inline function weno5_factors(reconstruction::ReconstructionWENO5JS, beta0, beta1,
+                               beta2)
     epsilon = convert(typeof(beta0), reconstruction.epsilon)
-    return (1 / (10 * (epsilon + beta0)^2), 6 / (10 * (epsilon + beta1)^2),
-            3 / (10 * (epsilon + beta2)^2))
+    return (1 / (epsilon + beta0)^2, 1 / (epsilon + beta1)^2, 1 / (epsilon + beta2)^2)
 end
 
-@inline function weno5_alphas(reconstruction::ReconstructionWENO5Z, beta0, beta1,
-                              beta2)
+@inline function weno5_factors(reconstruction::ReconstructionWENO5Z, beta0, beta1,
+                               beta2)
     epsilon = convert(typeof(beta0), reconstruction.epsilon)
     tau5 = abs(beta0 - beta2)
-    return ((1 + tau5 / (beta0 + epsilon)) / 10,
-            6 * (1 + tau5 / (beta1 + epsilon)) / 10,
-            3 * (1 + tau5 / (beta2 + epsilon)) / 10)
+    return (1 + tau5 / (beta0 + epsilon), 1 + tau5 / (beta1 + epsilon),
+            1 + tau5 / (beta2 + epsilon))
 end
 end # @muladd
