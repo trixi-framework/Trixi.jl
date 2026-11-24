@@ -229,7 +229,11 @@ tspan = (0.0, 1.0)
 # Setting `real_type` allows to change the real number type, e.g., to `Float32`.
 # This is particularly useful when changing the `storage_type` to a GPU array
 # type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
-semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing)
+# On such backends, `tuning` selects performance settings of the kernels, e.g.,
+# `Tuning(flux_differencing_kernel = FullSweep())` for the kernel used for the
+# flux differencing volume integral.
+semi = trixi_adapt(semi; real_type = nothing, storage_type = nothing,
+                   tuning = nothing)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

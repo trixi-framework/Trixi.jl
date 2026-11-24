@@ -13,6 +13,13 @@ for human readability.
   `ConservativeLinearScalarAdvectionEquation2D` and
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
   advection velocity ([#3438]).
+- The GPU volume integrals of the 2D `P4estMesh` and `T8codeMesh` are now parallelized
+  over the individual nodes instead of the elements, for both the weak form and flux
+  differencing. As in 3D, the flux differencing kernel can be selected via
+  `Tuning(; flux_differencing_kernel)`, and nonconservative terms are supported if the
+  conservative and nonconservative fluxes are combined. The number of threads per
+  workgroup of these kernels can be set via `Tuning(; volume_integral_workgroup_size)`
+  (default 128) ([#3329]).
 
 #### Changed
 
