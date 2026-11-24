@@ -636,8 +636,10 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
 
-    # Use a plain `Array` so that the plotting data does not depend on the array type of
-    # `u` (e.g., a `FixedSizeArray` slice of `wrap_array`).
+    # In contrast to the other plotting routines, which compute the values to plot from
+    # the solution and store them in new `Array`s, the values `u` are passed by the user
+    # and used directly. Use a plain `Array` so that the plotting data does not depend on
+    # the array type of `u` (e.g., a `FixedSizeArray` slice of `wrap_array`).
     if !(u isa Array)
         u = Array(u)
     end

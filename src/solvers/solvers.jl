@@ -37,7 +37,9 @@ end
 # arrays returned by `wrap_array` for `FDSBP`, where only the number of variables is
 # static. It is not used for the views with static sizes returned by `wrap_array` for
 # `DGSEM` (see `wrap_storage_static`), for which the broadcast above is faster (the loop below
-# compiles to a `memset` call per element).
+# compiles to a `memset` call per element). Explicit loops over the variables and nodes
+# of an `element` are as fast as the broadcast for static sizes, but several times slower
+# than the loop below otherwise.
 @inline function set_zero_element!(du::Union{VectorBackedArray,
                                              FixedSizeArrayDims{<:Any, <:Any,
                                                                 <:Tuple{Val,
