@@ -13,11 +13,15 @@ for human readability.
   `ConservativeLinearScalarAdvectionEquation2D` and
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
   advection velocity ([#3438]).
+- The flux splitting `splitting_lax_friedrichs` is now also available for
+  `CompressibleEulerEquations1D` ([#3489]).
 - Mesh and solution files of a `DGMultiMesh` now also store the approximation type of the
   basis. This allows to correctly load meshes with approximation types other than
   `Polynomial()`, e.g., `SBP()` on triangles or `GaussSBP()`.
 
 #### Changed
+- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
+  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 
 #### Deprecated
 
