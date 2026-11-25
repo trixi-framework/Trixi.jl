@@ -18,7 +18,7 @@ for human readability.
   `CompressibleEulerEquations1D` ([#3489]).
 - The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
   available for all equations and complements the dissipation
-  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#XXXX]).
+  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
