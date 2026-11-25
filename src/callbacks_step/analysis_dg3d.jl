@@ -224,22 +224,20 @@ function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
+    return calc_error_norms(func, trixi_backend(u), u, t, analyzer, mesh, equations,
+                            initial_condition, dg, cache, cache_analysis)
+end
+
+function calc_error_norms(func, ::Nothing, u, t, analyzer,
+                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                          equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
     @unpack aux_local, aux_tmp1, aux_tmp2 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
-
-    # Calculate error norms on the CPU, to ensure the order of summation is the same.
-    if trixi_backend(u) !== nothing
-        node_coordinates = Array(node_coordinates)
-        inverse_jacobian = Array(inverse_jacobian)
-        u = Array(u)
-        if aux !== nothing
-            aux = Array(aux)
-        end
-    end
 
     # Set up data structures
     aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1, 1)
@@ -287,6 +285,92 @@ function calc_error_norms(func, u, t, analyzer,
     l2_error = @. sqrt(l2_error / total_volume)
 
     return l2_error, linf_error
+end
+
+# Since the reduction on the GPU is parallel, the order of summation differs from the
+# serial CPU version above. Thus, the L2 errors can differ by round-off.
+function calc_error_norms(func, backend::Backend, u, t, analyzer,
+                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                          equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
+    @unpack vandermonde, weights = analyzer
+    @unpack node_coordinates, inverse_jacobian = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
+    n_nodes = nnodes(dg)
+    n_nodes_analysis = nnodes(analyzer)
+    n_elements = nelements(dg, cache)
+
+    # Set up data structures
+    u_node_type = SVector{nvariables(equations), eltype(u)}
+    u0 = zero(u_node_type)
+    x0 = zero(SVector{ndims(equations), eltype(node_coordinates)})
+    aux0 = zero_aux_node_vars(aux, equations)
+    error0 = zero_return_type(func, u_node_type, map(typeof, aux0)...,
+                              typeof(equations))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (error0, error0, volume0)
+
+    function local_reduce((l2_error, linf_error, total_volume),
+                          (l2_error_element, linf_error_element, volume_element))
+        return (l2_error + l2_error_element, max.(linf_error, linf_error_element),
+                total_volume + volume_element)
+    end
+
+    l2_error, linf_error, total_volume = mapreduce_accelerated(local_reduce,
+                                                               1:n_elements,
+                                                               backend; init,
+                                                               neutral) do element
+        l2_error_element, linf_error_element, volume_element = neutral
+
+        # Naive versions of multiply_(scalar_)dimensionwise
+        for k in 1:n_nodes_analysis, j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+            u_local = u0
+            x_local = x0
+            aux_local = aux0
+            jacobian_local = zero(eltype(inverse_jacobian))
+            for kk in 1:n_nodes, jj in 1:n_nodes, ii in 1:n_nodes
+                factor = vandermonde[k, kk] * vandermonde[j, jj] * vandermonde[i, ii]
+                u_local += factor * get_node_vars(u, equations, dg, ii, jj, kk, element)
+                x_local += factor *
+                           get_node_coords(node_coordinates, equations, dg, ii, jj, kk,
+                                           element)
+                # No-op on the empty tuple if there are no auxiliary variables
+                aux_local = map((a, b) -> a + factor * b, aux_local,
+                                get_aux_node_vars(aux, equations, dg, ii, jj, kk,
+                                                  element))
+                jacobian_local += factor * inv(inverse_jacobian[ii, jj, kk, element])
+            end
+
+            # Calculate errors at the analysis node
+            u_exact = initial_condition(x_local, t, equations)
+            diff = func(u_exact, aux_local..., equations) -
+                   func(u_local, aux_local..., equations)
+            # We take absolute value as we need the Jacobian here for the volume calculation
+            abs_jacobian_local = abs(jacobian_local)
+
+            l2_error_element += diff .^ 2 *
+                                (weights[i] * weights[j] * weights[k] *
+                                 abs_jacobian_local)
+            linf_error_element = @. max(linf_error_element, abs(diff))
+            volume_element += weights[i] * weights[j] * weights[k] * abs_jacobian_local
+        end
+
+        return (l2_error_element, linf_error_element, volume_element)
+    end
+
+    # For L2 error, divide by total volume
+    l2_error = @. sqrt(l2_error / total_volume)
+
+    return l2_error, linf_error
+end
+
+# Zero of the same shape as the result of `get_aux_node_vars`, i.e., an empty tuple if
+# the equations do not have auxiliary variables
+@inline zero_aux_node_vars(::Nothing, equations) = ()
+@inline function zero_aux_node_vars(aux, equations)
+    return (zero(SVector{nauxvariables(equations), eltype(aux)}),)
 end
 
 # Use quadrature to numerically integrate a single element.
