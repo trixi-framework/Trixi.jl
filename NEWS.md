@@ -19,14 +19,16 @@ for human readability.
 
 #### Changed
 - The time derivative `du` is no longer reset to zero at the beginning of
-  `rhs_hyperbolic!` for the DGSEM, FDSBP, and BlockFV solvers. Instead, the volume
-  integral overwrites `du` with its contribution, which avoids an additional pass over
-  the memory. This affects packages extending or calling the internal volume integral
-  kernels: `volume_integral_kernel!`, `weak_form_kernel!`, `flux_differencing_kernel!`,
-  `fv_kernel!`, and `fvO2_kernel!` take an additional argument `set_not_add` after
-  `have_nonconservative_terms`. If it is `Trixi.True()`, the kernel must overwrite all
-  values of `du` in the given element; if it is `Trixi.False()`, the kernel adds its
-  contribution. Custom methods of `calc_volume_integral!` must overwrite `du` as well.
+  `rhs_hyperbolic!` for the DGSEM, FDSBP, and BlockFV solvers.
+  Instead, the volume integral overwrites `du` with its contribution,
+  which avoids an additional pass over the memory.
+  This affects packages extending or calling the internal volume integral kernels:
+  `volume_integral_kernel!`, `weak_form_kernel!`, `flux_differencing_kernel!`,
+  `fv_kernel!`, and `fvO2_kernel!` take an additional argument
+  `set_not_add` after `have_nonconservative_terms`. If it is `Trixi.True()`,
+  the kernel must overwrite all values of `du` in the given element;
+  if it is `Trixi.False()`, the kernel adds its contribution.
+  Custom methods of `calc_volume_integral!` must overwrite `du` as well.
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 
