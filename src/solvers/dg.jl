@@ -1324,6 +1324,14 @@ In particular, not the nodes themselves are returned.
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
 @inline nnodes(dg::DG) = nnodes(dg.basis)
 
+# Length of the one-dimensional reference element of `basis`, used to map its nodes to the
+# cells of a `TreeMesh`. By default, it is computed by integrating the function with constant
+# value unity on the corresponding element data type (using \circ), which requires a
+# quadrature that is exact for constants.
+function reference_length(basis)
+    return integrate(one ∘ eltype, get_nodes(basis), basis)
+end
+
 # This is used in some more general analysis code and needs to dispatch on the
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
