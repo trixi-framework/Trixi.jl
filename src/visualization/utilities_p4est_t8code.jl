@@ -20,7 +20,7 @@ function unstructured_2d_to_1d_curve(u, mesh::P4estMesh{2, 2, Float64},
                                      equations, dg::DGSEM, cache,
                                      curve, slice,
                                      point, nvisnodes,
-                                     solution_variables)
+                                     solution_variables::Func) where {Func}
     # TODO: Currently, the efficient search functionality is only implemented
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
     #       but general approach.
@@ -318,7 +318,7 @@ function unstructured_3d_to_1d_curve(u,
                                      mesh::Union{P4estMesh{3, 3, Float64},
                                                  T8codeMesh{3, Float64}},
                                      equations, dg::DGSEM, cache,
-                                     curve, solution_variables)
+                                     curve, solution_variables::Func) where {Func}
     # TODO: Currently, the efficient search functionality is only implemented
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
     #       but general approach.

@@ -508,10 +508,10 @@ For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D
-(serial) and 3D (also with MPI), without AMR. On GPUs, only conforming meshes in 3D (also
-with MPI) are supported, and only equations without nonconservative terms, e.g.,
-[`ConservativeLinearScalarAdvectionEquation3D`](@ref)
-but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
+(serial) and 3D (also with MPI), without AMR. On GPUs, only conforming meshes are
+supported in 3D, and nonconservative terms are only supported with fluxes combining
+the conservative and nonconservative parts, see
+[`Trixi.combine_conservative_and_nonconservative_fluxes`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
 [`boundary_condition_do_nothing`](@ref) support auxiliary variables.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
