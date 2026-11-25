@@ -3100,7 +3100,7 @@ end
                                                            orientation, equations)) ==
                       RealT
                 @test eltype(@inferred flux_central(u_ll, u_rr, aux_ll, aux_rr,
-                                                orientation, equations)) == RealT
+                                                    orientation, equations)) == RealT
             end
 
             @test eltype(@inferred flux(u, aux, normal_direction, equations)) == RealT
@@ -3147,7 +3147,7 @@ end
         @test eltype(noncons_flux) == RealT
         for direction in 1:4
             orientation = div(direction + 1, 2)
-            
+
             surface_flux_functions = (flux_lax_friedrichs, flux_nonconservative_central)
             flux_, noncons_flux = @inferred boundary_condition(u_inner, aux_inner,
                                                                orientation, direction,
