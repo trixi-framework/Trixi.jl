@@ -80,7 +80,8 @@ All two-point fluxes are computed for each node.
 This doubles the number of flux evaluations,
 but no flux has to be exchanged between the threads.
 Shared memory is used to avoid repeated slow reads
-from the solution vector `u`.
+from the solution vector `u` and the auxiliary variables
+(see [`nauxvariables`](@ref)).
 
 See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
 """

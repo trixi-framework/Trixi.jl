@@ -80,13 +80,13 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     du2 = (rho_t * v1 + rho * v1_t
            + p_x + rho_x * v1^2 + 2 * rho * v1 * v1_x -
            # stress tensor from x-direction
-           v1_xx * mu_)
+           v1_xx * mu_ * 4 / 3)
 
     # total energy equation
     du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
            # stress tensor and temperature gradient terms from x-direction
-           v1_xx * v1 * mu_ -
-           v1_x * v1_x * mu_ -
+           v1_xx * v1 * mu_ * 4 / 3 -
+           v1_x * v1_x * mu_ * 4 / 3 -
            T_const * inv_rho_cubed *
            (p_xx * rho * rho -
             2 * p_x * rho * rho_x +
