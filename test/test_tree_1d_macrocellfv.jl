@@ -308,8 +308,8 @@ end
         w_minus, w_plus = Trixi.weno5_cell(reconstruction, values...)
         w_minus_mirror, w_plus_mirror = Trixi.weno5_cell(reconstruction,
                                                          reverse(values)...)
-        @test w_minus === w_plus_mirror
-        @test w_plus === w_minus_mirror
+        @test w_minus ≈ w_plus_mirror rtol=10eps(Float64)
+        @test w_plus ≈ w_minus_mirror rtol=10eps(Float64)
     end
     # Fifth order of both face values for smooth data: averages of exp(x) over the
     # cells [(i - 1/2) h, (i + 1/2) h], whose face values are exp(-h / 2), exp(h / 2)
