@@ -17,14 +17,19 @@ initial_condition = initial_condition_two_modes
 # Macro-cell finite volume solver of fifth order: WENO5-Z reconstruction of the subcell
 # averages. The initial condition is set to the subcell averages (Gauss-Legendre
 # quadrature with 5 nodes per subcell); point values at the subcell centers would limit
-# the accuracy to second order.
+# the accuracy to second order. With a moment inversion to point values,
+# `MomentInversionCentral()` (order 6, fifth order of the scheme) or
+# `MomentInversionWENO()` (fourth order), WENO5-Z interpolates the point values at the
+# subcell centers to the faces instead.
 #
 # Note: the errors of the `AnalysisCallback` compare the subcell averages with the
 # point values at the subcell centers and are therefore only second-order accurate.
 n_cells = 8
 reconstruction = ReconstructionWENO5Z()
+moment_inversion = MomentInversionIdentity()
 solver = MacroCellFV(n_cells = n_cells, surface_flux = flux_lax_friedrichs,
                      reconstruction = reconstruction,
+                     moment_inversion = moment_inversion,
                      initial_condition_nodes = 5)
 
 coordinates_min = 0.0

@@ -299,7 +299,8 @@ end
 end
 
 @testitem "MacroCellFV 1D: WENO5 face values" setup=[Setup] tags=[:tree_part1] begin
-    # Mirrored data give mirrored face values bitwise (e.g., at reflecting walls)
+    # Mirrored data give mirrored face values (e.g., at reflecting walls), up to round-off
+    # errors (fused multiply-add operations may differ between the two faces)
     data = ((1.0, 2.0, 4.0, 3.5, -1.0), (0.3, -0.2, 0.1, 5.0, 7.0),
             (1.0, 1.0, 1.0, 1.0, 1.0), (0.0, 0.0, 1.0, 0.0, 0.0))
     for reconstruction in (ReconstructionWENO5JS(), ReconstructionWENO5Z()),
@@ -308,8 +309,8 @@ end
         w_minus, w_plus = Trixi.weno5_cell(reconstruction, values...)
         w_minus_mirror, w_plus_mirror = Trixi.weno5_cell(reconstruction,
                                                          reverse(values)...)
-        @test w_minus === w_plus_mirror
-        @test w_plus === w_minus_mirror
+        @test w_minus≈w_plus_mirror rtol=10 * eps(Float64)
+        @test w_plus≈w_minus_mirror rtol=10 * eps(Float64)
     end
     # Fifth order of both face values for smooth data: averages of exp(x) over the
     # cells [(i - 1/2) h, (i + 1/2) h], whose face values are exp(-h / 2), exp(h / 2)
@@ -355,6 +356,176 @@ end
     Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_f32, 0.0f0)
     @test eltype(du_ode) == Float32
     @test all(isfinite, du_ode)
+    # The same with the WENO moment inversion and the reconstruction of the primitive
+    # variables
+    solver_f32 = MacroCellFV(n_cells = n_cells, surface_flux = flux_hllc_primitive,
+                             reconstruction = reconstruction,
+                             moment_inversion = MomentInversionWENO(),
+                             center2recon = cons2prim, initial_condition_nodes = 5,
+                             RealT = Float32)
+    semi_f32 = SemidiscretizationHyperbolic(mesh_f32, equations_f32, initial_condition,
+                                            solver_f32;
+                                            boundary_conditions = boundary_condition_do_nothing)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_f32, 0.0f0)
+    @test all(isfinite, du_ode)
+end
+
+@testitem "MacroCellFV 1D: moment inversions" setup=[Setup] tags=[:tree_part1] begin
+    # Coefficients of the central moment inversion: order 4 is `ū - Δ²ū / 24`, order 6
+    # is `(9, -116, 2134, -116, 9) / 1920`
+    @test MomentInversionCentral(order = 4).coefficients == (-1 / 24,)
+    @test MomentInversionCentral().order == 6
+    @test all(MomentInversionCentral(order = 6).coefficients .≈ (-116 / 1920, 9 / 1920))
+    @test_throws ArgumentError MomentInversionCentral(order = 5)
+    @test_throws ArgumentError MomentInversionCentral(order = 2)
+    @test_throws ArgumentError MomentInversionWENO(linear_weight = 0.5)
+
+    # Exactness: the averages of `x^p` over the cells of unit width centered at
+    # `x_0 + k` give the value at `x_0`, for `p < order` (central) and `p < 3` (WENO,
+    # whose nonlinear weights are not symmetric for cubic data)
+    average(p, x_0) = k -> ((x_0 + k + 0.5)^(p + 1) - (x_0 + k - 0.5)^(p + 1)) / (p + 1)
+    for order in (4, 6, 8)
+        inversion = MomentInversionCentral(; order)
+        @test Trixi.nhalo(inversion) == order ÷ 2 - 1
+        for p in 0:(order - 1)
+            @test Trixi.center_value(inversion, average(p, 0.3))≈0.3^p atol=1.0e-14
+        end
+    end
+    for p in 0:2
+        @test Trixi.center_value(MomentInversionWENO(), average(p, 0.3)) ≈ 0.3^p
+    end
+    # Next to a jump, the WENO moment inversion keeps a uniform state
+    @test Trixi.center_value(MomentInversionWENO(), k -> k <= 1 ? 1.0 : 2.0) == 1.0
+    # Mirror symmetry: mirrored data give the same point value (up to round-off errors)
+    for inversion in (MomentInversionCentral(order = 8), MomentInversionWENO())
+        data = (0.3, -0.2, 0.1, 5.0, 7.0, 2.0, -1.0)
+        stencil = k -> data[k + 4]
+        stencil_mirror = k -> data[4 - k]
+        @test Trixi.center_value(inversion,
+                                 stencil)≈Trixi.center_value(inversion,
+                                                             stencil_mirror) rtol=10 *
+                                                                                  eps(Float64)
+    end
+
+    # Point-value WENO5: exact for quadratic point values (each candidate is), fifth
+    # order for smooth point values, mirror-symmetric, and finite in `Float32` for a
+    # constant state next to a step
+    for weno in (ReconstructionWENO5JS(), ReconstructionWENO5Z())
+        reconstruction = Trixi.ReconstructionPointValues(weno)
+        @test Trixi.nhalo(reconstruction) == 3
+        for p in 0:2
+            w_minus, w_plus = Trixi.reconstruct_cell(reconstruction,
+                                                     k -> (0.3 + k)^p)
+            @test w_minus≈(-0.2)^p atol=1.0e-14
+            @test w_plus≈0.8^p atol=1.0e-14
+        end
+        function face_errors(h)
+            w_minus, w_plus = Trixi.reconstruct_cell(reconstruction, k -> exp(k * h))
+            return abs(w_minus - exp(-h / 2)), abs(w_plus - exp(h / 2))
+        end
+        @test all(log2.(face_errors(0.1) ./ face_errors(0.05)) .> 4.8)
+        values = (0.3, -0.2, 0.1, 5.0, 7.0)
+        w_minus, w_plus = Trixi.weno5_point_cell(weno, values...)
+        w_minus_mirror, w_plus_mirror = Trixi.weno5_point_cell(weno, reverse(values)...)
+        @test w_minus≈w_plus_mirror rtol=10 * eps(Float64)
+        @test w_plus≈w_minus_mirror rtol=10 * eps(Float64)
+        w_minus, w_plus = Trixi.weno5_point_cell(weno, 0.0f0, 0.0f0, 0.0f0, 0.0f0, 1.0f0)
+        @test w_minus isa Float32
+        @test isfinite(w_minus) && isfinite(w_plus)
+    end
+
+    # Point values outside of the admissible set are replaced by the averages
+    equations = CompressibleEulerEquations1D(1.4)
+    @test Trixi.macrocell_point_value_admissible(SVector(1.0, 0.0, 2.5), equations)
+    @test !Trixi.macrocell_point_value_admissible(SVector(-1.0, 0.0, 2.5), equations)
+    @test !Trixi.macrocell_point_value_admissible(SVector(1.0, 0.0, -2.5), equations)
+    @test Trixi.macrocell_point_value_admissible(SVector(-1.0),
+                                                 LinearScalarAdvectionEquation1D(1.0))
+end
+
+@testitem "MacroCellFV 1D: elixir_advection_high_order.jl convergence with moment inversions" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # WENO5-Z interpolation of the point values from the central moment inversion of
+    # the default order 6: fifth order (the exactness of all moment inversions is tested
+    # in "moment inversions")
+    errors = map((3, 4)) do level
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl");
+                      moment_inversion = MomentInversionCentral(),
+                      initial_refinement_level = level,
+                      stepsize_callback = StepsizeCallback(cfl = 0.2))
+        return subcell_average_error(@__MODULE__)
+    end
+    @test log2(errors[1] / errors[2]) > 4.5
+end
+
+@testitem "MacroCellFV 1D: block decomposition with moment inversions" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # As for the reconstructions from the averages: blocks of the halo width (5 subcells
+    # for WENO5 with the WENO moment inversion or the central moment inversion of
+    # order 6) and larger blocks give the same solution up to round-off errors (the
+    # Shu-Osher problem until t = 0.02: later, the unlimited central moment inversion at
+    # the shock amplifies the round-off differences, to about 5e-12 at t = 0.1; an error
+    # in the halos would give differences of the order of the truncation error at all
+    # element boundaries from the first time step on)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        n_cells=80, initial_refinement_level=0, tspan=(0.0, 0.1),
+                        moment_inversion=MomentInversionWENO())
+    u_1block = copy(sol.u[end])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_high_order.jl"),
+                        n_cells=5, initial_refinement_level=4, tspan=(0.0, 0.1),
+                        moment_inversion=MomentInversionWENO())
+    @test isapprox(u_1block, sol.u[end]; atol = 1.0e-13, rtol = 0)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        n_cells=80, initial_refinement_level=1, tspan=(0.0, 0.02),
+                        moment_inversion=MomentInversionCentral(),
+                        center2recon=cons2prim, surface_flux=flux_hllc_primitive)
+    u_2blocks = copy(sol.u[end])
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        n_cells=5, initial_refinement_level=5, tspan=(0.0, 0.02),
+                        moment_inversion=MomentInversionCentral(),
+                        center2recon=cons2prim, surface_flux=flux_hllc_primitive)
+    @test isapprox(u_2blocks, sol.u[end]; atol = 1.0e-13, rtol = 0)
+end
+
+@testitem "MacroCellFV 1D: elixir_euler_shu_osher.jl with point values" setup=[
+    Setup,
+    TreeMesh1DMacroCellFV
+] tags=[:tree_part1] begin
+    # WENO moment inversion, reconstruction of the primitive variables, and the HLLC
+    # flux from the primitive variables
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        l2=[1.1944607245801735, 4.241560030318569, 15.336162283766798],
+                        linf=[3.258848701586172, 11.442063287669447, 38.37150130144202],
+                        tspan=(0.0, 0.5), moment_inversion=MomentInversionWENO(),
+                        center2recon=cons2prim, surface_flux=flux_hllc_primitive)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, ALLOCATION_LIMIT)
+    # `prim2cons` at the faces and the HLLC flux of the conservative variables give the
+    # same right-hand side up to round-off errors
+    solver_conservative_flux = MacroCellFV(n_cells = n_cells, surface_flux = flux_hllc,
+                                           reconstruction = reconstruction,
+                                           moment_inversion = MomentInversionWENO(),
+                                           center2recon = cons2prim,
+                                           face2flux = prim2cons,
+                                           initial_condition_nodes = 5)
+    semi_conservative_flux = SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          solver_conservative_flux;
+                                                          boundary_conditions = boundary_condition_do_nothing)
+    u_ode = sol.u[end]
+    du_ode = similar(u_ode)
+    du_conservative_flux = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.5)
+    Trixi.rhs_hyperbolic!(du_conservative_flux, u_ode, semi_conservative_flux, 0.5)
+    @test isapprox(du_ode, du_conservative_flux; rtol = 1.0e-12,
+                   atol = 1.0e-12 * maximum(abs, du_ode))
 end
 
 @testitem "MacroCellFV 1D: types" setup=[Setup] tags=[:tree_part1] begin
@@ -416,7 +587,39 @@ end
                                                                         reconstruction = ReconstructionWENO5Z());
                                                             boundary_conditions = boundary_condition_periodic)
 
-    for item in (solver, solver.volume_integral, solver_weno.volume_integral)
+    # Moment inversions to point values: their halo subcells add to those of WENO5;
+    # only the WENO reconstructions are supported
+    @test Trixi.nhalo(MacroCellFV(n_cells = 8, surface_flux = flux_lax_friedrichs,
+                                  reconstruction = ReconstructionWENO5Z(),
+                                  moment_inversion = MomentInversionCentral(order = 4))) ==
+          4
+    @test Trixi.nhalo(MacroCellFV(n_cells = 8, surface_flux = flux_lax_friedrichs,
+                                  reconstruction = ReconstructionWENO5JS(),
+                                  moment_inversion = MomentInversionCentral(order = 6))) ==
+          5
+    solver_point = MacroCellFV(n_cells = 8, surface_flux = flux_lax_friedrichs,
+                               reconstruction = ReconstructionWENO5Z(),
+                               moment_inversion = MomentInversionWENO())
+    @test Trixi.nhalo(solver_point) == 5
+    @test solver_point.volume_integral.reconstruction isa
+          Trixi.ReconstructionPointValues{<:ReconstructionWENO5Z}
+    @test MomentInversionWENO().epsilon === nothing
+    @test_throws ArgumentError MacroCellFV(n_cells = 8,
+                                           surface_flux = flux_lax_friedrichs,
+                                           reconstruction = ReconstructionMUSCL(),
+                                           moment_inversion = MomentInversionCentral())
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh,
+                                                            LinearScalarAdvectionEquation1D(1.0),
+                                                            initial_condition_constant,
+                                                            MacroCellFV(n_cells = 4,
+                                                                        surface_flux = flux_lax_friedrichs,
+                                                                        reconstruction = ReconstructionWENO5Z(),
+                                                                        moment_inversion = MomentInversionWENO());
+                                                            boundary_conditions = boundary_condition_periodic)
+
+    for item in (solver, solver.volume_integral, solver_weno.volume_integral,
+                 solver_point.volume_integral, MomentInversionCentral(),
+                 MomentInversionWENO(), solver_point.volume_integral.reconstruction)
         @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                           item)
         @test_nowarn show(IOContext(IOBuffer(), :compact => false),
@@ -453,4 +656,25 @@ end
               semi.cache.pad_threaded)
     @test length(semi.cache.pad_threaded) == Threads.maxthreadid()
     @test length(semi.cache.line_buffers_threaded) == Threads.maxthreadid()
+    # Without point values, the pads of the point values are empty
+    @test all(isempty, semi.cache.pad_points_threaded)
+
+    # With point values: the point values are computed only in the pad cells read by
+    # the reconstruction, from filled cells only
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
+                        tspan=(0.0, 0.1), moment_inversion=MomentInversionWENO(),
+                        center2recon=cons2prim, surface_flux=flux_hllc_primitive)
+    u_ode = copy(sol.u[end])
+    du_ode = similar(u_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+    du_first = copy(du_ode)
+    foreach(pad -> fill!(pad, NaN), semi.cache.pad_threaded)
+    foreach(pad -> fill!(pad, NaN), semi.cache.pad_points_threaded)
+    foreach(buffers -> foreach(b -> fill!(b, NaN), buffers),
+            semi.cache.line_buffers_threaded)
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+    @test du_ode == du_first
+    @test all(pad -> size(pad) ==
+                     (n_cells + 2 * Trixi.nhalo(solver), nvariables(equations)),
+              semi.cache.pad_points_threaded)
 end

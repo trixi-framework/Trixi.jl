@@ -19,9 +19,10 @@
 #      physical boundaries) into the pad of the thread; only the halo subcells read by
 #      the reconstruction are filled (`nhalo - 1` at -x towards a neighbor, whose
 #      macro-cell computes the face at -x),
-#   2. moment inversion (cell averages -> point values; `MomentInversionIdentity` uses
-#      the averages),
-#   3. transformation to the reconstruction variables (`center2recon`),
+#   2. moment inversion (cell averages -> point values at the subcell centers, into a
+#      second thread-local pad; `MomentInversionIdentity` uses the averages in place),
+#   3. transformation to the reconstruction variables (`center2recon`), pointwise for
+#      the point values,
 #   4. face reconstruction of each subcell (once, both faces, one variable at a time)
 #      into thread-local line buffers,
 #   5. transformation of the face values to the variables of the numerical flux
@@ -124,22 +125,27 @@ the number of subcells can also be given as `n_nodes`. Currently supported on th
   through `nhalo` halo subcells per side, which requires `n_cells >= nhalo`.
   Orders above two require subcell averages as initial data, see
   `initial_condition_nodes`.
-- `moment_inversion`: conversion of the subcell averages to point values before the
-  reconstruction; currently [`MomentInversionIdentity`](@ref) (the averages are used as
-  point values).
+- `moment_inversion`: conversion of the subcell averages to point values at the
+  subcell centers before the reconstruction: [`MomentInversionIdentity`](@ref) (the
+  averages are used as point values), [`MomentInversionCentral`](@ref) (linear, of even
+  order), or [`MomentInversionWENO`](@ref) (nonlinear, fourth order). With the moment
+  inversions to point values, the WENO reconstructions interpolate the point values to
+  the faces; other reconstructions are not supported. Their halo subcells add to those
+  of the reconstruction.
 - `center2recon`: transformation of the subcell values from conservative variables to
   the variables used for the reconstruction (e.g., [`cons2prim`](@ref)), applied after
   the moment inversion. With `MomentInversionIdentity`, it acts on the subcell
-  averages, so a nonlinear transformation is only second-order accurate.
+  averages, so a nonlinear transformation is only second-order accurate; with the
+  moment inversions to point values, it acts on the point values and keeps the order.
 - `face2flux`: transformation of the reconstructed face values to the variables
-  expected by `surface_flux` (conservative variables for the numerical fluxes of
+  expected by `surface_flux` (conservative variables for most numerical fluxes of
   Trixi.jl, e.g., [`prim2cons`](@ref) after `center2recon = cons2prim`).
   The names differ from `cons2recon`/`recon2cons` of the subcell finite volume methods
   in the DGSEM volume integrals, since the two transformations act at different places:
   on the subcell values before and on the face values after the reconstruction. A
-  numerical flux that takes the reconstruction variables directly (e.g., primitive
-  variables) can be used with `face2flux = cons2cons`, which avoids the conversion at
-  the faces.
+  numerical flux that takes the reconstruction variables directly (e.g.,
+  [`flux_hllc_primitive`](@ref) with `center2recon = cons2prim`) can be used with
+  `face2flux = cons2cons`, which avoids the conversion at the faces.
 - `initial_condition_nodes`: number of Gauss-Legendre nodes per coordinate direction
   for the subcell averages of the initial condition and of the ghost subcells of
   Dirichlet boundaries. The default `1` uses the value at the subcell center, which is
@@ -198,6 +204,9 @@ end
     return npadvariables(has_point_values(volume_integral.moment_inversion), equations)
 end
 @inline npadvariables(::False, equations) = nvariables(equations)
+# The point values are stored in a second pad of the same size (see
+# `pad_moment_inversion!`)
+@inline npadvariables(::True, equations) = nvariables(equations)
 
 # Same as `wrap_array` for `DGSEM`: with Polyester.jl threading, use a `PtrArray`, which
 # does not allocate (the general fallback for `DG` allocates an array header for each
@@ -224,8 +233,22 @@ end
 # Coupling of the moment inversion, the reconstruction, and the numerical flux
 # (the schemes are in `schemes/`)
 
-# The reconstruction used with the moment inversion
+# The moment inversions to point values at the subcell centers
+const MomentInversionPoint = Union{MomentInversionCentral, MomentInversionWENO}
+
+# The reconstruction used with the moment inversion: the WENO reconstructions of the
+# point values with the moment inversions to point values
 point_reconstruction(::MomentInversionIdentity, reconstruction) = reconstruction
+
+function point_reconstruction(::MomentInversionPoint,
+                              reconstruction::ReconstructionWENO5)
+    return ReconstructionPointValues(reconstruction)
+end
+
+function point_reconstruction(::MomentInversionPoint, reconstruction)
+    throw(ArgumentError("the moment inversions to point values support only the WENO " *
+                        "reconstructions"))
+end
 
 # Numerical flux at a subcell face from the reconstructed states `w_ll` and `w_rr` (in
 # reconstruction variables) on its two sides

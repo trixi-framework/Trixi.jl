@@ -61,6 +61,11 @@ ReconstructionWENO5Z(; epsilon = nothing) = ReconstructionWENO5Z(epsilon)
 
 const ReconstructionWENO5 = Union{ReconstructionWENO5JS, ReconstructionWENO5Z}
 
+function Base.show(io::IO, reconstruction::ReconstructionWENO5)
+    print(io, nameof(typeof(reconstruction)), "(epsilon = ", reconstruction.epsilon,
+          ")")
+end
+
 @inline nhalo(::ReconstructionWENO5) = 3
 
 @inline function reconstruct_cell(reconstruction::ReconstructionWENO5, stencil)
@@ -123,6 +128,53 @@ end
     tau5 = abs(beta0 - beta2)
     return (1 + tau5 / (beta0 + epsilon), 1 + tau5 / (beta1 + epsilon),
             1 + tau5 / (beta2 + epsilon))
+end
+
+# WENO5 reconstruction from the point values at the subcell centers (used with the
+# moment inversions to point values, `MomentInversionCentral` and `MomentInversionWENO`,
+# set by `point_reconstruction`): the face values are the WENO interpolations of the
+# point values to the face midpoints (as in the weighted compact nonlinear schemes of
+# Deng and Zhang, 2000, doi:10.1006/jcph.2000.6594), with the candidates of the stencils
+# `(i-2, i-1, i)`, `(i-1, i, i+1)`, `(i, i+1, i+2)` and the linear weights
+# `(1, 10, 5) / 16`, exact for quartic polynomials. The smoothness indicators and the
+# nonlinear factors are those of the reconstruction from the averages.
+struct ReconstructionPointValues{Reconstruction}
+    reconstruction::Reconstruction
+end
+
+function Base.show(io::IO, reconstruction::ReconstructionPointValues)
+    print(io, reconstruction.reconstruction, " (point values)")
+end
+
+@inline nhalo(reconstruction::ReconstructionPointValues) = nhalo(reconstruction.reconstruction)
+
+@inline function reconstruct_cell(reconstruction::ReconstructionPointValues{<:ReconstructionWENO5},
+                                  stencil)
+    return weno5_point_cell(reconstruction.reconstruction, stencil(-2), stencil(-1),
+                            stencil(0), stencil(1), stencil(2))
+end
+
+# WENO interpolation of the point values `a, b, c, d, e` at the centers of the cells
+# `i-2, ..., i+2` to the faces of the cell `c`, written as `weno5_cell`: the candidate
+# values are not divided by 8 and the linear weights not by 16; the face in negative
+# direction is the mirrored interpolation with the same nonlinear factors.
+@inline function weno5_point_cell(reconstruction, a, b, c, d, e)
+    beta0, beta1, beta2 = weno5_smoothness(a, b, c, d, e)
+    s0, s1, s2 = weno5_factors(reconstruction, beta0, beta1, beta2)
+
+    # 8 times the candidate values at the face in positive direction ...
+    p0 = 3 * a - 10 * b + 15 * c
+    p1 = -b + 6 * c + 3 * d
+    p2 = 3 * c + 6 * d - e
+    w_plus = (s0 * p0 + 10 * s1 * p1 + 5 * s2 * p2) / (8 * (s0 + 10 * s1 + 5 * s2))
+
+    # ... and in negative direction (exact mirror of the expressions above)
+    q0 = 3 * e - 10 * d + 15 * c
+    q1 = -d + 6 * c + 3 * b
+    q2 = 3 * c + 6 * b - a
+    w_minus = (s2 * q0 + 10 * s1 * q1 + 5 * s0 * q2) / (8 * (s2 + 10 * s1 + 5 * s0))
+
+    return w_minus, w_plus
 end
 
 # `epsilon` of WENO-Z in the type `RealT` (default: `1.0e-40`, at least

@@ -14,7 +14,15 @@ for human readability.
   padded array with halo subcells of its neighbors (ghost subcells at physical
   boundaries), so that wider reconstruction stencils can be added. Supported
   reconstructions: `ReconstructionConstant`, `ReconstructionMUSCL`, and the fifth-order
-  `ReconstructionWENO5JS` and `ReconstructionWENO5Z`.
+  `ReconstructionWENO5JS` and `ReconstructionWENO5Z`. The moment inversions
+  `MomentInversionCentral` (linear, of arbitrary even order, default 6) and
+  `MomentInversionWENO` convert the subcell averages to point values at the subcell
+  centers, which the WENO reconstructions interpolate to the faces, so that the
+  reconstruction of nonlinear functions of the conservative variables (e.g.,
+  `center2recon = cons2prim`) keeps high order.
+- New numerical flux `flux_hllc_primitive` for `CompressibleEulerEquations1D`: the HLLC
+  flux from the primitive variables of the left and right states; `flux_hllc` calls it
+  after `cons2prim`.
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
   serial `P4estMesh{2}`es without AMR. The new equations
   `ConservativeLinearScalarAdvectionEquation2D` and
@@ -22,6 +30,8 @@ for human readability.
   advection velocity ([#3438]).
 
 #### Changed
+- `flux_hllc` for `CompressibleEulerEquations1D` now evaluates `flux_hllc_primitive`
+  after `cons2prim`, which changes results by round-off errors.
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 

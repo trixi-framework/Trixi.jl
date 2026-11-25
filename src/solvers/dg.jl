@@ -1604,6 +1604,7 @@ include("blockfv/blockfv_2d.jl")
 include("macrocellfv/schemes/reconstruction.jl")
 include("macrocellfv/schemes/weno/reconstruction_weno5.jl")
 include("macrocellfv/schemes/moment_inversion.jl")
+include("macrocellfv/schemes/weno/moment_inversion_weno.jl")
 include("macrocellfv/macrocellfv.jl")
 include("macrocellfv/macrocellfv_1d.jl")
 

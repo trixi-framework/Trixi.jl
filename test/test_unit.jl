@@ -2402,6 +2402,29 @@ end
     end
 end
 
+@testitem "Unit: HLLC flux with primitive variables: CEE 1D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations1D(1.4)
+    # Consistency with the physical flux
+    for prim in (SVector(1.1, -0.5, 2.3), SVector(0.7, 1.2, 0.4))
+        u = prim2cons(prim, equations)
+        @test flux_hllc_primitive(prim, prim, 1, equations) ≈ flux(u, 1, equations)
+    end
+    # `flux_hllc` evaluates `flux_hllc_primitive` from the primitive variables: all four
+    # cases of the HLLC flux (supersonic to the right and to the left, subsonic with the
+    # contact to the right and to the left of the face)
+    for (prim_ll, prim_rr) in ((SVector(1.0, 3.0, 1.0), SVector(0.8, 2.9, 0.9)),
+                               (SVector(1.0, -3.0, 1.0), SVector(0.8, -2.9, 0.9)),
+                               (SVector(1.0, 0.3, 1.0), SVector(0.5, 0.2, 0.4)),
+                               (SVector(1.0, -0.3, 1.0), SVector(0.5, -0.2, 0.4)))
+        u_ll = prim2cons(prim_ll, equations)
+        u_rr = prim2cons(prim_rr, equations)
+        @test flux_hllc_primitive(cons2prim(u_ll, equations), cons2prim(u_rr, equations),
+                                  1, equations) == flux_hllc(u_ll, u_rr, 1, equations)
+        @test flux_hllc_primitive(prim_ll, prim_rr, 1, equations) ≈
+              flux_hllc(u_ll, u_rr, 1, equations)
+    end
+end
+
 @testitem "Unit: Consistency check for Godunov flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation

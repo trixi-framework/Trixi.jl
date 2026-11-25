@@ -14,6 +14,10 @@
 # element is computed by the left neighbor, so with a left neighbor the stencils reach
 # only `nhalo - 1` cells to the left and the pad cell `a = 1` stays unused; at a physical
 # boundary at -x, the boundary face needs all `nhalo` ghost subcells.
+# With the moment inversions to point values, the point values are stored in a second
+# thread-local pad `pad_points` of the same size (the averages stay in `pad`); they are
+# computed only in the pad cells read by the reconstruction, so that the stencils of
+# the moment inversion lie inside the filled cells.
 # Thread-local line buffers hold the reconstructed states `w_minus[c + 1, v]` and
 # `w_plus[c + 1, v]` of the subcells `c = 0, ..., n + 1` at their faces in negative and
 # positive x direction and the numerical fluxes `flux[f, v]` at the faces
@@ -33,6 +37,11 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
     pad_threaded = [Matrix{uEltype}(undef, n + 2 * g,
                                     npadvariables(volume_integral, equations))
                     for _ in 1:Threads.maxthreadid()]
+    n_pad_points = has_point_values(volume_integral.moment_inversion) isa True ?
+                   n + 2 * g : 0
+    pad_points_threaded = [Matrix{uEltype}(undef, n_pad_points,
+                                           npadvariables(volume_integral, equations))
+                           for _ in 1:Threads.maxthreadid()]
     line_buffers_threaded = [(;
                               w_minus = Matrix{uEltype}(undef, n + 2,
                                                         nvariables(equations)),
@@ -65,8 +74,8 @@ function create_cache_volume_integral(mesh::TreeMesh{1}, equations,
                                          real(dg))
     subcell_quadrature = (; nodes, weights)
 
-    return (; pad_threaded, line_buffers_threaded, neighbor_elements, boundary_ids,
-            subcell_quadrature)
+    return (; pad_threaded, pad_points_threaded, line_buffers_threaded,
+            neighbor_elements, boundary_ids, subcell_quadrature)
 end
 
 function resize_cache_volume_integral!(cache, mesh::TreeMesh{1},
@@ -87,8 +96,9 @@ function rhs_hyperbolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1}, equation
     @trixi_timeit timer() "subcell fluxes and divergence" begin
         @threaded for element in eachelement(dg, cache)
             pad = cache.pad_threaded[Threads.threadid()]
+            pad_points = cache.pad_points_threaded[Threads.threadid()]
             line_buffers = cache.line_buffers_threaded[Threads.threadid()]
-            calc_macrocell_element!(du, pad, line_buffers, u, t, element,
+            calc_macrocell_element!(du, pad, pad_points, line_buffers, u, t, element,
                                     boundary_conditions_sides, mesh, equations,
                                     dg.volume_integral, dg, cache)
         end
@@ -113,7 +123,7 @@ end
 # its +x face until `finish_macrocell_first_subcell!` subtracts the flux at -x.
 # The line is processed in two passes, each a loop that vectorizes: all subcells are
 # reconstructed (one variable at a time), then the fluxes at all faces are computed.
-function calc_macrocell_element!(du, pad, line_buffers, u, t, element,
+function calc_macrocell_element!(du, pad, pad_points, line_buffers, u, t, element,
                                  boundary_conditions_sides, mesh::TreeMesh{1},
                                  equations, volume_integral, dg::MacroCellFV, cache)
     @unpack surface_flux_values = cache.elements
@@ -127,9 +137,12 @@ function calc_macrocell_element!(du, pad, line_buffers, u, t, element,
     # transformation to the reconstruction variables
     a_first = gather_pad!(pad, u, t, element, boundary_conditions_sides, equations, dg,
                           cache)
-    line_pad = pad_moment_inversion!(pad, a_first, volume_integral.moment_inversion,
-                                     equations)
-    pad_center2recon!(line_pad, a_first, volume_integral.center2recon, equations)
+    line_pad, a_first_line, a_last_line = pad_moment_inversion!(pad_points, pad,
+                                                                a_first,
+                                                                volume_integral.moment_inversion,
+                                                                equations)
+    pad_center2recon!(line_pad, a_first_line, a_last_line, volume_integral.center2recon,
+                      equations)
 
     # The first face: the boundary face at -x (between the ghost subcell 0 and the
     # subcell 1) at a physical boundary, otherwise the +x face of the subcell 1
@@ -336,19 +349,54 @@ Base.@propagate_inbounds function get_pad_vars(pad, equations, a)
 end
 
 # Moment inversion of the filled pad cells `a >= a_first`; returns the pad read by the
-# reconstruction (`MomentInversionIdentity`: the averages in the pad itself)
-@inline function pad_moment_inversion!(pad, a_first, ::MomentInversionIdentity,
-                                       equations)
-    return pad
+# reconstruction and the range of its cells that hold values
+# (`MomentInversionIdentity`: the averages in the pad itself)
+@inline function pad_moment_inversion!(pad_points, pad, a_first,
+                                       ::MomentInversionIdentity, equations)
+    return pad, a_first, size(pad, 1)
 end
 
-# Transformation of the filled pad cells `a >= a_first` to the reconstruction variables
-# (the unfilled cell is skipped, since a transformation such as `cons2entropy` may fail
-# for arbitrary values)
-@inline pad_center2recon!(pad, a_first, ::typeof(cons2cons), equations) = nothing
+# Moment inversions to point values: the point values of the pad cells whose stencils
+# lie in the filled cells `a_first:size(pad, 1)`, which are all cells read by the
+# reconstruction (`nhalo(volume_integral)` includes the halo of the moment inversion)
+@inline function pad_moment_inversion!(pad_points, pad, a_first,
+                                       inversion::MomentInversionPoint, equations)
+    m = nhalo(inversion)
+    a_first_points = a_first + m
+    a_last_points = size(pad, 1) - m
+    invert_line!(pad_points, pad, inversion, a_first_points, a_last_points, equations)
+    # Inadmissible point values are replaced by the averages
+    @inbounds for a in a_first_points:a_last_points
+        u_center = get_pad_vars(pad_points, equations, a)
+        if !macrocell_point_value_admissible(u_center, equations)
+            for v in eachvariable(equations)
+                pad_points[a, v] = pad[a, v]
+            end
+        end
+    end
+    return pad_points, a_first_points, a_last_points
+end
 
-@inline function pad_center2recon!(pad, a_first, center2recon, equations)
-    @inbounds for a in a_first:size(pad, 1)
+# Point values of the pad cells `a_first:a_last`, one variable at a time (vectorized
+# over the cells, see `reconstruct_line!`)
+@noinline function invert_line!(pad_points, pad, inversion, a_first, a_last, equations)
+    for v in eachvariable(equations)
+        @inbounds @simd ivdep for a in a_first:a_last
+            pad_points[a, v] = center_value(inversion,
+                                            @inline(offset->@inbounds(pad[a + offset,
+                                                                          v])))
+        end
+    end
+    return nothing
+end
+
+# Transformation of the pad cells `a_first:a_last` to the reconstruction variables
+# (unfilled cells are skipped, since a transformation such as `cons2entropy` may fail
+# for arbitrary values)
+@inline pad_center2recon!(pad, a_first, a_last, ::typeof(cons2cons), equations) = nothing
+
+@inline function pad_center2recon!(pad, a_first, a_last, center2recon, equations)
+    @inbounds for a in a_first:a_last
         w = center2recon(get_pad_vars(pad, equations, a), equations)
         for v in eachvariable(equations)
             pad[a, v] = w[v]
