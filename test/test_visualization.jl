@@ -101,6 +101,9 @@ end
                 end
                 scalar_data = StructArrays.component(u, 1)
             else
+                # Slices of the arrays returned by `Trixi.wrap_array` must be plotted
+                # correctly, see https://github.com/trixi-framework/Trixi.jl/issues/2797
+                # and the consistency check below.
                 u = Trixi.wrap_array(sol.u[end], semi)
                 scalar_data = u[1, :, :, :]
             end
@@ -112,7 +115,7 @@ end
             end
 
             # test for consistency between the two ScalarPlotData2D constructions
-            if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
+            if mesh != "DGMulti (FDSBP)"
                 spd_no_function = ScalarPlotData2D(scalar_data, semi)
                 spd_function = ScalarPlotData2D((u, equations) -> u[1],
                                                 sol.u[end], semi)

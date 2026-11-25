@@ -120,11 +120,13 @@ based on the following rules.
   it is already wrapped via `wrap_array`.
 - Exceptions of this rule are possible, e.g., for AMR, but must be documented in
   the code.
-- For a `Vector` `u_ode`, `wrap_array` returns a `FixedSizeArray` from
-  [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl) that
-  wraps `u_ode` without copying and keeps a reference to it. It is a `DenseArray`,
-  which can also be passed to external libraries such as HDF5 and MPI. For other
-  arrays (e.g., GPU arrays or views), `wrap_array` returns a `reshape` of `u_ode`.
+- `wrap_array` does not copy `u_ode`. For a `Vector` `u_ode`, it returns an
+  array from [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl)
+  that keeps a reference to `u_ode` and can also be passed to external libraries
+  such as HDF5 and MPI. For other arrays (e.g., GPU arrays or views), it returns a
+  `reshape` of `u_ode`. The wrapped array must be created again after `u_ode` has
+  been `resize!`d, e.g., by AMR. For `DGMulti` solvers, `wrap_array` returns `u_ode`
+  itself.
 
 ### Usage of statically sized arrays
 

@@ -104,9 +104,22 @@ end
         # and returns other arrays (including views with static sizes) unchanged
         @test Trixi.static_view(u, semi.equations, semi.solver) === u
         @test Trixi.static_view(u_view, semi.equations, semi.solver) === u_view
-        # It is created in every call of `wrap_array`, so it must not allocate. The
-        # allocation tests of the elixirs allow a few bytes and do not catch this. We use
-        # many elements since Julia does not allocate when boxing small integers.
+        # The sizes that are made static must match the equations and the solver, also
+        # if the length matches
+        n_variables, n_nodes, _, n_elements = size(u)
+        u_wrong_variables = Trixi.wrap_storage(u_ode,
+                                               (n_variables * n_nodes, 1, n_nodes,
+                                                n_elements))
+        @test_throws DimensionMismatch Trixi.static_view(u_wrong_variables,
+                                                         semi.equations, semi.solver)
+        u_wrong_nodes = Trixi.wrap_storage(u_ode,
+                                           (n_variables, n_nodes * n_nodes, 1, n_elements))
+        @test_throws "does not match nvariables = $n_variables and nnodes = $n_nodes" Trixi.static_view(u_wrong_nodes,
+                                                                                                        semi.equations,
+                                                                                                        semi.solver)
+        # `static_view` must not allocate since it is meant to be used in the kernels.
+        # The allocation tests of the elixirs allow a few bytes and do not catch this. We
+        # use many elements since Julia does not allocate when boxing small integers.
         u_large = Trixi.wrap_storage(zeros(length(u) * 1000),
                                      (size(u)[1:(end - 1)]..., size(u, ndims(u)) * 1000))
         function static_view_allocs(u, equations, dg)

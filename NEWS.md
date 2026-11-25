@@ -20,20 +20,18 @@ for human readability.
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
-- `wrap_array` and the containers now wrap `resize!`able vectors in `FixedSizeArray`s from
-  [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl) (and use
-  `reshape` for other storage types such as GPU arrays) instead of creating `PtrArray`s or
-  `unsafe_wrap`ped `Array`s around raw pointers. The wrapped arrays keep the underlying
-  memory alive, so temporaries no longer need to be `GC.@preserve`d, and AMR works again
-  for non-`isbits` element types on Julia v1.10 (lifting the restriction from [#3306]).
-  This improves the performance on Julia v1.11 and newer, where the sizes of `Array`s
-  could not be hoisted out of inner loops. For `DGSEM`, `wrap_array` returns arrays whose
-  sizes of the variables and nodes are known at compile time, as the `PtrArray`s did
-  (for `FDSBP`, only the number of variables).
-  The internal function `wrap_array_native` is deprecated; use `wrap_array` instead.
-  The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
+- `wrap_array` now returns arrays from
+  [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl) for solutions
+  stored in a `Vector` (and `reshape`d arrays otherwise, e.g., on GPUs) instead of
+  `PtrArray`s. These arrays keep the solution vector alive, so it no longer needs to be
+  `GC.@preserve`d while the wrapped array is in use. AMR now also works for non-`isbits`
+  element types such as `BigFloat` on Julia v1.10, and slices of the arrays returned by
+  `wrap_array` can be passed to `ScalarPlotData2D` ([#3357]).
+- The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
 
 #### Deprecated
+- The internal function `wrap_array_native` is deprecated in favor of `wrap_array`
+  ([#3357]).
 
 
 ## Changes when updating to v0.18 from v0.17.x

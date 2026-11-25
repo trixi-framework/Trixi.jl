@@ -21,6 +21,20 @@ end
     @test size(u) ==
           (1, Trixi.nnodes(semi.solver), Trixi.nnodes(semi.solver),
            Trixi.nelements(semi.solver, semi.cache))
+
+    # `static_view` creates the same array type from an array without static sizes
+    u_fixed = Trixi.wrap_storage(sol.u[end], size(u))
+    u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
+    @test typeof(u_s) == typeof(u)
+    @test u_s == u
+    # and checks the number of variables, also if the length matches
+    n_variables, n_nodes_x, n_nodes_y, n_elements = size(u)
+    u_wrong_variables = Trixi.wrap_storage(sol.u[end],
+                                           (n_nodes_x, n_variables, n_nodes_y,
+                                            n_elements))
+    @test_throws "does not match nvariables = 1" Trixi.static_view(u_wrong_variables,
+                                                                   semi.equations,
+                                                                   semi.solver)
 end
 
 @testitem "TreeMesh2D FDSBP: elixir_advection_extended.jl with Dirichlet boundary conditions" setup=[

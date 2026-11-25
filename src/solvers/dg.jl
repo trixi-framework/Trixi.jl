@@ -1688,12 +1688,32 @@ Return a view of the solution-like array `u` with dimensions
 copying. For `DGSEM`, these are the sizes of all but the last dimension (i.e.,
 `nvariables(equations)` and `nnodes(dg)`). For `FDSBP`, it is only the size of the first
 dimension (`nvariables(equations)`). Returns `u` itself for other array types
-and solvers.
+and solvers. Throws a `DimensionMismatch` if the sizes of `u` do not match these sizes.
 """
 @inline function static_view(u::VectorBackedArray, equations, dg)
+    check_static_sizes(u, equations, dg)
     return wrap_storage_static(parent(u), size(u), equations, dg)
 end
 @inline static_view(u, equations, dg) = u
+
+# Check the sizes of `u` that `wrap_storage_static` takes from `equations` and `dg`.
+# `FixedSizeArrays.wrap` only checks the length, so an array with another layout but the
+# same length would be reinterpreted silently otherwise.
+@inline function check_static_sizes(u, equations, dg::DGSEM)
+    node_sizes = Base.front(Base.tail(size(u)))
+    if !(size(u, 1) == nvariables(equations) && all(==(nnodes(dg)), node_sizes))
+        throw(DimensionMismatch(lazy"size $(size(u)) of the solution-like array does not match nvariables = $(nvariables(equations)) and nnodes = $(nnodes(dg))"))
+    end
+    return nothing
+end
+@inline function check_static_sizes(u, equations, dg::FDSBP)
+    if size(u, 1) != nvariables(equations)
+        throw(DimensionMismatch(lazy"size $(size(u)) of the solution-like array does not match nvariables = $(nvariables(equations))"))
+    end
+    return nothing
+end
+# No static sizes for other solvers
+@inline check_static_sizes(u, equations, dg) = nothing
 
 # Return a view of the interface values `u` with dimensions
 # `[side, variable, node..., interface]` (e.g., `cache.interfaces.u`) whose sizes of all
@@ -1719,7 +1739,7 @@ end
     node_sizes = Base.front(Base.tail(Base.tail(size(u))))
     if !(size(u, 1) == 2 && size(u, 2) == nvariables(equations) &&
          all(==(nnodes(dg)), node_sizes))
-        throw(DimensionMismatch(lazy"size $(size(u)) of the interface values does not match $(nvariables(equations)) variables and $(nnodes(dg)) nodes"))
+        throw(DimensionMismatch(lazy"size $(size(u)) of the interface values does not match nvariables = $(nvariables(equations)) and nnodes = $(nnodes(dg))"))
     end
     return FixedSizeArrays.wrap(FixedSizeArrayDims, parent(u), dims)
 end
