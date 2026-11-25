@@ -433,9 +433,11 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_gra
                                                                                                 i,
                                                                                                 interface)
     # This reuses the hyperbolic version, which also returns the outward normal
-    # direction on the primary element
-    u_ll, u_rr, normal_direction, primary_direction, primary_element,
+    # direction on the primary element. The gradient flux does not use auxiliary
+    # variables.
+    u_ll, u_rr, _, normal_direction, primary_direction, primary_element,
     i_secondary, secondary_direction, secondary_element = get_interface_values(u_transformed,
+                                                                               nothing,
                                                                                equations_parabolic,
                                                                                dg,
                                                                                neighbor_ids,
