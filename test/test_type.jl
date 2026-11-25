@@ -1328,6 +1328,14 @@ end
             @test equations.Lr == Lr
             @test equations.inv_Tr == inv(Lr^2 / nu)
             @test equations.nu == nu
+
+            equations = @inferred Equations(Lr = RealT(0.25))
+            @test equations.Lr isa RealT
+            @test equations.Lr == RealT(0.25)
+            @test equations.inv_Tr isa RealT
+            @test equations.inv_Tr == RealT(16)
+            @test equations.nu isa RealT
+            @test equations.nu == one(RealT)
         end
 
         equations = @inferred Equations()
