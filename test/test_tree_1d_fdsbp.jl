@@ -108,6 +108,29 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with splitting_lax_friedrichs" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+                        l2=[
+                            1.0630036152312182e-5,
+                            4.3793499986909655e-6,
+                            2.0380455945290442e-5
+                        ],
+                        linf=[
+                            4.763623975279074e-5,
+                            1.4708618626624315e-5,
+                            8.583801748507369e-5
+                        ],
+                        tspan=(0.0, 0.5),
+                        flux_splitting=splitting_lax_friedrichs)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[
     Setup,
     TreeMesh1DFDSBP
@@ -149,6 +172,30 @@ end
                         ],
                         tspan=(0.0, 0.5),
                         atol=1.0e-11)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence_flux_diff.jl with Dirichlet boundary conditions" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            1.7566554987381394e-6,
+                            2.2252976445632376e-6,
+                            4.164583893193968e-6
+                        ],
+                        linf=[
+                            1.0001934748649077e-5,
+                            5.8843555073018194e-6,
+                            9.720888292541474e-6
+                        ],
+                        periodicity=false,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
+                        tspan=(0.0, 0.5))
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
