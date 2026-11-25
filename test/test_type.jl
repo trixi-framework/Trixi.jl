@@ -1314,6 +1314,42 @@ end
     end
 end
 
+@testitem "Type stability: Hyperbolic Diffusion constructors" setup=[Setup, TypeStability] tags=[:misc_part1] begin
+    for Equations in (HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
+                      HyperbolicDiffusionEquations3D)
+        for RealT in (Float32, Float64, BigFloat)
+            nu = RealT(2)
+            equations = @inferred Equations(nu = nu)
+            Lr = inv(2 * RealT(pi))
+
+            @test typeof(equations.Lr) == RealT
+            @test typeof(equations.inv_Tr) == RealT
+            @test typeof(equations.nu) == RealT
+            @test equations.Lr == Lr
+            @test equations.inv_Tr == inv(Lr^2 / nu)
+            @test equations.nu == nu
+
+            equations = @inferred Equations(Lr = RealT(0.25))
+            @test equations.Lr isa RealT
+            @test equations.Lr == RealT(0.25)
+            @test equations.inv_Tr isa RealT
+            @test equations.inv_Tr == RealT(16)
+            @test equations.nu isa RealT
+            @test equations.nu == one(RealT)
+        end
+
+        equations = @inferred Equations()
+        @test equations.Lr == inv(2pi)
+        @test equations.nu === 1.0
+        @test typeof(@inferred Equations(nu = 2)) == typeof(equations)
+
+        equations = @inferred Equations(nu = 2.0f0, Lr = 0.25)
+        @test equations.Lr === 0.25
+        @test equations.inv_Tr === 32.0
+        @test equations.nu === 2.0
+    end
+end
+
 @testitem "Type stability: Hyperbolic Diffusion 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
     for RealT in (Float32, Float64)
         nu = one(RealT)
