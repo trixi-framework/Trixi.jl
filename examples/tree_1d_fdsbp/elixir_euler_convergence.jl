@@ -18,7 +18,7 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          N = 32)
 flux_splitting = splitting_steger_warming
 solver = FDSBP(D_upw,
-               surface_integral = SurfaceIntegralUpwind(flux_splitting),
+               surface_integral = SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)),
                volume_integral = VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = 0.0

@@ -20,7 +20,7 @@ D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
                          N = 16)
 flux_splitting = splitting_lax_friedrichs
 solver = FDSBP(D_upw,
-               surface_integral = SurfaceIntegralUpwind(flux_splitting),
+               surface_integral = SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)),
                volume_integral = VolumeIntegralUpwind(flux_splitting))
 
 coordinates_min = -1.0

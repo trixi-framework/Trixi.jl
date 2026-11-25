@@ -71,6 +71,32 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D FDSBP: elixir_euler_convergence.jl with Dirichlet boundary conditions" setup=[
+    Setup,
+    TreeMesh2DFDSBP
+] tags=[:tree_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+                        l2=[
+                            1.6692019337241272e-6,
+                            1.6961767241069383e-6,
+                            1.6961767240995721e-6,
+                            5.376297797670652e-6
+                        ],
+                        linf=[
+                            9.813722667395552e-6,
+                            9.645450260276078e-6,
+                            9.645450262052435e-6,
+                            4.031915892177551e-5
+                        ],
+                        periodicity=false,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
+                        tspan=(0.0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D FDSBP: elixir_euler_convergence.jl with Lax-Friedrichs splitting" setup=[
     Setup,
     TreeMesh2DFDSBP

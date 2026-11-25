@@ -37,9 +37,9 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-# same tolerances as above since the methods should be identical (up to
-# machine precision)
-@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralStrongForm and FluxUpwind" setup=[
+# same values as above since `SurfaceIntegralUpwind(flux_splitting)` is a shortcut
+# for `SurfaceIntegralStrongForm(FluxUpwind(flux_splitting))`
+@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralUpwind" setup=[
     Setup,
     TreeMesh1DFDSBP
 ] tags=[:tree_part1] begin
@@ -48,7 +48,7 @@ end
                         linf=[7.1087263324720595e-6],
                         tspan=(0.0, 0.5),
                         solver=DG(D_upw, nothing,
-                                  SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)),
+                                  SurfaceIntegralUpwind(flux_splitting),
                                   VolumeIntegralUpwind(flux_splitting)))
 end
 
@@ -78,6 +78,30 @@ end
                             1.3448113863834266e-5,
                             3.8185336878271414e-5
                         ],
+                        tspan=(0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with Dirichlet boundary conditions" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+                        l2=[
+                            3.857825949060912e-6,
+                            3.0657155736844447e-6,
+                            8.325621491423823e-6
+                        ],
+                        linf=[
+                            1.8297807427902768e-5,
+                            1.099135013182817e-5,
+                            4.463118913022868e-5
+                        ],
+                        periodicity=false,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
                         tspan=(0.0, 0.5))
 
     # Ensure that we do not have excessive memory allocations

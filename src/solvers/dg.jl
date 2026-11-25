@@ -1163,27 +1163,18 @@ end
 Couple elements with upwind simultaneous approximation terms (SATs)
 that use a particular flux `splitting`, e.g.,
 [`splitting_steger_warming`](@ref).
+This is a shortcut for `SurfaceIntegralStrongForm(FluxUpwind(splitting))`,
+see [`SurfaceIntegralStrongForm`](@ref) and [`FluxUpwind`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
 """
-struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
-    splitting::FluxSplitting
-end
+const SurfaceIntegralUpwind = SurfaceIntegralStrongForm{<:FluxUpwind}
 
-function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
-    @nospecialize integral # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, integral)
-    else
-        setup = [
-            "flux splitting" => integral.splitting
-        ]
-        summary_box(io, "SurfaceIntegralUpwind", setup)
-    end
+function SurfaceIntegralUpwind(splitting)
+    return SurfaceIntegralStrongForm(FluxUpwind(splitting))
 end
 
 """
