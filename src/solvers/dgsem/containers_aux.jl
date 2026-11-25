@@ -120,14 +120,15 @@ end
 @inline nmpiinterfaces_aux(mesh, cache) = 0
 @inline nmpimortars_aux(mesh, cache) = 0
 
-# Create and initialize the container of auxiliary variables. Only `P4estMesh`es provide
-# the containers of interfaces and mortars used below. Other mesh types throw an error
-# before accessing them, see also `init_aux_surface_node_vars!`.
+# Create and initialize the container of auxiliary variables. Only `P4estMesh`es and 2D
+# `TreeMesh`es provide the containers of interfaces and mortars used below. Other mesh
+# types throw an error before accessing them, see also `init_aux_surface_node_vars!`.
 function init_aux_vars(mesh, equations, solver, cache, aux_field)
     throw_aux_not_implemented(mesh, solver)
 end
 
-function init_aux_vars(mesh::P4estMesh, equations, solver::DGSEM, cache, aux_field)
+function init_aux_vars(mesh::Union{P4estMesh, TreeMeshSerial{2}}, equations,
+                       solver::DGSEM, cache, aux_field)
     NDIMS = ndims(mesh)
     n_aux = nauxvariables(equations)
     n_nodes = nnodes(solver)
@@ -213,7 +214,8 @@ end
 
 # Filling the interface and mortar values requires information about the coupling of the
 # elements and is thus implemented for each mesh type separately, currently only for
-# serial `P4estMesh{2}`es in `dgsem_p4est/containers_2d.jl` and `P4estMesh{3}`es in
+# serial `P4estMesh{2}`es in `dgsem_p4est/containers_2d.jl`, serial `TreeMesh{2}`es in
+# `dgsem_tree/containers_2d.jl`. and `P4estMesh{3}`es in
 # `dgsem_p4est/containers_3d.jl` and `dgsem_p4est/containers_parallel_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     throw_aux_not_implemented(mesh, solver)

@@ -1,0 +1,105 @@
+using OrdinaryDiffEqLowStorageRK
+using Trixi
+
+###############################################################################
+# semidiscretization of the nonconservative linear advection equation
+#   ∂ₜ u + a·∇ u = 0
+# with a discontinuous velocity `a` on a statically refined, non-periodic mesh.
+# Since a·∇ u = 0 for a constant state `u`, the constant state is preserved up to
+# round-off errors also for discontinuous velocities and at mortars.
+
+equations = NonconservativeLinearScalarAdvectionEquation2D()
+
+# Smooth velocities on both sides of the discontinuity at x = -0.5
+function velocity_left(x)
+    a1 = 1 + 0.5f0 * sinpi(x[2])
+    a2 = 0.5f0 + 0.25f0 * sinpi(x[1])
+    return SVector(a1, a2)
+end
+
+function velocity_right(x)
+    a1 = 0.5f0 - 0.25f0 * cospi(x[2])
+    a2 = -0.5f0 + 0.25f0 * sinpi(x[1])
+    return SVector(a1, a2)
+end
+
+# The velocity is overwritten by a discontinuous one below
+function aux_field(x, equations::NonconservativeLinearScalarAdvectionEquation2D)
+    return velocity_left(x)
+end
+
+function initial_condition_constant(x, t,
+                                    equations::NonconservativeLinearScalarAdvectionEquation2D)
+    return SVector(one(eltype(x)))
+end
+
+initial_condition = initial_condition_constant
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)
+volume_flux = (flux_central, flux_nonconservative_central)
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
+# Refine the bottom left element to create mortars, in particular at the discontinuity
+# x = -0.5. This matches the static refinement of the corresponding `P4estMesh` elixir.
+refinement_patches = ((type = "box", coordinates_min = (-1.0, -1.0),
+                       coordinates_max = (-0.5, -0.5)),)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 2,
+                refinement_patches = refinement_patches,
+                periodicity = false)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_conditions,
+                                    aux_field = aux_field)
+
+# Workaround to set a discontinuous velocity for testing, similar to the discontinuous
+# bottom topographies in TrixiShallowWater.jl. Since `aux_field` only gets the node
+# coordinates, nodes on an interface get the same values from both sides. Thus, we choose
+# the velocity based on the center of each element and overwrite the auxiliary variables.
+# Afterwards, the auxiliary variables at the interfaces and mortars have to be updated.
+# Note that `remake` evaluates `aux_field` again and thus removes the discontinuity.
+(; aux) = semi.cache.aux_vars
+(; node_coordinates) = semi.cache.elements
+for element in eachelement(solver, semi.cache)
+    x_center = sum(node_coordinates[1, :, :, element]) / nnodes(solver)^2
+    for j in eachnode(solver), i in eachnode(solver)
+        x_node = Trixi.get_node_coords(node_coordinates, equations, solver,
+                                       i, j, element)
+        aux_node = x_center < -0.5 ? velocity_left(x_node) : velocity_right(x_node)
+        Trixi.set_aux_node_vars!(aux, aux_node, equations, solver, i, j, element)
+    end
+end
+Trixi.init_aux_surface_node_vars!(semi.cache.aux_vars, mesh, equations, solver,
+                                  semi.cache)
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
+tspan = (0.0, 0.5)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+stepsize_callback = StepsizeCallback(cfl = 1.0)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback,
+                        stepsize_callback)
+
+###############################################################################
+# run the simulation
+
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);

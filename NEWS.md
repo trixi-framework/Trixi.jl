@@ -9,10 +9,10 @@ for human readability.
 
 #### Added
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
-  serial `P4estMesh{2}`es without AMR. The new equations
+  serial `P4estMesh{2}`es and `TreeMesh{2}`es without AMR. The new equations
   `ConservativeLinearScalarAdvectionEquation2D` and
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
-  advection velocity ([#3438]).
+  advection velocity ([#3438], [#3453]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
 

@@ -656,6 +656,13 @@ end
     return f.numerical_flux(args...)
 end
 
+# Same as above for equations with auxiliary variables
+@inline function (f::FluxTurbo)(u_ll, u_rr, aux_ll, aux_rr,
+                                orientation_or_normal_direction, equations)
+    return f.numerical_flux(u_ll, u_rr, aux_ll, aux_rr,
+                            orientation_or_normal_direction, equations)
+end
+
 # When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
 # we need to be able to extract the conservative and nonconservative fluxes
 # like in `symmetric_flux, nonconservative_flux = volume_flux::FluxTurbo`.

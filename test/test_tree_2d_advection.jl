@@ -128,6 +128,115 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh2D Advection: elixir_advectionconservative_shear_flow.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    # Same errors as for the `P4estMesh` version (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_shear_flow.jl"),
+                        l2=[0.0053839678621504855],
+                        linf=[0.021196710151646037])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advectionconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    # Same errors as for the `P4estMesh` version (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        l2=[0.006396889064469424],
+                        linf=[0.04258495540448948])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advectionconservative_source_terms_nonconforming.jl (flux differencing)" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    # The central flux of the linear equation results in the same discretization as the
+    # weak form volume integral (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_central)),
+                        l2=[0.006396889064469453],
+                        linf=[0.04258495540448992])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # In 2D, `FluxTurbo` falls back to the wrapped flux, also with auxiliary variables
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_central))),
+                        l2=[0.006396889064469453],
+                        linf=[0.04258495540448992])
+end
+
+@testitem "TreeMesh2D Advection: elixir_advectionnonconservative_source_terms_nonconforming.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    # Same errors as for the `P4estMesh` version (up to round-off errors)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_source_terms_nonconforming.jl"),
+                        l2=[0.002094505140307252],
+                        linf=[0.016509671419331684])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_free_stream_nonconforming.jl"),
+                        l2=[8.983631718377461e-17],
+                        linf=[6.661338147750939e-16])
+    # The velocity is discontinuous at interfaces and mortars
+    (; aux_interface, aux_mortar) = semi.cache.aux_vars
+    @test !(aux_interface[1, :, :, :] ≈ aux_interface[2, :, :, :])
+    @test !(aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advectionconservative_swirling_flow.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_swirling_flow.jl"),
+                        tspan=(0.0, 0.25),
+                        l2=[0.29742370727574463],
+                        linf=[1.1864173854092401])
+    # The auxiliary variables are evaluated again at the nodes of the adapted mesh
+    (; aux, aux_interface, aux_mortar) = semi.cache.aux_vars
+    @test size(aux, 4) == nelements(semi.solver, semi.cache)
+    @test size(aux_interface, 4) == Trixi.ninterfaces(semi.cache.interfaces)
+    @test size(aux_mortar, 5) == Trixi.nmortars(semi.cache.mortars)
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+    @test !any(isnan, aux) && !any(isnan, aux_interface) && !any(isnan, aux_mortar)
+    node_coordinates = semi.cache.elements.node_coordinates
+    @test all(aux[:, i, j, element] ≈
+              aux_field(node_coordinates[:, i, j, element], equations)
+              for i in 1:4, j in 1:4, element in eachelement(semi.solver, semi.cache))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh2D Advection: elixir_advection_amr.jl" setup=[Setup, TreeMesh2DAdvection] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the parallel test!

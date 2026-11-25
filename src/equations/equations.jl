@@ -219,6 +219,60 @@ end
     return flux, noncons_flux
 end
 
+# Dirichlet-type boundary condition for equations with auxiliary variables for use with
+# TreeMesh
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides.
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    end
+
+    return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables for use with
+# TreeMesh passing a tuple of surface flux functions for nonconservative terms
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux. There are no separate auxiliary variables outside of the
+    # boundary, so the inner ones are used on both sides. As for the interfaces, the
+    # inner state is passed first to the nonconservative flux.
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    end
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
+                                                 aux_inner, aux_inner,
+                                                 orientation_or_normal, equations)
+
+    return flux, noncons_flux
+end
+
 # Dirichlet-type boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
@@ -508,8 +562,9 @@ For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
 [`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D
-(serial) and 3D (also with MPI), without AMR. On GPUs, only conforming meshes in 3D (also
-with MPI) are supported, and only equations without nonconservative terms, e.g.,
+(serial), on a [`TreeMesh`](@ref) in 2D, and 3D (also with MPI), without AMR. On GPUs, only
+conforming meshes in 3D (also with MPI) are supported, and only equations without 
+nonconservative terms, e.g.,
 [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
 but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and

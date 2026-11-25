@@ -3099,6 +3099,8 @@ end
                 @test eltype(@inferred flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
                                                            orientation, equations)) ==
                       RealT
+                @test eltype(@inferred flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                                                    orientation, equations)) == RealT
             end
 
             @test eltype(@inferred flux(u, aux, normal_direction, equations)) == RealT
@@ -3119,6 +3121,13 @@ end
         @test eltype(@inferred boundary_condition(u_inner, aux_inner, normal_direction,
                                                   x, t, flux_lax_friedrichs,
                                                   equations)) == RealT
+        for direction in 1:4
+            orientation = div(direction + 1, 2)
+            @test eltype(@inferred boundary_condition(u_inner, aux_inner, orientation,
+                                                      direction, x, t,
+                                                      flux_lax_friedrichs,
+                                                      equations)) == RealT
+        end
 
         equations = equations_nonconservative
         for orientation in orientations
@@ -3136,6 +3145,18 @@ end
                                                            equations)
         @test eltype(flux_) == RealT
         @test eltype(noncons_flux) == RealT
+        for direction in 1:4
+            orientation = div(direction + 1, 2)
+
+            surface_flux_functions = (flux_lax_friedrichs, flux_nonconservative_central)
+            flux_, noncons_flux = @inferred boundary_condition(u_inner, aux_inner,
+                                                               orientation, direction,
+                                                               x, t,
+                                                               surface_flux_functions,
+                                                               equations)
+            @test eltype(flux_) == RealT
+            @test eltype(noncons_flux) == RealT
+        end
     end
 
     for equations in (ConservativeLinearScalarAdvectionEquation2D(),
