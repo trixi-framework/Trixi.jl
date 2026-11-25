@@ -39,7 +39,7 @@ end
 
 # same values as above since `SurfaceIntegralUpwind(flux_splitting)` is a shortcut
 # for `SurfaceIntegralStrongForm(FluxUpwind(flux_splitting))`
-@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralUpwind" setup=[
+@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralStrongForm and FluxUpwind" setup=[
     Setup,
     TreeMesh1DFDSBP
 ] tags=[:tree_part1] begin
@@ -48,7 +48,7 @@ end
                         linf=[7.1087263324720595e-6],
                         tspan=(0.0, 0.5),
                         solver=DG(D_upw, nothing,
-                                  SurfaceIntegralUpwind(flux_splitting),
+                                  SurfaceIntegralStrongForm(FluxUpwind(flux_splitting)),
                                   VolumeIntegralUpwind(flux_splitting)))
 end
 
