@@ -2562,6 +2562,25 @@ end
     end
 end
 
+@testitem "Unit: Consistency check for flux splittings: CEE 1D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations1D(1.4)
+    # subsonic and supersonic states with positive and negative velocities
+    u_values = [prim2cons(SVector(1.1, 0.3, 2.1), equations),
+        prim2cons(SVector(0.7, -0.4, 1.3), equations),
+        prim2cons(SVector(1.0, 3.5, 0.5), equations),
+        prim2cons(SVector(0.5, -2.8, 0.4), equations)]
+    splittings = [splitting_steger_warming, splitting_vanleer_haenel,
+        splitting_coirier_vanleer, splitting_lax_friedrichs]
+
+    orientation = 1
+    for splitting in splittings, u in u_values
+        fm, fp = splitting(u, orientation, equations)
+        @test fm ≈ splitting(u, Val{:minus}(), orientation, equations)
+        @test fp ≈ splitting(u, Val{:plus}(), orientation, equations)
+        @test fm + fp ≈ flux(u, orientation, equations)
+    end
+end
+
 @testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
     Setup,
     UnitTests
