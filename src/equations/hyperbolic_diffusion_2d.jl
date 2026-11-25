@@ -22,7 +22,7 @@ struct HyperbolicDiffusionEquations2D{RealT <: Real} <:
     nu::RealT     # diffusion constant
 end
 
-function HyperbolicDiffusionEquations2D(; nu = 1.0,
+function HyperbolicDiffusionEquations2D(; nu = 1,
                                         Lr = inv(2 * oftype(float(nu), pi)))
     Tr = Lr^2 / nu
     return HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
