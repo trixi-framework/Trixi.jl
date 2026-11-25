@@ -407,32 +407,72 @@ function load_mesh(restart_file::AbstractString; RealT = Float64)
     end
 end
 
-# Extract the name of the mapping defined by the last expression in the
-# `mapping_as_string` code representation of a `StructuredMesh` mapping.
-# Supported are function definitions with arbitrary names (both long and
-# short form) as well as assignments to variables (used for
-# `transfinite_mapping` and `coordinates2mapping`).
+# Extract the name of the mapping defined by the `mapping_as_string` code
+# representation of a `StructuredMesh` mapping. Following the documentation of
+# `StructuredMesh`, a mapping defined with the name `mapping` is used if
+# present; otherwise, the mapping defined by the last expression is used
+# (e.g. `mapping_left`/`mapping_right` in coupled setups that combine several
+# structured meshes in one file).
 function mapping_name_from_code(mapping_as_string::AbstractString)
+    # Obtain the individual statements of the stored code
     exprs = flatten_code_expressions(Meta.parseall(mapping_as_string).args)
-    if isempty(exprs)
+    isempty(exprs) &&
         error("could not reconstruct mesh mapping from empty `mapping_as_string`")
+
+    names = map(mapping_name_from_expression, exprs)
+
+    # Prefer the documented name `mapping` if the code defines it
+    if !isnothing(findfirst(==(:mapping), names))
+        return :mapping
     end
 
-    last_expr = exprs[end]
-    if last_expr isa Expr && last_expr.head === :function
-        # Long-form function definition: `function name(args...); body; end`
-        return last_expr.args[1].args[1]
-    elseif last_expr isa Expr && last_expr.head === :(=) &&
-           last_expr.args[1] isa Expr && last_expr.args[1].head === :call
-        # Short-form function definition: `name(args...) = expr`
-        return last_expr.args[1].args[1]
-    elseif last_expr isa Expr && last_expr.head === :(=) && last_expr.args[1] isa Symbol
-        # Assignment to a variable, e.g. `mapping = transfinite_mapping(faces)`
-        return last_expr.args[1]
-    else
+    # Otherwise, the mapping is defined by the last expression
+    if isnothing(names[end])
         error("could not reconstruct mesh mapping from `$mapping_as_string`: the last " *
               "expression must be a function definition or an assignment")
     end
+    return names[end]
+end
+
+# Extract the name of the function or variable defined by a single expression
+# of the code representation of a `StructuredMesh` mapping, or `nothing` if the
+# expression defines neither. Supported are function definitions with arbitrary
+# names (in long or short form, possibly with `where` clauses, return-type
+# annotations, or macro prefixes such as `@inline`) as well as assignments to
+# variables (used for `transfinite_mapping` and `coordinates2mapping`).
+function mapping_name_from_expression(expr)
+    # Unwrap macro prefixes, e.g. `@inline` in
+    # `@inline function mapping(xi, eta) ... end` (the macro name and line
+    # number information precede the wrapped expression)
+    while expr isa Expr && expr.head === :macrocall
+        expr = last(filter(arg -> !(arg isa LineNumberNode), expr.args))
+    end
+
+    # Assignments define the mapping in a variable,
+    # e.g. `mapping = transfinite_mapping(faces)`
+    if expr isa Expr && expr.head === :(=) && expr.args[1] isa Symbol
+        return expr.args[1]
+    end
+
+    # Unwrap the function definitions to their signature, in long form
+    # (`function name(args...) ... end`) and short form (`name(args...) = ...`)
+    if !(expr isa Expr && expr.head in (:function, :(=)))
+        return nothing
+    end
+    expr = expr.args[1]
+
+    # Unwrap `where` clauses and return-type annotations, e.g. `where {T}` in
+    # `function mapping(xi::T, eta::T) where {T} ... end`
+    while expr isa Expr && expr.head in (:where, :(::))
+        expr = expr.args[1]
+    end
+
+    # The first argument of the call expression is the function name
+    if expr isa Expr && expr.head === :call && expr.args[1] isa Symbol
+        return expr.args[1]
+    end
+
+    return nothing
 end
 
 # Flatten all expressions in `exprs` into a single vector of individual
@@ -465,9 +505,17 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         mesh = TreeMesh(SerialTree{ndims, RealT}, n_cells, RealT = RealT)
         load_mesh!(mesh, mesh_file)
     elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
+        # Files created from a `StructuredMeshView` do not store `periodicity`
+        # (a view is not periodic in itself and its parent mesh is not part of
+        # the file), so the mesh is reconstructed as a non-periodic
+        # `StructuredMesh` over the extent of the view in that case
         size_, periodicity, mapping_as_string = h5open(mesh_file, "r") do file
-            return read(attributes(file)["size"]),
-                   read(attributes(file)["periodicity"]),
+            periodicity = if haskey(attributes(file), "periodicity")
+                read(attributes(file)["periodicity"])
+            else
+                falses(read(attributes(file)["ndims"]))
+            end
+            return read(attributes(file)["size"]), periodicity,
                    read(attributes(file)["mapping"])
         end
 
