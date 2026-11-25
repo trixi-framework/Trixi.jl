@@ -1721,10 +1721,14 @@ end
 # copying, as `static_view` for the solution. Returns `u` itself for other array types
 # and solvers.
 #
-# The kernels computing the interface fluxes load these values once outside of the loop
-# over the interfaces. With more than one thread, Polyester.jl converts arrays captured
-# by the loop body to `PtrArray`s, which have static sizes only if the array has them,
-# and the kernel does not see the result of `check_axes` there.
+# The kernels reading or writing the interface values (e.g., `prolong2interfaces!` and
+# `calc_interface_flux!`) call this once outside of the loop over the interfaces, for two
+# reasons:
+# - The containers are mutable and store their arrays (including the sizes) inline, so
+#   reading `cache.interfaces.u` in the loop body reloads the size for every interface.
+# - With more than one thread, Polyester.jl converts arrays captured by the loop body to
+#   `PtrArray`s, which have static sizes only if the array has them, and the kernel does
+#   not see the result of `check_axes` there.
 @inline function static_view_interfaces(u::VectorBackedArray, equations, dg::DGSEM)
     return wrap_interfaces_static(u, equations, dg)
 end

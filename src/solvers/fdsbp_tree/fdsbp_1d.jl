@@ -280,7 +280,9 @@ function calc_interface_flux!(surface_flux_values,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
     @unpack splitting = surface_integral
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
@@ -293,7 +295,7 @@ function calc_interface_flux!(surface_flux_values,
         right_direction = 2 * orientations[interface] - 1
 
         # Pull the left and right solution data
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface)
+        u_ll, u_rr = get_surface_node_vars(interfaces_u, equations, dg, interface)
 
         # Compute the upwind coupling terms where right-traveling
         # information comes from the left and left-traveling information

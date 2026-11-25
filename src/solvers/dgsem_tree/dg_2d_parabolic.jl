@@ -231,7 +231,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack orientations, neighbor_ids = interfaces
 
     # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
@@ -285,7 +286,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack boundary_interpolation = dg.basis
 
     # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
@@ -358,10 +360,8 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
-    # Load the array once, outside of the loop: the container is mutable and stores
-    # the array (including its size) inline, so that reading the field in the loop
-    # body reloads the size for every interface.
-    interfaces_u = cache.interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -1126,10 +1126,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
-    # Load the array once, outside of the loop: the container is mutable and stores
-    # the array (including its size) inline, so that reading the field in the loop
-    # body reloads the size for every interface.
-    interfaces_u = cache.interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
