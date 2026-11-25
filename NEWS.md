@@ -9,16 +9,21 @@ for human readability.
 
 #### Added
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
-  serial `P4estMesh{2}`es without AMR. The new equations
+  serial `P4estMesh{2}`es without AMR, also on GPUs (nonconservative terms only with
+  combined conservative and nonconservative fluxes). The new equations
   `ConservativeLinearScalarAdvectionEquation2D` and
   `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
-  advection velocity ([#3438]).
+  advection velocity ([#3438], [#3439]).
+- The flux splitting `splitting_lax_friedrichs` is now also available for
+  `CompressibleEulerEquations1D` ([#3489]).
 
 #### Changed
 - The default reference length of `HyperbolicDiffusionEquations1D`,
   `HyperbolicDiffusionEquations2D`, and `HyperbolicDiffusionEquations3D` now uses
   the floating-point type of `nu`, avoiding promotion of `Float32` diffusion
   coefficients to `Float64` when `Lr` is omitted ([#3484]).
+- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
+  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 
 #### Deprecated
 
