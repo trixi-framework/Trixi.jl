@@ -189,10 +189,6 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
     return nothing
 end
 
-function finish_mpi_send!(mpi_cache::P4estMPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
 function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
                              mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
@@ -335,11 +331,11 @@ function create_cache_hyperbolic(mesh::P4estMeshParallel, equations::AbstractEqu
     return cache
 end
 
-function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
-                        nnodes, uEltype)
+function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
-    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes,
-                    uEltype)
+    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
+                    nvars, nnodes, uEltype)
 
     return mpi_cache
 end
@@ -370,7 +366,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
     mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
     mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
 
-    # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
                        mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,

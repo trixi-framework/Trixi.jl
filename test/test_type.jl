@@ -182,6 +182,9 @@ end
         @test eltype(eltype(@inferred splitting_coirier_vanleer(u, orientation,
                                                                 equations))) ==
               RealT
+        @test eltype(eltype(@inferred splitting_lax_friedrichs(u, orientation,
+                                                               equations))) ==
+              RealT
 
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
               RealT
