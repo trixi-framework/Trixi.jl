@@ -220,10 +220,10 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func::Func, u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
+                          dg::DGSEM, cache, cache_analysis) where {Func}
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
     @unpack aux_local, aux_tmp1, aux_tmp2 = cache_analysis

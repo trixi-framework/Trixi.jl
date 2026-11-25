@@ -180,13 +180,14 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func::Func, u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                       UnstructuredMesh2D,
                                       P4estMesh{2}, P4estMeshView{2},
                                       T8codeMesh{2}},
                           equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
+                          initial_condition, dg::DGSEM, cache,
+                          cache_analysis) where {Func}
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
     @unpack aux_local, aux_tmp1 = cache_analysis
