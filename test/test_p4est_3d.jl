@@ -158,6 +158,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    # Ensure that the error norms do not allocate
+    # (e.g., from a method that is not specialized on `func`)
+    let
+        (; analyzer, cache) = analysis_callback.affect!
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        # Compile the call before measuring its allocations
+        Trixi.calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache)
+        @test (@allocated Trixi.calc_error_norms(cons2cons, u_ode, t, analyzer, semi,
+                                                 cache)) < 1000
+    end
 end
 
 @testitem "P4estMesh3D: elixir_euler_free_stream.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin

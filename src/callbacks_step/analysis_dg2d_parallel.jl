@@ -96,7 +96,7 @@ function calc_error_norms(func, u, t, analyzer,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
-    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
+    @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1, jacobian_element = cache_analysis
 
     # Calculate error norms on the CPU, to ensure the order of summation is the same.
     if trixi_backend(u) !== nothing
@@ -117,8 +117,8 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, :, element), u_tmp1)
         multiply_dimensionwise!(x_local, vandermonde,
                                 view(node_coordinates, :, :, :, element), x_tmp1)
-        multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian, :, :, element)),
+        jacobian_element .= inv.(view(inverse_jacobian, :, :, element))
+        multiply_scalar_dimensionwise!(jacobian_local, vandermonde, jacobian_element,
                                        jacobian_tmp1)
 
         # Calculate errors at each analysis node
