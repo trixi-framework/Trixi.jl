@@ -22,9 +22,10 @@ abstract type AbstractVolumeIntegral end
 #   `volume_integral_blend_high_order` of a `VolumeIntegralShockCapturingHGType`)
 #   accept an additional argument `alpha` between 0 and 1 scaling their contribution.
 #   If `set_not_add` is `True()`, the kernel must overwrite all values of `du` in this
-#   `element`, i.e., it must not read them (see below). If `set_not_add` is
-#   `False()`, the kernel adds its contribution to `du`, e.g., as the second part of
-#   a convex blend. Kernels accumulating several contributions per node can use
+#   `element`, i.e., it must not read them (see below).
+#   If `set_not_add` is `False()`, the kernel adds its contribution to `du`, e.g.,
+#   as the second part of a convex blend.
+#   Kernels accumulating several contributions per node can use
 #   `multiply_set_or_add_to_node_vars!` for this.
 # - `calc_volume_integral!(backend, du, u, mesh,
 #                          have_nonconservative_terms, equations,
@@ -32,11 +33,11 @@ abstract type AbstractVolumeIntegral end
 #   if the volume integral cannot be computed element by element, e.g., since an
 #   indicator needs to be evaluated for all elements first.
 #
-# The volume integral is the first term computed in `rhs_hyperbolic!`. To avoid an
-# additional pass over the memory, `du` is not reset to zero before. Instead,
-# `calc_volume_integral!` must overwrite all values of `du`, i.e., call the volume
-# integral kernels with `set_not_add = True()`. All other terms (surface integral,
-# source terms, ...) are added afterwards.
+# The volume integral is the first term computed in `rhs_hyperbolic!`.
+# To avoid an additional pass over the memory, `du` is not reset to zero before.
+# Instead, `calc_volume_integral!` must overwrite all values of `du`, i.e.,
+# call the volume integral kernels with `set_not_add = True()`.
+# All other terms (surface integral, source terms, ...) are added afterwards.
 #
 # It can implement the following methods, whose defaults are defined below.
 # The storage of volume integrals is handled for every node of the tree spanned by
@@ -1600,11 +1601,11 @@ Base.@propagate_inbounds function multiply_set_node_vars!(u, factor, u_node,
 end
 
 # Set (`set_not_add` is `True()` or `true`) or add (`False()` or `false`) `factor * u_node`
-# to the values of `u` at the given node. Volume integral kernels use this to overwrite
-# `du` with the first contribution to each node and to add all further contributions,
-# see the interface of volume integrals at the top of this file. A runtime `Bool` such as
-# `set_not_add & (i == 1)` marks the first contribution in a loop. The static versions
-# `True()` and `False()` avoid any runtime check.
+# to the values of `u` at the given node.
+# Volume integral kernels use this to overwrite `du` with the first contribution to each node
+# and to add all further contributions, see the interface of volume integrals at the top of this file.
+# A runtime `Bool` such as `set_not_add & (i == 1)` marks the first contribution in a loop.
+# The static versions `True()` and `False()` avoid any runtime check.
 Base.@propagate_inbounds function multiply_set_or_add_to_node_vars!(u, factor, u_node,
                                                                     set_not_add::True,
                                                                     equations,
