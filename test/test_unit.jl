@@ -4141,6 +4141,48 @@ end
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
 
+@testitem "Unit: FDSBP on TreeMesh with quadrature not exact for constants" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # A function space SBP operator on the nodes -1, 0, 1 that is exact for span{1, exp}.
+    # Since this space does not contain the identity, the quadrature is not exact for
+    # constants: the weights sum up to 2 sinh(1) instead of the length 2 of the interval.
+    nodes = [-1.0, 0.0, 1.0]
+    weights = [(exp(1) - 1) / 2, sinh(1), (1 - exp(-1)) / 2]
+    Q = [-0.5 0.5 0.0; -0.5 0.0 0.5; 0.0 -0.5 0.5]
+    D = SummationByPartsOperators.MatrixDerivativeOperator(-1.0, 1.0, nodes, weights,
+                                                           Q ./ weights, 1, nothing)
+    @test sum(weights) ≈ 2 * sinh(1)
+    @test D * exp.(nodes) ≈ exp.(nodes)
+    @test Trixi.reference_length(D) == 2
+
+    solver = FDSBP(D, surface_integral = SurfaceIntegralStrongForm(flux_lax_friedrichs),
+                   volume_integral = VolumeIntegralStrongForm())
+
+    # Linear advection with a solution in the function space in each coordinate direction,
+    # so the spatial semidiscretization is exact on a single cell of length 2.
+    for ndims in 1:3
+        advection_velocity = ntuple(_ -> 1.0, ndims)
+        equations = ndims == 1 ? LinearScalarAdvectionEquation1D(advection_velocity...) :
+                    ndims == 2 ? LinearScalarAdvectionEquation2D(advection_velocity...) :
+                    LinearScalarAdvectionEquation3D(advection_velocity...)
+        initial_condition = (x, t, equations) -> SVector(exp(sum(x) - ndims * t))
+        mesh = TreeMesh(ntuple(_ -> -1.0, ndims), ntuple(_ -> 1.0, ndims),
+                        initial_refinement_level = 0, periodicity = false)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = BoundaryConditionDirichlet(initial_condition))
+
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test sort(unique(node_coordinates)) ≈ nodes
+
+        u = compute_coefficients(0.0, semi)
+        du = similar(u)
+        Trixi.rhs_hyperbolic!(du, u, semi, 0.0)
+        @test du ≈ -ndims * u
+    end
+end
+
 @testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),

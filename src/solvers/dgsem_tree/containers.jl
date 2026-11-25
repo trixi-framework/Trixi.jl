@@ -28,6 +28,14 @@ In particular, not the elements themselves are returned.
 @inline eachelement(elements::AbstractTreeElementContainer) = Base.OneTo(nelements(elements))
 
 @inline Base.real(elements::AbstractTreeElementContainer) = eltype(elements.node_coordinates)
+
+# Length of the one-dimensional reference element of `basis`, used to map its nodes to the
+# cells of a `TreeMesh`. By default, it is computed by integrating the function with constant
+# value unity on the corresponding element data type (using \circ), which requires a
+# quadrature that is exact for constants.
+function reference_length(basis)
+    return integrate(one ∘ eltype, get_nodes(basis), basis)
+end
 @inline Base.eltype(elements::AbstractTreeElementContainer) = eltype(elements.surface_flux_values)
 
 abstract type AbstractTreeInterfaceContainer <: AbstractInterfaceContainer end
