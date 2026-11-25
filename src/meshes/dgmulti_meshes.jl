@@ -59,6 +59,7 @@ end
 # String representation of the approximation type of a `RefElemData`, which is stored in
 # mesh and solution files of a `DGMultiMesh`. This allows to reconstruct the `RefElemData`
 # with the correct nodes when loading a mesh file, see `get_approximation_type_from_string`.
+# This is required for e.g. visualization with Paraviews arbitrary-order Lagrangian elements.
 # All `Polynomial` approximation types except for `GaussSBP` share the same nodes and differ
 # only in the quadrature, which is why they are all represented by `Polynomial()`.
 get_approximation_type_string(::Polynomial) = "Polynomial"
@@ -79,7 +80,7 @@ function get_approximation_type_string(approximation_type)
     return string(typeof(approximation_type))
 end
 
-# Inverse of `get_approximation_type_string`. `TensorProductWedge` is not supported here
+# "Inverse" of `get_approximation_type_string`. `TensorProductWedge` is not supported here
 # since it is reconstructed from the polynomial degrees of its factors when loading a mesh.
 function get_approximation_type_from_string(input::String)
     if input == "Polynomial"
