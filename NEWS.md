@@ -16,6 +16,9 @@ for human readability.
   advection velocity ([#3438], [#3439]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
+- The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
+  available for all equations and complements the dissipation
+  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#XXXX]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
