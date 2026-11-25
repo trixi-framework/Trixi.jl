@@ -23,7 +23,7 @@ for human readability.
 - `SurfaceIntegralUpwind(splitting)` now returns the equivalent
   `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
   also supports non-periodic boundary conditions. Results change at round-off level, and
-  the splitting is now stored in `surface_integral.surface_flux.splitting`.
+  the splitting is now stored in `surface_integral.surface_flux.splitting` ([#3498]).
 
 #### Deprecated
 
