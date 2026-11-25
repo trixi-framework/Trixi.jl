@@ -18,12 +18,13 @@ for human readability.
   `CompressibleEulerEquations1D` ([#3489]).
 
 #### Changed
+- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
+  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 - The default reference length of `HyperbolicDiffusionEquations1D`,
   `HyperbolicDiffusionEquations2D`, and `HyperbolicDiffusionEquations3D` now uses
   the floating-point type of `nu`, avoiding promotion of `Float32` diffusion
-  coefficients to `Float64` when `Lr` is omitted ([#3484]).
-- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
-  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
+  coefficients to `Float64` when `Lr` is omitted. The default `nu` is now
+  the integer `1`, so specifying only `Lr` also preserves its real type ([#3484]).
 
 #### Deprecated
 
