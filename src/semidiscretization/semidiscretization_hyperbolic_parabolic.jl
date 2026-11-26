@@ -110,25 +110,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
     cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
-
-    # Whether auxiliary variables are used is a fixed property of the `equations`.
-    # They are only stored for equations with `nauxvariables(equations) > 0`. Otherwise,
-    # the `aux_vars` field is absent from the `cache`, which keeps every simulation without
-    # auxiliary variables completely unaffected.
-    if nauxvariables(equations) > 0
-        if aux_field === nothing
-            throw(ArgumentError("`$(nameof(typeof(equations)))` has " *
-                                "$(nauxvariables(equations)) auxiliary variables, " *
-                                "so an `aux_field` must be passed, " *
-                                "see `nauxvariables`"))
-        end
-        aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
-        cache = (; cache..., aux_vars)
-    elseif aux_field !== nothing
-        throw(ArgumentError("`aux_field` was passed but " *
-                            "`$(nameof(typeof(equations)))` does not have any " *
-                            "auxiliary variables, see `nauxvariables`"))
-    end
+    cache = (; cache..., create_cache_aux(mesh, equations, solver, cache, aux_field)...)
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)

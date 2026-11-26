@@ -944,63 +944,12 @@ end
 end
 
 @testitem "AMDGPU 3D: auxiliary variables in the parabolic terms Float64 / AMDGPU" setup=[
-    Setup
+    Setup,
+    ParabolicAuxDiffusion3D
 ] tags=[:AMDGPU] begin
     # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
-    using Trixi: AbstractEquationsParabolic, GradientVariablesConservative, Gradient,
-                 Divergence
-
-    # Diffusion with the coefficient `aux[1]`, which receives the auxiliary variables
-    # `(a1, a2, a3)` of `ConservativeLinearScalarAdvectionEquation3D`
-    struct AuxDiffusion3D{E} <: AbstractEquationsParabolic{3, 1,
-                                      GradientVariablesConservative}
-        equations_hyperbolic::E
-    end
-
-    Trixi.nauxvariables(::AuxDiffusion3D) = 3
-
-    # The equations do not store any data depending on the real type
-    Base.similar(equations::AuxDiffusion3D, ::Type) = equations
-
-    function Trixi.flux(u, aux, gradients, orientation::Integer, ::AuxDiffusion3D)
-        return aux[1] * gradients[orientation]
-    end
-
-    # With `aux = (1 + x, y, 0)` and `u = x^2`, the exact parabolic right-hand side
-    # `div(aux[1] * grad(u)) = 2 + 4x` is a polynomial that DGSEM with `polydeg = 3`
-    # reproduces exactly on a Cartesian mesh. The boundary condition and the source term
-    # only give the exact values if they receive the auxiliary variables of the node.
-    aux_field(x, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(1 + x[1], x[2],
-                                                                          zero(x[1]))
-    initial_condition(x, t, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(x[1]^2)
-
-    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
-                                    normal_direction::AbstractVector, x, t,
-                                    ::Gradient, ::AuxDiffusion3D)
-        return SVector((aux_inner[1] - 1)^2)
-    end
-    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
-                                    normal_direction::AbstractVector, x, t,
-                                    ::Divergence, ::AuxDiffusion3D)
-        return flux_inner
-    end
-
-    source_terms_aux(u, aux, gradients, x, t, ::AuxDiffusion3D) = SVector(aux[2] - x[2])
-
-    equations = ConservativeLinearScalarAdvectionEquation3D()
-    equations_parabolic = AuxDiffusion3D(equations)
-    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
-    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
-                     coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
-    semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, solver;
-                                                 source_terms_parabolic = source_terms_aux,
-                                                 boundary_conditions = (BoundaryConditionDirichlet(initial_condition),
-                                                                        boundary_condition_aux),
-                                                 aux_field)
-
-    semi = trixi_adapt(semi; storage_type = ROCArray)
+    semi = trixi_adapt(semidiscretization_parabolic_aux_3d(mesh); storage_type = ROCArray)
     u_ode = compute_coefficients(0.0, semi)
     @test u_ode isa ROCArray
     du_ode = similar(u_ode)
