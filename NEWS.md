@@ -16,6 +16,8 @@ for human readability.
   advection velocity ([#3438], [#3439]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
+- The parabolic time step restriction of the `StepsizeCallback` (keyword argument
+  `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
 - The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
   available for all equations and complements the dissipation
   `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
@@ -23,6 +25,9 @@ for human readability.
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
+- `SurfaceIntegralUpwind(splitting)` now returns the equivalent
+  `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
+  also supports non-periodic boundary conditions. Results change at round-off level ([#3498]).
 
 #### Deprecated
 
