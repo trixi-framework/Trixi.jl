@@ -20,7 +20,7 @@ The classical isentropic vortex test case as presented in
 https://spectrum.library.concordia.ca/id/eprint/985444/1/Paired-explicit-Runge-Kutta-schemes-for-stiff-sy_2019_Journal-of-Computation.pdf
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
-    # Evaluate error after full domain traversion
+    # Evaluate error after full domain traversal
     if t == T_end
         t = 0
     end

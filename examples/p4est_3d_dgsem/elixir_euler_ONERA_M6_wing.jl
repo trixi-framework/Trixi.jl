@@ -16,7 +16,7 @@ equations = CompressibleEulerEquations3D(1.4)
 #
 # which are test cases for the viscous flow.
 #
-# A tutorial for the invscid case can be found for the SU2 Code (https://github.com/su2code/SU2):
+# A tutorial for the inviscid case can be found for the SU2 Code (https://github.com/su2code/SU2):
 # https://su2code.github.io/tutorials/Inviscid_ONERAM6/
 
 @inline function initial_condition(x, t, equations::CompressibleEulerEquations3D)

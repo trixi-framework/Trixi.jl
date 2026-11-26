@@ -75,7 +75,7 @@ function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t},
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
     return p4est_new_ext(comm,
                          connectivity,
-                         0, # No minimum initial qudrants per processor
+                         0, # No minimum initial quadrants per processor
                          initial_refinement_level,
                          true, # Refine uniformly
                          2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data

@@ -13,7 +13,7 @@ function init_mpi()
     # MPI.jl handles multiple calls to MPI.Init appropriately. Thus, we don't need
     # any common checks of the form `if MPI.Initialized() ...`.
     # threadlevel=MPI.THREAD_FUNNELED: Only main thread makes MPI calls
-    # finalize_atexit=true           : MPI.jl will call call MPI.Finalize as `atexit` hook
+    # finalize_atexit=true           : MPI.jl will call MPI.Finalize as `atexit` hook
     provided = MPI.Init(threadlevel = MPI.THREAD_FUNNELED, finalize_atexit = true)
     @assert provided>=MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
 

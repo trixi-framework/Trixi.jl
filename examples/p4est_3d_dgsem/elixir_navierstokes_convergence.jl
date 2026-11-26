@@ -146,7 +146,7 @@ end
     p_y = 2 * rho * rho_y
     p_z = 2 * rho * rho_z
 
-    # Total energy and its derivatives; simiplifies from ansatz that v2 = v1 and v3 = v1
+    # Total energy and its derivatives; simplifies from ansatz that v2 = v1 and v3 = v1
     E = p * inv_gamma_minus_one + 1.5f0 * rho * v1^2
     E_t = p_t * inv_gamma_minus_one + 1.5f0 * rho_t * v1^2 + 3 * rho * v1 * v1_t
     E_x = p_x * inv_gamma_minus_one + 1.5f0 * rho_x * v1^2 + 3 * rho * v1 * v1_x

@@ -259,7 +259,7 @@ For a suitable spatial discretization (2) entropy-conservative systems such as t
 \overset{(2)}{=}
 \left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F\big(t, \boldsymbol U(t) \big) \right \rangle = 0 \tag{3}
 ```
-while entropy-stable discretiations of entropy-diffusive systems such as the Navier-Stokes equations ensure that the total entropy decays over time, i.e.,
+while entropy-stable discretizations of entropy-diffusive systems such as the Navier-Stokes equations ensure that the total entropy decays over time, i.e.,
 ```math
 \left \langle \frac{\partial H(\boldsymbol U)}{\partial \boldsymbol U}, \boldsymbol F(t, \boldsymbol U) \right \rangle \leq 0 \tag{4}
 ```

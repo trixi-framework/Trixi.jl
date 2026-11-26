@@ -356,7 +356,7 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
 
 using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
-# First, define the equation with a advection_velocity of `1`.
+# First, define the equation with an advection_velocity of `1`.
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
@@ -490,14 +490,14 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
 # ### Alternative Implementation based on Trixi.jl
 using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
-## equation with a advection_velocity of `1`.
+## equation with an advection_velocity of `1`.
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 ## create DG solver with flux lax friedrichs and LGL basis
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-## distretize domain with `TreeMesh`
+## discretize domain with `TreeMesh`
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
