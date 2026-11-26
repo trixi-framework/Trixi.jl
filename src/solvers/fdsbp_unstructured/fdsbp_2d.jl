@@ -90,7 +90,7 @@ end
 
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 # Note: This is the standard (not de-aliased) form of the volume integral.
-# So it is not provably stable for variable coefficients due to the the metric terms.
+# So it is not provably stable for variable coefficients due to the metric terms.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
                                have_nonconservative_terms::False, equations,

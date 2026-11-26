@@ -358,7 +358,7 @@ function PlotData2D(sol::TrixiODESolution; kwargs...)
     return PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 end
 
-# Also redirect when using PlotData2DTriangulate.
+# Also redirect when using PlotData2DTriangulated.
 function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
     return PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 end

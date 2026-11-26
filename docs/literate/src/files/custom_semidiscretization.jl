@@ -68,7 +68,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max;
                 initial_refinement_level = 4,
                 periodicity = true)
 
-# We wrap everything in in a semidiscretization and pass the source
+# We wrap everything in a semidiscretization and pass the source
 # terms as a standard Julia function. Please note that Trixi.jl uses
 # `SVector`s from
 # [StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl)
