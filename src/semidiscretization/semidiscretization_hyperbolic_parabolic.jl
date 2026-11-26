@@ -62,7 +62,7 @@ end
                                           solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
                                           source_terms_parabolic=nothing,
-                                          bboundary_conditions,
+                                          boundary_conditions,
                                           RealT=real(solver),
                                           uEltype=RealT)
 
