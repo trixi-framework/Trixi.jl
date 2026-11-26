@@ -437,3 +437,31 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
+
+@testitem "DGMulti3D: elixir_euler_sedov_tet_sbp.jl (Tet, SBP)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_tet_sbp.jl"),
+                        tspan=(0.0, 0.01),
+                        l2=[
+                            0.004096323398094394,
+                            0.010554357684667497,
+                            0.01066102143752279,
+                            0.010624369257751886,
+                            0.09465104661024444
+                        ],
+                        linf=[
+                            0.14824138842005652,
+                            0.46347508845919133,
+                            0.457061729582537,
+                            0.4905769630869368,
+                            3.74591492716464
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # The shock capturing is active, i.e., the low-order method is used
+    @test maximum(indicator_sc.cache.alpha) > 0
+end

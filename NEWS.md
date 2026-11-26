@@ -16,6 +16,11 @@ for human readability.
   advection velocity ([#3438], [#3439]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
+- `DGMulti` solvers now support `SBP()` approximation types on tetrahedra (`Tet()`),
+  including shock capturing with `VolumeIntegralShockCapturingHG` and
+  `IndicatorHennemannGassner`. The SBP nodes on tetrahedra are provided by
+  SummationByParts.jl, which needs to be loaded (`using SummationByParts`) before
+  creating the solver.
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and

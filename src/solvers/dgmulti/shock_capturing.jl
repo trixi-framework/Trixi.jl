@@ -81,6 +81,25 @@ end
     return degrees
 end
 
+# Total polynomial degrees of the orthonormal modal basis functions on tetrahedra, in
+# the order used by NodesAndModes.jl. As for triangles, this order is *not* hierarchical.
+@inline function simplex_mode_degrees(N, ::Tet)
+    degrees = Vector{Int}(undef, nmodes(N, Tet()))
+    mode = 1
+    # Same loop structure as `NodesAndModes.basis(::Tet, N, r, s, t)`:
+    # The basis function with index `mode` has degrees `i`, `j`, and `k` in the
+    # collapsed coordinates `a`, `b`, and `c`, respectively.
+    for i in 0:N
+        for j in 0:(N - i)
+            for k in 0:(N - i - j)
+                degrees[mode] = i + j + k
+                mode += 1
+            end
+        end
+    end
+    return degrees
+end
+
 # calculates the inverse of the Vandermonde matrix for shock capturing purposes (only!).
 # This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde
 # matrix first projects from solution values at SBP nodes to degree N polynomials,
@@ -89,9 +108,9 @@ end
 # functions, so that the first `nmodes(k, element_type)` coefficients are the ones of
 # the L2 projection onto polynomials of degree `k`.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
-    (; N, element_type, r, s, VDM, wq) = basis
+    (; N, element_type, rst, VDM, wq) = basis
 
-    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
+    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, rst...) /
                                    VDM
 
     # note that this mass matrix is not necessarily diagonal
