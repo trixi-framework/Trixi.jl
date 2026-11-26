@@ -41,7 +41,9 @@ eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
 get_nodes(D::AbstractDerivativeOperator) = grid(D)
 # The quadrature of an SBP operator is not necessarily exact for constants, e.g., for
 # function space SBP operators whose function space does not contain the identity.
-# Hence, we use the length of the interval spanned by the grid.
+# Hence, we use the length of the interval the operator is defined on. For periodic
+# operators, this is the period, which is one grid spacing longer than the interval
+# spanned by the grid.
 reference_length(D::AbstractDerivativeOperator) = xmax(D) - xmin(D)
 
 # TODO: This is hack to enable the FDSBP solver to use the
