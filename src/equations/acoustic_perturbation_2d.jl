@@ -410,6 +410,68 @@ end
     return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
 
+# Specialized `DissipationGlobalLaxFriedrichs` and `SplittingGlobalLaxFriedrichs` to avoid
+# spurious dissipation in the mean values
+@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr,
+                                                               orientation::Integer,
+                                                               equations::AcousticPerturbationEquations2D)
+    @unpack λ = dissipation
+    diss = -0.5f0 * λ * (u_rr - u_ll)
+    z = zero(eltype(diss))
+
+    return SVector(diss[1], diss[2], diss[3], z, z, z, z)
+end
+
+@inline function (dissipation::DissipationGlobalLaxFriedrichs)(u_ll, u_rr,
+                                                               normal_direction::AbstractVector,
+                                                               equations::AcousticPerturbationEquations2D)
+    @unpack λ = dissipation
+    diss = -0.5f0 * λ * norm(normal_direction) * (u_rr - u_ll)
+    z = zero(eltype(diss))
+
+    return SVector(diss[1], diss[2], diss[3], z, z, z, z)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:plus},
+                                                           orientation::Integer,
+                                                           equations::AcousticPerturbationEquations2D)
+    @unpack λ = splitting
+    f = 0.5f0 * (flux(u, orientation, equations) + λ * u)
+    z = zero(eltype(f))
+
+    return SVector(f[1], f[2], f[3], z, z, z, z)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:minus},
+                                                           orientation::Integer,
+                                                           equations::AcousticPerturbationEquations2D)
+    @unpack λ = splitting
+    f = 0.5f0 * (flux(u, orientation, equations) - λ * u)
+    z = zero(eltype(f))
+
+    return SVector(f[1], f[2], f[3], z, z, z, z)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:plus},
+                                                           normal_direction::AbstractVector,
+                                                           equations::AcousticPerturbationEquations2D)
+    @unpack λ = splitting
+    f = 0.5f0 * (flux(u, normal_direction, equations) + λ * norm(normal_direction) * u)
+    z = zero(eltype(f))
+
+    return SVector(f[1], f[2], f[3], z, z, z, z)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:minus},
+                                                           normal_direction::AbstractVector,
+                                                           equations::AcousticPerturbationEquations2D)
+    @unpack λ = splitting
+    f = 0.5f0 * (flux(u, normal_direction, equations) - λ * norm(normal_direction) * u)
+    z = zero(eltype(f))
+
+    return SVector(f[1], f[2], f[3], z, z, z, z)
+end
+
 """
     have_constant_speed(::AcousticPerturbationEquations2D)
 

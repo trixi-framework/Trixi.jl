@@ -18,6 +18,9 @@ for human readability.
   `CompressibleEulerEquations1D` ([#3489]).
 - The parabolic time step restriction of the `StepsizeCallback` (keyword argument
   `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
+- The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
+  available for all equations and complements the dissipation
+  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
