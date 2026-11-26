@@ -183,6 +183,7 @@ end
 # Allow passing a single boundary condition, which is then applied to all boundaries
 # tagged in the mesh (e.g., `:entire_boundary` if no `is_on_boundary` was specified
 # when constructing the `DGMultiMesh`).
+#=
 function digest_boundary_conditions(boundary_conditions,
                                     mesh::DGMultiMesh, dg::DGMulti, cache)
     boundary_keys = Tuple(keys(mesh.boundary_faces))
@@ -194,6 +195,7 @@ function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriod
                                     mesh::DGMultiMesh, dg::DGMulti, cache)
     return boundary_conditions
 end
+=#
 
 # Allocate nested array type for DGMulti solution storage.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg)

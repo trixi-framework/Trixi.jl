@@ -64,14 +64,20 @@ dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 
+# One handle for all boundaries
+entire_boundary(x, tol = 50 * eps()) = true
+is_on_boundary = (; entire_boundary = entire_boundary)
+
 cells_per_dimension = (8, 8, 8)
 mesh = DGMultiMesh(dg, cells_per_dimension;
                    coordinates_min = (-1.0, -1.0, -1.0),
                    coordinates_max = (1.0, 1.0, 1.0),
-                   periodicity = true)
+                   is_on_boundary)
+
+boundary_conditions = (; entire_boundary = boundary_condition_periodic)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
