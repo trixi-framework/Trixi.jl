@@ -71,7 +71,7 @@ can be used to adjust the GLM divergence-cleaning speed according to the time-st
 
 References:
 - G. Toth, A. Glocer, Y. Ma, D. Najib, Multi-Ion Magnetohydrodynamics 429 (2010). Numerical
-  Modeling of Space Plasma Flows, 213–218. [Bib Code: Code: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
+  Modeling of Space Plasma Flows, 213–218. [Bibcode: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)

@@ -356,7 +356,7 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
 
 using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
-# First, define the equation with a advection_velocity of `1`.
+# First, define the equation with an advection_velocity of `1`.
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
@@ -490,7 +490,7 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
 # ### Alternative Implementation based on Trixi.jl
 using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
-## equation with a advection_velocity of `1`.
+## equation with an advection_velocity of `1`.
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 

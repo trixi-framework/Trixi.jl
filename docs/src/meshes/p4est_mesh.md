@@ -274,10 +274,10 @@ The 3D Abaqus file format with high-order boundary information from `HOHQMesh` i
    ```
    *ELEMENT, type=C3D8, ELSET=Volume1
    ```
-   where `C3D8` corresponds to a Abaqus hexahedral element.
+   where `C3D8` corresponds to an Abaqus hexahedral element.
 2. There are six check digits included directly below the eight corner indexes to indicate whether
    the local face within the element is straight sided, `0`, or is curved, `1`. For curved faces
-   `(x,y,z)` coordinate values are available in order to construct an face interpolant with the mesh
+   `(x,y,z)` coordinate values are available in order to construct a face interpolant with the mesh
    polynomial order at the Chebyshev-Gauss-Lobatto nodes.
 3. The boundary labels are given in the following order according to the local surface index
    `-x` `+x` `-y` `+y` `-z` `+z` as required by the [`p4est`](https://github.com/cburstedde/p4est) library.
