@@ -135,7 +135,7 @@
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Adaptive mesh refinement](@ref adaptive_mesh_refinement)
 #-
-# Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbolent regions while
+# Adaptive mesh refinement (AMR) helps to increase the accuracy in sensitive or turbulent regions while
 # not wasting resources for less interesting parts of the domain. This leads to much more efficient
 # simulations. This tutorial presents the implementation strategy of AMR in Trixi.jl, including the use of
 # different indicators and controllers.
@@ -184,7 +184,7 @@
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Custom semidiscretization](@ref custom_semidiscretization)
 #-
-# This tutorial describes the [semidiscretiations](@ref overview-semidiscretizations) of Trixi.jl
+# This tutorial describes the [semidiscretizations](@ref overview-semidiscretizations) of Trixi.jl
 # and explains how to extend them for custom tasks.
 
 

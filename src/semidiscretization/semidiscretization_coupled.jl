@@ -208,9 +208,9 @@ end
     AnalysisCallbackCoupled(semi, callbacks...)
 
 Combine multiple analysis callbacks for coupled simulations with a
-[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`SemidiscretizationCoupled`](@ref). For each coupled system, an individual
 [`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupled` **in
-order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
+order**, i.e., in the same sequence as the individual semidiscretizations are stored in the
 `SemidiscretizationCoupled`.
 
 !!! warning "Experimental code"

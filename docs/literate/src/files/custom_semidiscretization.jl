@@ -204,10 +204,10 @@ semi_custom = CustomSemidiscretization(semi, Ref(0.0))
 # - `Base.show(io::IO, parameters::CustomSemidiscretization)`
 # - `Base.show(io::IO, ::MIME"text/plain", parameters::CustomSemidiscretization)`
 #
-# for your custom semidiscretiation.
+# for your custom semidiscretization.
 
 # Next, we create our own source terms that use the global time stored
-# in the custom semidiscretiation.
+# in the custom semidiscretization.
 
 source_terms_custom_semi = let semi_custom = semi_custom
     function source_terms_custom_semi(u, x, t, equations)

@@ -439,7 +439,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     volume_integral_default::VolumeIntegralDefault
 
     # The volume integral used for the DG portion in the convex blending.
-    # Usually symmetric, e.g. split-form with entropy-conserative flux.
+    # Usually symmetric, e.g. split-form with entropy-conservative flux.
     volume_integral_blend_high_order::VolumeIntegralBlendHighOrder
 
     # Typically a first- or second-order finite volume method on the DG subcells.
@@ -555,7 +555,7 @@ end
                                        volume_integral_blend_high_order,
                                        volume_integral_blend_low_order)
 
-Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
+Generalized Hennemann-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
 In the non-stabilized region, `volume_integral_default` is used,

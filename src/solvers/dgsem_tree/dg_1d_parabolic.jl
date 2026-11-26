@@ -623,7 +623,7 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
     end
 
     # Prolong solution to interfaces.
-    # This reusues `prolong2interfaces!` for the purely hyperbolic case.
+    # This reuses `prolong2interfaces!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u_transformed, mesh,
                             equations_parabolic, dg)
