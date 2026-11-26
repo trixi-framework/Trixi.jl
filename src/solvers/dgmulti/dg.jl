@@ -210,9 +210,9 @@ end
 end
 
 # Allocates arrays shared across most DGMulti cache types.
-function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
-                                               dg::DGMulti,
-                                               uEltype)
+function init_dgmulti_solution_container(mesh::DGMultiMesh, equations,
+                                         dg::DGMulti,
+                                         uEltype)
     rd = dg.basis
     md = mesh.md
     nvars = nvariables(equations)
@@ -226,8 +226,8 @@ function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
 end
 
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
-function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
-                      uEltype) where {NDIMS}
+function create_cache_hyperbolic(mesh::DGMultiMesh{NDIMS}, equations,
+                                 dg::DGMultiWeakForm, RealT, uEltype) where {NDIMS}
     rd = dg.basis
     md = mesh.md
 
@@ -258,8 +258,8 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             solution_container, flux_threaded, rotated_flux_threaded)

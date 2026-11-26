@@ -5,24 +5,36 @@
 @muladd begin
 #! format: noindent
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func::Func, u, t, analyzer,
                           mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                           equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
+                          initial_condition, dg::DGSEM, cache,
+                          cache_analysis) where {Func}
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+    @unpack aux_local, aux_tmp1, aux_tmp2 = cache_analysis
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Calculate error norms on the CPU, to ensure the order of summation is the same.
     if trixi_backend(u) !== nothing
         node_coordinates = Array(node_coordinates)
         inverse_jacobian = Array(inverse_jacobian)
         u = Array(u)
+        if aux !== nothing
+            aux = Array(aux)
+        end
     end
 
     # Set up data structures
+    if aux === nothing
+        aux_types = ()
+    else
+        aux_types = (SVector{nauxvariables(equations), eltype(aux)},)
+    end
     l2_error = zero_return_type(func, SVector{nvariables(equations), eltype(u)},
-                                typeof(equations))
+                                aux_types..., typeof(equations))
     linf_error = copy(l2_error)
     volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
@@ -37,13 +49,19 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
                                        inv.(view(inverse_jacobian, :, :, :, element)),
                                        jacobian_tmp1, jacobian_tmp2)
+        if aux !== nothing
+            multiply_dimensionwise!(aux_local, vandermonde,
+                                    view(aux, :, :, :, :, element), aux_tmp1, aux_tmp2)
+        end
 
         # Calculate errors at each analysis node
         for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
             u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j,
                                                         k), t, equations)
-            diff = func(u_exact, equations) -
-                   func(get_node_vars(u_local, equations, dg, i, j, k), equations)
+            aux_node = get_aux_node_vars(aux_local, equations, dg, i, j, k)
+            diff = func(u_exact, aux_node..., equations) -
+                   func(get_node_vars(u_local, equations, dg, i, j, k),
+                        aux_node..., equations)
             # We take absolute value as we need the Jacobian here for the volume calculation
             abs_jacobian_local_ijk = abs(jacobian_local[i, j, k])
 
@@ -104,9 +122,9 @@ function integrate_via_indices(func::Func, backend::Backend, u,
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
-    integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
-                                                    backend; init,
-                                                    neutral) do element
+    integral, volume = mapreduce_accelerated(local_plus, 1:num_elements,
+                                             backend; init,
+                                             neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
 

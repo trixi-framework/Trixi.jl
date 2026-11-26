@@ -342,7 +342,7 @@ end
     # Make sure that the mortar kernels are used, including mortars
     # whose large side runs backwards (flipped orientation)
     @test Trixi.nmortars(semi.solver, semi.cache) > 0
-    @test any(indices -> :i_backward in indices || :j_backward in indices,
+    @test any(indices -> NodeIndex.IBackward in indices || NodeIndex.JBackward in indices,
               Array(semi.cache.mortars.node_indices)[2, :])
     @test ode.u0 isa ROCArray
     @test semi.solver.basis.derivative_matrix isa ROCArray
@@ -775,6 +775,13 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
+
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 0.4017857142856942, rtol = 1.0e-12)
 end
 
 @testitem "AMDGPU 3D: elixir_navierstokes_convergence.jl Float32 / AMDGPU" setup=[

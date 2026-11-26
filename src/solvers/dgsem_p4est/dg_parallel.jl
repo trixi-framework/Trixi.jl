@@ -189,10 +189,6 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
     return nothing
 end
 
-function finish_mpi_send!(mpi_cache::P4estMPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
 function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
                              mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
@@ -293,8 +289,8 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg::DG,
-                      ::Any, ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMeshParallel, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the p4est and create a new ghost layer before creating any
     # containers in case someone has tampered with the p4est after creating the mesh
     balance!(mesh)
@@ -322,10 +318,10 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
     # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
     # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
@@ -335,11 +331,11 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
     return cache
 end
 
-function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
-                        nnodes, uEltype)
+function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
-    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes,
-                    uEltype)
+    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
+                    nvars, nnodes, uEltype)
 
     return mpi_cache
 end
@@ -370,7 +366,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
     mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
     mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
 
-    # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
                        mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,

@@ -115,7 +115,7 @@ end
     # Make sure that the mortar kernels are used, including mortars
     # whose large side runs backwards (flipped orientation)
     @test Trixi.nmortars(semi.solver, semi.cache) > 0
-    @test any(indices -> :i_backward in indices,
+    @test any(indices -> NodeIndex.IBackward in indices,
               Array(semi.cache.mortars.node_indices)[2, :])
     @test ode.u0 isa MtlArray
     @test semi.solver.basis.derivative_matrix isa MtlArray
@@ -403,5 +403,78 @@ end
     @test all(isfinite, du_ode)
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 1.0044643f0, rtol = sqrt(eps(Float32)))
+end
+
+@testitem "Metal 2D: elixir_advectionconservative_source_terms_nonconforming.jl Float32 / Metal" setup=[
+    Setup,
+    Metal2DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    # Auxiliary variables at interfaces, boundaries, mortars, and in the source terms
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_source_terms_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.0063968890644693814)],
+                        linf=[Float32(0.042584955404490143)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test !isempty(Trixi.eachmortar(semi.solver, semi.cache))
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux_mortar isa MtlArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "Metal 2D: elixir_advectionnonconservative_combined_fluxes_nonconforming.jl Float32 / Metal" setup=[
+    Setup,
+    Metal2DExamples
+] tags=[:Metal] begin
+    # Using Metal inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using Metal
+    # Nonconservative terms with auxiliary variables at interfaces, boundaries, mortars,
+    # and in the source terms
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_combined_fluxes_nonconforming.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.0020945051403072766)],
+                        linf=[Float32(0.01650967141933235)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=MtlArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test !isempty(Trixi.eachmortar(semi.solver, semi.cache))
+    @test Trixi.combine_conservative_and_nonconservative_fluxes(semi.solver.surface_integral.surface_flux,
+                                                                semi.equations) ==
+          Trixi.True()
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux isa MtlArray{Float32}
+    @test semi.cache.aux_vars.aux_mortar isa MtlArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
 end
