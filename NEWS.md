@@ -16,6 +16,8 @@ for human readability.
   advection velocity ([#3438], [#3439]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
+- The parabolic time step restriction of the `StepsizeCallback` (keyword argument
+  `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
