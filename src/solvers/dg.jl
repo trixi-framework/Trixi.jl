@@ -1604,6 +1604,35 @@ Base.@propagate_inbounds function multiply_add_to_node_vars!(u, factor, u_node,
     return nothing
 end
 
+# Local (stack) storage for the nodal values of a line of nodes, i.e., one `SVector`
+# of the variables per node. This is used in the volume integral kernels to gather
+# fluxes of a line of nodes before applying a derivative matrix along this line.
+@inline function allocate_line_node_vars(u, equations, solver::DG)
+    return MVector{nnodes(solver), SVector{nvariables(equations), eltype(u)}}(undef)
+end
+
+# Add `factor * matrix[ii, i] * line_node_vars[i]`, summed over all nodes `i` of a
+# line, to `u` at all nodes `ii` of this line. `indices_left...` and
+# `indices_right...` are the indices of `u` before and after the index of the line.
+# Each value of `u` is loaded and stored only once, in contrast to calling
+# `multiply_add_to_node_vars!` for each pair `(ii, i)`.
+Base.@propagate_inbounds function multiply_add_to_line_node_vars!(u, factor, matrix,
+                                                                  line_node_vars,
+                                                                  equations, solver::DG,
+                                                                  indices_left::Tuple,
+                                                                  indices_right::Tuple)
+    for ii in eachnode(solver)
+        u_node = get_node_vars(u, equations, solver,
+                               indices_left..., ii, indices_right...)
+        for i in eachnode(solver)
+            u_node = u_node + (factor * matrix[ii, i]) * line_node_vars[i]
+        end
+        set_node_vars!(u, u_node, equations, solver,
+                       indices_left..., ii, indices_right...)
+    end
+    return nothing
+end
+
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
