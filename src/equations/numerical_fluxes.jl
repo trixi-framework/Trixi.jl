@@ -194,7 +194,9 @@ returns a tuple of the fluxes "minus" (associated with waves going into the nega
 axis direction) and "plus" (associated with waves going into the positive axis
 direction). If only one of the fluxes is required, pass `Val{:minus}()` or
 `Val{:plus}()` as second argument. For a `normal_direction`, the coefficient `λ` is
-scaled by `norm(normal_direction)`.
+scaled by `norm(normal_direction)`. For equations storing variable coefficients in
+the state `u`, such as [`AcousticPerturbationEquations2D`](@ref), the term `λ u` is
+omitted in these components.
 
 [`FluxUpwind`](@ref) with this splitting is equivalent to
 `FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))`
