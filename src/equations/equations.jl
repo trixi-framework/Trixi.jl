@@ -127,7 +127,7 @@ end
 """
     rotate_to_x(u, normal, equations)
 
-Apply the rotation that maps `normal` onto the x-axis to the convservative variables `u`.
+Apply the rotation that maps `normal` onto the x-axis to the conservative variables `u`.
 This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
 invariant equations in arbitrary normal directions.
 
@@ -138,7 +138,7 @@ function rotate_to_x end
 """
     rotate_from_x(u, normal, equations)
 
-Apply the rotation that maps the x-axis onto `normal` to the convservative variables `u`.
+Apply the rotation that maps the x-axis onto `normal` to the conservative variables `u`.
 This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
 invariant equations in arbitrary normal directions.
 
@@ -301,6 +301,56 @@ end
 struct Gradient end
 struct Divergence end
 
+# `boundary_condition_do_nothing` for equations with auxiliary variables. There are no
+# separate auxiliary variables outside of the boundary, so the inner ones are used.
+@inline function (::BoundaryConditionDoNothing)(u_inner, aux_inner,
+                                                outward_direction::AbstractVector,
+                                                x, t, surface_flux, equations)
+    return flux(u_inner, aux_inner, outward_direction, equations)
+end
+
+# Version for equations with auxiliary variables and nonconservative fluxes
+@inline function (::BoundaryConditionDoNothing)(u_inner, aux_inner,
+                                                outward_direction::AbstractVector,
+                                                x, t, surface_flux_functions::Tuple,
+                                                equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    return surface_flux_function(u_inner, u_inner, aux_inner, aux_inner,
+                                 outward_direction, equations),
+           nonconservative_flux_function(u_inner, u_inner, aux_inner, aux_inner,
+                                         outward_direction, equations)
+end
+
+# Versions for parabolic solvers. They assume that the gradient numerical flux at the
+# boundary is the gradient variable, which is consistent with BR1 and LDG.
+# `inner_flux_or_state` are the gradient variables, i.e., `u_inner`, in the `Gradient`
+# stage and the fluxes at the boundary, i.e., `flux_inner`, in the `Divergence` stage.
+# Some solvers pass `u_inner = nothing` in the `Divergence` stage.
+# TODO: revisit if we want more general boundary treatments.
+#
+# This version can be called by parabolic solvers passing a normal direction. It has the
+# same number of arguments as the versions with auxiliary variables above but a more
+# specific `operator_type`.
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner,
+                                                normal_direction::AbstractVector,
+                                                x, t,
+                                                operator_type::Union{Gradient,
+                                                                     Divergence},
+                                                equations)
+    return inner_flux_or_state
+end
+
+# This version can be called by parabolic solvers passing an orientation and a direction
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner,
+                                                orientation_or_normal_direction,
+                                                direction::Integer, x, t,
+                                                operator_type::Union{Gradient,
+                                                                     Divergence},
+                                                equations)
+    return inner_flux_or_state
+end
+
 """
     BoundaryConditionNeumann(boundary_normal_flux_function)
 
@@ -440,8 +490,16 @@ nauxvariables(::MyEquations) = 2
 
 flux(u, aux, normal_direction, equations::MyEquations) = ...
 flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+cons2prim(u, aux, equations::MyEquations) = ...
 ```
 Similar patterns are used for source terms etc.
+
+Functions of the conservative variables used for analysis and output also get the
+auxiliary variables.
+This applies to [`cons2prim`](@ref), [`cons2entropy`](@ref), [`entropy`](@ref),
+and the `solution_variables` of the [`SaveSolutionCallback`](@ref) and of plots.
+With their default settings, the [`AnalysisCallback`](@ref) requires `cons2entropy`
+and the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
 
 The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
@@ -449,8 +507,13 @@ be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](
 For equations without auxiliary variables, no `aux_field` must be passed.
 
 Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D,
-without AMR and MPI. On GPUs, only conforming meshes are supported.
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D
+(serial) and 3D (also with MPI), without AMR. On GPUs, only conforming meshes are
+supported in 3D, and nonconservative terms are only supported with fluxes combining
+the conservative and nonconservative parts, see
+[`Trixi.combine_conservative_and_nonconservative_fluxes`](@ref).
+The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
+[`boundary_condition_do_nothing`](@ref) support auxiliary variables.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0
@@ -490,19 +553,24 @@ default_analysis_integrals(::AbstractEquations) = (entropy_timederivative,)
 
 """
     cons2cons(u, equations)
+    cons2cons(u, aux, equations)
 
 Return the conserved variables `u`. While this function is as trivial as `identity`,
 it is also as useful.
 """
 @inline cons2cons(u, ::AbstractEquations) = u
+@inline cons2cons(u, aux, ::AbstractEquations) = u
 
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 """
     cons2prim(u, equations)
+    cons2prim(u, aux, equations)
 
 Convert the conserved variables `u` to the primitive variables for a given set of
 `equations`. `u` is a vector type of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`prim2cons`](@ref).
@@ -553,22 +621,28 @@ end
 
 """
     entropy(u, equations)
+    entropy(u, aux, equations)
 
 Return the chosen entropy of the conserved variables `u` for a given set of
 `equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 """
 function entropy end
 
 """
     cons2entropy(u, equations)
+    cons2entropy(u, aux, equations)
 
 Convert the conserved variables `u` to the entropy variables for a given set of
 `equations` with chosen standard [`entropy`](@ref).
 
 `u` is a vector type of the correct length `nvariables(equations)`.
+For equations with auxiliary variables (see [`nauxvariables`](@ref)),
+the auxiliary variables `aux` at the same node are passed as well.
 Notice the function doesn't include any error checks for the purpose of efficiency,
 so please make sure your input is correct.
 The inverse conversion is performed by [`entropy2cons`](@ref).
@@ -648,7 +722,7 @@ function pressure end
 Return the product of the [`density`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
 `equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
-This can be useful, e.g., as a variable for (shock-cappturing or AMR)
+This can be useful, e.g., as a variable for (shock-capturing or AMR)
 indicators as it combines two variables which must stay positive into one.
 
 Furthermore, this implementation is for media which are described by an
@@ -727,7 +801,9 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("conservative_linear_scalar_advection_2d.jl")
 include("conservative_linear_scalar_advection_3d.jl")
+include("nonconservative_linear_scalar_advection_2d.jl")
 include("nonconservative_linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers

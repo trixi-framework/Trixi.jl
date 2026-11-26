@@ -35,7 +35,11 @@ end
     @test u0 ≈ ode.u0
 
     # test "do nothing" BC just returns first argument
-    @test boundary_condition_do_nothing(u0, nothing) == u0
+    for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+        @test boundary_condition_do_nothing(u0, u0, SVector(1.0, 0.0), SVector(0.0, 0.0),
+                                            0.0, operator_type,
+                                            semi.equations_parabolic) == u0
+    end
 
     (; cache, cache_parabolic, equations_parabolic) = semi
     (; gradients) = cache_parabolic
@@ -1348,6 +1352,8 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Test `get_boundary_element`
+    @test Trixi.get_boundary_element(semi.cache.boundaries, 1) == 1
 end
 
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl (LDG)" setup=[

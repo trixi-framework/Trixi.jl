@@ -4,9 +4,8 @@
 # This method is called when a `SemidiscretizationHyperbolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg::DG,
-                      ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::T8codeMeshParallel, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
     # containers in case someone has tampered with forest after creating the
     # mesh.
@@ -36,8 +35,8 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                               uEltype)
+    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info,
+                               nvariables(equations), nnodes(dg), uEltype)
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)
@@ -55,10 +54,10 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
     # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
     # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
@@ -68,7 +67,8 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
     return cache
 end
 
-function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info, nvars, nnodes, uEltype)
+function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvars, nnodes, uEltype)
     return mpi_cache

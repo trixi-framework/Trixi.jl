@@ -64,6 +64,7 @@ using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
+using EnumX: @enumx
 using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
@@ -138,7 +139,7 @@ using UUIDs: UUID
 using SummationByPartsOperators: AbstractDerivativeOperator,
                                  AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 grid
+                                 grid, xmin, xmax
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
@@ -219,7 +220,9 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
+       ConservativeLinearScalarAdvectionEquation2D,
        ConservativeLinearScalarAdvectionEquation3D,
+       NonconservativeLinearScalarAdvectionEquation2D,
        NonconservativeLinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
@@ -267,7 +270,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
-       splitting_drikakis_tsangaris
+       splitting_drikakis_tsangaris, SplittingGlobalLaxFriedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -285,6 +288,8 @@ export boundary_condition_do_nothing,
        NoSlip, Slip,
        Adiabatic, Isothermal,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
+
+export NodeIndex
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,

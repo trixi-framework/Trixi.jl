@@ -1,6 +1,6 @@
-@inline function get_node_turbo(turbo_local, ::Val{NAUX},
-                                indices...) where {NAUX}
-    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
+@inline function get_node_turbo(turbo_local, ::Val{NTURBO},
+                                indices...) where {NTURBO}
+    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NTURBO))
 end
 
 # This is a general fallback for volume integral kernels, parallelizing across
