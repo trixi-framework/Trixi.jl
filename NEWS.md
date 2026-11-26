@@ -8,10 +8,20 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
+  serial `P4estMesh{2}`es without AMR, also on GPUs (nonconservative terms only with
+  combined conservative and nonconservative fluxes). The new equations
+  `ConservativeLinearScalarAdvectionEquation2D` and
+  `NonconservativeLinearScalarAdvectionEquation2D` use them for a spatially varying
+  advection velocity ([#3438], [#3439]).
+- The flux splitting `splitting_lax_friedrichs` is now also available for
+  `CompressibleEulerEquations1D` ([#3489]).
 - The parabolic time step restriction of the `StepsizeCallback` (keyword argument
   `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
 
 #### Changed
+- Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
+  `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
 
 #### Deprecated
 

@@ -5,10 +5,11 @@
 @muladd begin
 #! format: noindent
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func::Func, u, t, analyzer,
                           mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
                           equations,
-                          initial_condition, dg::DGSEM, cache, cache_analysis)
+                          initial_condition, dg::DGSEM, cache,
+                          cache_analysis) where {Func}
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
@@ -121,9 +122,9 @@ function integrate_via_indices(func::Func, backend::Backend, u,
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
-    integral, volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
-                                                    backend; init,
-                                                    neutral) do element
+    integral, volume = mapreduce_accelerated(local_plus, 1:num_elements,
+                                             backend; init,
+                                             neutral) do element
         # Initialize integral with zeros of the right shape
         local_integral, local_total_volume = neutral
 

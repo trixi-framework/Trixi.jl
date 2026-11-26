@@ -27,12 +27,16 @@ end
                                                    T8codeMesh{2}},
                                        equations, dg::Union{DGSEM, FDSBP}, cache)
     @trixi_timeit timer() "Integrate w ⋅ k" begin
+        # `nothing` if the equations do not have auxiliary variables
+        aux = get_aux_vars(cache)
         # Calculate ∫(∂S/∂u ⋅ k)dΩ = ∫(w ⋅ k)dΩ
-        integrate_via_indices(u_stage, mesh, equations, dg, cache,
-                              stage) do u_stage, i, j, element, equations, dg, stage
+        integrate_via_indices(u_stage, mesh, equations, dg, cache, stage,
+                              aux) do u_stage, i, j, element, equations, dg,
+                                      stage, aux
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
             w_node = cons2entropy(get_node_vars(u_stage, equations, dg,
                                                 i, j, element),
-                                  equations)
+                                  aux_node..., equations)
             stage_node = get_node_vars(stage, equations, dg, i, j, element)
             return dot(w_node, stage_node)
         end

@@ -20,7 +20,7 @@ function unstructured_2d_to_1d_curve(u, mesh::P4estMesh{2, 2, Float64},
                                      equations, dg::DGSEM, cache,
                                      curve, slice,
                                      point, nvisnodes,
-                                     solution_variables)
+                                     solution_variables::Func) where {Func}
     # TODO: Currently, the efficient search functionality is only implemented
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
     #       but general approach.
@@ -38,17 +38,21 @@ function unstructured_2d_to_1d_curve(u, mesh::P4estMesh{2, 2, Float64},
     if curve === nothing
         curve = axis_curve(view(original_nodes, 1, :, :, :),
                            view(original_nodes, 2, :, :, :),
-                           slice, point, nvisnodes)
+                           nothing, slice, point, nvisnodes)
     end
 
     # Set up data structure.
     @assert size(curve, 1) == 2
     n_points_curve = size(curve, 2)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Get the number of variables after applying the transformation
     # to solution variables.
     u_node = get_node_vars(u, equations, dg, 1, 1, 1)
-    var_node = solution_variables(u_node, equations)
+    aux_node = get_aux_node_vars(aux, equations, dg, 1, 1, 1)
+    var_node = solution_variables(u_node, aux_node..., equations)
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
@@ -97,7 +101,8 @@ function unstructured_2d_to_1d_curve(u, mesh::P4estMesh{2, 2, Float64},
         # before interpolation.
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            val = solution_variables(u_node, equations)
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
+            val = solution_variables(u_node, aux_node..., equations)
             for v in eachindex(val)
                 unstructured_data[i, j, v] = val[v]
             end
@@ -313,7 +318,7 @@ function unstructured_3d_to_1d_curve(u,
                                      mesh::Union{P4estMesh{3, 3, Float64},
                                                  T8codeMesh{3, Float64}},
                                      equations, dg::DGSEM, cache,
-                                     curve, solution_variables)
+                                     curve, solution_variables::Func) where {Func}
     # TODO: Currently, the efficient search functionality is only implemented
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
     #       but general approach.
