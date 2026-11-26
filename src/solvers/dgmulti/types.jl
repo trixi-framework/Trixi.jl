@@ -367,9 +367,10 @@ Constructs a `Curved()` [`DGMultiMesh`](@ref) with element type `dg.basis.elemen
 - `is_on_boundary` specifies boundary using a `NamedTuple`
 - `periodicity` is a tuple of `Bool`s specifying periodicity = `true`/`false` in the (x,y,z) direction.
 """
-function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
+function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping::Func;
                      is_on_boundary = nothing,
-                     periodicity = ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+                     periodicity = ntuple(_ -> false, NDIMS),
+                     kwargs...) where {NDIMS, Func}
     vertex_coordinates, EToV = StartUpDG.uniform_mesh(dg.basis.element_type,
                                                       cells_per_dimension...)
     md = MeshData(vertex_coordinates, EToV, dg.basis)

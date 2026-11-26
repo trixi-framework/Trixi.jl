@@ -585,10 +585,9 @@ function flux_nonconservative_fjordholm_etal end
 A numerical flux `f(u_left, u_right) = f⁺(u_left) + f⁻(u_right)` based on
 flux vector splitting.
 
-The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
+[`SurfaceIntegralUpwind(splitting)`](@ref SurfaceIntegralUpwind) is a shortcut for
 the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
-as numerical flux (up to floating point differences). Note, that
-[`SurfaceIntegralUpwind`](@ref) is only available on [`TreeMesh`](@ref).
+as numerical flux.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.

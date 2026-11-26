@@ -2581,6 +2581,15 @@ end
     end
 end
 
+@testitem "Unit: SurfaceIntegralUpwind" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    surface_integral = SurfaceIntegralUpwind(splitting_steger_warming)
+    @test surface_integral isa SurfaceIntegralStrongForm
+    @test surface_integral isa SurfaceIntegralUpwind
+    @test surface_integral.surface_flux isa FluxUpwind
+    @test surface_integral.surface_flux.splitting === splitting_steger_warming
+    @test !(SurfaceIntegralStrongForm(flux_lax_friedrichs) isa SurfaceIntegralUpwind)
+end
+
 @testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
     Setup,
     UnitTests

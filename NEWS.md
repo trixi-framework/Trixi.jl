@@ -20,6 +20,9 @@ for human readability.
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
+- `SurfaceIntegralUpwind(splitting)` now returns the equivalent
+  `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
+  also supports non-periodic boundary conditions. Results change at round-off level ([#3498]).
 
 #### Deprecated
 
