@@ -62,7 +62,7 @@ coloring_vec = column_colors(coloring_result)
 ###############################################################################
 ### sparsity-aware semidiscretization and ode ###
 
-# Semidiscretization for actual simulation. `eEltype` is here retrieved from `solver`
+# Semidiscretization for actual simulation. `uEltype` is here retrieved from `solver`
 semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
                                                initial_condition_convergence_test,
                                                solver;

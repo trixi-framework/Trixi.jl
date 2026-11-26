@@ -1466,7 +1466,7 @@ Compute the fast magnetoacoustic wave speed using Roe averages as given by
     X = 0.5f0 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
+    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnetic sum
     a_square_roe = ((2 - equations.gamma) * X +
                     (equations.gamma - 1) *
                     (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
@@ -1544,7 +1544,7 @@ end
     X = 0.5f0 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
+    b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnetic sum
     a_square_roe = ((2 - equations.gamma) * X +
                     (equations.gamma - 1) *
                     (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -

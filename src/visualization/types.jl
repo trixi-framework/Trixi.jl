@@ -835,7 +835,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x
             left_boundary += element_width #go to the left boundary of the next cell
         end
-        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case it's the left boundary
 
     else
         error("BlockFV is not yet supported for 2D and 3D.")

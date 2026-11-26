@@ -1473,7 +1473,7 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG
     return u_ll, u_rr
 end
 
-# As above but dispatches on an type argument
+# As above but dispatches on a type argument
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
                                                         indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`

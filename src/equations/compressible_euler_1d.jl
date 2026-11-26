@@ -1012,7 +1012,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 
