@@ -185,6 +185,8 @@ end
         @test eltype(eltype(@inferred splitting_lax_friedrichs(u, orientation,
                                                                equations))) ==
               RealT
+        splitting = SplittingGlobalLaxFriedrichs(one(RealT))
+        @test eltype(eltype(@inferred splitting(u, orientation, equations))) == RealT
 
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
               RealT
@@ -444,6 +446,8 @@ end
         @test eltype(eltype(@inferred splitting_lax_friedrichs(u, normal_direction,
                                                                equations))) ==
               RealT
+        splitting = SplittingGlobalLaxFriedrichs(one(RealT))
+        @test eltype(eltype(@inferred splitting(u, normal_direction, equations))) == RealT
 
         @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
                                                    equations)) ==
@@ -488,6 +492,8 @@ end
             @test eltype(eltype(@inferred splitting_lax_friedrichs(u, orientation,
                                                                    equations))) ==
                   RealT
+            splitting = SplittingGlobalLaxFriedrichs(one(RealT))
+            @test eltype(eltype(@inferred splitting(u, orientation, equations))) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                        equations)) ==

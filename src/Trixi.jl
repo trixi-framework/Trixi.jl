@@ -139,7 +139,7 @@ using UUIDs: UUID
 using SummationByPartsOperators: AbstractDerivativeOperator,
                                  AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 grid
+                                 grid, xmin, xmax
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
@@ -269,7 +269,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
-       splitting_drikakis_tsangaris
+       splitting_drikakis_tsangaris, SplittingGlobalLaxFriedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,

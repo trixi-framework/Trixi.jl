@@ -16,6 +16,11 @@ for human readability.
   advection velocity ([#3438], [#3439]).
 - The flux splitting `splitting_lax_friedrichs` is now also available for
   `CompressibleEulerEquations1D` ([#3489]).
+- The parabolic time step restriction of the `StepsizeCallback` (keyword argument
+  `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
+- The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
+  available for all equations and complements the dissipation
+  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
 - Mesh and solution files of a `DGMultiMesh` now also store the approximation type of the
   basis. This allows to correctly load meshes with approximation types other than
   `Polynomial()`, e.g., `SBP()` on triangles or `GaussSBP()`.
@@ -23,6 +28,9 @@ for human readability.
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
   `TreeMesh{2}`, which failed with a `MethodError` since v0.15.7 ([#3490]).
+- `SurfaceIntegralUpwind(splitting)` now returns the equivalent
+  `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
+  also supports non-periodic boundary conditions. Results change at round-off level ([#3498]).
 
 #### Deprecated
 
@@ -528,7 +536,7 @@ Moreover, some internal functions have been renamed accordingly, including the r
   by passing an appropriate data type as keyword argument `storage_type` to
   `semidiscretize`. See the
   [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
-  section for some instructions on how to port kernels. This is however still preliminaray
+  section for some instructions on how to port kernels. This is however still preliminary
   and will change.
   GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
   `TRIXI_TEST=CUDA` ([#2590]).
@@ -679,7 +687,7 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/).
   This also affects the related functions `hydrostatic_reconstruction_audusse_etal`,
   `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
-- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+- The additional `initial_cache` entries in the caches of `SemidiscretizationHyperbolic`
   and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
   their constructors have been removed. ([#2399])
 
