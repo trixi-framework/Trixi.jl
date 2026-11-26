@@ -528,12 +528,12 @@ flux(u, aux, gradients, orientation, equations_parabolic::MyParabolicEquations) 
 ```
 
 Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) and [`SemidiscretizationHyperbolicParabolic`](@ref)
+[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D
+(serial) and 3D (also with MPI) and for [`SemidiscretizationHyperbolicParabolic`](@ref)
 with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 3D (also with MPI), without AMR.
-On GPUs, only conforming meshes are supported (also with MPI for
-[`SemidiscretizationHyperbolic`](@ref)), and only equations without nonconservative
-terms, e.g., [`ConservativeLinearScalarAdvectionEquation3D`](@ref)
-but not [`NonconservativeLinearScalarAdvectionEquation3D`](@ref).
+On GPUs, only conforming meshes are supported in 3D, and nonconservative terms are only
+supported with fluxes combining the conservative and nonconservative parts, see
+[`Trixi.combine_conservative_and_nonconservative_fluxes`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
 [`boundary_condition_do_nothing`](@ref) support auxiliary variables, the latter also in
 the parabolic terms. In the parabolic terms of [`LaplaceDiffusion3D`](@ref),
@@ -826,7 +826,9 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("conservative_linear_scalar_advection_2d.jl")
 include("conservative_linear_scalar_advection_3d.jl")
+include("nonconservative_linear_scalar_advection_2d.jl")
 include("nonconservative_linear_scalar_advection_3d.jl")
 
 # Inviscid Burgers

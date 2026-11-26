@@ -653,7 +653,7 @@ end
     dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
                       Trixi.have_constant_diffusivity(equations_parabolic), equations,
                       equations_parabolic, solver, cache)
-    @test isapprox(dt, 0.4017857142856942, rtol = sqrt(eps(Float32)))
+    @test isapprox(dt, 0.40178573f0, rtol = sqrt(eps(Float32)))
 end
 
 @testitem "Metal 3D: elixir_advectionconservative_shear_flow.jl Float32 / Metal" setup=[

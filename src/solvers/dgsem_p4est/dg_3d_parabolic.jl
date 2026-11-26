@@ -1081,8 +1081,8 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 end
 
 # The type parameter `BC` forces Julia to specialize on `boundary_condition_parabolic`.
-# Otherwise, Julia v1.10 cannot infer the call of `boundary_condition_parabolic` with the
-# splatted auxiliary variables below, which allocates.
+# Otherwise, Julia v1.10 and v1.11 cannot infer the call of `boundary_condition_parabolic`
+# with the splatted auxiliary variables below, which allocates (see JuliaLang/julia#58070).
 function calc_boundary_flux!(cache, t,
                              boundary_condition_parabolic::BC, # works with Dict types
                              boundary_condition_indices,

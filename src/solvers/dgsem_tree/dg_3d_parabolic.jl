@@ -1281,8 +1281,8 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::No
 end
 
 # The type parameter `Source` forces Julia to specialize on `source_terms_parabolic`.
-# Otherwise, Julia v1.10 cannot infer the call of `source_terms_parabolic` with the
-# splatted auxiliary variables below, which allocates.
+# Otherwise, Julia v1.10 and v1.11 cannot infer the call of `source_terms_parabolic` with
+# the splatted auxiliary variables below, which allocates (see JuliaLang/julia#58070).
 function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Source,
                                  equations_parabolic::AbstractEquations{3}, dg::DG,
                                  cache) where {Source}
