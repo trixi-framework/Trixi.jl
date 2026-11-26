@@ -1058,7 +1058,7 @@ implemented in SummationByPartsOperators.jl. The `splitting` controls the
 discretization.
 
 See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
-[`splitting_vanleer_haenel`](@ref).
+[`SplittingGlobalLaxFriedrichs`](@ref), [`splitting_vanleer_haenel`](@ref).
 
 ## References
 
