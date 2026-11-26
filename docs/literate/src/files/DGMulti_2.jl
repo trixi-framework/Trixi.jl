@@ -36,7 +36,7 @@ D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N =
 
 # To choose a discontinuous coupling (DGSEM), use `couple_discontinuously()` instead of `couple_continuously()`.
 
-# For more information and other SBP operators, see the documentations of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
+# For more information and other SBP operators, see the documentation of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
 # and [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
 
 # ## Package versions

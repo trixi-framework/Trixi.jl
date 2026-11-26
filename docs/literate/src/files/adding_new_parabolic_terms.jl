@@ -19,7 +19,7 @@ equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);
 # functions defined for hyperbolic equations (such as `varnames`).
 #
 # The abstract type `Trixi.AbstractEquationsParabolic` has three parameters: `NDIMS` (the spatial dimension,
-# e.g., 1D, 2D, or 3D), `NVARS` (the number of variables), and `GradientVariable`, which we set as
+# e.g., 1D, 2D, or 3D), `NVARS` (the number of variables), and `GradientVariables`, which we set as
 # `GradientVariablesConservative`. This indicates that the gradient should be taken with respect to the
 # conservative variables (e.g., the same variables used in `equations_hyperbolic`). Users can also take
 # the gradient with respect to a different set of variables; see, for example, the implementation of

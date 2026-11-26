@@ -26,7 +26,7 @@
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
@@ -146,7 +146,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
@@ -350,7 +350,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))

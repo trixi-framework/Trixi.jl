@@ -510,7 +510,7 @@ function min_max_speed_davis end
     min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
-More advanced mininmal and maximal wave speed computation based on
+More advanced minimal and maximal wave speed computation based on
 - Bernd Einfeldt (1988)
   On Godunov-type methods for gas dynamics.
   [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)

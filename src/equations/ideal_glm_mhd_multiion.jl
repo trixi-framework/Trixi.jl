@@ -192,7 +192,7 @@ end
 @doc raw"""
     pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Computes the pressure of every component ``k`` analogouos to
+Computes the pressure of every component ``k`` analogous to
 [`pressure(u, equations::IdealGlmMhdEquations1D)`](@ref).
 """
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)

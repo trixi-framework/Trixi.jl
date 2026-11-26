@@ -94,7 +94,7 @@ end
     Setup,
     Metal3DExamples
 ] tags=[:Metal, :metal_skip_m1_m2] begin
-    # Using Metal inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    # Using Metal inside the testset since otherwise the bindings are hidden by the anonymous modules
     using Metal
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,

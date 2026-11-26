@@ -25,20 +25,24 @@ The following people contributed major additions or modifications to Trixi.jl an
 are listed in alphabetical order:
 
 * Marco Artiano
+* Arpit Babbar
 * Maximilian D. Bertrand
 * Benjamin Bolm
 * Simon Candelaresi
 * Jesse Chan
 * Lars Christmann
+* Valentin Churavy
 * Christof Czernik
 * Daniel Doehring
 * Patrick Ersing
 * Erik Faulhaber
 * Gregor Gassner
+* Benedict Geihe
 * Lucas Gemein
 * Sven Goldberg
 * T. Jeremy P. Karpowski
 * Joshua Lampert
+* Johannes Markert
 * Vincent Marks
 * Tristan Montoya
 * Julia Odenthal

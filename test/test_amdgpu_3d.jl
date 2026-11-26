@@ -216,7 +216,7 @@ end
     Setup,
     AMDGPU3DExamples
 ] tags=[:AMDGPU] begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    # Using AMDGPU inside the testset since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,
