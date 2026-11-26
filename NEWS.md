@@ -530,7 +530,7 @@ Moreover, some internal functions have been renamed accordingly, including the r
   by passing an appropriate data type as keyword argument `storage_type` to
   `semidiscretize`. See the
   [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
-  section for some instructions on how to port kernels. This is however still preliminaray
+  section for some instructions on how to port kernels. This is however still preliminary
   and will change.
   GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
   `TRIXI_TEST=CUDA` ([#2590]).
@@ -681,7 +681,7 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/).
   This also affects the related functions `hydrostatic_reconstruction_audusse_etal`,
   `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
-- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+- The additional `initial_cache` entries in the caches of `SemidiscretizationHyperbolic`
   and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
   their constructors have been removed. ([#2399])
 
