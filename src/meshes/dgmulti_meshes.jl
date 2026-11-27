@@ -56,6 +56,50 @@ function get_element_type_from_string(input::String)
     end
 end
 
+# String representation of the approximation type of a `RefElemData`, which is stored in
+# mesh and solution files of a `DGMultiMesh`. This allows to reconstruct the `RefElemData`
+# with the correct nodes when loading a mesh file, see `get_approximation_type_from_string`.
+# This is required for e.g. visualization with Paraviews arbitrary-order Lagrangian elements.
+# All `Polynomial` approximation types except for `GaussSBP` share the same nodes and differ
+# only in the quadrature, which is why they are all represented by `Polynomial()`.
+get_approximation_type_string(::Polynomial) = "Polynomial"
+get_approximation_type_string(::Polynomial{<:Gauss}) = "GaussSBP"
+function get_approximation_type_string(::SBP{StartUpDG.TensorProductLobatto})
+    return "SBP{TensorProductLobatto}"
+end
+function get_approximation_type_string(::SBP{StartUpDG.Kubatko{StartUpDG.LobattoFaceNodes}})
+    return "SBP{Kubatko{LobattoFaceNodes}}"
+end
+function get_approximation_type_string(::SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}})
+    return "SBP{Kubatko{LegendreFaceNodes}}"
+end
+get_approximation_type_string(::SBP{StartUpDG.Hicken}) = "SBP{Hicken}"
+get_approximation_type_string(::TensorProductWedge) = "TensorProductWedge"
+# Fallback for approximation types which cannot be reconstructed from a string
+function get_approximation_type_string(approximation_type)
+    return string(typeof(approximation_type))
+end
+
+# "Inverse" of `get_approximation_type_string`. `TensorProductWedge` is not supported here
+# since it is reconstructed from the polynomial degrees of its factors when loading a mesh.
+function get_approximation_type_from_string(input::String)
+    if input == "Polynomial"
+        return Polynomial()
+    elseif input == "GaussSBP"
+        return Polynomial(Gauss())
+    elseif input == "SBP{TensorProductLobatto}"
+        return SBP{StartUpDG.TensorProductLobatto}()
+    elseif input == "SBP{Kubatko{LobattoFaceNodes}}"
+        return SBP{StartUpDG.Kubatko{StartUpDG.LobattoFaceNodes}}()
+    elseif input == "SBP{Kubatko{LegendreFaceNodes}}"
+        return SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}}()
+    elseif input == "SBP{Hicken}"
+        return SBP{StartUpDG.Hicken}()
+    else
+        throw(ArgumentError("unsupported approximation type: $input"))
+    end
+end
+
 const SerialDGMultiMesh{NDIMS} = DGMultiMesh{NDIMS}
 @inline mpi_parallel(mesh::SerialDGMultiMesh) = False()
 

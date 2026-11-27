@@ -4267,6 +4267,35 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
+@testitem "Unit: DGMultiMesh mesh file with approximation type" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The approximation type is stored in the mesh file to reconstruct the `RefElemData`
+    # with the correct nodes when loading the mesh
+    for (element_type, approximation_type) in ((Tri(), Polynomial()),
+                                               (Tri(), SBP()),
+                                               (Quad(), SBP()),
+                                               (Quad(), GaussSBP()),
+                                               (Tri(), SBP{Trixi.StartUpDG.Hicken}()),
+                                               (Tri(),
+                                                SBP{Trixi.StartUpDG.Kubatko{Trixi.StartUpDG.LegendreFaceNodes}}()))
+        dg = DGMulti(polydeg = 3, element_type = element_type,
+                     approximation_type = approximation_type)
+        approximation_type_str = Trixi.get_approximation_type_string(dg.basis.approximation_type)
+        approximation_type_loaded = Trixi.get_approximation_type_from_string(approximation_type_str)
+        basis_loaded = DGMultiBasis(element_type, 3;
+                                    approximation_type = approximation_type_loaded)
+        @test basis_loaded.rst == dg.basis.rst
+
+        mesh = DGMultiMesh(dg, (2, 2))
+        mesh_file = Trixi.save_mesh_file(mesh, dg.basis, mktempdir())
+        mesh_loaded = Trixi.load_mesh_serial(mesh_file, RealT = Float64)
+        @test mesh_loaded.md.xyz == mesh.md.xyz
+        @test all(map(isapprox, mesh_loaded.md.xyzq, mesh.md.xyzq))
+        @test mesh_loaded.md.J ≈ mesh.md.J
+    end
+
+    @test_throws ArgumentError Trixi.get_approximation_type_from_string("Unknown")
+end
+
 @testitem "Unit: is_github_url" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # The `GITHUB_TOKEN` used by `Trixi.download` must only be sent to GitHub
     @test Trixi.is_github_url("https://github.com/trixi-framework/Trixi.jl")

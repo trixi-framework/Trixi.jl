@@ -51,6 +51,29 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "DGMulti2D: Kubatko Legendre-face-node SBP" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP{StartUpDG.Kubatko{StartUpDG.LegendreFaceNodes}}(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+                        # division by 2.0 corresponds to normalization by the square root of the size of the domain
+                        l2=[
+                            0.01005590903586074,
+                            0.007578995273560596,
+                            0.007578995273550845,
+                            0.021022516884288217
+                        ] ./ 2.0,
+                        linf=[
+                            0.02614966265293317,
+                            0.02263375213018981,
+                            0.02263375212915042,
+                            0.03802561273137961
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements)" setup=[
     Setup,
     DGMulti2D

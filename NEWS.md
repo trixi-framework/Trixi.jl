@@ -21,6 +21,9 @@ for human readability.
 - The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
   available for all equations and complements the dissipation
   `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
+- Mesh and solution files of a `DGMultiMesh` now also store the approximation type of the
+  basis. This allows to correctly load meshes with approximation types other than
+  `Polynomial()`, e.g., `SBP()` on triangles or `GaussSBP()`.
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and

@@ -147,6 +147,7 @@ function save_solution_file(u, time, dt, timestep,
 
         attributes(file)["element_type"] = dg.basis.element_type |> typeof |> nameof |>
                                            string
+        attributes(file)["approximation_type"] = get_approximation_type_string(dg.basis.approximation_type)
         attributes(file)["n_vars"] = n_vars
         attributes(file)["n_elements"] = nelements(dg, cache)
         attributes(file)["dof_per_elem"] = length(dg.basis.r)
