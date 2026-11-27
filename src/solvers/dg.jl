@@ -1789,4 +1789,7 @@ include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
 include("dgsem_t8code/dg.jl")
 include("blockfv/blockfv_p4est_2d.jl")
+# Continuous Galerkin spectral element methods (CGSEM) build on the DGSEM kernels
+# and containers of the `P4estMesh`.
+include("cgsem/assembly.jl")
 end # @muladd
