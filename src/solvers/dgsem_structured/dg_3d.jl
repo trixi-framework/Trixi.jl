@@ -60,46 +60,57 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
+    for k in eachnode(dg), j in eachnode(dg)
+        # The fluxes in the first direction of the line of nodes `(:, j, k)` are
+        # gathered in local storage and applied to `du` after the loop over `i`, so
+        # that each value of this line of `du` is loaded and stored only once.
+        # Updating `du[:, ii, j, k, element]` directly for every `i` would create a
+        # loop-carried dependency through memory (all values of this line are
+        # loaded, updated, and stored again in every iteration), which the compiler
+        # cannot remove since the updates of the other two directions write to the
+        # same line of `du`.
+        flux1_line = allocate_line_node_vars(du, equations, dg)
 
-        flux1 = flux(u_node, aux_node..., 1, equations)
-        flux2 = flux(u_node, aux_node..., 2, equations)
-        flux3 = flux(u_node, aux_node..., 3, equations)
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, k, element)
+            aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
 
-        # Compute the contravariant flux by taking the scalar product of the
-        # first contravariant vector Ja^1 and the flux vector
-        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
-                                                    i, j, k, element)
-        contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-        for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
-                                       contravariant_flux1, equations, dg,
-                                       ii, j, k, element)
+            flux1 = flux(u_node, aux_node..., 1, equations)
+            flux2 = flux(u_node, aux_node..., 2, equations)
+            flux3 = flux(u_node, aux_node..., 3, equations)
+
+            # Compute the contravariant flux by taking the scalar product of the
+            # first contravariant vector Ja^1 and the flux vector
+            Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                        i, j, k, element)
+            contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
+            flux1_line[i] = contravariant_flux1
+
+            # Compute the contravariant flux by taking the scalar product of the
+            # second contravariant vector Ja^2 and the flux vector
+            Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                        i, j, k, element)
+            contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
+            for jj in eachnode(dg)
+                multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
+                                           contravariant_flux2, equations, dg,
+                                           i, jj, k, element)
+            end
+
+            # Compute the contravariant flux by taking the scalar product of the
+            # third contravariant vector Ja^3 and the flux vector
+            Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                        i, j, k, element)
+            contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
+            for kk in eachnode(dg)
+                multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k],
+                                           contravariant_flux3, equations, dg,
+                                           i, j, kk, element)
+            end
         end
 
-        # Compute the contravariant flux by taking the scalar product of the
-        # second contravariant vector Ja^2 and the flux vector
-        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, j, k, element)
-        contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-        for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
-                                       contravariant_flux2, equations, dg,
-                                       i, jj, k, element)
-        end
-
-        # Compute the contravariant flux by taking the scalar product of the
-        # third contravariant vector Ja^3 and the flux vector
-        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, k, element)
-        contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-        for kk in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k],
-                                       contravariant_flux3, equations, dg,
-                                       i, j, kk, element)
-        end
+        multiply_add_to_line_node_vars!(du, alpha, derivative_hat, flux1_line,
+                                        equations, dg, (), (j, k, element))
     end
 
     return nothing
