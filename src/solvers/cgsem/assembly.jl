@@ -29,27 +29,30 @@ must be conforming (no mortars).
 ## Local-to-global index map and its inverse
 
 For simplicity, consider a 1D mesh of two elements with `polydeg = 2` (three nodes per
-element) sharing one node. An element-local node is identified by its `CartesianIndex`
-`(i, element)` into the element-local arrays (`(i, j, element)` in 2D), and the
-local-to-global index map assigns one global node to each of them:
+element) sharing one node. An element-local node `(i, element)` (`(i, j, element)` in
+2D) is identified by its linear index into the node index space `(nnodes, nelements)`
+of the element-local arrays (`(nnodes, nnodes, nelements)` in 2D), i.e., in memory
+order (`i` fastest, then `element`). The local-to-global index map assigns one global
+node to each of them:
 ```
 element-local nodes (i, element)          global nodes
 
 (1,1)--(2,1)--(3,1) (1,2)--(2,2)--(3,2)   1-----2-----3-----4-----5
      element 1           element 2          element 1   element 2
 
-local node    (1,1) (2,1) (3,1) (1,2) (2,2) (3,2)
-global node     1     2     3     3     4     5
+local node (i, element)   (1,1) (2,1) (3,1) (1,2) (2,2) (3,2)
+local node (linear index)   1     2     3     4     5     6
+global node                 1     2     3     3     4     5
 ```
-The global nodes are numbered by first appearance in memory order of the local nodes
-(`i` fastest, then `element`). The inverse map from each global node to all of its
-copies is a ragged list:
+The global nodes are numbered by first appearance in memory order of the local nodes.
+The inverse map from each global node to the linear indices of all of its copies is a
+ragged list:
 ```
-global node 1: (1,1)
-global node 2: (2,1)
-global node 3: (3,1), (1,2)
-global node 4: (2,2)
-global node 5: (3,2)
+global node 1: 1
+global node 2: 2
+global node 3: 3, 4
+global node 4: 5
+global node 5: 6
 ```
 
 ## Compressed representation of the global-to-local index map
@@ -58,18 +61,20 @@ The ragged list is stored in compressed row format in the fields `copies` and
 `offsets`: `copies` concatenates all rows, and `offsets[n]` is the position of the first
 copy of global node `n` in `copies`, with `offsets[end] == length(copies) + 1`, i.e.,
 ```
-copies  = [(1,1), (2,1), (3,1), (1,2), (2,2), (3,2)]
+copies  = [1, 2, 3, 4, 5, 6]
 offsets = [1, 2, 3, 5, 6, 7]
 ```
 The copies of global node `n` are `copies[offsets[n]:(offsets[n + 1] - 1)]`, returned
-by [`local_nodes_of`](@ref), e.g., `(3,1)` and `(1,2)` for `n = 3`. Within each row,
-the copies are sorted by their linear index, i.e., by element id. In this 1D example,
-`copies` coincides with the memory order of the local nodes because the two copies of
-the shared node are adjacent in memory; in 2D, where a vertex node is shared by up to
-four elements, and with periodic boundaries, the copies of a global node are scattered
-in memory. Since the rows partition the element-local nodes, a loop over the global
-nodes that reads and writes only the copies of its own row is free of write conflicts
-and can be parallelized without atomic operations.
+by [`local_nodes_of`](@ref), e.g., `3` and `4` (i.e., `(3,1)` and `(1,2)`) for `n = 3`.
+Within each row, the copies are sorted by their linear index, i.e., by element id. In
+this 1D example, `copies` coincides with the memory order of the local nodes because the
+two copies of the shared node are adjacent in memory; in 2D, where a vertex node is
+shared by up to four elements, and with periodic boundaries, the copies of a global node
+are scattered in memory. Since the rows partition the element-local nodes, a loop over
+the global nodes that reads and writes only the copies of its own row is free of write
+conflicts and can be parallelized without atomic operations. The kernels access the
+variables of the copy with linear index `k` as the column `k` of
+`reshape(u, nvariables(equations), :)` for an element-local array `u`.
 
 This representation and the gather-scatter kernels follow the `ogs` library of
 libParanumal (Chalmers et al.), which stores the inverse map as a CSR matrix with at
@@ -92,11 +97,11 @@ struct AssemblyCGSEM{NDIMSP1, RealT <: Real}
     # Compressed row representation of the global-to-local index map, i.e., of the
     # inverse of the local-to-global map (see the docstring). Read the copies of a global
     # node with `local_nodes_of`, which returns `copies[offsets[n]:(offsets[n + 1] - 1)]`.
-    # Within a row, the copies are sorted by their linear index, i.e., by element id.
-    # This order is fixed so that the sums in `assemble_and_apply_jacobian!` and
-    # `l2_projection!` are deterministic.
+    # The copies are linear indices into the node index space `dims`. Within a row, they
+    # are sorted, i.e., by element id. This order is fixed so that the sums in
+    # `assemble_and_apply_jacobian!` and `l2_projection!` are deterministic.
     offsets::Vector{Int}
-    copies::Vector{CartesianIndex{NDIMSP1}}
+    copies::Vector{Int}
     # 1 / sum_k J_k over the copies of each global node. For singleton rows, this is
     # exactly `inverse_jacobian` of the DGSEM cache.
     inverse_sum_jacobian::Vector{RealT}
@@ -172,21 +177,22 @@ function AssemblyCGSEM(mesh::P4estMesh{2}, equations, dg::DGSEM, cache)
     for n in 1:n_global
         offsets[n + 1] += offsets[n]
     end
-    copies = Vector{CartesianIndex{3}}(undef, n_local)
+    copies = Vector{Int}(undef, n_local)
     next_position = copy(offsets)
-    cartesian_indices = CartesianIndices(dims)
     for node in 1:n_local
         n = global_ids[node]
-        copies[next_position[n]] = cartesian_indices[node]
+        copies[next_position[n]] = node
         next_position[n] += 1
     end
 
-    # Inverse of the summed Jacobian of the copies of each global node
+    # Inverse of the summed Jacobian of the copies of each global node. Since
+    # `inverse_jacobian` has the size `dims`, it is indexed by the linear indices of the
+    # copies directly.
     (; inverse_jacobian) = cache.elements
     RealT = eltype(inverse_jacobian)
     inverse_sum_jacobian = Vector{RealT}(undef, n_global)
     assembly = AssemblyCGSEM{3, RealT}(dims, offsets, copies, inverse_sum_jacobian)
-    for global_index in 1:n_global
+    for global_index in eachnode_unique(assembly)
         local_nodes = local_nodes_of(global_index, assembly)
         if length(local_nodes) == 1
             # Keep the DGSEM value exactly for interior nodes
@@ -233,12 +239,20 @@ Number of distinct (global) nodes of the continuous space described by `assembly
 @inline nnodes_unique(assembly::AssemblyCGSEM) = length(assembly.inverse_sum_jacobian)
 
 """
+    eachnode_unique(assembly::AssemblyCGSEM)
+
+Return an iterator over the indices of the distinct (global) nodes of the continuous
+space described by `assembly`, i.e., `1:nnodes_unique(assembly)`.
+"""
+@inline eachnode_unique(assembly::AssemblyCGSEM) = Base.OneTo(nnodes_unique(assembly))
+
+"""
     local_nodes_of(global_index, assembly::AssemblyCGSEM)
 
-Element-local `CartesianIndex`es of all copies of the global node `global_index`, i.e.,
-one row of the compressed global-to-local index map of `assembly` (see
-[`AssemblyCGSEM`](@ref)), as a view into `assembly.copies` in ascending element-id
-order. Interior nodes have exactly one copy.
+Linear indices of all element-local copies of the global node `global_index` into the
+node index space of the element-local arrays, i.e., one row of the compressed
+global-to-local index map of `assembly` (see [`AssemblyCGSEM`](@ref)), as a view into
+`assembly.copies` in ascending element-id order. Interior nodes have exactly one copy.
 """
 @inline function local_nodes_of(global_index, assembly::AssemblyCGSEM)
     (; offsets, copies) = assembly
@@ -284,23 +298,27 @@ function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck check_axes(du, assembly, equations)
 
+    # The variables of the copy with linear index `k` are the column `k` of `du_nodes`,
+    # which shares the memory of `du`
+    du_nodes = reshape(du, nvariables(equations), :)
+
     # The rows of the global-to-local map partition the element-local nodes, so the
     # loop is free of write conflicts.
-    @threaded for global_index in eachindex(inverse_sum_jacobian)
+    @threaded for global_index in eachnode_unique(assembly)
         @inbounds begin
             local_nodes = local_nodes_of(global_index, assembly)
 
             # Gather: sum the residuals of all copies in their fixed (ascending element
             # id) order so that the result is deterministic
-            du_sum = zero(SVector{nvariables(equations), eltype(du)})
+            du_sum = zero(SVector{nvariables(equations), eltype(du_nodes)})
             for local_index in local_nodes
-                du_sum = du_sum + get_node_vars(du, equations, dg, local_index)
+                du_sum = du_sum + get_node_vars(du_nodes, equations, dg, local_index)
             end
             du_assembled = -inverse_sum_jacobian[global_index] * du_sum
 
             # Scatter: all copies receive the same value
             for local_index in local_nodes
-                set_node_vars!(du, du_assembled, equations, dg, local_index)
+                set_node_vars!(du_nodes, du_assembled, equations, dg, local_index)
             end
         end
     end
@@ -338,9 +356,14 @@ function l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, dg::DGSEM, 
         check_axes(inverse_jacobian, map(Base.OneTo, assembly.dims))
     end
 
+    # The variables of the copy with linear index `k` are the column `k` of `u_nodes`,
+    # which shares the memory of `u`. Since `inverse_jacobian` has the size
+    # `assembly.dims`, it is indexed by the linear indices of the copies directly.
+    u_nodes = reshape(u, nvariables(equations), :)
+
     # The rows of the global-to-local map partition the element-local nodes, so the
     # loop is free of write conflicts.
-    @threaded for global_index in eachindex(inverse_sum_jacobian)
+    @threaded for global_index in eachnode_unique(assembly)
         @inbounds begin
             local_nodes = local_nodes_of(global_index, assembly)
 
@@ -348,17 +371,17 @@ function l2_projection!(u, assembly::AssemblyCGSEM, mesh, equations, dg::DGSEM, 
             if length(local_nodes) > 1
                 # Gather: Jacobian-weighted sum of all copies in their fixed (ascending
                 # element id) order so that the result is deterministic
-                u_sum = zero(SVector{nvariables(equations), eltype(u)})
+                u_sum = zero(SVector{nvariables(equations), eltype(u_nodes)})
                 for local_index in local_nodes
                     u_sum = u_sum +
                             inv(inverse_jacobian[local_index]) *
-                            get_node_vars(u, equations, dg, local_index)
+                            get_node_vars(u_nodes, equations, dg, local_index)
                 end
                 u_projected = inverse_sum_jacobian[global_index] * u_sum
 
                 # Scatter: all copies receive the same value
                 for local_index in local_nodes
-                    set_node_vars!(u, u_projected, equations, dg, local_index)
+                    set_node_vars!(u_nodes, u_projected, equations, dg, local_index)
                 end
             end
         end
