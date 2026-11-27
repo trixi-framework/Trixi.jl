@@ -27,7 +27,6 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: write
   contents: read
 
 jobs:
@@ -38,6 +37,28 @@ jobs:
     # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
     name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    env:
+      # Parts of the Julia depot to cache, excluding lock files. Restoring and saving
+      # must use the same list since it is part of the cache version.
+      JULIA_DEPOT_CACHE_PATHS: |
+        ~/.julia/artifacts
+        ~/.julia/packages
+        ~/.julia/registries
+        ~/.julia/compiled
+        ~/.julia/scratchspaces
+        ~/.julia/logs
+        !~/.julia/artifacts/*.pid
+        !~/.julia/artifacts/*.pidfile
+        !~/.julia/compiled/v*.*/*.pid
+        !~/.julia/compiled/v*.*/*.pidfile
+        !~/.julia/compiled/v*.*/*/*.pid
+        !~/.julia/compiled/v*.*/*/*.pidfile
+        !~/.julia/packages/*/*.pid
+        !~/.julia/packages/*/*.pidfile
+        !~/.julia/registries/*/.pid
+        !~/.julia/registries/*/.pidfile
+        !~/.julia/logs/*.pid
+        !~/.julia/logs/*.pidfile
     strategy:
       fail-fast: false
       matrix:
@@ -78,13 +99,22 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v3
+      # Caches of the Julia depot are saved only from runs on `main` (see the save step
+      # below). Pull requests restore them but do not save their own, since entries saved
+      # from pull requests fill the repository cache storage and get the entries of `main`
+      # evicted. The workflow `CacheCleanup.yml` deletes all but the newest entry per key
+      # prefix.
+      - name: Restore Julia depot cache
+        id: julia-cache
+        uses: actions/cache/restore@v6
         with:
-          # Do not save cache files when the job failed. We have observed several
-          # failing CI jobs likely due to corrupted caches. In this case, we must
-          # not save the corrupted files to the cache, which would lead to the same
-          # issues again in the next run.
-          save-always: 'false'
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: julia-depot;workflow=Downgrade;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ matrix.version }};run_id=${{ github.run_id }};run_attempt=${{ github.run_attempt }}
+          restore-keys: |
+            julia-depot;workflow=Downgrade;os=${{ runner.os }};arch=${{ runner.arch }};julia=${{ matrix.version }};
+      - name: Update cached registries
+        if: steps.julia-cache.outputs.cache-matched-key != ''
+        run: julia --color=yes -e 'import Pkg; Pkg.Registry.update()'
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
@@ -106,3 +136,13 @@ jobs:
           TRIXI_TEST: ${{ matrix.trixi_test }}
           # Print every `@testitem` (with its run time) in the test summary.
           TRIXI_TEST_VERBOSE: "true"
+      # Do not save cache files when the job failed. We have observed several
+      # failing CI jobs likely due to corrupted caches. In this case, we must
+      # not save the corrupted files to the cache, which would lead to the same
+      # issues again in the next run.
+      - name: Save Julia depot cache
+        if: ${{ success() && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.JULIA_DEPOT_CACHE_PATHS }}
+          key: ${{ steps.julia-cache.outputs.cache-primary-key }}
