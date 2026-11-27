@@ -199,9 +199,6 @@ scaled by `norm(normal_direction)`.
 [`FluxUpwind`](@ref) with this splitting is equivalent to
 `FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))`
 (up to floating point differences).
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 struct SplittingGlobalLaxFriedrichs{RealT}
     λ::RealT
@@ -658,9 +655,6 @@ flux vector splitting.
 [`SurfaceIntegralUpwind(splitting)`](@ref SurfaceIntegralUpwind) is a shortcut for
 the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
 as numerical flux.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 struct FluxUpwind{Splitting}
     splitting::Splitting
