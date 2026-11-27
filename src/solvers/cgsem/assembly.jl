@@ -290,9 +290,42 @@ and has already been divided out by the DGSEM kernels). This replaces
 element-local contributions, in particular the source terms, have been added to `du`.
 The copies are summed in a fixed order, so all copies receive bitwise identical values
 and the result does not depend on the number of threads.
+
+See also [`assemble_and_apply_jacobian_parabolic!`](@ref).
 """
 function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
                                       mesh, equations, solver::CGSEM, cache)
+    # The DGSEM kernels compute the residual of `du/dt + div(f) = 0`, cf. `apply_jacobian!`
+    assemble_and_scale!(du, assembly, -1, equations, solver)
+    return nothing
+end
+
+@doc raw"""
+    assemble_and_apply_jacobian_parabolic!(du, assembly::AssemblyCGSEM,
+                                           mesh, equations_parabolic, solver::CGSEM,
+                                           cache)
+
+Gather-scatter step of the parabolic right-hand side of CGSEM. As in
+[`assemble_and_apply_jacobian!`](@ref), the value at every copy of a global node is
+replaced by the sum of all copies divided by the summed Jacobian, but without the sign
+flip,
+```math
+\dot u_n = \frac{\sum_k du_k}{\sum_k J_k},
+```
+since the DGSEM kernels compute the parabolic terms as a right-hand side. This replaces
+`apply_jacobian_parabolic!` of DGSEM.
+"""
+function assemble_and_apply_jacobian_parabolic!(du, assembly::AssemblyCGSEM,
+                                                mesh, equations_parabolic,
+                                                solver::CGSEM, cache)
+    assemble_and_scale!(du, assembly, 1, equations_parabolic, solver)
+    return nothing
+end
+
+# Kernel of the gather-scatter steps above: every copy of a global node is replaced by
+# `jacobian_sign` times the sum of all copies divided by the summed Jacobian
+function assemble_and_scale!(du, assembly::AssemblyCGSEM, jacobian_sign, equations,
+                             solver::CGSEM)
     (; dg) = solver
     (; inverse_sum_jacobian) = assembly
 
@@ -315,7 +348,7 @@ function assemble_and_apply_jacobian!(du, assembly::AssemblyCGSEM,
             for local_index in local_nodes
                 du_sum = du_sum + get_node_vars(du_nodes, equations, dg, local_index)
             end
-            du_assembled = -inverse_sum_jacobian[global_index] * du_sum
+            du_assembled = (jacobian_sign * inverse_sum_jacobian[global_index]) * du_sum
 
             # Scatter: all copies receive the same value
             for local_index in local_nodes
