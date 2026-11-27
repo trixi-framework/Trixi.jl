@@ -39,8 +39,10 @@ function create_cache_analysis(analyzer, mesh::StructuredMesh{1},
                                     StaticInt(nnodes(analyzer)))
     jacobian_local = stride_array_or_array(RealT,
                                            StaticInt(nnodes(analyzer)))
+    jacobian_element = stride_array_or_array(RealT,
+                                             StaticInt(nnodes(dg)))
 
-    return (; u_local, x_local, jacobian_local)
+    return (; u_local, x_local, jacobian_local, jacobian_element)
 end
 
 function calc_error_norms(func, u, t, analyzer,
@@ -86,7 +88,7 @@ function calc_error_norms(func, u, t, analyzer,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
-    @unpack u_local, x_local, jacobian_local = cache_analysis
+    @unpack u_local, x_local, jacobian_local, jacobian_element = cache_analysis
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
@@ -99,8 +101,8 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, element))
         multiply_dimensionwise!(x_local, vandermonde,
                                 view(node_coordinates, :, :, element))
-        multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian, :, element)))
+        jacobian_element .= inv.(view(inverse_jacobian, :, element))
+        multiply_scalar_dimensionwise!(jacobian_local, vandermonde, jacobian_element)
 
         # Calculate errors at each analysis node
         for i in eachnode(analyzer)

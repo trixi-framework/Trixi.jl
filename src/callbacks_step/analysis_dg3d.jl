@@ -91,12 +91,17 @@ function create_cache_analysis(analyzer,
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(dg)))
+    jacobian_element = stride_array_or_array(RealT,
+                                             StaticInt(nnodes(dg)),
+                                             StaticInt(nnodes(dg)),
+                                             StaticInt(nnodes(dg)))
 
     aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer, mesh,
                                                               equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
-            jacobian_tmp1, jacobian_tmp2, aux_local, aux_tmp1, aux_tmp2)
+            jacobian_tmp1, jacobian_tmp2, jacobian_element, aux_local, aux_tmp1,
+            aux_tmp2)
 end
 
 function create_cache_analysis(analyzer,
@@ -146,12 +151,17 @@ function create_cache_analysis(analyzer,
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(analyzer)),
                                           StaticInt(nnodes(dg)))
+    jacobian_element = stride_array_or_array(RealT,
+                                             StaticInt(nnodes(dg)),
+                                             StaticInt(nnodes(dg)),
+                                             StaticInt(nnodes(dg)))
 
     aux_local, aux_tmp1, aux_tmp2 = create_cache_analysis_aux(analyzer, mesh,
                                                               equations, dg, cache)
 
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
-            jacobian_tmp1, jacobian_tmp2, aux_local, aux_tmp1, aux_tmp2)
+            jacobian_tmp1, jacobian_tmp2, jacobian_element, aux_local, aux_tmp1,
+            aux_tmp2)
 end
 
 # Buffers to interpolate the auxiliary variables to the analysis nodes,
@@ -225,7 +235,7 @@ function calc_error_norms(func::Func, u, t, analyzer,
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis) where {Func}
     @unpack vandermonde, weights = analyzer
-    @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+    @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2, jacobian_element = cache_analysis
     @unpack aux_local, aux_tmp1, aux_tmp2 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
     # `nothing` if the equations do not have auxiliary variables
@@ -256,8 +266,8 @@ function calc_error_norms(func::Func, u, t, analyzer,
         multiply_dimensionwise!(x_local, vandermonde,
                                 view(node_coordinates, :, :, :, :, element), x_tmp1,
                                 x_tmp2)
-        multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
-                                       inv.(view(inverse_jacobian, :, :, :, element)),
+        jacobian_element .= inv.(view(inverse_jacobian, :, :, :, element))
+        multiply_scalar_dimensionwise!(jacobian_local, vandermonde, jacobian_element,
                                        jacobian_tmp1, jacobian_tmp2)
         if aux !== nothing
             multiply_dimensionwise!(aux_local, vandermonde,
