@@ -1065,9 +1065,6 @@ See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
   [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
     splitting::FluxSplitting
@@ -1167,9 +1164,6 @@ This is a shortcut for `SurfaceIntegralStrongForm(FluxUpwind(splitting))`,
 see [`SurfaceIntegralStrongForm`](@ref) and [`FluxUpwind`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 const SurfaceIntegralUpwind = SurfaceIntegralStrongForm{<:FluxUpwind}
 

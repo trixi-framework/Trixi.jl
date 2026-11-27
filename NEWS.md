@@ -28,6 +28,9 @@ for human readability.
 - `SurfaceIntegralUpwind(splitting)` now returns the equivalent
   `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
   also supports non-periodic boundary conditions. Results change at round-off level ([#3498]).
+- Upwind SBP methods (`FDSBP` with upwind operators, `VolumeIntegralUpwind`,
+  `SurfaceIntegralUpwind`, `FluxUpwind`, and the flux splittings) are no longer marked as
+  experimental ([#3503]).
 
 #### Deprecated
 
