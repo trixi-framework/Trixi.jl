@@ -1593,6 +1593,14 @@ include("blockfv/containers_2d.jl")
 include("blockfv/blockfv_1d.jl")
 include("blockfv/blockfv_2d.jl")
 
+# Macro-cell finite volume methods (built on the BlockFV data structures)
+include("macrocellfv/schemes/reconstruction.jl")
+include("macrocellfv/schemes/weno/reconstruction_weno5.jl")
+include("macrocellfv/schemes/moment_inversion.jl")
+include("macrocellfv/schemes/weno/moment_inversion_weno.jl")
+include("macrocellfv/macrocellfv.jl")
+include("macrocellfv/macrocellfv_1d.jl")
+
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array

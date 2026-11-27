@@ -901,26 +901,43 @@ end
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
 [Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
 Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
+
+The flux is evaluated from the primitive variables, see [`flux_hllc_primitive`](@ref).
 """
 @inline function flux_hllc(u_ll, u_rr, orientation::Integer,
                            equations::CompressibleEulerEquations1D)
-    # Calculate primitive variables and speed of sound
-    rho_ll, rho_v1_ll, rho_e_total_ll = u_ll
-    rho_rr, rho_v1_rr, rho_e_total_rr = u_rr
+    return flux_hllc_primitive(cons2prim(u_ll, equations), cons2prim(u_rr, equations),
+                               orientation, equations)
+end
 
-    v1_ll = rho_v1_ll / rho_ll
+"""
+    flux_hllc_primitive(prim_ll, prim_rr, orientation,
+                        equations::CompressibleEulerEquations1D)
+
+The HLLC flux [`flux_hllc`](@ref) from the primitive variables `prim = (rho, v1, p)`
+(see [`cons2prim`](@ref)) of the left and right states; it returns the flux of the
+conservative variables. This avoids the conversion to conservative variables for
+solvers that reconstruct the primitive variables at the faces, e.g., [`MacroCellFV`](@ref)
+with `center2recon = cons2prim` and `face2flux = cons2cons`. It can only be used where
+the solver passes primitive variables to the numerical flux.
+"""
+@inline function flux_hllc_primitive(prim_ll, prim_rr, orientation::Integer,
+                                     equations::CompressibleEulerEquations1D)
+    # Conservative variables and speed of sound
+    rho_ll, v1_ll, p_ll = prim_ll
+    rho_rr, v1_rr, p_rr = prim_rr
+    _, rho_v1_ll, rho_e_total_ll = prim2cons(prim_ll, equations)
+    _, rho_v1_rr, rho_e_total_rr = prim2cons(prim_rr, equations)
+
     e_ll = rho_e_total_ll / rho_ll
-    p_ll = (equations.gamma - 1) * (rho_e_total_ll - 0.5f0 * rho_ll * v1_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
 
-    v1_rr = rho_v1_rr / rho_rr
     e_rr = rho_e_total_rr / rho_rr
-    p_rr = (equations.gamma - 1) * (rho_e_total_rr - 0.5f0 * rho_rr * v1_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     # Obtain left and right fluxes
-    f_ll = flux(u_ll, orientation, equations)
-    f_rr = flux(u_rr, orientation, equations)
+    f_ll = SVector(rho_v1_ll, rho_v1_ll * v1_ll + p_ll, (rho_e_total_ll + p_ll) * v1_ll)
+    f_rr = SVector(rho_v1_rr, rho_v1_rr * v1_rr + p_rr, (rho_e_total_rr + p_rr) * v1_rr)
 
     # Compute Roe averages
     sqrt_rho_ll = sqrt(rho_ll)
@@ -967,7 +984,6 @@ Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827
             UStar2 = densStar * SStar
             UStar3 = densStar * enerStar
 
-            #end
             f1 = f_rr[1] + Ssr * (UStar1 - rho_rr)
             f2 = f_rr[2] + Ssr * (UStar2 - rho_v1_rr)
             f3 = f_rr[3] + Ssr * (UStar3 - rho_e_total_rr)

@@ -167,6 +167,9 @@ end
         @test eltype(@inferred flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) ==
               RealT
         @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
+        @test eltype(@inferred flux_hllc_primitive(cons2prim(u_ll, equations),
+                                                   cons2prim(u_rr, equations),
+                                                   orientation, equations)) == RealT
         @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
                                                   equations)) ==
               RealT
