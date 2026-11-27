@@ -407,6 +407,91 @@ function load_mesh(restart_file::AbstractString; RealT = Float64)
     end
 end
 
+# Extract the name of the mapping defined by the `mapping_as_string` code
+# representation of a `StructuredMesh` mapping. Following the documentation of
+# `StructuredMesh`, a mapping defined with the name `mapping` is used if
+# present; otherwise, the mapping defined by the last expression is used
+# (e.g. `mapping_left`/`mapping_right` in coupled setups that combine several
+# structured meshes in one file).
+function mapping_name_from_code(mapping_as_string::AbstractString)
+    # Obtain the individual statements of the stored code
+    exprs = flatten_code_expressions(Meta.parseall(mapping_as_string).args)
+    isempty(exprs) &&
+        error("could not reconstruct mesh mapping from empty `mapping_as_string`")
+
+    names = map(mapping_name_from_expression, exprs)
+
+    # Prefer the documented name `mapping` if the code defines it
+    if !isnothing(findfirst(==(:mapping), names))
+        return :mapping
+    end
+
+    # Otherwise, the mapping is defined by the last expression
+    if isnothing(names[end])
+        error("could not reconstruct mesh mapping from `$mapping_as_string`: the last " *
+              "expression must be a function definition or an assignment")
+    end
+    return names[end]
+end
+
+# Extract the name of the function or variable defined by a single expression
+# of the code representation of a `StructuredMesh` mapping, or `nothing` if the
+# expression defines neither. Supported are function definitions with arbitrary
+# names (in long or short form, possibly with `where` clauses, return-type
+# annotations, or macro prefixes such as `@inline`) as well as assignments to
+# variables (used for `transfinite_mapping` and `coordinates2mapping`).
+function mapping_name_from_expression(expr)
+    # Unwrap macro prefixes, e.g. `@inline` in
+    # `@inline function mapping(xi, eta) ... end` (the macro name and line
+    # number information precede the wrapped expression)
+    while expr isa Expr && expr.head === :macrocall
+        expr = last(filter(arg -> !(arg isa LineNumberNode), expr.args))
+    end
+
+    # Assignments define the mapping in a variable,
+    # e.g. `mapping = transfinite_mapping(faces)`
+    if expr isa Expr && expr.head === :(=) && expr.args[1] isa Symbol
+        return expr.args[1]
+    end
+
+    # Unwrap the function definitions to their signature, in long form
+    # (`function name(args...) ... end`) and short form (`name(args...) = ...`)
+    if !(expr isa Expr && expr.head in (:function, :(=)))
+        return nothing
+    end
+    expr = expr.args[1]
+
+    # Unwrap `where` clauses and return-type annotations, e.g. `where {T}` in
+    # `function mapping(xi::T, eta::T) where {T} ... end`
+    while expr isa Expr && expr.head in (:where, :(::))
+        expr = expr.args[1]
+    end
+
+    # The first argument of the call expression is the function name
+    if expr isa Expr && expr.head === :call && expr.args[1] isa Symbol
+        return expr.args[1]
+    end
+
+    return nothing
+end
+
+# Flatten all expressions in `exprs` into a single vector of individual
+# statements, recursively removing line number nodes as well as `:block` and
+# `:toplevel` container expressions (e.g. from semicolon-separated statements).
+function flatten_code_expressions(exprs)
+    flattened = []
+    for expr in exprs
+        if expr isa LineNumberNode
+            continue
+        elseif expr isa Expr && expr.head in (:block, :toplevel)
+            append!(flattened, flatten_code_expressions(expr.args))
+        else
+            push!(flattened, expr)
+        end
+    end
+    return flattened
+end
+
 function load_mesh_serial(mesh_file::AbstractString; RealT)
     ndims, mesh_type = h5open(mesh_file, "r") do file
         return read(attributes(file)["ndims"]),
@@ -420,9 +505,17 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         mesh = TreeMesh(SerialTree{ndims, RealT}, n_cells, RealT = RealT)
         load_mesh!(mesh, mesh_file)
     elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
+        # Files created from a `StructuredMeshView` do not store `periodicity`
+        # (a view is not periodic in itself and its parent mesh is not part of
+        # the file), so the mesh is reconstructed as a non-periodic
+        # `StructuredMesh` over the extent of the view in that case
         size_, periodicity, mapping_as_string = h5open(mesh_file, "r") do file
-            return read(attributes(file)["size"]),
-                   read(attributes(file)["periodicity"]),
+            periodicity = if haskey(attributes(file), "periodicity")
+                read(attributes(file)["periodicity"])
+            else
+                falses(read(attributes(file)["ndims"]))
+            end
+            return read(attributes(file)["size"]), periodicity,
                    read(attributes(file)["mapping"])
         end
 
@@ -432,22 +525,29 @@ function load_mesh_serial(mesh_file::AbstractString; RealT)
         #
         # This should be replaced with something more robust and secure,
         # see https://github.com/trixi-framework/Trixi.jl/issues/541).
+        # The code in `mapping_as_string` defines the mapping in its last
+        # expression, either as a function with an arbitrary name (as
+        # obtained from `mapping2string`) or as an assignment to a variable
+        # (as used for `transfinite_mapping` or `coordinates2mapping`).
+        # Thus, the name of the mapping is obtained from the last expression
+        # instead of being hardcoded as `mapping`.
+        mapping_name = mapping_name_from_code(mapping_as_string)
         if ndims == 1
             mapping = eval(Meta.parse("""function (xi)
                 $mapping_as_string
-                mapping(xi)
+                $mapping_name(xi)
             end
             """))
         elseif ndims == 2
             mapping = eval(Meta.parse("""function (xi, eta)
                 $mapping_as_string
-                mapping(xi, eta)
+                $mapping_name(xi, eta)
             end
             """))
         else # ndims == 3
             mapping = eval(Meta.parse("""function (xi, eta, zeta)
                 $mapping_as_string
-                mapping(xi, eta, zeta)
+                $mapping_name(xi, eta, zeta)
             end
             """))
         end

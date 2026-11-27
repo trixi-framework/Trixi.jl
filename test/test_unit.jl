@@ -5598,6 +5598,170 @@ end
     @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
+@testitem "Unit: load_mesh_serial reconstructs StructuredMesh mapping" setup=[
+    Setup, UnitTests] tags=[:misc_part1] begin
+    mktempdir() do dir
+        # Mapping stored as a function definition with an arbitrary name, as
+        # obtained from `mapping2string` for named mapping functions (e.g.
+        # `mapping_left` in `elixir_lbm_eulerpolytropic_coupled.jl`). Here,
+        # `mapping_as_string` is passed explicitly since `CodeTracking` cannot
+        # resolve function definitions in local scopes.
+        mapping_as_string = """
+        function mapping_left(xi, eta)
+            return SVector(2 * xi - 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test size(loaded) == size(mesh)
+        @test loaded.periodicity == mesh.periodicity
+        # Call through `invokelatest` since the reconstructed mapping was just eval'ed
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a function named `mapping` (the classic standard case)
+        mapping_as_string = """
+        function mapping(xi, eta)
+            return SVector(2 * xi + 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi + 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, -0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a code string assigning the mapping to a variable,
+        # as created for `transfinite_mapping` or `coordinates2mapping`
+        mesh = StructuredMesh((2, 2), (-2.0, -1.0), (0.0, 1.0),
+                              periodicity = (false, true))
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.0, 0.0) ≈ SVector(-1.0, 0.0)
+        @test Base.invokelatest(loaded.mapping, -1.0, -1.0) ≈ SVector(-2.0, -1.0)
+
+        # Mapping stored as a short-form function definition with an arbitrary name
+        mapping_as_string = "mapping_right(xi, eta) = SVector(2 * xi + 3, eta)"
+        mapping = (xi, eta) -> SVector(2 * xi + 3, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, -1.0, 0.25) ≈ SVector(1.0, 0.25)
+
+        # Mapping stored as a long-form function definition with a `where`
+        # clause, as obtained from `mapping2string` for parameterized mappings
+        mapping_as_string = """
+        function mapping(xi::T, eta::T) where {T}
+            return SVector(2 * xi - 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a short-form function definition with a `where` clause
+        mapping_as_string = "mapping2(xi::T, eta::T) where {T} = SVector(2 * xi - 1, eta)"
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # Mapping stored as a macro-prefixed function definition
+        mapping_as_string = """
+        @inline function mapping(xi, eta)
+            return SVector(2 * xi - 1, eta)
+        end
+        """
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.25)
+
+        # A mapping named `mapping` defined anywhere in the code takes
+        # precedence over the mapping defined by the last expression,
+        # see the `StructuredMesh` docs
+        mapping_as_string = """
+        function mapping(xi, eta)
+            return SVector(0.0, 0.0)
+        end
+        mapping_right(xi, eta) = SVector(2 * xi - 1, eta)
+        """
+        mapping = (xi, eta) -> SVector(2 * xi - 1, eta)
+        mesh = StructuredMesh((2, 2), mapping; periodicity = (false, true),
+                              mapping_as_string = mapping_as_string)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test Base.invokelatest(loaded.mapping, 0.5, 0.25) ≈ SVector(0.0, 0.0)
+
+        # Mesh file created from a `StructuredMeshView`, which does not store
+
+        # `periodicity` (a view is not periodic in itself and its parent mesh
+        # is not part of the file); the view is reconstructed as a plain
+        # `StructuredMesh` over the extent of the view
+        parent = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+        view = StructuredMeshView(parent; indices_min = (1, 1), indices_max = (2, 4))
+        mesh_file = Trixi.save_mesh_file(view, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test typeof(loaded) <: StructuredMesh
+        @test size(loaded) == (2, 4)
+        @test !any(loaded.periodicity)
+        @test Base.invokelatest(loaded.mapping, 0.0, 0.0) ≈ SVector(-0.5, 0.0)
+    end
+
+    # Name extraction from semicolon-separated and nested statements
+    @test Trixi.mapping_name_from_code("a = 1; begin b = 2; my_map = a + b end") ===
+          :my_map
+
+    # A mapping named `mapping` defined anywhere takes precedence over the
+    # mapping defined by the last expression, see the `StructuredMesh` docs
+    @test Trixi.mapping_name_from_code("mapping(xi, eta) = SVector(xi, eta)\nmapping_left(xi, eta) = SVector(xi, eta)") ===
+          :mapping
+
+    # Name extraction from `where` clauses, return-type annotations, and macros
+    @test Trixi.mapping_name_from_code("""
+    function mapping(xi::T, eta::T) where {T}
+        return SVector(xi, eta)
+    end
+    """) === :mapping
+    @test Trixi.mapping_name_from_code("mapping2(xi::T) where {T} = SVector(xi)") ===
+          :mapping2
+    @test Trixi.mapping_name_from_code("""
+    @inline function mapping(xi, eta)
+        return SVector(xi, eta)
+    end
+    """) === :mapping
+    @test Trixi.mapping_name_from_code("""
+    function mapping(xi)::SVector
+        return SVector(xi)
+    end
+    """) === :mapping
+
+    # Invalid code strings cannot be turned into a mapping
+    @test_throws ErrorException Trixi.mapping_name_from_code("")
+    @test_throws ErrorException Trixi.mapping_name_from_code("# only a comment")
+    @test_throws ErrorException Trixi.mapping_name_from_code("1 + 1")
+end
+
 @testitem "Unit: calc_depressed_cubic_roots three-root branch" setup=[Setup, UnitTests] tags=[
     :misc_part1
 ] begin
