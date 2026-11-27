@@ -107,6 +107,27 @@ end
                         linf=[0.0007508059772436404])
 end
 
+@testitem "TreeMesh MPI 2D: elixir_advection_restart_polydeg_lower.jl" setup=[
+    Setup,
+    MPITreeMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_restart_polydeg_lower.jl"),
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[0.0003671115638525743], linf=[0.0015632676316696958])
+end
+
+@testitem "TreeMesh MPI 2D: elixir_advection_restart_polydeg_lower.jl (L2 projection)" setup=[
+    Setup,
+    MPITreeMesh2D
+] tags=[:mpi] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_restart_polydeg_lower.jl"),
+                        interpolate_high2low=false,
+                        # Expected errors are exactly the same as in the serial test!
+                        l2=[0.0003660033592652404], linf=[0.0015697226075255255])
+end
+
 @testitem "TreeMesh MPI 2D: elixir_advection_restart_amr.jl" setup=[Setup, MPITreeMesh2D] tags=[:mpi] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_restart_amr.jl"),

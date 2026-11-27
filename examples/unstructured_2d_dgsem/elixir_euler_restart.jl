@@ -22,10 +22,29 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 tspan = (load_time(restart_filename), 1.0)
 dt = load_dt(restart_filename)
-ode = semidiscretize(semi, tspan, restart_filename)
+
+# On curvilinear meshes, the conversion of the solution to a different polynomial degree
+# does in general not conserve the discrete mass of each element exactly.
+# Use `correct_mass = true` to restore exact conservation.
+# This may come at the cost of losing free-stream preservation
+# if the discrete volume of an element depends on the polynomial degree,
+# see the docstring of `semidiscretize`.
+ode = semidiscretize(semi, tspan, restart_filename,
+                     interpolate_high2low = false, correct_mass = false)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 @reset save_solution.condition.save_initial_solution = false
+
+# Re-initialize the `AnalysisCallback` for the new semidiscretization, which may differ
+# from the one used to create the restart file (e.g., a different polynomial degree)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback,
+                        save_restart,
+                        save_solution,
+                        stepsize_callback)
 
 integrator = init(ode,
                   CarpenterKennedy2N54(williamson_condition = false,
