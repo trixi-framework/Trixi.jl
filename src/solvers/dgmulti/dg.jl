@@ -165,6 +165,16 @@ end
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
+# Resolve ambiguities with the general fallbacks for `AbstractMesh` and `DG` in
+# `src/solvers/dg.jl`, since `DGMultiMesh <: AbstractMesh` and `DGMulti <: DG`
+function wrap_array(u_ode::AbstractVector, mesh::DGMultiMesh, equations, dg::DGMulti,
+                    cache)
+    return u_ode
+end
+function wrap_array_native(u_ode::AbstractVector, mesh::DGMultiMesh, equations,
+                           dg::DGMulti, cache)
+    return u_ode
+end
 
 # used to initialize `u_ode` in `semidiscretize`
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
