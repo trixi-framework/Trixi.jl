@@ -882,6 +882,83 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "AMDGPU 3D: elixir_advectionconservative_diffusion_nonperiodic.jl Float64 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as on CPU
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046],
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float64
+    @test ode.u0 isa ROCArray
+    @test semi.cache.aux_vars.aux isa ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: elixir_advectionconservative_diffusion_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.1),
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.0041950763210371915)],
+                        linf=[Float32(0.057507386584005046)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test real(semi.solver) == Float32
+    @test ode.u0 isa ROCArray{Float32}
+    @test semi.cache.aux_vars.aux isa ROCArray{Float32}
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: auxiliary variables in the parabolic terms Float64 / AMDGPU" setup=[
+    Setup,
+    ParabolicAuxDiffusion3D
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    semi = trixi_adapt(semidiscretization_parabolic_aux_3d(mesh); storage_type = ROCArray)
+    u_ode = compute_coefficients(0.0, semi)
+    @test u_ode isa ROCArray
+    du_ode = similar(u_ode)
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+    du = GC.@preserve du_ode Array(Trixi.wrap_array(du_ode, semi))
+    x = Array(semi.cache.elements.node_coordinates)
+    @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
+end
+
 @testitem "AMDGPU 3D: elixir_advectionconservative_shear_flow.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
     Setup,
     AMDGPU3DExamples

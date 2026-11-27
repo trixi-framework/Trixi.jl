@@ -1080,16 +1080,22 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     return nothing
 end
 
+# The type parameter `BC` forces Julia to specialize on `boundary_condition_parabolic`.
+# Otherwise, Julia v1.10 and v1.11 cannot infer the call of `boundary_condition_parabolic`
+# with the splatted auxiliary variables below, which allocates (see JuliaLang/julia#58070).
 function calc_boundary_flux!(cache, t,
-                             boundary_condition_parabolic, # works with Dict types
+                             boundary_condition_parabolic::BC, # works with Dict types
                              boundary_condition_indices,
                              operator_type, mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG)
+                             surface_integral, dg::DG) where {BC}
     (; boundaries) = cache
     (; node_coordinates, surface_flux_values) = cache.elements
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
+
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -1097,6 +1103,7 @@ function calc_boundary_flux!(cache, t,
         check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh,
                                        equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for local_index in eachindex(boundary_condition_indices)
@@ -1143,7 +1150,13 @@ function calc_boundary_flux!(cache, t,
                     x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                         i_node, j_node, k_node, element)
 
+                    # Auxiliary variables inside the domain. There are no separate
+                    # auxiliary variables on the outside of the boundary.
+                    aux_inner = get_aux_node_vars(aux, equations_parabolic, dg,
+                                                  i_node, j_node, k_node, element)
+
                     flux_ = boundary_condition_parabolic(flux_inner, u_inner,
+                                                         aux_inner...,
                                                          normal_direction,
                                                          x, t, operator_type,
                                                          equations_parabolic)

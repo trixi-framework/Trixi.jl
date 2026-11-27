@@ -155,25 +155,29 @@ function transform_variables!(backend::Backend, u_transformed, u,
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(u, mesh, equations_parabolic, dg, cache)
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
     kernel! = transform_variables_KAkernel!(backend)
-    kernel!(u_transformed, u, typeof(mesh), equations_parabolic, dg,
+    kernel!(u_transformed, u, aux, typeof(mesh), equations_parabolic, dg,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
 end
 
-@kernel inbounds=true function transform_variables_KAkernel!(u_transformed, u,
+@kernel inbounds=true function transform_variables_KAkernel!(u_transformed, u, aux,
                                                              MeshT::Type{<:P4estMesh{2}},
                                                              equations_parabolic,
                                                              dg)
     i, j, element = @index(Global, NTuple)
     transformation = gradient_variable_transformation(equations_parabolic)
     u_node = get_node_vars(u, equations_parabolic, dg, i, j, element)
-    u_transformed_node = transformation(u_node, equations_parabolic)
+    aux_node = get_aux_node_vars(aux, equations_parabolic, dg, i, j, element)
+    u_transformed_node = transformation(u_node, aux_node..., equations_parabolic)
     set_node_vars!(u_transformed, u_transformed_node, equations_parabolic, dg,
                    i, j, element)
 end
@@ -251,6 +255,8 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
                                 equations_parabolic::AbstractEquationsParabolic,
                                 dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
@@ -260,9 +266,10 @@ function calc_parabolic_fluxes!(backend::Backend, flux_parabolic, gradients,
         for flux_parabolic_i in flux_parabolic
             check_axes(flux_parabolic_i, mesh, equations_parabolic, dg, cache)
         end
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
     kernel! = calc_parabolic_fluxes_KAkernel!(backend)
-    kernel!(flux_parabolic, gradients, u_transformed, typeof(mesh),
+    kernel!(flux_parabolic, gradients, u_transformed, aux, typeof(mesh),
             equations_parabolic, dg,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
     return nothing
@@ -271,6 +278,7 @@ end
 @kernel inbounds=true function calc_parabolic_fluxes_KAkernel!(flux_parabolic,
                                                                gradients,
                                                                u_transformed,
+                                                               aux,
                                                                MeshT::Type{<:P4estMesh{2}},
                                                                equations_parabolic,
                                                                dg)
@@ -279,14 +287,17 @@ end
     gradients_x, gradients_y = gradients
 
     u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, element)
+    aux_node = get_aux_node_vars(aux, equations_parabolic, dg, i, j, element)
     gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
                                      i, j, element)
     gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
                                      i, j, element)
 
-    flux_parabolic_node_x = flux(u_node, (gradients_1_node, gradients_2_node),
+    flux_parabolic_node_x = flux(u_node, aux_node...,
+                                 (gradients_1_node, gradients_2_node),
                                  1, equations_parabolic)
-    flux_parabolic_node_y = flux(u_node, (gradients_1_node, gradients_2_node),
+    flux_parabolic_node_y = flux(u_node, aux_node...,
+                                 (gradients_1_node, gradients_2_node),
                                  2, equations_parabolic)
     set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
                    dg, i, j, element)
@@ -654,16 +665,19 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t, u_or_flux,
     if n_boundaries > 0
         @unpack neighbor_ids, node_indices = cache.boundaries
         @unpack node_coordinates, contravariant_vectors, surface_flux_values = cache.elements
+        # `nothing` if the equations do not have auxiliary variables
+        aux = get_aux_vars(cache)
         # Explicit bounds check, which allows us to assume inbounds access in the kernel
         @boundscheck begin
             check_axes(cache.boundaries, equations_parabolic, dg, cache)
             check_axes(cache.elements, equations_parabolic, dg, cache)
             check_axes_surface_flux_values(surface_flux_values, mesh,
                                            equations_parabolic, dg, cache)
+            check_axes_aux(aux, equations_parabolic, dg, cache)
         end
         index_range = eachnode(dg)
         kernel! = calc_boundary_flux_KAkernel!(backend)
-        kernel!(surface_flux_values, u_or_flux, boundary_condition_indices,
+        kernel!(surface_flux_values, u_or_flux, aux, boundary_condition_indices,
                 neighbor_ids, node_indices, t, boundary_condition, operator_type,
                 index_range, typeof(mesh), equations_parabolic, dg,
                 node_coordinates, contravariant_vectors,
@@ -679,6 +693,7 @@ end
 
 @kernel inbounds=true function calc_boundary_flux_KAkernel!(surface_flux_values,
                                                             u_or_flux,
+                                                            aux,
                                                             boundary_condition_indices,
                                                             neighbor_ids,
                                                             node_indices_arr,
@@ -695,7 +710,7 @@ end
     # Use the local index to get the global boundary index from the pre-sorted list
     boundary = boundary_condition_indices[local_index]
 
-    calc_boundary_flux_per_node!(surface_flux_values, u_or_flux, t,
+    calc_boundary_flux_per_node!(surface_flux_values, u_or_flux, aux, t,
                                  boundary_condition, operator_type, MeshT,
                                  equations_parabolic, dg, boundary, neighbor_ids,
                                  node_indices_arr, index_range, node_coordinates,
@@ -703,7 +718,7 @@ end
 end
 
 Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_values,
-                                                               u_or_flux, t,
+                                                               u_or_flux, aux, t,
                                                                boundary_condition,
                                                                operator_type,
                                                                MeshT::Type{<:P4estMesh{2}},
@@ -745,7 +760,12 @@ Base.@propagate_inbounds function calc_boundary_flux_per_node!(surface_flux_valu
     x = get_node_coords(node_coordinates, equations_parabolic, dg,
                         i_node, j_node, element)
 
-    flux_ = boundary_condition(flux_inner, u_inner, normal_direction, x, t,
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(aux, equations_parabolic, dg, i_node, j_node, element)
+
+    flux_ = boundary_condition(flux_inner, u_inner, aux_inner...,
+                               normal_direction, x, t,
                                operator_type, equations_parabolic)
 
     # Copy flux to element storage in the correct orientation
@@ -896,6 +916,8 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
     nelements(dg, cache) == 0 && return nothing
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
     # Explicit bounds check, which allows us to assume inbounds access in the kernel
     @boundscheck begin
         check_axes(du, mesh, equations_parabolic, dg, cache)
@@ -906,10 +928,11 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
         check_axes(cache.elements, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh,
                                        equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
     NNODES = nnodes(dg)
     kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
-    kernel!(du, u, gradients, t, source_terms_parabolic, node_coordinates,
+    kernel!(du, u, aux, gradients, t, source_terms_parabolic, node_coordinates,
             typeof(mesh), equations_parabolic, inverse_weights[1], Val(NNODES),
             surface_flux_values, dg, inverse_jacobian,
             ndrange = (element_node_ndrange(mesh, dg)..., nelements(dg, cache)))
@@ -921,6 +944,7 @@ end
 # specialization on the source terms, see the comment in `src/solvers/dg_gpu.jl`.
 @kernel inbounds=true function calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(du,
                                                                                                    u,
+                                                                                                   aux,
                                                                                                    gradients::Tuple,
                                                                                                    t,
                                                                                                    source_terms_parabolic::Source,
@@ -959,7 +983,7 @@ end
                                                                                   element]),
                                                     _zero)),
                                   Val(nvariables(equations_parabolic))))
-    source_node = calc_source_terms_node(u, gradients, t,
+    source_node = calc_source_terms_node(u, aux, gradients, t,
                                          source_terms_parabolic,
                                          node_coordinates,
                                          equations_parabolic, dg,
@@ -973,7 +997,9 @@ end
     set_node_vars!(du, du_node, equations_parabolic, dg, i, j, element)
 end
 
-Base.@propagate_inbounds function calc_source_terms_node(u,
+# `aux` is the array of auxiliary variables or `nothing` for equations without auxiliary
+# variables, see `get_aux_vars`
+Base.@propagate_inbounds function calc_source_terms_node(u, aux,
                                                          gradients::NTuple{2,
                                                                            Any},
                                                          t,
@@ -983,17 +1009,19 @@ Base.@propagate_inbounds function calc_source_terms_node(u,
                                                          dg::DG, indices...)
     gradients_x, gradients_y = gradients
     u_local = get_node_vars(u, equations_parabolic, dg, indices...)
+    aux_local = get_aux_node_vars(aux, equations_parabolic, dg, indices...)
     gradients_x_local = get_node_vars(gradients_x, equations_parabolic, dg,
                                       indices...)
     gradients_y_local = get_node_vars(gradients_y, equations_parabolic, dg,
                                       indices...)
     x_local = get_node_coords(node_coordinates, equations_parabolic, dg, indices...)
 
-    return source_terms_parabolic(u_local, (gradients_x_local, gradients_y_local),
+    return source_terms_parabolic(u_local, aux_local...,
+                                  (gradients_x_local, gradients_y_local),
                                   x_local, t, equations_parabolic)
 end
 
-@inline function calc_source_terms_node(u, gradients::NTuple{2, Any}, t,
+@inline function calc_source_terms_node(u, aux, gradients::NTuple{2, Any}, t,
                                         source_terms_parabolic::Nothing,
                                         node_coordinates,
                                         equations_parabolic,

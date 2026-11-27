@@ -341,6 +341,17 @@ end
     return inner_flux_or_state
 end
 
+# Version for equations with auxiliary variables called by parabolic solvers passing a
+# normal direction
+@inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner, aux_inner,
+                                                normal_direction::AbstractVector,
+                                                x, t,
+                                                operator_type::Union{Gradient,
+                                                                     Divergence},
+                                                equations)
+    return inner_flux_or_state
+end
+
 # This version can be called by parabolic solvers passing an orientation and a direction
 @inline function (::BoundaryConditionDoNothing)(inner_flux_or_state, u_inner,
                                                 orientation_or_normal_direction,
@@ -503,17 +514,31 @@ and the [`SaveSolutionCallback`](@ref) requires `cons2prim` with this signature.
 
 The number of auxiliary variables is a fixed property of the equations: equations with
 `nauxvariables(equations) > 0` always use auxiliary variables, and their values have to
-be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref).
+be given by the `aux_field` function passed to [`SemidiscretizationHyperbolic`](@ref)
+or [`SemidiscretizationHyperbolicParabolic`](@ref).
 For equations without auxiliary variables, no `aux_field` must be passed.
 
-Currently, auxiliary variables are only supported for
-[`SemidiscretizationHyperbolic`](@ref) with [`DGSEM`](@ref) on a [`P4estMesh`](@ref) in 2D
-(serial) and 3D (also with MPI), without AMR. On GPUs, only conforming meshes are
-supported in 3D, and nonconservative terms are only supported with fluxes combining
-the conservative and nonconservative parts, see
+In a [`SemidiscretizationHyperbolicParabolic`](@ref), the parabolic equations receive
+the same auxiliary variables as the hyperbolic equations right after the solution `u`,
+so they must have the same number of auxiliary variables, e.g.,
+```julia
+nauxvariables(::MyParabolicEquations) = 2
+
+flux(u, aux, gradients, orientation, equations_parabolic::MyParabolicEquations) = ...
+```
+
+Currently, auxiliary variables are only supported with [`DGSEM`](@ref) on a
+[`P4estMesh`](@ref) without AMR: for [`SemidiscretizationHyperbolic`](@ref) in 2D
+(serial) and 3D (also with MPI), and for [`SemidiscretizationHyperbolicParabolic`](@ref)
+in 3D (also with MPI).
+On GPUs, only conforming meshes are supported in 3D, and nonconservative terms are only
+supported with fluxes combining the conservative and nonconservative parts, see
 [`Trixi.combine_conservative_and_nonconservative_fluxes`](@ref).
 The boundary conditions [`BoundaryConditionDirichlet`](@ref) and
-[`boundary_condition_do_nothing`](@ref) support auxiliary variables.
+[`boundary_condition_do_nothing`](@ref) support auxiliary variables, the latter also in
+the parabolic terms. In the parabolic terms of [`LaplaceDiffusion3D`](@ref),
+[`BoundaryConditionDirichlet`](@ref) and [`BoundaryConditionNeumann`](@ref) support
+them as well.
 The progress is tracked in https://github.com/trixi-framework/Trixi.jl/issues/3392.
 """
 @inline nauxvariables(::AbstractEquations) = 0

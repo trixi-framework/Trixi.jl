@@ -28,10 +28,14 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMe
                               dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, mesh, equations_parabolic, dg, cache)
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -39,7 +43,10 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMe
             # Calculate volume terms in one element
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_node = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
-                u_transformed_node = transformation(u_node, equations_parabolic)
+                aux_node = get_aux_node_vars(aux, equations_parabolic, dg,
+                                             i, j, k, element)
+                u_transformed_node = transformation(u_node, aux_node...,
+                                                    equations_parabolic)
                 set_node_vars!(u_transformed, u_transformed_node,
                                equations_parabolic, dg,
                                i, j, k, element)
@@ -343,6 +350,9 @@ function calc_parabolic_fluxes!(flux_parabolic,
     gradients_x, gradients_y, gradients_z = gradients
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic # output arrays
 
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
@@ -352,6 +362,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
         check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
         check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
         check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -360,6 +371,8 @@ function calc_parabolic_fluxes!(flux_parabolic,
                 # Get solution and gradients
                 u_node = get_node_vars(u_transformed, equations_parabolic, dg,
                                        i, j, k, element)
+                aux_node = get_aux_node_vars(aux, equations_parabolic, dg,
+                                             i, j, k, element)
                 gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
                                                  i, j, k, element)
                 gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
@@ -368,13 +381,13 @@ function calc_parabolic_fluxes!(flux_parabolic,
                                                  i, j, k, element)
 
                 # Calculate parabolic flux and store each component for later use
-                flux_parabolic_node_x = flux(u_node,
+                flux_parabolic_node_x = flux(u_node, aux_node...,
                                              (gradients_1_node, gradients_2_node,
                                               gradients_3_node), 1, equations_parabolic)
-                flux_parabolic_node_y = flux(u_node,
+                flux_parabolic_node_y = flux(u_node, aux_node...,
                                              (gradients_1_node, gradients_2_node,
                                               gradients_3_node), 2, equations_parabolic)
-                flux_parabolic_node_z = flux(u_node,
+                flux_parabolic_node_z = flux(u_node, aux_node...,
                                              (gradients_1_node, gradients_2_node,
                                               gradients_3_node), 3, equations_parabolic)
                 set_node_vars!(flux_parabolic_x, flux_parabolic_node_x,
@@ -1267,11 +1280,17 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::No
     return nothing
 end
 
-function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+# The type parameter `Source` forces Julia to specialize on `source_terms_parabolic`.
+# Otherwise, Julia v1.10 and v1.11 cannot infer the call of `source_terms_parabolic` with
+# the splatted auxiliary variables below, which allocates (see JuliaLang/julia#58070).
+function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic::Source,
                                  equations_parabolic::AbstractEquations{3}, dg::DG,
-                                 cache)
+                                 cache) where {Source}
     @unpack node_coordinates = cache.elements
     gradients_x, gradients_y, gradients_z = gradients
+
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -1281,12 +1300,15 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
         check_axes(gradients_y, Val(3), equations_parabolic, dg, cache)
         check_axes(gradients_z, Val(3), equations_parabolic, dg, cache)
         check_axes(cache.elements, equations_parabolic, dg, cache)
+        check_axes_aux(aux, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_local = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
+                aux_local = get_aux_node_vars(aux, equations_parabolic, dg,
+                                              i, j, k, element)
                 gradients_x_local = get_node_vars(gradients_x, equations_parabolic, dg,
                                                   i, j, k, element)
                 gradients_y_local = get_node_vars(gradients_y, equations_parabolic, dg,
@@ -1297,8 +1319,9 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                    gradients_z_local)
                 x_local = get_node_coords(node_coordinates, equations_parabolic, dg,
                                           i, j, k, element)
-                du_local = source_terms_parabolic(u_local, gradients_local, x_local, t,
-                                                  equations_parabolic)
+                du_local = source_terms_parabolic(u_local, aux_local...,
+                                                  gradients_local,
+                                                  x_local, t, equations_parabolic)
                 add_to_node_vars!(du, du_local, equations_parabolic, dg,
                                   i, j, k, element)
             end

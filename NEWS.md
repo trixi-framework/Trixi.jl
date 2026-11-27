@@ -21,6 +21,13 @@ for human readability.
 - The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
   available for all equations and complements the dissipation
   `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
+- `SemidiscretizationHyperbolicParabolic` supports auxiliary variables via the keyword
+  argument `aux_field` for `P4estMesh{3}`es, also with MPI or on GPUs. They are
+  passed to both the hyperbolic and the parabolic terms, i.e., to the gradient variable
+  transformation, the parabolic fluxes, the parabolic boundary conditions, the
+  parabolic source terms, and `max_diffusivity`, right after the solution `u`, e.g.,
+  `flux(u, aux, gradients, orientation, equations_parabolic)`. `LaplaceDiffusion3D`
+  supports equations with auxiliary variables ([#3477]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and

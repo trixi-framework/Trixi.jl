@@ -483,6 +483,171 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: P4estMesh3D: parabolic boundary conditions as functions" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                           "elixir_advection_diffusion_nonperiodic.jl"),
+                  tspan = (0.0, 0.1))
+
+    # Same as `BoundaryConditionDirichlet(initial_condition)` but as a plain function,
+    # which `calc_boundary_flux!` must specialize on (see the type parameter `BC`)
+    function boundary_condition_function(flux_inner, u_inner,
+                                         normal_direction::AbstractVector, x, t,
+                                         operator_type::Trixi.Gradient,
+                                         equations_parabolic)
+        return initial_condition_eriksson_johnson(x, t, equations_parabolic)
+    end
+    function boundary_condition_function(flux_inner, u_inner,
+                                         normal_direction::AbstractVector, x, t,
+                                         operator_type::Trixi.Divergence,
+                                         equations_parabolic)
+        return flux_inner
+    end
+    semi_function = Trixi.remake(semi;
+                                 boundary_conditions_parabolic = boundary_condition_function)
+
+    u_ode = sol.u[end]
+    du_ode = similar(u_ode)
+    du_ode_function = similar(u_ode)
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, sol.t[end])
+    Trixi.rhs_parabolic!(du_ode_function, u_ode, semi_function, sol.t[end])
+    @test du_ode_function == du_ode
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_parabolic!, semi_function, sol, 1000)
+end
+
+@testitem "Parabolic3D: P4estMesh3D: elixir_advectionconservative_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    # The advection velocity is constant, so the errors are the same as for
+    # `elixir_advection_diffusion_nonperiodic.jl`
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+# Diffusion with the coefficient `aux[1]`, which receives the auxiliary variables
+# `(a1, a2, a3)` of `ConservativeLinearScalarAdvectionEquation3D`.
+# With `aux = (1 + x, y, 0)` and `u = x^2`, the exact parabolic right-hand side
+# `div(aux[1] * grad(u)) = 2 + 4x` is a polynomial that DGSEM with `polydeg = 3`
+# reproduces exactly on a Cartesian mesh. The boundary condition and the source term
+# only give the exact values if they receive the auxiliary variables of the node.
+@testsnippet ParabolicAuxDiffusion3D begin
+    using Trixi: AbstractEquationsParabolic, GradientVariablesConservative, Gradient,
+                 Divergence
+
+    struct AuxDiffusion3D{E} <: AbstractEquationsParabolic{3, 1,
+                                      GradientVariablesConservative}
+        equations_hyperbolic::E
+    end
+
+    Trixi.nauxvariables(::AuxDiffusion3D) = 3
+
+    # The equations do not store any data depending on the real type
+    Base.similar(equations::AuxDiffusion3D, ::Type) = equations
+
+    function Trixi.flux(u, aux, gradients, orientation::Integer, ::AuxDiffusion3D)
+        return aux[1] * gradients[orientation]
+    end
+
+    # The parabolic time step uses the diffusivity `aux[1]` of each node
+    Trixi.have_constant_diffusivity(::AuxDiffusion3D) = Trixi.False()
+    Trixi.max_diffusivity(u, aux, ::AuxDiffusion3D) = aux[1]
+
+    aux_field(x, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(1 + x[1], x[2],
+                                                                          zero(x[1]))
+    initial_condition(x, t, ::ConservativeLinearScalarAdvectionEquation3D) = SVector(x[1]^2)
+
+    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
+                                    normal_direction::AbstractVector, x, t,
+                                    ::Gradient, ::AuxDiffusion3D)
+        return SVector((aux_inner[1] - 1)^2)
+    end
+    function boundary_condition_aux(flux_inner, u_inner, aux_inner,
+                                    normal_direction::AbstractVector, x, t,
+                                    ::Divergence, ::AuxDiffusion3D)
+        return flux_inner
+    end
+
+    source_terms_aux(u, aux, gradients, x, t, ::AuxDiffusion3D) = SVector(aux[2] - x[2])
+
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+
+    function semidiscretization_parabolic_aux_3d(mesh)
+        equations = ConservativeLinearScalarAdvectionEquation3D()
+        equations_parabolic = AuxDiffusion3D(equations)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        return SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     source_terms_parabolic = source_terms_aux,
+                                                     boundary_conditions = (BoundaryConditionDirichlet(initial_condition),
+                                                                            boundary_condition_aux),
+                                                     aux_field)
+    end
+end
+
+@testitem "Parabolic3D: P4estMesh3D: auxiliary variables in the parabolic terms" setup=[
+    Setup,
+    ParabolicAuxDiffusion3D
+] tags=[:parabolic_part3] begin
+    # Refine one element to test the mortars
+    mesh_nonconforming = P4estMesh((1, 1, 1), polydeg = 1, initial_refinement_level = 1,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0),
+                                   periodicity = false)
+    function refine_fn(p8est, which_tree, quadrant)
+        quadrant_obj = unsafe_load(quadrant)
+        if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
+           quadrant_obj.level < 2
+            # return true (refine)
+            return Cint(1)
+        else
+            # return false (don't refine)
+            return Cint(0)
+        end
+    end
+    refine_fn_c = @cfunction(refine_fn, Cint,
+                             (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                              Ptr{Trixi.p8est_quadrant_t}))
+    Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
+
+    semi_nonconforming = semidiscretization_parabolic_aux_3d(mesh_nonconforming)
+    # Make sure that the mesh is actually nonconforming
+    @test Trixi.nmortars(semi_nonconforming.solver, semi_nonconforming.cache) > 0
+
+    for semi in (semidiscretization_parabolic_aux_3d(mesh), semi_nonconforming)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        du = GC.@preserve du_ode Array(Trixi.wrap_array(du_ode, semi))
+        x = semi.cache.elements.node_coordinates
+        @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
+    end
+
+    # On the Cartesian mesh, the largest diffusivity `aux[1] = 1 + x = 2` determines the
+    # time step, as for a constant diffusivity of 2
+    semi = semidiscretization_parabolic_aux_3d(mesh)
+    u = Trixi.wrap_array(compute_coefficients(0.0, semi), semi)
+    dt = Trixi.max_dt(u, 0.0, semi.mesh, Trixi.False(), semi.equations,
+                      semi.equations_parabolic, semi.solver, semi.cache)
+    dt_constant = Trixi.max_dt(u, 0.0, semi.mesh, Trixi.True(), semi.equations,
+                               LaplaceDiffusion3D(2.0, semi.equations), semi.solver,
+                               semi.cache)
+    @test dt ≈ dt_constant
+end
+
 @testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     Parabolic3D

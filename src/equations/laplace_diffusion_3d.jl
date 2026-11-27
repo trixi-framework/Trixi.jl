@@ -30,6 +30,16 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion3D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
+function auxvarnames(equations_parabolic::LaplaceDiffusion3D)
+    return auxvarnames(equations_parabolic.equations_hyperbolic)
+end
+
+# The diffusion receives the auxiliary variables of the hyperbolic equations but does not
+# depend on them
+@inline function nauxvariables(equations_parabolic::LaplaceDiffusion3D)
+    return nauxvariables(equations_parabolic.equations_hyperbolic)
+end
+
 # no orientation specified since the flux is vector-valued
 @inline function flux(u, gradients, orientation::Integer,
                       equations_parabolic::LaplaceDiffusion3D)
@@ -41,6 +51,12 @@ end
     else  # if orientation == 3
         return SVector(equations_parabolic.diffusivity * dudz)
     end
+end
+
+# Version for equations with auxiliary variables
+@inline function flux(u, aux, gradients, orientation::Integer,
+                      equations_parabolic::LaplaceDiffusion3D)
+    return flux(u, gradients, orientation, equations_parabolic)
 end
 
 # TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?

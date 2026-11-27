@@ -1263,6 +1263,46 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "KernelAbstractions CPU 3D: elixir_advectionconservative_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_advectionconservative_diffusion_nonperiodic.jl"),
+                        tspan=(0.0, 0.1),
+                        # Expected errors are exactly the same as in the parabolic test!
+                        l2=[0.0041950763210371915], linf=[0.057507386584005046])
+    # The elixir adapts `semi` before creating the ODE problem
+    @test semi === ode.p
+    @test ode.u0 isa Array
+    @test Trixi.trixi_backend(ode.u0) isa Trixi.KernelAbstractions.CPU
+    @test semi.cache.aux_vars.aux isa Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "KernelAbstractions CPU 3D: auxiliary variables in the parabolic terms" setup=[
+    Setup,
+    ParabolicAuxDiffusion3D
+] tags=[:kernelabstractions] begin
+    semi = semidiscretization_parabolic_aux_3d(mesh)
+    u_ode = compute_coefficients(0.0, semi)
+    @test Trixi.trixi_backend(u_ode) isa Trixi.KernelAbstractions.CPU
+    du_ode = similar(u_ode)
+    Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+    du = GC.@preserve du_ode Array(Trixi.wrap_array(du_ode, semi))
+    x = semi.cache.elements.node_coordinates
+    @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
+end
+
 @testitem "KernelAbstractions CPU 3D: elixir_navierstokes_convergence.jl" setup=[
     Setup,
     KernelAbstractionsExamples
