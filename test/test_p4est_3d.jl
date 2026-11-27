@@ -395,24 +395,24 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (positivity bounds)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (positivity limiting)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
-                            0.19427117014566905,
-                            0.07557679851688888,
-                            0.07557679851688896,
-                            0.07557679851688917,
-                            0.3713893373335463
+                            0.19989758340725122,
+                            0.07753188145592771,
+                            0.07753188145592756,
+                            0.07753188145592856,
+                            0.37211370715320125
                         ],
                         linf=[
-                            2.754292081408987,
-                            1.888627709320322,
-                            1.8886277093203232,
-                            1.888627709320322,
-                            4.971280431903264
+                            3.853050125536047,
+                            2.5064444090444673,
+                            2.506444409044469,
+                            2.506444409044468,
+                            4.982737828173609
                         ],
                         tspan=(0.0, 0.3))
     limiter = semi.solver.volume_integral.limiter
@@ -429,7 +429,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local limiting)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
@@ -439,18 +439,18 @@ end
                                                              min)],
                         max_iterations_newton=30,
                         l2=[
-                            0.16504564013491585,
-                            0.06461384162458203,
-                            0.06461384162461223,
-                            0.06461384162461678,
-                            0.36193245790622036
+                            0.16710407873886332,
+                            0.06527058415686458,
+                            0.06527058415696457,
+                            0.06527058415695332,
+                            0.36210526237569146
                         ],
                         linf=[
-                            0.9138327077620716,
-                            0.5707102472596818,
-                            0.5707102472739252,
-                            0.5707102472781822,
-                            4.777595503303726
+                            0.9126970150736116,
+                            0.6070577035190963,
+                            0.6070577035642496,
+                            0.6070577035822069,
+                            4.7891834746667525
                         ],
                         tspan=(0.0, 0.3))
     limiter = semi.solver.volume_integral.limiter
@@ -467,7 +467,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds, nonperiodic)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local limiting, nonperiodic)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
@@ -479,18 +479,18 @@ end
                         periodicity=false,
                         boundary_conditions=BoundaryConditionDirichlet(initial_condition),
                         l2=[
-                            0.16504564013491585,
-                            0.06461384162458203,
-                            0.06461384162461223,
-                            0.06461384162461678,
-                            0.36193245790622036
+                            0.16710407873886313,
+                            0.06527058415686458,
+                            0.06527058415696457,
+                            0.06527058415695332,
+                            0.36210526237569146
                         ],
                         linf=[
-                            0.9138327077620716,
-                            0.5707102472596818,
-                            0.5707102472739252,
-                            0.5707102472781822,
-                            4.777595503303726
+                            0.9126970150736116,
+                            0.6070577035190963,
+                            0.6070577035642496,
+                            0.6070577035822069,
+                            4.7891834746667525
                         ],
                         tspan=(0.0, 0.3))
     limiter = semi.solver.volume_integral.limiter
@@ -858,26 +858,26 @@ end
 @testitem "P4estMesh3D: elixir_mhd_shockcapturing_subcell.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
-                            0.006730143381488665,
-                            0.008638200362125233,
-                            0.008978149441900818,
-                            0.008546444369127841,
-                            0.028552826645613108,
-                            0.005790728186386162,
-                            0.007478371113001749,
-                            0.0058453450179431,
-                            0.0002768640406343677
+                            0.006730075146256812,
+                            0.008638805907532009,
+                            0.00897701279901548,
+                            0.008546672467455378,
+                            0.02854913045939227,
+                            0.0057905980903299285,
+                            0.00747864170209343,
+                            0.0058453383988252,
+                            0.00027697787865261044
                         ],
                         linf=[
-                            0.31496137264807067,
-                            0.27624270565879083,
-                            0.5102616117027343,
-                            0.28998837906363095,
-                            0.9543964272940535,
-                            0.2621044614125685,
-                            0.22947789123430673,
-                            0.2855579198808329,
-                            0.03258652743969817
+                            0.31496146464110897,
+                            0.27626882389825913,
+                            0.5102601120025463,
+                            0.29000383110149186,
+                            0.9543945497713979,
+                            0.2621034666688682,
+                            0.22948077325140226,
+                            0.2855633887244069,
+                            0.03262972123157465
                         ],
                         tspan=(0.0, 0.04))
     limiter = semi.solver.volume_integral.limiter
