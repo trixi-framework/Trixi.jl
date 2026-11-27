@@ -2570,7 +2570,8 @@ end
         prim2cons(SVector(1.0, 3.5, 0.5), equations),
         prim2cons(SVector(0.5, -2.8, 0.4), equations)]
     splittings = [splitting_steger_warming, splitting_vanleer_haenel,
-        splitting_coirier_vanleer, splitting_lax_friedrichs]
+        splitting_coirier_vanleer, splitting_lax_friedrichs,
+        SplittingGlobalLaxFriedrichs(5.0)]
 
     orientation = 1
     for splitting in splittings, u in u_values
@@ -2579,6 +2580,69 @@ end
         @test fp ≈ splitting(u, Val{:plus}(), orientation, equations)
         @test fm + fp ≈ flux(u, orientation, equations)
     end
+end
+
+@testitem "Unit: SplittingGlobalLaxFriedrichs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    λ = 2.5
+    splitting = SplittingGlobalLaxFriedrichs(λ)
+    @test repr(splitting) == "SplittingGlobalLaxFriedrichs(2.5)"
+
+    # The upwind flux of the splitting is the central flux plus global Lax-Friedrichs
+    # dissipation
+    flux_upwind = FluxUpwind(splitting)
+    flux_dissipation = FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))
+
+    equations = CompressibleEulerEquations2D(1.4)
+    u_ll = prim2cons(SVector(1.1, 0.3, -0.2, 2.1), equations)
+    u_rr = prim2cons(SVector(0.7, -0.4, 0.5, 1.3), equations)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test fm ≈ splitting(u_ll, Val{:minus}(), orientation_or_normal_direction,
+                        equations)
+        @test fp ≈ splitting(u_ll, Val{:plus}(), orientation_or_normal_direction,
+                             equations)
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The `orientation` and `normal_direction` versions are consistent for axis-aligned
+    # normals
+    for (orientation, normal_direction) in ((1, SVector(1.0, 0.0)), (2, SVector(0.0, 1.0)))
+        fm, fp = splitting(u_ll, orientation, equations)
+        fm_normal, fp_normal = splitting(u_ll, normal_direction, equations)
+        @test fm ≈ fm_normal
+        @test fp ≈ fp_normal
+        fm_normal, fp_normal = splitting(u_ll, 2 * normal_direction, equations)
+        @test 2 * fm ≈ fm_normal
+        @test 2 * fp ≈ fp_normal
+    end
+
+    # No dissipation is added to the mean values of the acoustic perturbation equations
+    equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                c_mean_global = 2.0,
+                                                rho_mean_global = 0.9)
+    u_ll = SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3)
+    u_rr = SVector(0.2, 0.4, 0.6, -0.1, -1.2, 1.8, 1.4)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test iszero(fm[4:7])
+        @test iszero(fp[4:7])
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        diss = DissipationGlobalLaxFriedrichs(λ)(u_ll, u_rr,
+                                                 orientation_or_normal_direction,
+                                                 equations)
+        @test iszero(diss[4:7])
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The splitting is available for all equations implementing `flux`
+    equations = LinearScalarAdvectionEquation1D(-1.5)
+    u = SVector(0.7)
+    fm, fp = splitting(u, 1, equations)
+    @test fm ≈ 0.5 * (flux(u, 1, equations) - λ * u)
+    @test fp ≈ 0.5 * (flux(u, 1, equations) + λ * u)
 end
 
 @testitem "Unit: SurfaceIntegralUpwind" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -5229,7 +5293,7 @@ end
     end
 end
 
-@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+@testitem "Unit: ndims function for SemidiscretizationHyperbolicSplit" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin

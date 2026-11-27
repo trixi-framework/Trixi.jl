@@ -222,7 +222,7 @@ end
                             37976.592992473394
                         ],
                         tspan=(0.0, 0.1),
-                        atol=4.0e-6, # the background field is reatively large, so this corresponds to our usual atol
+                        atol=4.0e-6, # the background field is relatively large, so this corresponds to our usual atol
                         parameters=ParametersEulerGravity(background_density = 1.5e7,
                                                           gravitational_constant = 6.674e-8,
                                                           cfl = 2.4,

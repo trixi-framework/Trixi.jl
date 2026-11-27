@@ -155,6 +155,30 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with SplittingGlobalLaxFriedrichs" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
+    # The maximum wave speed `|v| + c` of the solution is approximately 1.95
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
+                        l2=[
+                            9.400592033550717e-6,
+                            4.386240196934063e-6,
+                            1.8369624062328482e-5
+                        ],
+                        linf=[
+                            4.1851027215766834e-5,
+                            1.454843401660355e-5,
+                            7.261199032004839e-5
+                        ],
+                        tspan=(0.0, 0.5),
+                        flux_splitting=SplittingGlobalLaxFriedrichs(2.0))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[
     Setup,
     TreeMesh1DFDSBP

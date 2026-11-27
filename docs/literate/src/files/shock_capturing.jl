@@ -218,7 +218,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
-# We add some callbacks to get an solution analysis and use a CFL-based time step size calculation.
+# We add some callbacks to get a solution analysis and use a CFL-based time step size calculation.
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)

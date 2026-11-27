@@ -439,7 +439,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     volume_integral_default::VolumeIntegralDefault
 
     # The volume integral used for the DG portion in the convex blending.
-    # Usually symmetric, e.g. split-form with entropy-conserative flux.
+    # Usually symmetric, e.g. split-form with entropy-conservative flux.
     volume_integral_blend_high_order::VolumeIntegralBlendHighOrder
 
     # Typically a first- or second-order finite volume method on the DG subcells.
@@ -555,7 +555,7 @@ end
                                        volume_integral_blend_high_order,
                                        volume_integral_blend_low_order)
 
-Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
+Generalized Hennemann-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
 In the non-stabilized region, `volume_integral_default` is used,
@@ -1058,7 +1058,7 @@ implemented in SummationByPartsOperators.jl. The `splitting` controls the
 discretization.
 
 See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
-[`splitting_vanleer_haenel`](@ref).
+[`SplittingGlobalLaxFriedrichs`](@ref), [`splitting_vanleer_haenel`](@ref).
 
 ## References
 
@@ -1473,7 +1473,7 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG
     return u_ll, u_rr
 end
 
-# As above but dispatches on an type argument
+# As above but dispatches on a type argument
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
                                                         indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`

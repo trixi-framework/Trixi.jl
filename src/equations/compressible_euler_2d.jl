@@ -459,7 +459,7 @@ end
     flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction,
                     equations::CompressibleEulerEquations2D)
 
-This flux is is a modification of the original kinetic energy preserving two-point flux by
+This flux is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
@@ -1920,7 +1920,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 
@@ -1977,7 +1977,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, normal_direction, equations::CompressibleEulerEquations2D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 

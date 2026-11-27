@@ -432,7 +432,7 @@ relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)
 # These are then handed over to the ODE solver from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 
 # Below is a minimal example in 1D, showing how to use these packages with Trixi.jl.
-# First, we define the the `equation` and `mesh` as for an ordinary simulation:
+# First, we define the `equation` and `mesh` as for an ordinary simulation:
 
 using Trixi
 

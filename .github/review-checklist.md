@@ -24,7 +24,7 @@ This checklist is meant to assist creators of PRs (to let them know what reviewe
 #### Testing
 - [ ] The PR passes all tests.
 - [ ] New or modified lines of code are covered by tests.
-- [ ] New or modified tests run in less then 10 seconds.
+- [ ] New or modified tests run in less than 10 seconds.
 
 #### Performance
 - [ ] There are no type instabilities or memory allocations in performance-critical parts.

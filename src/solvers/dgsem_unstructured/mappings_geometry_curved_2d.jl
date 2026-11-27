@@ -36,7 +36,7 @@ function transfinite_quad_map(xi, eta, surface_curves::AbstractVector{<:CurvedSu
     return x, y
 end
 
-# Compute the metric terms for the general curved sided quadrilateral transfitie mapping
+# Compute the metric terms for the general curved sided quadrilateral transfinite mapping
 #     Alg. 99 from the blue book of Kopriva
 function transfinite_quad_map_metrics(xi, eta,
                                       surface_curves::AbstractVector{<:CurvedSurface})

@@ -297,7 +297,7 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructed from
 # these attributes for plotting purposes
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
 function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",

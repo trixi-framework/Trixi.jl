@@ -18,6 +18,9 @@ for human readability.
   `CompressibleEulerEquations1D` ([#3489]).
 - The parabolic time step restriction of the `StepsizeCallback` (keyword argument
   `cfl_parabolic`) on `P4estMesh`s can now be computed on GPUs ([#3479]).
+- The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
+  available for all equations and complements the dissipation
+  `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
@@ -745,7 +748,7 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   floating point numbers in their respective (full) precision.
   Previously, only the first 8 digits were printed to file.
   Furthermore, the names of the printed fields are now only separated by a single white space,
-  in contrast to before where this were multiple, depending on the actual name of the printed data.
+  in contrast to before where these were multiple, depending on the actual name of the printed data.
 - The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
   The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
   returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
