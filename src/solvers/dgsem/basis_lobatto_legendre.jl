@@ -344,7 +344,7 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
 
     # TODO: Taal performance
     #       Check the performance of different implementations of
-    #       `refine_elements!` (forward) and `coarsen_elements!` (reverse)
+    #       `refine_element!` (forward) and `coarsen_elements!` (reverse)
     #       with different types of the matrices.
     #       Check whether `@turbo` with `eachnode` in `multiply_dimensionwise!`
     #       can be faster than `@tullio` when the matrix sizes are not necessarily

@@ -147,7 +147,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 trees_per_dimension = (20, 16)
 
 cylinder_radius = 0.5
-# Follow from a-priori known shock shape, originally for first qaudrant,
+# Follow from a-priori known shock shape, originally for first quadrant,
 # here transformed to second quadrant, see `mapping_cylinder_shock_fitted`.
 spline_points = 0.6 .* [1.32, 1.05, 2.25]
 cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,

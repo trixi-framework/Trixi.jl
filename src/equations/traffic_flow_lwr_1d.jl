@@ -8,7 +8,7 @@
 @doc raw"""
     TrafficFlowLWREquations1D
 
-The classic Lighthill-Witham Richards (LWR) model for 1D traffic flow.
+The classic Lighthill-Whitham-Richards (LWR) model for 1D traffic flow.
 The car density is denoted by $u \in [0, 1]$ and
 the maximum possible speed (e.g. due to speed limits) is $v_{\text{max}}$.
 ```math

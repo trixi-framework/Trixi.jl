@@ -21,7 +21,7 @@
                                    initial_c_h = NaN)
 
 The ideal compressible multi-ion MHD equations in two space dimensions augmented with a
-generalized Langange multipliers (GLM) divergence-cleaning technique. This is a
+generalized Lagrange multipliers (GLM) divergence-cleaning technique. This is a
 multi-species variant of the ideal GLM-MHD equations for calorically perfect plasmas
 with independent momentum and energy equations for each ion species. This implementation
 assumes that the equations are non-dimensionalized such, that the vacuum permeability is ``\mu_0 = 1``.
@@ -71,7 +71,7 @@ can be used to adjust the GLM divergence-cleaning speed according to the time-st
 
 References:
 - G. Toth, A. Glocer, Y. Ma, D. Najib, Multi-Ion Magnetohydrodynamics 429 (2010). Numerical
-  Modeling of Space Plasma Flows, 213–218. [Bib Code: Code: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
+  Modeling of Space Plasma Flows, 213–218. [Bibcode: 2010ASPC..429..213T](https://adsabs.harvard.edu/full/2010ASPC..429..213T).
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)

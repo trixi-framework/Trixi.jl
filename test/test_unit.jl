@@ -5322,7 +5322,7 @@ end
     end
 end
 
-@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+@testitem "Unit: ndims function for SemidiscretizationHyperbolicSplit" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
