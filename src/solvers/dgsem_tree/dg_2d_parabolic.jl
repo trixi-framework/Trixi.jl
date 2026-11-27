@@ -952,14 +952,16 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
             fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
             fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
-            # Calculate fluxes
+            # Calculate fluxes on the small elements, ordered as in `neighbor_ids`, in a
+            # loop to reduce the compile time (see `calc_fstar!` for nonconservative terms)
             orientation = orientations[mortar]
-            calc_fstar!(fstar_upper, mesh, equations_parabolic, surface_flux,
-                        dg, parabolic_scheme, gradient_or_divergence,
-                        u_upper, mortar, orientation)
-            calc_fstar!(fstar_lower, mesh, equations_parabolic, surface_flux,
-                        dg, parabolic_scheme, gradient_or_divergence,
-                        u_lower, mortar, orientation)
+            fstar = (fstar_lower, fstar_upper)
+            u_mortars = (u_lower, u_upper)
+            for position in 1:2
+                calc_fstar!(fstar[position], mesh, equations_parabolic, surface_flux,
+                            dg, parabolic_scheme, gradient_or_divergence,
+                            u_mortars[position], mortar, orientation)
+            end
 
             mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations_parabolic, mortar_l2, dg, cache,
