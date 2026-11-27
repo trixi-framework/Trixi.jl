@@ -449,12 +449,13 @@ end
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
 
-    return 0.5f0 * (v1^2 + v2^2 + v3^2) / rho / equations.rho0
+    return 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 end
 
-# Calculate nondimensionalized kinetic energy for a conservative state `u`
+# Calculate kinetic energy for a conservative state `u`, nondimensionalized by the
+# reference density `rho0` and the reference velocity `u0`
 @inline function energy_kinetic_nondimensional(u,
                                                equations::LatticeBoltzmannEquations3D)
-    return energy_kinetic(u, equations) / equations.u0^2
+    return energy_kinetic(u, equations) / (equations.rho0 * equations.u0^2)
 end
 end # @muladd
