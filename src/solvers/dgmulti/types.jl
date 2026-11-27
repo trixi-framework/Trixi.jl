@@ -48,6 +48,21 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
+# `DGMulti` solvers with diagonal-norm SBP operators and an entropy correction volume
+# integral, i.e., a `VolumeIntegralAdaptive` with an `IndicatorEntropyCorrection` or an
+# `IndicatorEntropyCorrectionShockCapturingCombined`. They use the generic `rhs_hyperbolic!`
+# of `DGMulti` together with the `create_cache` and `calc_volume_integral!` methods in
+# `volume_integral_adaptive.jl`.
+const DGMultiEntropyCorrectionSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                                  ApproxType,
+                                                                  <:SurfaceIntegralWeakForm,
+                                                                  <:Union{VolumeIntegralEntropyCorrection,
+                                                                          VolumeIntegralEntropyCorrectionShockCapturingCombined}} where {
+                                                                                                                                         NDIMS,
+                                                                                                                                         ApproxType <:
+                                                                                                                                         SBP
+                                                                                                                                         }
+
 # `DGMulti` solvers based on 1D SBP derivative operators from
 # SummationByPartsOperators.jl, which are used in a tensor product fashion
 const DGMultiFDSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,

@@ -238,7 +238,9 @@ end
 
 # Trait-like system to dispatch based on whether or not the SBP operators are sparse.
 # Designed to be extendable to include specialized `approximation_types` too.
-@inline function has_sparse_operators(dg::DGMultiFluxDiff)
+# This depends only on the basis, since flux differencing is also used by other solvers,
+# e.g., as the default volume integral of entropy correction (`DGMultiEntropyCorrectionSBP`).
+@inline function has_sparse_operators(dg::DGMulti)
     rd = dg.basis
     return has_sparse_operators(rd.element_type, rd.approximation_type)
 end
@@ -471,11 +473,16 @@ end
     return nothing
 end
 
+# Flux differencing for SBP operators, which reads the solution at the nodes directly.
+# This is also used as the default volume integral of entropy correction
+# (`DGMultiEntropyCorrectionSBP`), whose cache is then created by the `create_cache` of
+# `DGMultiFluxDiffSBP` (see `volume_integral_adaptive.jl`).
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralFluxDifferencing,
-                                         dg::DGMultiFluxDiffSBP, cache,
-                                         alpha = true)
+                                         dg::Union{DGMultiFluxDiffSBP,
+                                                   DGMultiEntropyCorrectionSBP},
+                                         cache, alpha = true)
     @unpack du_local_threaded, inv_wq = cache
 
     du_local = du_local_threaded[Threads.threadid()]
@@ -495,9 +502,13 @@ end
     return nothing
 end
 
-# Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
+# Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers, nor for entropy
+# correction with a flux differencing default volume integral. Since the solution nodes are
+# the volume quadrature nodes for SBP operators, the source terms are evaluated at `u`.
 function calc_sources!(du, u, t, source_terms,
-                       mesh, equations, dg::DGMultiFluxDiffSBP, cache)
+                       mesh, equations,
+                       dg::Union{DGMultiFluxDiffSBP, DGMultiEntropyCorrectionSBP},
+                       cache)
     md = mesh.md
 
     @threaded for e in eachelement(mesh, dg, cache)
@@ -506,6 +517,8 @@ function calc_sources!(du, u, t, source_terms,
                                      equations)
         end
     end
+
+    return nothing
 end
 
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
