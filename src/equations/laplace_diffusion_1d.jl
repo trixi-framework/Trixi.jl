@@ -42,7 +42,9 @@ end
 
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
 # Note that these are general, so they apply to LaplaceDiffusion in any spatial dimension.
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  gradients_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Gradient,
@@ -50,7 +52,9 @@ end
     return boundary_condition.boundary_value_function(x, t, equations_parabolic)
 end
 
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  gradients_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
@@ -59,7 +63,9 @@ end
 end
 
 # Required for the 1D (TreeMesh) case
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  gradients_inner,
                                                                   orientation,
                                                                   direction,
                                                                   x, t,
@@ -69,7 +75,9 @@ end
 end
 
 # Required for the 1D (TreeMesh) case
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  gradients_inner,
                                                                   orientation,
                                                                   direction,
                                                                   x, t,
@@ -78,7 +86,9 @@ end
     return flux_inner
 end
 
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
+                                                                u_inner,
+                                                                gradients_inner,
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Divergence,
@@ -90,7 +100,9 @@ end
             norm(normal))
 end
 
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
+                                                                u_inner,
+                                                                gradients_inner,
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Gradient,
@@ -99,7 +111,9 @@ end
 end
 
 # Required for the 1D (TreeMesh) case
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
+                                                                u_inner,
+                                                                gradients_inner,
                                                                 orientation,
                                                                 direction,
                                                                 x, t,
@@ -109,7 +123,9 @@ end
 end
 
 # Required for the 1D (TreeMesh) case
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
+@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner,
+                                                                u_inner,
+                                                                gradients_inner,
                                                                 orientation,
                                                                 direction,
                                                                 x, t,

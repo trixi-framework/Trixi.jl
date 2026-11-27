@@ -955,24 +955,28 @@ end
             # BC tests
             for direction in directions
                 @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                nothing, # `gradients_inner` placeholder
                                                                 orientation, direction,
                                                                 x,
                                                                 t, operator_gradient,
                                                                 equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                nothing, # `gradients_inner` placeholder
                                                                 orientation, direction,
                                                                 x,
                                                                 t, operator_divergence,
                                                                 equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                               nothing, # `gradients_inner` placeholder
                                                                orientation, direction,
                                                                x,
                                                                t, operator_gradient,
                                                                equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                               nothing, # `gradients_inner` placeholder
                                                                orientation, direction,
                                                                x,
                                                                t, operator_divergence,
@@ -1089,6 +1093,7 @@ end
 
             # BC tests
             @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                            nothing, # `gradients_inner` placeholder
                                                             normal,
                                                             x,
                                                             t,
@@ -1096,6 +1101,7 @@ end
                                                             equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                            nothing, # `gradients_inner` placeholder
                                                             normal,
                                                             x,
                                                             t,
@@ -1103,12 +1109,14 @@ end
                                                             equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                           nothing, # `gradients_inner` placeholder
                                                            normal,
                                                            x,
                                                            t, operator_gradient,
                                                            equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                           nothing, # `gradients_inner` placeholder
                                                            normal,
                                                            x,
                                                            t, operator_divergence,
@@ -1230,6 +1238,7 @@ end
 
             # BC tests
             @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                            nothing, # `gradients_inner` placeholder
                                                             normal,
                                                             x,
                                                             t,
@@ -1237,6 +1246,7 @@ end
                                                             equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                            nothing, # `gradients_inner` placeholder
                                                             normal,
                                                             x,
                                                             t,
@@ -1244,12 +1254,14 @@ end
                                                             equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                           nothing, # `gradients_inner` placeholder
                                                            normal,
                                                            x,
                                                            t, operator_gradient,
                                                            equations_parabolic)) ==
                   RealT
             @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                           nothing, # `gradients_inner` placeholder
                                                            normal,
                                                            x,
                                                            t, operator_divergence,
@@ -2263,22 +2275,22 @@ end
                                                                                           0))
 
         # BC tests
-        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
-                                                            x, t,
+        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, nothing,
+                                                            normal, x, t,
                                                             operator_gradient,
                                                             equations_parabolic)) ==
               RealT
-        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
-                                                            x, t,
+        @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, nothing,
+                                                            normal, x, t,
                                                             operator_divergence,
                                                             equations_parabolic)) ==
               RealT
-        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
-                                                          x, t,
+        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, nothing,
+                                                          normal, x, t,
                                                           operator_gradient,
                                                           equations_parabolic)) == RealT
-        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
-                                                          x, t,
+        @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, nothing,
+                                                          normal, x, t,
                                                           operator_divergence,
                                                           equations_parabolic)) == RealT
 

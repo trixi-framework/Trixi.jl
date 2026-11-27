@@ -1,7 +1,7 @@
 # version for standard (e.g., non-entropy stable or flux differencing) schemes
 function create_cache_parabolic(mesh::DGMultiMesh,
-                                equations_hyperbolic::AbstractEquations,
-                                dg::DGMulti, n_elements, uEltype)
+                                equations_hyperbolic::AbstractEquations, dg::DGMulti,
+                                n_elements, n_boundaries, uEltype)
 
     # default to taking derivatives of all hyperbolic variables
     # TODO: parabolic; utilize the parabolic variables in `equations_parabolic` to reduce memory usage in the parabolic cache
@@ -293,8 +293,8 @@ end
                                          face_normal, face_coordinates, t,
                                          operator_type::Gradient, boundary_condition,
                                          equations)
-    u_boundary = boundary_condition(u_inner, u_inner, face_normal, face_coordinates, t,
-                                    operator_type, equations)
+    u_boundary = boundary_condition(u_inner, u_inner, nothing, face_normal,
+                                    face_coordinates, t, operator_type, equations)
     return u_boundary - u_inner
 end
 
@@ -305,9 +305,9 @@ end
                                          face_normal, face_coordinates, t,
                                          operator_type::Divergence, boundary_condition,
                                          equations)
-    flux_boundary = boundary_condition(flux_inner / face_jacobian, u_inner,
-                                       face_normal, face_coordinates, t,
-                                       operator_type, equations)
+    flux_boundary = boundary_condition(flux_inner / face_jacobian, u_inner, nothing,
+                                       face_normal, face_coordinates, t, operator_type,
+                                       equations)
     return flux_boundary * face_jacobian
 end
 

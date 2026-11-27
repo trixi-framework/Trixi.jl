@@ -1080,7 +1080,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t,
+function calc_boundary_flux!(cache, cache_parabolic, t,
                              boundary_condition_parabolic, # works with Dict types
                              boundary_condition_indices,
                              operator_type, mesh::P4estMesh{3},
@@ -1143,7 +1143,7 @@ function calc_boundary_flux!(cache, t,
                     x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                         i_node, j_node, k_node, element)
 
-                    flux_ = boundary_condition_parabolic(flux_inner, u_inner,
+                    flux_ = boundary_condition_parabolic(flux_inner, u_inner, nothing,
                                                          normal_direction,
                                                          x, t, operator_type,
                                                          equations_parabolic)
