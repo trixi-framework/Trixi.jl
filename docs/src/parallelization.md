@@ -54,6 +54,8 @@ a system-provided MPI installation with Trixi.jl can be found in the following s
 
 ### [Using a system-provided MPI installation](@id parallel_system_MPI)
 
+The [HPC setup](https://github.com/trixi-framework/Trixi.jl/blob/main/hpc/README.md) provides a fixed Otus configuration and focused checks for native MPI libraries.
+
 When using Trixi.jl with a system-provided MPI backend, the underlying
 [`p4est`](https://github.com/cburstedde/p4est), [`t8code`](https://github.com/DLR-AMR/t8code)
 and [`HDF5`](https://github.com/HDFGroup/hdf5) libraries need to be compiled with the same MPI
