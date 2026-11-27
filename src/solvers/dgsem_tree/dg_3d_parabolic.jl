@@ -124,7 +124,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack orientations, neighbor_ids = interfaces
 
     # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
@@ -193,6 +194,8 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -216,7 +219,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
 
             for j in eachnode(dg), i in eachnode(dg)
                 # Get precomputed fluxes at interfaces
-                flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
+                flux_ll, flux_rr = get_surface_node_vars(interfaces_u,
                                                          equations_parabolic, dg,
                                                          i, j, interface)
 
@@ -1075,6 +1078,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -1098,7 +1103,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
 
             for j in eachnode(dg), i in eachnode(dg)
                 # Call pointwise Riemann solver
-                u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
+                u_ll, u_rr = get_surface_node_vars(interfaces_u,
                                                    equations_parabolic, dg,
                                                    i, j, interface)
 

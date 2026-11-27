@@ -8,10 +8,10 @@
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct TreeElementContainer2D{RealT <: Real, uEltype <: Real} <:
                AbstractTreeElementContainer
-    inverse_jacobian::Vector{RealT}        # [elements]
-    node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
-    surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
-    cell_ids::Vector{Int}                  # [elements]
+    inverse_jacobian::Vector{RealT}                    # [elements]
+    node_coordinates::VectorBackedArray{RealT, 4}      # [orientation, i, j, elements]
+    surface_flux_values::VectorBackedArray{uEltype, 4} # [variables, i, direction, elements]
+    cell_ids::Vector{Int}                              # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _surface_flux_values::Vector{uEltype}
@@ -20,8 +20,8 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(elements::TreeElementContainer2D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
@@ -31,12 +31,12 @@ function Base.resize!(elements::TreeElementContainer2D, capacity)
     resize!(inverse_jacobian, capacity)
 
     resize!(_node_coordinates, 2 * n_nodes * n_nodes * capacity)
-    elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                            (2, n_nodes, n_nodes, capacity))
+    elements.node_coordinates = wrap_storage(_node_coordinates,
+                                             (2, n_nodes, n_nodes, capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * 2 * 2 * capacity)
-    elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                               (n_variables, n_nodes, 2 * 2, capacity))
+    elements.surface_flux_values = wrap_storage(_surface_flux_values,
+                                                (n_variables, n_nodes, 2 * 2, capacity))
 
     resize!(cell_ids, capacity)
 
@@ -53,12 +53,11 @@ function TreeElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     inverse_jacobian = fill(nan_RealT, capacity)
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * n_nodes * capacity)
-    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (2, n_nodes, n_nodes, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (2, n_nodes, n_nodes, capacity))
 
     _surface_flux_values = fill(nan_uEltype, n_variables * n_nodes * 2 * 2 * capacity)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                      (n_variables, n_nodes, 2 * 2, capacity))
+    surface_flux_values = wrap_storage(_surface_flux_values,
+                                       (n_variables, n_nodes, 2 * 2, capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
@@ -70,7 +69,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::TreeElementContainer2D, equations, solver::DG, cache)
+@inline function check_axes(elements::TreeElementContainer2D, equations, solver::DG,
+                            cache)
     check_axes(elements.node_coordinates,
                (Base.OneTo(2),
                 eachnode(solver), eachnode(solver),
@@ -141,9 +141,9 @@ end
 # Container data structure (structure-of-arrays style) for DG interfaces
 mutable struct TreeInterfaceContainer2D{uEltype <: Real} <:
                AbstractTreeInterfaceContainer
-    u::Array{uEltype, 4}        # [leftright, variables, i, interfaces]
-    neighbor_ids::Array{Int, 2} # [leftright, interfaces]
-    orientations::Vector{Int}   # [interfaces]
+    u::VectorBackedArray{uEltype, 4}        # [leftright, variables, i, interfaces]
+    neighbor_ids::VectorBackedArray{Int, 2} # [leftright, interfaces]
+    orientations::Vector{Int}               # [interfaces]
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
@@ -156,12 +156,10 @@ function Base.resize!(interfaces::TreeInterfaceContainer2D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    interfaces.u = unsafe_wrap(Array, pointer(_u),
-                               (2, n_variables, n_nodes, capacity))
+    interfaces.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
-    interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                          (2, capacity))
+    interfaces.neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     resize!(orientations, capacity)
 
@@ -174,12 +172,10 @@ function TreeInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                               (2, capacity))
+    neighbor_ids = wrap_storage(_neighbor_ids, (2, capacity))
 
     orientations = fill(typemin(Int), capacity)
 
@@ -189,7 +185,8 @@ end
 
 # Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(interfaces::TreeInterfaceContainer2D, equations, solver::DG, cache)
+@inline function check_axes(interfaces::TreeInterfaceContainer2D, equations, solver::DG,
+                            cache)
     check_axes(interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -310,12 +307,12 @@ end
 # Container data structure (structure-of-arrays style) for DG boundaries
 mutable struct TreeBoundaryContainer2D{RealT <: Real, uEltype <: Real} <:
                AbstractTreeBoundaryContainer
-    u::Array{uEltype, 4}              # [leftright, variables, i, boundaries]
-    neighbor_ids::Vector{Int}         # [boundaries]
-    orientations::Vector{Int}         # [boundaries]
-    neighbor_sides::Vector{Int}       # [boundaries]
-    node_coordinates::Array{RealT, 3} # [orientation, i, elements]
-    n_boundaries_per_direction::SVector{4, Int} # [direction]
+    u::VectorBackedArray{uEltype, 4}              # [leftright, variables, i, boundaries]
+    neighbor_ids::Vector{Int}                     # [boundaries]
+    orientations::Vector{Int}                     # [boundaries]
+    neighbor_sides::Vector{Int}                   # [boundaries]
+    node_coordinates::VectorBackedArray{RealT, 3} # [orientation, i, elements]
+    n_boundaries_per_direction::SVector{4, Int}   # [direction]
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _node_coordinates::Vector{RealT}
@@ -329,12 +326,11 @@ function Base.resize!(boundaries::TreeBoundaryContainer2D, capacity)
     neighbor_ids, orientations, neighbor_sides = boundaries
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    boundaries.u = unsafe_wrap(Array, pointer(_u),
-                               (2, n_variables, n_nodes, capacity))
+    boundaries.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(_node_coordinates, 2 * n_nodes * capacity)
-    boundaries.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                              (2, n_nodes, capacity))
+    boundaries.node_coordinates = wrap_storage(_node_coordinates,
+                                               (2, n_nodes, capacity))
 
     resize!(neighbor_ids, capacity)
 
@@ -353,8 +349,7 @@ function TreeBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan_uEltype, 2 * n_variables * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     neighbor_ids = fill(typemin(Int), capacity)
 
@@ -363,8 +358,7 @@ function TreeBoundaryContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     neighbor_sides = fill(typemin(Int), capacity)
 
     _node_coordinates = fill(nan_RealT, 2 * n_nodes * capacity)
-    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (2, n_nodes, capacity))
+    node_coordinates = wrap_storage(_node_coordinates, (2, n_nodes, capacity))
 
     n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
@@ -377,7 +371,8 @@ end
 
 # Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG, cache)
+@inline function check_axes(boundaries::TreeBoundaryContainer2D, equations, solver::DG,
+                            cache)
     check_axes(boundaries.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -598,9 +593,9 @@ end
 #           |    |
 mutable struct TreeL2MortarContainer2D{uEltype <: Real} <:
                AbstractTreeL2MortarContainer
-    u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-    u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
-    neighbor_ids::Array{Int, 2} # [position, mortars]
+    u_upper::VectorBackedArray{uEltype, 4}  # [leftright, variables, i, mortars]
+    u_lower::VectorBackedArray{uEltype, 4}  # [leftright, variables, i, mortars]
+    neighbor_ids::VectorBackedArray{Int, 2} # [position, mortars]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
@@ -623,16 +618,13 @@ function Base.resize!(mortars::TreeL2MortarContainer2D, capacity)
     large_sides, orientations = mortars
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
-    mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                                  (2, n_variables, n_nodes, capacity))
+    mortars.u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
-    mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                                  (2, n_variables, n_nodes, capacity))
+    mortars.u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     resize!(_neighbor_ids, 3 * capacity)
-    mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                                       (3, capacity))
+    mortars.neighbor_ids = wrap_storage(_neighbor_ids, (3, capacity))
 
     resize!(large_sides, capacity)
 
@@ -647,16 +639,13 @@ function TreeL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                          (2, n_variables, n_nodes, capacity))
+    u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                          (2, n_variables, n_nodes, capacity))
+    u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 3 * capacity)
-    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
-                               (3, capacity))
+    neighbor_ids = wrap_storage(_neighbor_ids, (3, capacity))
 
     large_sides = fill(typemin(Int), capacity)
 
@@ -688,7 +677,8 @@ end
 
 # Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG, cache)
+@inline function check_axes(mortars::TreeL2MortarContainer2D, equations, solver::DG,
+                            cache)
     u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
                      eachnode(solver),
                      eachmortar(solver, cache))
@@ -877,7 +867,7 @@ end
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct TreeMPIInterfaceContainer2D{uEltype <: Real} <:
                AbstractTreeMPIInterfaceContainer
-    u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
+    u::VectorBackedArray{uEltype, 4} # [leftright, variables, i, interfaces]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Int} # [interfaces]
     orientations::Vector{Int}       # [interfaces]
@@ -893,8 +883,7 @@ function Base.resize!(mpi_interfaces::TreeMPIInterfaceContainer2D, capacity)
     @unpack _u, local_neighbor_ids, orientations, remote_sides = mpi_interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * capacity)
-    mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
-                                   (2, n_variables, n_nodes, capacity))
+    mpi_interfaces.u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     resize!(local_neighbor_ids, capacity)
 
@@ -911,8 +900,7 @@ function TreeMPIInterfaceContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, capacity))
+    u = wrap_storage(_u, (2, n_variables, n_nodes, capacity))
 
     local_neighbor_ids = fill(typemin(Int), capacity)
 
@@ -926,8 +914,9 @@ end
 
 # Check whether the arrays in `mpi_interfaces` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations, solver::DG,
-                    cache)
+@inline function check_axes(mpi_interfaces::TreeMPIInterfaceContainer2D, equations,
+                            solver::DG,
+                            cache)
     check_axes(mpi_interfaces.u,
                (Base.OneTo(2), eachvariable(equations),
                 eachnode(solver),
@@ -1057,8 +1046,8 @@ end
 #           |    |
 mutable struct TreeMPIL2MortarContainer2D{uEltype <: Real} <:
                AbstractTreeL2MPIMortarContainer
-    u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
-    u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
+    u_upper::VectorBackedArray{uEltype, 4} # [leftright, variables, i, mortars]
+    u_lower::VectorBackedArray{uEltype, 4} # [leftright, variables, i, mortars]
     # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Vector{Int}}       # [mortars][ids]
     local_neighbor_positions::Vector{Vector{Int}} # [mortars][positions]
@@ -1083,12 +1072,10 @@ function Base.resize!(mpi_mortars::TreeMPIL2MortarContainer2D, capacity)
     large_sides, orientations = mpi_mortars
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
-    mpi_mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                                      (2, n_variables, n_nodes, capacity))
+    mpi_mortars.u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
-    mpi_mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                                      (2, n_variables, n_nodes, capacity))
+    mpi_mortars.u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     resize!(local_neighbor_ids, capacity)
     resize!(local_neighbor_positions, capacity)
@@ -1106,12 +1093,10 @@ function TreeMPIL2MortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                          (2, n_variables, n_nodes, capacity))
+    u_upper = wrap_storage(_u_upper, (2, n_variables, n_nodes, capacity))
 
     _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
-    u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                          (2, n_variables, n_nodes, capacity))
+    u_lower = wrap_storage(_u_lower, (2, n_variables, n_nodes, capacity))
 
     local_neighbor_ids = fill(Vector{Int}(), capacity)
     local_neighbor_positions = fill(Vector{Int}(), capacity)
@@ -1129,8 +1114,9 @@ end
 
 # Check whether the arrays in `mpi_mortars` have the axes we assume it must have in the
 # inner loops of Trixi.jl.
-function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations, solver::DG,
-                    cache)
+@inline function check_axes(mpi_mortars::TreeMPIL2MortarContainer2D, equations,
+                            solver::DG,
+                            cache)
     u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
                      eachnode(solver),
                      eachmpimortar(solver, cache))
@@ -1410,10 +1396,10 @@ end
 #                            (i, j-1)
 mutable struct ContainerAntidiffusiveFlux2D{uEltype <: Real} <:
                AbstractContainerAntidiffusiveFlux
-    antidiffusive_flux1_L::Array{uEltype, 4} # [variables, i, j, elements]
-    antidiffusive_flux1_R::Array{uEltype, 4} # [variables, i, j, elements]
-    antidiffusive_flux2_L::Array{uEltype, 4} # [variables, i, j, elements]
-    antidiffusive_flux2_R::Array{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux1_L::VectorBackedArray{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux1_R::VectorBackedArray{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux2_L::VectorBackedArray{uEltype, 4} # [variables, i, j, elements]
+    antidiffusive_flux2_R::VectorBackedArray{uEltype, 4} # [variables, i, j, elements]
     # internal `resize!`able storage
     _antidiffusive_flux1_L::Vector{uEltype}
     _antidiffusive_flux1_R::Vector{uEltype}
@@ -1428,21 +1414,21 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     # Initialize fields with defaults
     _antidiffusive_flux1_L = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * capacity)
-    antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
-                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    antidiffusive_flux1_L = wrap_storage(_antidiffusive_flux1_L,
+                                         (n_variables, n_nodes + 1, n_nodes, capacity))
     _antidiffusive_flux1_R = fill(nan_uEltype,
                                   n_variables * (n_nodes + 1) * n_nodes * capacity)
-    antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
-                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    antidiffusive_flux1_R = wrap_storage(_antidiffusive_flux1_R,
+                                         (n_variables, n_nodes + 1, n_nodes, capacity))
 
     _antidiffusive_flux2_L = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * capacity)
-    antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
-                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+    antidiffusive_flux2_L = wrap_storage(_antidiffusive_flux2_L,
+                                         (n_variables, n_nodes, n_nodes + 1, capacity))
     _antidiffusive_flux2_R = fill(nan_uEltype,
                                   n_variables * n_nodes * (n_nodes + 1) * capacity)
-    antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
-                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+    antidiffusive_flux2_R = wrap_storage(_antidiffusive_flux2_R,
+                                         (n_variables, n_nodes, n_nodes + 1, capacity))
 
     reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
                                 antidiffusive_flux2_L, antidiffusive_flux2_R)
@@ -1460,8 +1446,8 @@ end
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
 # them whenever needed. Then, we reuse the same memory by
-# `unsafe_wrap`ping multi-dimensional `Array`s around the
-# internal storage.
+# wrapping multi-dimensional arrays around the internal
+# storage (see `wrap_storage`).
 function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     n_nodes = nnodes(fluxes)
     n_variables = nvariables(fluxes)
@@ -1469,21 +1455,21 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
     @unpack _antidiffusive_flux1_L, _antidiffusive_flux2_L, _antidiffusive_flux1_R, _antidiffusive_flux2_R = fluxes
 
     resize!(_antidiffusive_flux1_L, n_variables * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_L = unsafe_wrap(Array, pointer(_antidiffusive_flux1_L),
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                capacity))
+    fluxes.antidiffusive_flux1_L = wrap_storage(_antidiffusive_flux1_L,
+                                                (n_variables, n_nodes + 1, n_nodes,
+                                                 capacity))
     resize!(_antidiffusive_flux1_R, n_variables * (n_nodes + 1) * n_nodes * capacity)
-    fluxes.antidiffusive_flux1_R = unsafe_wrap(Array, pointer(_antidiffusive_flux1_R),
-                                               (n_variables, n_nodes + 1, n_nodes,
-                                                capacity))
+    fluxes.antidiffusive_flux1_R = wrap_storage(_antidiffusive_flux1_R,
+                                                (n_variables, n_nodes + 1, n_nodes,
+                                                 capacity))
     resize!(_antidiffusive_flux2_L, n_variables * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux2_L = unsafe_wrap(Array, pointer(_antidiffusive_flux2_L),
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                capacity))
+    fluxes.antidiffusive_flux2_L = wrap_storage(_antidiffusive_flux2_L,
+                                                (n_variables, n_nodes, n_nodes + 1,
+                                                 capacity))
     resize!(_antidiffusive_flux2_R, n_variables * n_nodes * (n_nodes + 1) * capacity)
-    fluxes.antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
-                                               (n_variables, n_nodes, n_nodes + 1,
-                                                capacity))
+    fluxes.antidiffusive_flux2_R = wrap_storage(_antidiffusive_flux2_R,
+                                                (n_variables, n_nodes, n_nodes + 1,
+                                                 capacity))
 
     # The antidiffusive fluxes at the element interfaces are not computed but
     # assumed to be zero, see `calcflux_antidiffusive!`

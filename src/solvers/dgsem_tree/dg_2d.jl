@@ -72,9 +72,9 @@ end
 
 # Check whether the thread-local buffers created by `create_f_threaded` have the axes
 # we assume in the inner loops of Trixi.jl.
-function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
-                               f2_L_threaded, f2_R_threaded,
-                               mesh::AbstractMesh{2}, equations, dg::DG)
+@inline function check_axes_f_threaded(f1_L_threaded, f1_R_threaded,
+                                       f2_L_threaded, f2_R_threaded,
+                                       mesh::AbstractMesh{2}, equations, dg::DG)
     f1_axes = (eachvariable(equations), Base.OneTo(nnodes(dg) + 1), eachnode(dg))
     f2_axes = (eachvariable(equations), eachnode(dg), Base.OneTo(nnodes(dg) + 1))
     check_axes_threaded(f1_L_threaded, f1_axes)
@@ -100,7 +100,7 @@ end
 
 # Check whether the storage created by `create_cache_subcell_fv` has the axes we
 # assume in the inner loops of Trixi.jl.
-function check_axes_subcell_fv(mesh::TreeMesh{2}, equations, dg::DG, cache)
+@inline function check_axes_subcell_fv(mesh::TreeMesh{2}, equations, dg::DG, cache)
     check_axes_f_threaded(cache.fstar1_L_threaded, cache.fstar1_R_threaded,
                           cache.fstar2_L_threaded, cache.fstar2_R_threaded,
                           mesh, equations, dg)
@@ -561,7 +561,8 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
                              dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -598,7 +599,8 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     @unpack boundary_interpolation = dg.basis
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -664,7 +666,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -686,7 +690,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
             for i in eachnode(dg)
                 # Call pointwise Riemann solver
-                u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+                u_ll, u_rr = get_surface_node_vars(interfaces_u, equations, dg, i,
+                                                   interface)
                 flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
                 # Copy flux to left and right element storage
@@ -706,7 +711,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+    @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -729,7 +736,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
             for i in eachnode(dg)
                 # Call pointwise Riemann solver
                 orientation = orientations[interface]
-                u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+                u_ll, u_rr = get_surface_node_vars(interfaces_u, equations, dg, i,
+                                                   interface)
                 flux = surface_flux(u_ll, u_rr, orientation, equations)
 
                 # Compute both nonconservative fluxes

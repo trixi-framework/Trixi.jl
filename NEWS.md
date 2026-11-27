@@ -28,8 +28,18 @@ for human readability.
 - `SurfaceIntegralUpwind(splitting)` now returns the equivalent
   `SurfaceIntegralStrongForm(FluxUpwind(splitting))` instead of a separate type, so it
   also supports non-periodic boundary conditions. Results change at round-off level ([#3498]).
+- `wrap_array` now returns arrays from
+  [FixedSizeArrays.jl](https://github.com/JuliaArrays/FixedSizeArrays.jl) for solutions
+  stored in a `Vector` (and `reshape`d arrays otherwise, e.g., on GPUs) instead of
+  `PtrArray`s. These arrays keep the solution vector alive, so it no longer needs to be
+  `GC.@preserve`d while the wrapped array is in use. AMR now also works for non-`isbits`
+  element types such as `BigFloat` on Julia v1.10, and slices of the arrays returned by
+  `wrap_array` can be passed to `ScalarPlotData2D` ([#3357]).
+- The minimum supported version of MPI.jl is now v0.20.28 ([#3357]).
 
 #### Deprecated
+- The internal function `wrap_array_native` is deprecated in favor of `wrap_array`
+  ([#3357]).
 
 
 ## Changes when updating to v0.18 from v0.17.x

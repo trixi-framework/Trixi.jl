@@ -97,7 +97,8 @@ function prolong2interfaces!(backend::Nothing, cache, u,
                              equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
@@ -199,6 +200,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
@@ -220,7 +223,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                                                      have_nonconservative_terms,
                                                      equations, surface_integral,
                                                      SolverT,
-                                                     cache.interfaces.u, aux_interface,
+                                                     interfaces_u, aux_interface,
                                                      neighbor_ids,
                                                      node_indices,
                                                      contravariant_vectors, index_range,

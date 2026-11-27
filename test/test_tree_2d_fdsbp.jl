@@ -11,6 +11,30 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # For `FDSBP`, `wrap_array` returns an array whose number of variables is known at
+    # compile time, but not the number of nodes.
+    u = @inferred Trixi.wrap_array(sol.u[end], semi)
+    @test u isa Trixi.FixedSizeArrayDims{Float64, 4, Tuple{Val{1}, Int, Int, Int},
+                                   Vector{Float64}}
+    @test parent(u) === sol.u[end]
+    @test size(u) ==
+          (1, Trixi.nnodes(semi.solver), Trixi.nnodes(semi.solver),
+           Trixi.nelements(semi.solver, semi.cache))
+
+    # `static_view` creates the same array type from an array without static sizes
+    u_fixed = Trixi.wrap_storage(sol.u[end], size(u))
+    u_s = @inferred Trixi.static_view(u_fixed, semi.equations, semi.solver)
+    @test typeof(u_s) == typeof(u)
+    @test u_s == u
+    # and checks the number of variables, also if the length matches
+    n_variables, n_nodes_x, n_nodes_y, n_elements = size(u)
+    u_wrong_variables = Trixi.wrap_storage(sol.u[end],
+                                           (n_nodes_x, n_variables, n_nodes_y,
+                                            n_elements))
+    @test_throws "does not match nvariables = 1" Trixi.static_view(u_wrong_variables,
+                                                                   semi.equations,
+                                                                   semi.solver)
 end
 
 @testitem "TreeMesh2D FDSBP: elixir_advection_extended.jl with Dirichlet boundary conditions" setup=[

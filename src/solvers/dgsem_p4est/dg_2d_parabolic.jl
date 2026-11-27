@@ -281,6 +281,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     index_end = last(index_range)
@@ -333,7 +335,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
 
                 calc_interface_flux_gradient!(surface_flux_values, mesh,
                                               equations_parabolic,
-                                              dg, parabolic_scheme, cache,
+                                              dg, parabolic_scheme, interfaces_u,
                                               interface, normal_direction, i,
                                               primary_direction, primary_element,
                                               node_secondary,
@@ -357,7 +359,7 @@ Base.@propagate_inbounds function calc_interface_flux_gradient!(surface_flux_val
                                                                 equations_parabolic,
                                                                 dg::DG,
                                                                 parabolic_scheme,
-                                                                cache,
+                                                                interfaces_u,
                                                                 interface_index,
                                                                 normal_direction,
                                                                 primary_node_index,
@@ -366,9 +368,7 @@ Base.@propagate_inbounds function calc_interface_flux_gradient!(surface_flux_val
                                                                 secondary_node_index,
                                                                 secondary_direction_index,
                                                                 secondary_element_index)
-    @unpack u = cache.interfaces
-
-    u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+    u_ll, u_rr = get_surface_node_vars(interfaces_u, equations_parabolic, dg,
                                        primary_node_index, interface_index)
 
     flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
@@ -450,6 +450,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
     (; interfaces) = cache
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -488,7 +490,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                         primary_element)
 
                 for v in eachvariable(equations_parabolic)
-                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
                     flux_parabolic_node = SVector(flux_parabolic_x[v,
                                                                    i_primary,
                                                                    j_primary,
@@ -498,7 +500,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                                    j_primary,
                                                                    primary_element])
 
-                    interfaces.u[1, v, i, interface] = dot(flux_parabolic_node,
+                    interfaces_u[1, v, i, interface] = dot(flux_parabolic_node,
                                                            normal_direction)
                 end
                 i_primary += i_primary_step
@@ -528,7 +530,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                         secondary_element)
 
                 for v in eachvariable(equations_parabolic)
-                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
                     flux_parabolic_node = SVector(flux_parabolic_x[v,
                                                                    i_secondary,
                                                                    j_secondary,
@@ -539,7 +541,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                                    secondary_element])
                     # store the normal flux with respect to the primary normal direction,
                     # which is the negative of the secondary normal direction
-                    interfaces.u[2, v, i, interface] = -dot(flux_parabolic_node,
+                    interfaces_u[2, v, i, interface] = -dot(flux_parabolic_node,
                                                             normal_direction)
                 end
                 i_secondary += i_secondary_step
@@ -556,6 +558,8 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     (; neighbor_ids, node_indices) = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
     index_end = last(index_range)
@@ -609,7 +613,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
                 # We prolong the parabolic flux dotted with respect the outward normal on the
                 # primary element.
                 (parabolic_flux_normal_ll,
-                parabolic_flux_normal_rr) = get_surface_node_vars(cache.interfaces.u,
+                parabolic_flux_normal_rr) = get_surface_node_vars(interfaces_u,
                                                                   equations_parabolic,
                                                                   dg,
                                                                   i, interface)

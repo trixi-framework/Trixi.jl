@@ -10,7 +10,8 @@ function nelements end
 
 # Fallback for `cache.elements` that do not support a safe `@inbounds`
 # implementation.
-function check_axes(elements::AbstractElementContainer, equations, solver::DG, cache)
+@inline function check_axes(elements::AbstractElementContainer, equations, solver::DG,
+                            cache)
     return nothing
 end
 

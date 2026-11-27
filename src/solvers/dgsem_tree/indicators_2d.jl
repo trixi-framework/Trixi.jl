@@ -30,8 +30,9 @@ end
 # Check whether the thread-local storage of `indicator_hg` has the axes we assume in
 # `calc_indicator_hennemann_gassner!`. The size of this storage is determined by the
 # basis passed when constructing the indicator, which may differ from the one of `dg`.
-function check_axes_indicator_hennemann_gassner(indicator_hg, mesh::AbstractMesh{2},
-                                                dg)
+@inline function check_axes_indicator_hennemann_gassner(indicator_hg,
+                                                        mesh::AbstractMesh{2},
+                                                        dg)
     @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
     expected_axes = (eachnode(dg), eachnode(dg))
     check_axes_threaded(indicator_threaded, expected_axes)

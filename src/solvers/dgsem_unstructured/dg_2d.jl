@@ -41,7 +41,8 @@ end
 function prolong2interfaces!(cache, u, mesh::UnstructuredMesh2D, equations, dg::DG)
     @unpack interfaces = cache
     @unpack element_ids, element_side_ids = interfaces
-    interfaces_u = interfaces.u
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -113,7 +114,9 @@ function calc_interface_flux!(surface_flux_values,
                               have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
-    @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
+    @unpack start_index, index_increment, element_ids, element_side_ids = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @unpack normal_directions = cache.elements
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -139,9 +142,9 @@ function calc_interface_flux!(surface_flux_values,
             # loop through the primary element coordinate system and compute the interface coupling
             for primary_index in eachnode(dg)
                 # pull the primary and secondary states from the boundary u values
-                u_ll = get_one_sided_surface_node_vars(u, equations, dg,
+                u_ll = get_one_sided_surface_node_vars(interfaces_u, equations, dg,
                                                        1, primary_index, interface)
-                u_rr = get_one_sided_surface_node_vars(u, equations, dg,
+                u_rr = get_one_sided_surface_node_vars(interfaces_u, equations, dg,
                                                        2, secondary_index, interface)
 
                 # pull the outward pointing (normal) directional vector
@@ -179,7 +182,9 @@ function calc_interface_flux!(surface_flux_values,
                               have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
+    @unpack start_index, index_increment, element_ids, element_side_ids = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations, dg)
     @unpack normal_directions = cache.elements
 
     # Explicit bounds check, which allows us to assume inbounds access below
@@ -204,9 +209,9 @@ function calc_interface_flux!(surface_flux_values,
             secondary_index = start_index[interface]
             for primary_index in eachnode(dg)
                 # pull the primary and secondary states from the boundary u values
-                u_ll = get_one_sided_surface_node_vars(u, equations, dg,
+                u_ll = get_one_sided_surface_node_vars(interfaces_u, equations, dg,
                                                        1, primary_index, interface)
-                u_rr = get_one_sided_surface_node_vars(u, equations, dg,
+                u_rr = get_one_sided_surface_node_vars(interfaces_u, equations, dg,
                                                        2, secondary_index, interface)
 
                 # pull the outward pointing (normal) directional vector

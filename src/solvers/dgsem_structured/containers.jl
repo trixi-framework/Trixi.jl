@@ -90,8 +90,8 @@ end
 
 # Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(elements::StructuredElementContainer{NDIMS}, equations,
-                    solver::DG, cache) where {NDIMS}
+@inline function check_axes(elements::StructuredElementContainer{NDIMS}, equations,
+                            solver::DG, cache) where {NDIMS}
     node_axes = ntuple(_ -> eachnode(solver), NDIMS)
     surface_node_axes = ntuple(_ -> eachnode(solver), NDIMS - 1)
     check_axes(elements.node_coordinates,
@@ -137,8 +137,6 @@ Base.@propagate_inbounds function get_normal_vector(normal_vectors, indices...)
     return SVector(ntuple(@inline(dim->@inbounds normal_vectors[dim, indices...]),
                           Val(ndims(normal_vectors) - 2)))
 end
-
-@inline storage_type(::AbstractNormalVectorContainer) = Array
 
 include("containers_1d.jl")
 include("containers_2d.jl")

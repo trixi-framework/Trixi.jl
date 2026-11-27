@@ -194,6 +194,8 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
                               equations_parabolic, dg::DG, parabolic_scheme,
                               cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -214,7 +216,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
             right_direction = 2 * orientations[interface] - 1
 
             # Get precomputed fluxes at interfaces
-            flux_ll, flux_rr = get_surface_node_vars(cache.interfaces.u,
+            flux_ll, flux_rr = get_surface_node_vars(interfaces_u,
                                                      equations_parabolic, dg,
                                                      interface)
 
@@ -481,6 +483,8 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
     @unpack neighbor_ids, orientations = cache.interfaces
+    # Load once outside of the loop over the interfaces, see `static_view_interfaces`
+    interfaces_u = static_view_interfaces(cache.interfaces.u, equations_parabolic, dg)
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
@@ -501,7 +505,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
             right_direction = 2 * orientations[interface] - 1
 
             # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(cache.interfaces.u,
+            u_ll, u_rr = get_surface_node_vars(interfaces_u,
                                                equations_parabolic, dg,
                                                interface)
 
