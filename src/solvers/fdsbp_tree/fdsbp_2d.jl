@@ -81,6 +81,13 @@ function calc_volume_integral!(backend, du, u,
     Q_split_base, row_ids, rows, vals = sparse_operator_data(Q_split)
 
     @threaded for element in eachelement(dg, cache)
+        # The first contribution to a node depends on the sparsity pattern of
+        # `Q_split`. Thus, we reset `du` in this element since the volume integral
+        # must overwrite `du`, see the interface of volume integrals in
+        # `src/solvers/dg.jl`. This is cheap since the element data are loaded into
+        # the cache anyway.
+        du[.., element] .= zero(eltype(du))
+
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
 
@@ -158,8 +165,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
         # x direction
         @. f_element = flux(u_element, 1, equations)
         for j in eachnode(dg)
+            # The x direction overwrites `du` (see the interface of volume integrals
+            # in `src/solvers/dg.jl`)
             mul!(view(du_vectors, :, j, element), D, view(f_element, :, j),
-                 one(eltype(du)), one(eltype(du)))
+                 one(eltype(du)))
         end
 
         # y direction
@@ -224,8 +233,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
         # x direction
         @. f_minus_plus_element = splitting(u_element, 1, equations)
         for j in eachnode(dg)
+            # The first operator in x direction overwrites `du` (see the interface of
+            # volume integrals in `src/solvers/dg.jl`)
             mul!(view(du_vectors, :, j, element), D_minus, view(f_plus_element, :, j),
-                 one(eltype(du)), one(eltype(du)))
+                 one(eltype(du)))
             mul!(view(du_vectors, :, j, element), D_plus, view(f_minus_element, :, j),
                  one(eltype(du)), one(eltype(du)))
         end

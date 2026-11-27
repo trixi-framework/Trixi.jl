@@ -61,7 +61,8 @@ end
 # Subcell limiting currently only implemented for certain mesh types
 @inline function volume_integral_kernel!(du, u, element,
                                          MeshT::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
-                                         nonconservative_terms, equations,
+                                         nonconservative_terms, set_not_add,
+                                         equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
@@ -104,12 +105,14 @@ end
     # Calculate volume integral contribution of low-order FV flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            du[v, i, j, k, element] += inverse_weights[i] *
-                                       (fstar1_L[v, i + 1, j, k] - fstar1_R[v, i, j, k]) +
-                                       inverse_weights[j] *
-                                       (fstar2_L[v, i, j + 1, k] - fstar2_R[v, i, j, k]) +
-                                       inverse_weights[k] *
-                                       (fstar3_L[v, i, j, k + 1] - fstar3_R[v, i, j, k])
+            multiply_set_or_add!(du, true,
+                                 inverse_weights[i] *
+                                 (fstar1_L[v, i + 1, j, k] - fstar1_R[v, i, j, k]) +
+                                 inverse_weights[j] *
+                                 (fstar2_L[v, i, j + 1, k] - fstar2_R[v, i, j, k]) +
+                                 inverse_weights[k] *
+                                 (fstar3_L[v, i, j, k + 1] - fstar3_R[v, i, j, k]),
+                                 set_not_add, v, i, j, k, element)
         end
     end
 

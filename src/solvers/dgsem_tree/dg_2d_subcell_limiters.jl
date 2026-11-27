@@ -62,7 +62,8 @@ end
                                          MeshT::Type{<:Union{TreeMesh{2},
                                                              StructuredMesh{2},
                                                              P4estMesh{2}}},
-                                         have_nonconservative_terms, equations,
+                                         have_nonconservative_terms, set_not_add,
+                                         equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -102,10 +103,12 @@ end
     # Calculate volume integral contribution of low-order FV flux
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            du[v, i, j, element] += inverse_weights[i] *
-                                    (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
-                                    inverse_weights[j] *
-                                    (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j])
+            multiply_set_or_add!(du, true,
+                                 inverse_weights[i] *
+                                 (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
+                                 inverse_weights[j] *
+                                 (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j]),
+                                 set_not_add, v, i, j, element)
         end
     end
 

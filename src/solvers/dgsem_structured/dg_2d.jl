@@ -51,7 +51,7 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
                                                                    P4estMeshView{2},
                                                                    T8codeMesh{2}}},
                                                     have_nonconservative_terms::False,
-                                                    equations,
+                                                    set_not_add, equations,
                                                     dg::DGSEM,
                                                     cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -61,6 +61,10 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
 
+    # If `set_not_add === True()`, the first contribution to each node overwrites `du`.
+    # In this loop order, node `(1, 1)` provides the first contribution to the nodes
+    # `(ii, 1)` (x direction) and the nodes `(i, 1)` provide the first contributions
+    # to the nodes `(i, jj)` with `jj > 1` (y direction).
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
@@ -73,9 +77,10 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
-                                       contravariant_flux1, equations, dg,
-                                       ii, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
+                                              contravariant_flux1,
+                                              set_not_add & (i == 1) & (j == 1),
+                                              equations, dg, ii, j, element)
         end
 
         # Compute the contravariant flux by taking the scalar product of the
@@ -83,9 +88,10 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
-                                       contravariant_flux2, equations, dg,
-                                       i, jj, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
+                                              contravariant_flux2,
+                                              set_not_add & (j == 1) & (jj > 1),
+                                              equations, dg, i, jj, element)
         end
     end
 
@@ -100,7 +106,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                                            P4estMesh{2},
                                                                            T8codeMesh{2}}},
                                                             have_nonconservative_terms::False,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -121,8 +127,14 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # the computation of the diagonal terms. In addition, we use the symmetry
         # of the `volume_flux` to save half of the possible two-point flux
         # computations.
+        # If `set_not_add === True()`, the first contribution to each node overwrites
+        # `du`. In this loop order, these are the contributions of the pairs
+        # `((1, 1), (ii, 1))` to the nodes `(ii, 1)` (x direction; the pair with
+        # `ii = 2` for node `(1, 1)`) and of the pairs `((i, 1), (i, jj))` to the
+        # nodes `(i, jj)` with `jj > 1` (y direction).
 
         # x direction
+        set_not_add_x = set_not_add & (i == 1) & (j == 1)
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             aux_node_ii = get_aux_node_vars(aux, equations, dg, ii, j, element)
@@ -137,10 +149,12 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             fluxtilde1 = volume_flux(u_node, u_node_ii,
                                      aux_node..., aux_node_ii...,
                                      Ja1_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], fluxtilde1,
-                                       equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], fluxtilde1,
-                                       equations, dg, ii, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[i, ii],
+                                              fluxtilde1, set_not_add_x & (ii == 2),
+                                              equations, dg, i, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[ii, i],
+                                              fluxtilde1, set_not_add_x,
+                                              equations, dg, ii, j, element)
         end
 
         # y direction
@@ -160,8 +174,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                      Ja2_avg, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], fluxtilde2,
                                        equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], fluxtilde2,
-                                       equations, dg, i, jj, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[jj, j],
+                                              fluxtilde2, set_not_add & (j == 1),
+                                              equations, dg, i, jj, element)
         end
     end
 
@@ -176,13 +191,13 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                                                 P4estMesh{2},
                                                                                 T8codeMesh{2}}},
                                                             have_nonconservative_terms::True,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
-                              equations,
+                              set_not_add, equations,
                               volume_flux,
                               dg, cache, alpha)
     return nothing
@@ -197,7 +212,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                                                 T8codeMesh{2}}},
                                                             have_nonconservative_terms::True,
                                                             combine_conservative_and_nonconservative_fluxes::False,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -206,9 +221,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     # `nothing` if the equations do not have auxiliary variables
     aux = get_aux_vars(cache)
 
-    # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    # Apply the symmetric flux as usual, overwriting `du` if `set_not_add === True()`
+    flux_differencing_kernel!(du, u, element, MeshT, False(), set_not_add, equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for j in eachnode(dg), i in eachnode(dg)
@@ -280,7 +295,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                                            T8codeMesh{2}}},
                                                             have_nonconservative_terms::True,
                                                             combine_conservative_and_nonconservative_fluxes::True,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -301,8 +316,14 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # the computation of the diagonal terms. In addition, we use the symmetry
         # of the `volume_flux` to save half of the possible two-point flux
         # computations.
+        # If `set_not_add === True()`, the first contribution to each node overwrites
+        # `du`. In this loop order, these are the contributions of the pairs
+        # `((1, 1), (ii, 1))` to the nodes `(ii, 1)` (x direction; the pair with
+        # `ii = 2` for node `(1, 1)`) and of the pairs `((i, 1), (i, jj))` to the
+        # nodes `(i, jj)` with `jj > 1` (y direction).
 
         # x direction
+        set_not_add_x = set_not_add & (i == 1) & (j == 1)
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             aux_node_ii = get_aux_node_vars(aux, equations, dg, ii, j, element)
@@ -318,12 +339,13 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                             aux_node...,
                                                             aux_node_ii...,
                                                             Ja1_avg, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii],
-                                       fluxtilde1_left,
-                                       equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i],
-                                       fluxtilde1_right,
-                                       equations, dg, ii, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[i, ii],
+                                              fluxtilde1_left,
+                                              set_not_add_x & (ii == 2),
+                                              equations, dg, i, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[ii, i],
+                                              fluxtilde1_right, set_not_add_x,
+                                              equations, dg, ii, j, element)
         end
 
         # y direction
@@ -345,9 +367,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj],
                                        fluxtilde2_left,
                                        equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j],
-                                       fluxtilde2_right,
-                                       equations, dg, i, jj, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[jj, j],
+                                              fluxtilde2_right, set_not_add & (j == 1),
+                                              equations, dg, i, jj, element)
         end
     end
 

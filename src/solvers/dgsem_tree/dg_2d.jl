@@ -141,12 +141,9 @@ function rhs_hyperbolic!(backend::Nothing,
                          equations,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" begin
-        set_zero!(du, dg, cache)
-    end
-
-    # Calculate volume integral
+    # Calculate volume integral. Since this is the first term, the volume integral
+    # overwrites `du` instead of adding to it, so that `du` does not need to be
+    # reset to zero before.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
@@ -219,7 +216,7 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
                                                     element,
                                                     ::Type{<:TreeMesh{2}},
                                                     have_nonconservative_terms::False,
-                                                    equations,
+                                                    set_not_add, equations,
                                                     dg::DGSEM,
                                                     cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -227,19 +224,25 @@ Base.@propagate_inbounds function weak_form_kernel!(du, u,
     @unpack derivative_hat = dg.basis
 
     # Calculate volume terms in one element
+    # If `set_not_add === True()`, the first contribution to each node overwrites `du`.
+    # In this loop order, node `(1, 1)` provides the first contribution to the nodes
+    # `(ii, 1)` (x direction) and the nodes `(i, 1)` provide the first contributions
+    # to the nodes `(i, jj)` with `jj > 1` (y direction).
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
-                                       equations, dg, ii, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
+                                              set_not_add & (i == 1) & (j == 1),
+                                              equations, dg, ii, j, element)
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
-                                       equations, dg, i, jj, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
+                                              set_not_add & (j == 1) & (jj > 1),
+                                              equations, dg, i, jj, element)
         end
     end
 
@@ -250,7 +253,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                             element,
                                                             ::Type{<:TreeMesh{2}},
                                                             have_nonconservative_terms::False,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -265,15 +268,25 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
         # the computation of the diagonal terms. In addition, we use the symmetry
         # of the `volume_flux` to save half of the possible two-point flux
         # computations.
+        # If `set_not_add === True()`, the first contribution to each node overwrites
+        # `du`. In this loop order, these are the contributions of the pairs
+        # `((1, 1), (ii, 1))` to the nodes `(ii, 1)` (x direction; the pair with
+        # `ii = 2` for node `(1, 1)`) and of the pairs `((i, 1), (i, jj))` to the
+        # nodes `(i, jj)` with `jj > 1` (y direction).
 
         # x direction
+        set_not_add_x = set_not_add & (i == 1) & (j == 1)
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             flux1 = volume_flux(u_node, u_node_ii, 1, equations)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1,
-                                       equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[ii, i], flux1,
-                                       equations, dg, ii, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[i, ii],
+                                              flux1,
+                                              set_not_add_x & (ii == 2),
+                                              equations, dg, i, j, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[ii, i],
+                                              flux1,
+                                              set_not_add_x,
+                                              equations, dg, ii, j, element)
         end
 
         # y direction
@@ -282,8 +295,10 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
             flux2 = volume_flux(u_node, u_node_jj, 2, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2,
                                        equations, dg, i, j, element)
-            multiply_add_to_node_vars!(du, alpha * derivative_split[jj, j], flux2,
-                                       equations, dg, i, jj, element)
+            multiply_set_or_add_to_node_vars!(du, alpha * derivative_split[jj, j],
+                                              flux2,
+                                              set_not_add & (j == 1),
+                                              equations, dg, i, jj, element)
         end
     end
 end
@@ -292,7 +307,7 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
                                                             element,
                                                             MeshT::Type{<:TreeMesh{2}},
                                                             have_nonconservative_terms::True,
-                                                            equations,
+                                                            set_not_add, equations,
                                                             volume_flux, dg::DGSEM,
                                                             cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -300,9 +315,9 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
     @unpack derivative_split = dg.basis
     symmetric_flux, nonconservative_flux = volume_flux
 
-    # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    # Apply the symmetric flux as usual, overwriting `du` if `set_not_add === True()`
+    flux_differencing_kernel!(du, u, element, MeshT, False(), set_not_add, equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for j in eachnode(dg), i in eachnode(dg)
@@ -340,7 +355,8 @@ Base.@propagate_inbounds function fvO2_kernel!(du, u,
                                                                    UnstructuredMesh2D,
                                                                    P4estMesh{2},
                                                                    T8codeMesh{2}}},
-                                               have_nonconservative_terms, equations,
+                                               have_nonconservative_terms, set_not_add,
+                                               equations,
                                                volume_flux_fv, dg::DGSEM, cache,
                                                element,
                                                sc_interface_coords, reconstruction_mode,
@@ -363,11 +379,12 @@ Base.@propagate_inbounds function fvO2_kernel!(du, u,
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            du[v, i, j, element] += (alpha *
-                                     (inverse_weights[i] *
-                                      (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
-                                      inverse_weights[j] *
-                                      (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j])))
+            multiply_set_or_add!(du, alpha,
+                                 inverse_weights[i] *
+                                 (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
+                                 inverse_weights[j] *
+                                 (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j]),
+                                 set_not_add, v, i, j, element)
         end
     end
 
@@ -449,7 +466,8 @@ Base.@propagate_inbounds function fv_kernel!(du, u,
                                                                  UnstructuredMesh2D,
                                                                  P4estMesh{2},
                                                                  T8codeMesh{2}}},
-                                             have_nonconservative_terms, equations,
+                                             have_nonconservative_terms, set_not_add,
+                                             equations,
                                              volume_flux_fv, dg::DGSEM, cache,
                                              element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -467,11 +485,12 @@ Base.@propagate_inbounds function fv_kernel!(du, u,
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
         for v in eachvariable(equations)
-            du[v, i, j, element] += (alpha *
-                                     (inverse_weights[i] *
-                                      (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
-                                      inverse_weights[j] *
-                                      (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j])))
+            multiply_set_or_add!(du, alpha,
+                                 inverse_weights[i] *
+                                 (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
+                                 inverse_weights[j] *
+                                 (fstar2_L[v, i, j + 1] - fstar2_R[v, i, j]),
+                                 set_not_add, v, i, j, element)
         end
     end
 

@@ -2,12 +2,12 @@
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
                                            have_nonconservative_terms::False,
-                                           equations,
+                                           set_not_add, equations,
                                            volume_flux::FluxTurbo, dg::DGSEM,
                                            cache, alpha)
     @unpack numerical_flux = volume_flux
     flux_differencing_kernel_turbo!(_du, u_cons, element, MeshT, have_nonconservative_terms,
-                                    equations,
+                                    set_not_add, equations,
                                     numerical_flux, dg, cache, alpha,
                                     nturbovars(numerical_flux, equations),
                                     Val(nvariables(equations)),
@@ -22,7 +22,7 @@ end
                                                     MeshT::Type{<:Union{StructuredMesh{3},
                                                                         P4estMesh{3}}},
                                                     have_nonconservative_terms::False,
-                                                    equations,
+                                                    set_not_add, equations,
                                                     volume_flux,
                                                     dg, cache, alpha, ::Val{NTURBO},
                                                     ::Val{NVARS}, aux,
@@ -253,15 +253,9 @@ end
             end
         end # GC.@preserve u_prim begin
 
-        # Finally, we add the temporary RHS computed here to the global RHS in the
+        # Finally, we set or add the temporary RHS computed here to the global RHS in the
         # given `element`.
-        @turbo for v in eachvariable(equations),
-                   k in eachnode(dg),
-                   j in eachnode(dg),
-                   i in eachnode(dg)
-
-            _du[v, i, j, k, element] += du[i, j, k, v]
-        end
+        set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 
         return nothing
     end
@@ -271,12 +265,12 @@ end
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
                                            have_nonconservative_terms::True,
-                                           equations,
+                                           set_not_add, equations,
                                            volume_flux::FluxTurbo, dg::DGSEM,
                                            cache, alpha)
     @unpack numerical_flux = volume_flux
     flux_differencing_kernel_turbo!(_du, u_cons, element, MeshT, have_nonconservative_terms,
-                                    equations,
+                                    set_not_add, equations,
                                     numerical_flux, dg, cache, alpha,
                                     nturbovars(numerical_flux, equations),
                                     Val(nvariables(equations)),
@@ -289,7 +283,7 @@ end
                                                     MeshT::Type{<:Union{StructuredMesh{3},
                                                                         P4estMesh{3}}},
                                                     have_nonconservative_terms::True,
-                                                    equations,
+                                                    set_not_add, equations,
                                                     numerical_flux,
                                                     dg, cache, alpha, ::Val{NTURBO},
                                                     ::Val{NVARS}, aux,
@@ -522,15 +516,9 @@ end
             end
         end # GC.@preserve u_prim begin
 
-        # Finally, we add the temporary RHS computed here to the global RHS in the
+        # Finally, we set or add the temporary RHS computed here to the global RHS in the
         # given `element`.
-        @turbo for v in eachvariable(equations),
-                   k in eachnode(dg),
-                   j in eachnode(dg),
-                   i in eachnode(dg)
-
-            _du[v, i, j, k, element] += du[i, j, k, v]
-        end
+        set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 
         return nothing
     end

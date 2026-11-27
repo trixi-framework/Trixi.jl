@@ -338,13 +338,14 @@ function calc_volume_integral!(backend::Nothing, du, u,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    # We require `du` to be set to zero before this operation.
+                    # Since this is the first term in `rhs_hyperbolic!`, `du` is
+                    # overwritten (see the interface of volume integrals in
+                    # `src/solvers/dg.jl`).
                     # The numerical fluxes are computed using scaled normal
                     # directions (scaled by the interface length) and the
                     # division by the cell volume (Jacobian) is done later
                     # when evaluating the semidiscretization (`rhs_hyperbolic!`).
-                    du[v, i, j, element] = (du[v, i, j, element] +
-                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
+                    du[v, i, j, element] = ((fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
                                             (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
                 end
             end

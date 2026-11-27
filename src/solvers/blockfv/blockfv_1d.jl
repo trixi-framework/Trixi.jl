@@ -26,7 +26,7 @@ end
 #####################################################################
 # Volume integral: FV flux differences at internal faces
 # The update for reference-element cell i is:
-# du[i] += inv_h * (fstar[i+1] - fstar[i])
+# du[i] = inv_h * (fstar[i+1] - fstar[i])
 # where inv_h = n/2 = 1/h_ref (uniform cell size h_ref = 2/n).
 # Boundary slots fstar[1] and fstar[n+1] are kept zero so that the
 # surface integral can add the element-boundary fluxes separately.
@@ -50,11 +50,12 @@ function calc_volume_integral!(backend::Nothing, du, u,
             set_node_vars!(fstar, f, equations, dg, i)
         end
 
-        # Apply flux differences to du (boundary slots are zero)
+        # Apply flux differences to du (boundary slots are zero). Since this is the
+        # first term in `rhs_hyperbolic!`, `du` is overwritten (see the interface of
+        # volume integrals in `src/solvers/dg.jl`).
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                du[v, i, element] = du[v, i, element] +
-                                    inv_h * (fstar[v, i + 1] - fstar[v, i])
+                du[v, i, element] = inv_h * (fstar[v, i + 1] - fstar[v, i])
             end
         end
     end

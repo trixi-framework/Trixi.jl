@@ -61,12 +61,42 @@ end # muladd
 # We do not wrap this code in `@muladd begin ... end` block. Optimizations like
 # this are handled automatically by LoopVectorization.jl.
 
+# Store the temporary RHS `du` with permuted indices `[i, j, v]` computed by the
+# specialized `flux_differencing_kernel!`s in the global RHS `_du` in the given
+# `element`. Following the interface of volume integrals (see `src/solvers/dg.jl`),
+# `_du` is overwritten if `set_not_add === True()` and `du` is added to `_du` if
+# `set_not_add === False()`.
+@inline function set_or_add_element_turbo!(_du::AbstractArray{<:Any, 4}, du, element,
+                                           set_not_add::True, equations, dg::DGSEM)
+    @turbo for v in eachvariable(equations),
+               j in eachnode(dg),
+               i in eachnode(dg)
+
+        _du[v, i, j, element] = du[i, j, v]
+    end
+
+    return nothing
+end
+
+@inline function set_or_add_element_turbo!(_du::AbstractArray{<:Any, 4}, du, element,
+                                           set_not_add::False, equations, dg::DGSEM)
+    @turbo for v in eachvariable(equations),
+               j in eachnode(dg),
+               i in eachnode(dg)
+
+        _du[v, i, j, element] += du[i, j, v]
+    end
+
+    return nothing
+end
+
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, MeshT::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -216,19 +246,15 @@ end # muladd
         end
     end
 
-    # Finally, we add the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, element] += du[i, j, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element, MeshT::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -451,12 +477,7 @@ end
         end
     end
 
-    # Finally, we add the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, element] += du[i, j, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end

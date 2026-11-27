@@ -378,10 +378,9 @@ function rhs_hyperbolic!(backend::Nothing,
         start_mpi_send!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
+    # Calculate volume integral. Since this is the first term, the volume integral
+    # overwrites `du` instead of adding to it, so that `du` does not need to be
+    # reset to zero before.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,

@@ -14,18 +14,30 @@ abstract type AbstractVolumeIntegral end
 # the following methods for the solvers it supports (see, e.g.,
 # `dgsem/calc_volume_integral.jl` for `DGSEM`):
 # - `volume_integral_kernel!(du, u, element, MeshT,
-#                            have_nonconservative_terms, equations,
+#                            have_nonconservative_terms, set_not_add, equations,
 #                            volume_integral, dg, cache)`
 #   computing the contribution of a single `element`. It is called by the generic
 #   loop over all elements in `calc_volume_integral!` and by composite volume
 #   integrals. Volume integrals used in a convex blend (e.g., as
 #   `volume_integral_blend_high_order` of a `VolumeIntegralShockCapturingHGType`)
 #   accept an additional argument `alpha` between 0 and 1 scaling their contribution.
+#   If `set_not_add` is `True()`, the kernel must overwrite all values of `du` in this
+#   `element`, i.e., it must not read them (see below).
+#   If `set_not_add` is `False()`, the kernel adds its contribution to `du`, e.g.,
+#   as the second part of a convex blend.
+#   Kernels accumulating several contributions per node can use
+#   `multiply_set_or_add_to_node_vars!` for this.
 # - `calc_volume_integral!(backend, du, u, mesh,
 #                          have_nonconservative_terms, equations,
 #                          volume_integral, dg, cache)`
 #   if the volume integral cannot be computed element by element, e.g., since an
 #   indicator needs to be evaluated for all elements first.
+#
+# The volume integral is the first term computed in `rhs_hyperbolic!`.
+# To avoid an additional pass over the memory, `du` is not reset to zero before.
+# Instead, `calc_volume_integral!` must overwrite all values of `du`, i.e.,
+# call the volume integral kernels with `set_not_add = True()`.
+# All other terms (surface integral, source terms, ...) are added afterwards.
 #
 # It can implement the following methods, whose defaults are defined below.
 # The storage of volume integrals is handled for every node of the tree spanned by
@@ -1567,6 +1579,71 @@ Base.@propagate_inbounds function multiply_add_to_node_vars!(u, factor, u_node,
     for v in eachvariable(equations)
         u[v, indices...] = u[v, indices...] + factor * u_node[v]
     end
+    return nothing
+end
+
+# Multiply-and-set counterpart of `multiply_add_to_node_vars!`, which overwrites the
+# values of `u` at the given node instead of adding to them
+Base.@propagate_inbounds function multiply_set_node_vars!(u, factor, u_node,
+                                                          equations, solver::DG,
+                                                          indices...)
+    for v in eachvariable(equations)
+        u[v, indices...] = factor * u_node[v]
+    end
+    return nothing
+end
+
+# Set (`set_not_add` is `True()` or `true`) or add (`False()` or `false`) `factor * u_node`
+# to the values of `u` at the given node.
+# Volume integral kernels use this to overwrite `du` with the first contribution to each node
+# and to add all further contributions, see the interface of volume integrals at the top of this file.
+# A runtime `Bool` such as `set_not_add & (i == 1)` marks the first contribution in a loop.
+# The static versions `True()` and `False()` avoid any runtime check.
+Base.@propagate_inbounds function multiply_set_or_add_to_node_vars!(u, factor, u_node,
+                                                                    set_not_add::True,
+                                                                    equations,
+                                                                    solver::DG,
+                                                                    indices...)
+    multiply_set_node_vars!(u, factor, u_node, equations, solver, indices...)
+    return nothing
+end
+
+Base.@propagate_inbounds function multiply_set_or_add_to_node_vars!(u, factor, u_node,
+                                                                    set_not_add::False,
+                                                                    equations,
+                                                                    solver::DG,
+                                                                    indices...)
+    multiply_add_to_node_vars!(u, factor, u_node, equations, solver, indices...)
+    return nothing
+end
+
+Base.@propagate_inbounds function multiply_set_or_add_to_node_vars!(u, factor, u_node,
+                                                                    set_not_add::Bool,
+                                                                    equations,
+                                                                    solver::DG,
+                                                                    indices...)
+    if set_not_add
+        multiply_set_node_vars!(u, factor, u_node, equations, solver, indices...)
+    else
+        multiply_add_to_node_vars!(u, factor, u_node, equations, solver, indices...)
+    end
+    return nothing
+end
+
+# Scalar version of `multiply_set_or_add_to_node_vars!` for a single entry of `u`, used by
+# kernels writing every entry exactly once, e.g., subcell finite volume kernels
+Base.@propagate_inbounds function multiply_set_or_add!(u, factor, value,
+                                                       set_not_add::True, indices...)
+    u[indices...] = factor * value
+    return nothing
+end
+
+Base.@propagate_inbounds function multiply_set_or_add!(u, factor, value,
+                                                       set_not_add::False, indices...)
+    # `@muladd` does not transform updating operators such as `+=`. Thus, this
+    # computes the same result as the original `u[indices...] += factor * value` of
+    # the subcell finite volume kernels.
+    u[indices...] += factor * value
     return nothing
 end
 

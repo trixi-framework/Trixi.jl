@@ -22,23 +22,25 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
+        # Call the optimized default version, which overwrites `du`
+        du .= NaN
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, Trixi.True(),
+                                        semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+        du_specialized = copy(du[:, :, :, 1])
 
         # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
+        # `semi.solver.volume_integral.volume_flux` - which adds to `du`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), Trixi.False,
+                     typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
+               have_nonconservative_terms, Trixi.False(), semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -64,23 +66,25 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
+        # Call the optimized default version, which overwrites `du`
+        du .= NaN
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, Trixi.True(),
+                                        semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+        du_specialized = copy(du[:, :, :, 1])
 
         # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
+        # `semi.solver.volume_integral.volume_flux` - which adds to `du`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), Trixi.False,
+                     typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
+               have_nonconservative_terms, Trixi.False(), semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -107,23 +111,25 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
+        # Call the optimized default version, which overwrites `du`
+        du .= NaN
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, Trixi.True(),
+                                        semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+        du_specialized = copy(du[:, :, :, 1])
 
         # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
+        # `semi.solver.volume_integral.volume_flux` - which adds to `du`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), Trixi.False,
+                     typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
+               have_nonconservative_terms, Trixi.False(), semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -149,23 +155,25 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized default version
-        du .= 0
+        # Call the optimized default version, which overwrites `du`
+        du .= NaN
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
-                                        have_nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, Trixi.True(),
+                                        semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, 1]
+        du_specialized = copy(du[:, :, :, 1])
 
         # Call the plain version - note the argument type `Function` of
-        # `semi.solver.volume_integral.volume_flux`
+        # `semi.solver.volume_integral.volume_flux` - which adds to `du`
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, Type{typeof(semi.mesh)},
-                     typeof(have_nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), Trixi.False,
+                     typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, typeof(semi.mesh),
-               have_nonconservative_terms, semi.equations,
+               have_nonconservative_terms, Trixi.False(), semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 

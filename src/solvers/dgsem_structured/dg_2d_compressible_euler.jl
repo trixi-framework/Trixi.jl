@@ -23,6 +23,7 @@
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2}}},
                                            have_nonconservative_terms::False,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -215,14 +216,9 @@
         end
     end
 
-    # Finally, we add the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, element] += du[i, j, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
@@ -231,6 +227,7 @@ end
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2}}},
                                            have_nonconservative_terms::False,
+                                           set_not_add,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -494,12 +491,7 @@ end
         end
     end
 
-    # Finally, we add the temporary RHS computed here to the global RHS in the
+    # Finally, we set or add the temporary RHS computed here to the global RHS in the
     # given `element`.
-    @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
-
-        _du[v, i, j, element] += du[i, j, v]
-    end
+    set_or_add_element_turbo!(_du, du, element, set_not_add, equations, dg)
 end

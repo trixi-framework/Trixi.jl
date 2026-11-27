@@ -7783,3 +7783,45 @@ end
     @test length(loopinfos) == 2
     @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
 end
+
+@testitem "Unit: set or add contributions of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    solver = DGSEM(polydeg = 1)
+    u_node = SVector(1.0, 2.0, 3.0, 4.0)
+    factor = 0.5
+
+    # Setting does not read the previous values, so that `NaN`s are overwritten
+    u = fill(NaN, nvariables(equations), 2, 2)
+    Trixi.multiply_set_node_vars!(u, factor, u_node, equations, solver, 1, 2)
+    @test u[:, 1, 2] == factor * u_node
+    @test all(isnan, u[:, 2, 2])
+
+    for set_not_add in (Trixi.True(), true)
+        fill!(u, NaN)
+        Trixi.multiply_set_or_add_to_node_vars!(u, factor, u_node, set_not_add,
+                                                equations, solver, 2, 1)
+        @test u[:, 2, 1] == factor * u_node
+        @test all(isnan, u[:, 1, 1])
+    end
+
+    for set_not_add in (Trixi.False(), false)
+        fill!(u, 1.0)
+        Trixi.multiply_set_or_add_to_node_vars!(u, factor, u_node, set_not_add,
+                                                equations, solver, 2, 1)
+        @test u[:, 2, 1] == 1 .+ factor * u_node
+        @test all(==(1), u[:, 1, 1])
+    end
+
+    # The predicates used in the kernels combine a static and a runtime condition
+    @test Trixi.True() & (1 == 1) === true
+    @test Trixi.True() & (1 == 2) === false
+    @test Trixi.False() & (1 == 1) === Trixi.False()
+
+    v = fill(NaN, 3)
+    Trixi.multiply_set_or_add!(v, factor, 2.0, Trixi.True(), 2)
+    @test v[2] == 1.0
+    @test isnan(v[1]) && isnan(v[3])
+    fill!(v, 1.0)
+    Trixi.multiply_set_or_add!(v, factor, 2.0, Trixi.False(), 2)
+    @test v == [1.0, 2.0, 1.0]
+end

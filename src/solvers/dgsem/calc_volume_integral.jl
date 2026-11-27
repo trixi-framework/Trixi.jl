@@ -7,14 +7,21 @@
 
 # The following `volume_integral_kernel!` and `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
+#
+# The volume integral kernels overwrite `du` in the given element if
+# `set_not_add === True()` and add their contribution to `du` if
+# `set_not_add === False()`, see the interface of volume integrals in
+# `src/solvers/dg.jl`. Since the volume integral is computed first in
+# `rhs_hyperbolic!`, `calc_volume_integral!` calls the kernels with `True()`, so that
+# `du` does not need to be reset to zero before.
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add, equations,
                                                           volume_integral::VolumeIntegralWeakForm,
                                                           dg, cache, alpha = true)
     weak_form_kernel!(du, u, element, MeshT,
-                      have_nonconservative_terms, equations,
+                      have_nonconservative_terms, set_not_add, equations,
                       dg, cache, alpha)
 
     return nothing
@@ -22,13 +29,21 @@ end
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add, equations,
                                                           volume_integral::VolumeIntegralFluxDifferencing,
                                                           dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
 
+    # The flux differencing kernels skip the diagonal entries of `derivative_split`,
+    # which are zero. Thus, they do not write `du` at all for a single node, i.e.,
+    # `polydeg = 0`, where the flux differencing volume integral vanishes.
+    # Since `nnodes(dg)` is a compile-time constant, this check is optimized away.
+    if set_not_add === True() && nnodes(dg) == 1
+        du[.., element] .= zero(eltype(du))
+    end
+
     flux_differencing_kernel!(du, u, element, MeshT,
-                              have_nonconservative_terms, equations,
+                              have_nonconservative_terms, set_not_add, equations,
                               volume_flux, dg, cache, alpha)
 
     return nothing
@@ -36,14 +51,14 @@ end
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add, equations,
                                                           volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                                           dg::DGSEM, cache,
                                                           alpha = true)
     @unpack volume_flux_fv = volume_integral # Volume integral specific data
 
     fv_kernel!(du, u, MeshT,
-               have_nonconservative_terms, equations,
+               have_nonconservative_terms, set_not_add, equations,
                volume_flux_fv, dg, cache, element, alpha)
 
     return nothing
@@ -51,7 +66,7 @@ end
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add, equations,
                                                           volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                                           dg::DGSEM, cache,
                                                           alpha = true)
@@ -60,7 +75,7 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
     cons2recon, recon2cons) = volume_integral
 
     fvO2_kernel!(du, u, MeshT,
-                 have_nonconservative_terms, equations,
+                 have_nonconservative_terms, set_not_add, equations,
                  volume_flux_fv, dg, cache, element,
                  sc_interface_coords, reconstruction_mode, slope_limiter,
                  cons2recon, recon2cons,
@@ -71,14 +86,17 @@ end
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add::True, equations,
                                                           volume_integral::VolumeIntegralAdaptive{<:IndicatorEntropyChange},
                                                           dg::DGSEM, cache)
+    # Only `set_not_add::True` is supported, since the entropy production is computed
+    # from the values of `du` in this element, which must thus only contain the
+    # contribution of the volume integral.
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack maximum_entropy_increase = indicator
 
     volume_integral_kernel!(du, u, element, MeshT,
-                            have_nonconservative_terms, equations,
+                            have_nonconservative_terms, set_not_add, equations,
                             volume_integral_default, dg, cache)
 
     # Compute entropy production of the default volume integral.
@@ -94,13 +112,9 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
 
     entropy_change = dS_default - dS_true
     if entropy_change > maximum_entropy_increase # Recompute using EC FD volume integral
-        # Reset default volume integral contribution.
-        # Note that this assumes that the volume terms are computed first,
-        # before any surface terms are added.
-        du[.., element] .= zero(eltype(du))
-
+        # Overwrite the default volume integral contribution
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, equations,
+                                have_nonconservative_terms, set_not_add, equations,
                                 volume_integral_stabilized, dg, cache)
     end
 
@@ -109,9 +123,12 @@ end
 
 Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
-                                                          equations,
+                                                          set_not_add::True, equations,
                                                           volume_integral::VolumeIntegralEntropyCorrection,
                                                           dg::DGSEM, cache)
+    # Only `set_not_add::True` is supported, since the entropy production is computed
+    # from the values of `du` in this element, which must thus only contain the
+    # contribution of the volume integral.
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack scaling = indicator
     @unpack alpha = indicator.cache
@@ -119,7 +136,7 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
 
     # run default volume integral
     volume_integral_kernel!(du, u, element, MeshT,
-                            have_nonconservative_terms, equations,
+                            have_nonconservative_terms, set_not_add, equations,
                             volume_integral_default, dg, cache)
 
     # Check entropy production of "high order" volume integral.
@@ -149,14 +166,10 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
         du_FD_element = du_element_threaded[Threads.threadid()]
         @views du_FD_element .= du[.., element]
 
-        # Reset pure flux-differencing volume integral
-        # Note that this assumes that the volume terms are computed first,
-        # before any surface terms are added.
-        du[.., element] .= zero(eltype(du))
-
-        # Calculate entropy stable volume integral contribution
+        # Calculate entropy stable volume integral contribution, overwriting the
+        # pure flux-differencing volume integral
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, equations,
+                                have_nonconservative_terms, set_not_add, equations,
                                 volume_integral_stabilized, dg, cache)
 
         dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
@@ -205,8 +218,9 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
+        # Overwrite `du`, see the comment at the top of this file
         @inbounds volume_integral_kernel!(du, u, element, MeshT,
-                                          have_nonconservative_terms, equations,
+                                          have_nonconservative_terms, True(), equations,
                                           volume_integral, dg, cache)
     end
 
@@ -249,13 +263,14 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             # Clip blending factor for values close to zero (-> default volume integral)
             default_volume_integral = isapprox(alpha_element, 0, atol = atol)
 
+            # Overwrite `du`, see the comment at the top of this file
             if default_volume_integral
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, True(), equations,
                                         volume_integral_default, dg, cache)
             else
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, True(), equations,
                                         volume_integral_stabilized, dg, cache)
             end
         end
@@ -298,19 +313,20 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             dg_only = isapprox(alpha_element, 0, atol = atol)
 
             if dg_only
+                # Overwrite `du`, see the comment at the top of this file
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, True(), equations,
                                         volume_integral_default, dg, cache)
             else
-                # Calculate DG volume integral contribution
+                # Calculate DG volume integral contribution, overwriting `du`
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, True(), equations,
                                         volume_integral_blend_high_order, dg, cache,
                                         1 - alpha_element)
 
-                # Calculate FV volume integral contribution
+                # Add FV volume integral contribution
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, False(), equations,
                                         volume_integral_blend_low_order, dg, cache,
                                         alpha_element)
             end
@@ -357,9 +373,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
-            # run default volume integral
+            # run default volume integral, overwriting `du`, see the comment at the
+            # top of this file
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
+                                    have_nonconservative_terms, True(), equations,
                                     volume_integral_default, dg, cache)
 
             # Check entropy production of "high order" volume integral.
@@ -392,14 +409,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                 du_FD_element = du_element_threaded[Threads.threadid()]
                 @views du_FD_element .= du[.., element]
 
-                # Reset pure flux-differencing volume integral
-                # Note that this assumes that the volume terms are computed first,
-                # before any surface terms are added.
-                du[.., element] .= zero(eltype(du))
-
-                # Calculate entropy stable volume integral contribution
+                # Calculate entropy stable volume integral contribution, overwriting
+                # the pure flux-differencing volume integral
                 volume_integral_kernel!(du, u, element, MeshT,
-                                        have_nonconservative_terms, equations,
+                                        have_nonconservative_terms, True(), equations,
                                         volume_integral_stabilized, dg, cache)
 
                 dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
