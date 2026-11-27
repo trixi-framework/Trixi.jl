@@ -167,7 +167,7 @@ function trixi_t8_get_difference(old_levels, new_levels, num_children)
             new_index += num_children
 
         elseif old_levels[old_index] > new_levels[new_index]
-            # Coarsend.
+            # Coarsened.
 
             for child_index in old_index:(old_index + num_children - 1)
                 changes[child_index] = -1

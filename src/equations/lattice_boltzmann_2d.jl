@@ -92,9 +92,9 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
 
     # Sanity check that exactly one of Re, nu is not `nothing`
     if isnothing(Re) && isnothing(nu)
-        error("Reynolds number `Re` and visocsity `nu` may not both be `nothing`")
+        error("Reynolds number `Re` and viscosity `nu` may not both be `nothing`")
     elseif !isnothing(Re) && !isnothing(nu)
-        error("Reynolds number `Re` and visocsity `nu` may not both be set")
+        error("Reynolds number `Re` and viscosity `nu` may not both be set")
     end
 
     # Calculate isothermal speed of sound

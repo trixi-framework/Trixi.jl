@@ -231,7 +231,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     return analysis_callback(u_ode, du_ode, integrator, semi)
 end
 
-# This method gets called internally as the main entry point to the AnalysiCallback
+# This method gets called internally as the main entry point to the AnalysisCallback
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)

@@ -7,7 +7,7 @@
 
 function apply_smoothing!(mesh::StructuredMesh{2}, alpha, alpha_tmp, dg, cache)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
+    # Copy alpha values such that smoothing is independent of the element access order
     alpha_tmp .= alpha
 
     # So far, alpha smoothing doesn't work for non-periodic initial conditions for structured meshes.

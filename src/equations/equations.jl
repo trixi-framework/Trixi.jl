@@ -127,7 +127,7 @@ end
 """
     rotate_to_x(u, normal, equations)
 
-Apply the rotation that maps `normal` onto the x-axis to the convservative variables `u`.
+Apply the rotation that maps `normal` onto the x-axis to the conservative variables `u`.
 This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
 invariant equations in arbitrary normal directions.
 
@@ -138,7 +138,7 @@ function rotate_to_x end
 """
     rotate_from_x(u, normal, equations)
 
-Apply the rotation that maps the x-axis onto `normal` to the convservative variables `u`.
+Apply the rotation that maps the x-axis onto `normal` to the conservative variables `u`.
 This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
 invariant equations in arbitrary normal directions.
 
@@ -747,7 +747,7 @@ function pressure end
 Return the product of the [`density`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
 `equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
-This can be useful, e.g., as a variable for (shock-cappturing or AMR)
+This can be useful, e.g., as a variable for (shock-capturing or AMR)
 indicators as it combines two variables which must stay positive into one.
 
 Furthermore, this implementation is for media which are described by an
@@ -980,7 +980,7 @@ include("linearized_euler_3d.jl")
 abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
 
-# Lighthill-Witham-Richards (LWR) traffic flow model
+# Lighthill-Whitham-Richards (LWR) traffic flow model
 abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("traffic_flow_lwr_1d.jl")

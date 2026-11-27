@@ -213,7 +213,7 @@ end
     Setup,
     CUDA3DExamples
 ] tags=[:CUDA] begin
-    # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    # Using CUDA inside the testset since otherwise the bindings are hidden by the anonymous modules
     using CUDA
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,

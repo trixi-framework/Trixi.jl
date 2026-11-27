@@ -22,7 +22,7 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (2.0, 4.0),
                                            electron_pressure = electron_pressure_alpha)
 
 """
-Initial (and exact) solution for the the manufactured solution test. Runs with
+Initial (and exact) solution for the manufactured solution test. Runs with
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
 * Domain size: [-1,1]²

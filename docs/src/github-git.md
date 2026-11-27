@@ -120,7 +120,7 @@ we just try to keep Trixi.jl as accessible and easy to use for everyone.
 Once your branch is reviewed and declared ready for merging by the reviewer,
 make sure that all the latest changes have been pushed. Then, one of the
 developers will merge your PR. If you are one of the developers, you can also go
-to the pull request page on GitHub and and click on **Merge pull request**.
+to the pull request page on GitHub and click on **Merge pull request**.
 Voilà, you are done! Your branch will have been merged to
 `main` and the source branch will have been deleted in the GitHub repository
 (if you are not working in your own fork).

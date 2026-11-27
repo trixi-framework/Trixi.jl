@@ -296,7 +296,7 @@ plot(sol)
 # ````julia
 # BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
 # ````
-# Then, for the given example the deviations file contains all daviations for the current
+# Then, for the given example the deviations file contains all deviations for the current
 # timestep and simulation time.
 # ````
 # iter, simu_time, rho_min, rho_max

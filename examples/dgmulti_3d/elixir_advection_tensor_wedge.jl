@@ -6,7 +6,7 @@ equations = LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0)
 
 initial_condition = initial_condition_convergence_test
 
-# Define the polynomial degrees for the polynoms of the triangular base and the line
+# Define the polynomial degrees for the polynomials of the triangular base and the line
 # of the tensor-prism
 tensor_polydeg = (3, 4)
 
