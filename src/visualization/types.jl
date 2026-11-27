@@ -908,6 +908,16 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
                                   groups, 1, 2)
 end
 
+# CGSEM stores the solution element-locally like the DGSEM solver it is built on, so
+# the plot data is created by the DGSEM methods (see `src/solvers/cgsem/cgsem.jl`).
+function PlotData2DTriangulated(u, mesh, equations, solver::CGSEM, cache; kwargs...)
+    return PlotData2DTriangulated(u, mesh, equations, solver.dg, cache; kwargs...)
+end
+
+function ScalarPlotData2D(u, mesh, equations, solver::CGSEM, cache; kwargs...)
+    return ScalarPlotData2D(u, mesh, equations, solver.dg, cache; kwargs...)
+end
+
 # unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
                                                                                              mesh,

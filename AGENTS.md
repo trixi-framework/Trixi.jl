@@ -64,9 +64,11 @@ which is integrated in time.
 - **Solvers** (`src/solvers/`) form a mesh × solver matrix: DGSEM in
   `dgsem_tree`, `dgsem_structured`, `dgsem_unstructured`, `dgsem_p4est`,
   `dgsem_t8code` (plus common parts in `dgsem`), and other families in
-  `dgmulti`, `fdsbp_*`, and `blockfv`. **Shared functionality lives in the
-  directory of the most basic mesh/solver type** (mostly `dgsem_tree/`); the
-  other directories only add what differs. A DGSEM solver is composed of
+  `dgmulti`, `fdsbp_*`, `blockfv`, and `cgsem` (continuous Galerkin SEM wrapping
+  a `DGSEM`, included via `cg.jl`, with the gather-scatter assembly in
+  `cgsem/assembly.jl`). **Shared functionality lives in the directory of the most
+  basic mesh/solver type** (mostly `dgsem_tree/`); the other directories only add
+  what differs. A DGSEM solver is composed of
   interchangeable `VolumeIntegral*`, `SurfaceIntegral*`, `Indicator*`, and
   mortar components. The right-hand side `rhs_hyperbolic!` (and
   `rhs_parabolic!`) sequences steps such as `prolong2interfaces!`, interface,
