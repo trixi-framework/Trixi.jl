@@ -30,6 +30,10 @@ function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion3D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
+function auxvarnames(equations_parabolic::LaplaceDiffusion3D)
+    return auxvarnames(equations_parabolic.equations_hyperbolic)
+end
+
 # The diffusion receives the auxiliary variables of the hyperbolic equations but does not
 # depend on them
 @inline function nauxvariables(equations_parabolic::LaplaceDiffusion3D)
