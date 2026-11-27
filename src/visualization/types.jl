@@ -358,7 +358,7 @@ function PlotData2D(sol::TrixiODESolution; kwargs...)
     return PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 end
 
-# Also redirect when using PlotData2DTriangulate.
+# Also redirect when using PlotData2DTriangulated.
 function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
     return PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 end
@@ -827,7 +827,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             element_width = 2.0 / cache.elements.inverse_jacobian[i]
             sub_cell_width = element_width / n_nodes
 
-            for j in 1:n_nodes #the loop over the subscells
+            for j in 1:n_nodes #the loop over the subcells
                 idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1 #slot number in the list x for the left side of this subcell
                 idx_right = (i - 1) * (2 * n_nodes) + 2 * j #slot number in the list x for the right side of this subcell
 
@@ -843,7 +843,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x
             left_boundary += element_width #go to the left boundary of the next cell
         end
-        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case it's the left boundary
 
     else
         error("BlockFV is not yet supported for 2D and 3D.")

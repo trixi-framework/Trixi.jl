@@ -425,7 +425,7 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     return nothing
 end
 
-# inlined version of the boundary flux and nonconseravtive terms calculation along a
+# inlined version of the boundary flux and nonconservative terms calculation along a
 # physical interface. The conservative portion of the boundary flux values
 # are set according to a particular `boundary_condition` function
 # Note, it is necessary to set and add in the nonconservative values because

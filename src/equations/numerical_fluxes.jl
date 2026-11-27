@@ -181,6 +181,76 @@ function Base.show(io::IO, d::DissipationGlobalLaxFriedrichs)
 end
 
 """
+    SplittingGlobalLaxFriedrichs(λ)
+
+Global Lax-Friedrichs flux splitting `f⁺ = 0.5 (f + λ u)` and `f⁻ = 0.5 (f - λ u)`
+with a constant coefficient `λ`, which should bound the wave speeds of the solution.
+In contrast to the local Lax-Friedrichs splitting [`splitting_lax_friedrichs`](@ref),
+the split fluxes are as smooth as the flux `f` itself. The splitting is available
+for all equations that implement [`flux`](@ref).
+
+Calling `SplittingGlobalLaxFriedrichs(λ)(u, orientation_or_normal_direction, equations)`
+returns a tuple of the fluxes "minus" (associated with waves going into the negative
+axis direction) and "plus" (associated with waves going into the positive axis
+direction). If only one of the fluxes is required, pass `Val{:minus}()` or
+`Val{:plus}()` as second argument. For a `normal_direction`, the coefficient `λ` is
+scaled by `norm(normal_direction)`.
+
+[`FluxUpwind`](@ref) with this splitting is equivalent to
+`FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))`
+(up to floating point differences).
+
+!!! warning "Experimental implementation (upwind SBP)"
+    This is an experimental feature and may change in future releases.
+"""
+struct SplittingGlobalLaxFriedrichs{RealT}
+    λ::RealT
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u,
+                                                           orientation_or_normal_direction,
+                                                           equations)
+    fm = splitting(u, Val{:minus}(), orientation_or_normal_direction, equations)
+    fp = splitting(u, Val{:plus}(), orientation_or_normal_direction, equations)
+    return fm, fp
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:plus},
+                                                           orientation::Integer,
+                                                           equations)
+    @unpack λ = splitting
+    return 0.5f0 * (flux(u, orientation, equations) + λ * u)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:minus},
+                                                           orientation::Integer,
+                                                           equations)
+    @unpack λ = splitting
+    return 0.5f0 * (flux(u, orientation, equations) - λ * u)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:plus},
+                                                           normal_direction::AbstractVector,
+                                                           equations)
+    @unpack λ = splitting
+    return 0.5f0 * (flux(u, normal_direction, equations) +
+            λ * norm(normal_direction) * u)
+end
+
+@inline function (splitting::SplittingGlobalLaxFriedrichs)(u, ::Val{:minus},
+                                                           normal_direction::AbstractVector,
+                                                           equations)
+    @unpack λ = splitting
+    return 0.5f0 * (flux(u, normal_direction, equations) -
+            λ * norm(normal_direction) * u)
+end
+
+function Base.show(io::IO, splitting::SplittingGlobalLaxFriedrichs)
+    print(io, "SplittingGlobalLaxFriedrichs(", splitting.λ, ")")
+    return nothing
+end
+
+"""
     DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed)
 
 Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
@@ -440,7 +510,7 @@ function min_max_speed_davis end
     min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer, equations)
     min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
-More advanced mininmal and maximal wave speed computation based on
+More advanced minimal and maximal wave speed computation based on
 - Bernd Einfeldt (1988)
   On Godunov-type methods for gas dynamics.
   [DOI: 10.1137/0725021](https://doi.org/10.1137/0725021)
@@ -585,10 +655,9 @@ function flux_nonconservative_fjordholm_etal end
 A numerical flux `f(u_left, u_right) = f⁺(u_left) + f⁻(u_right)` based on
 flux vector splitting.
 
-The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
+[`SurfaceIntegralUpwind(splitting)`](@ref SurfaceIntegralUpwind) is a shortcut for
 the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
-as numerical flux (up to floating point differences). Note, that
-[`SurfaceIntegralUpwind`](@ref) is only available on [`TreeMesh`](@ref).
+as numerical flux.
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.

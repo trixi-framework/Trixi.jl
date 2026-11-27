@@ -1235,7 +1235,7 @@ function count_interfaces(forest, ndims)
                     neighbor_level = t8_element_get_level(scheme, neighbor_eclass,
                                                           neighbor_leaves[1])
 
-                    # neighbor indices are < num_local_elements for for local leaves
+                    # neighbor indices are < num_local_elements for local leaves
                     # and >= for ghosts
                     if all(neighbor_ielements .< num_local_elements)
                         # Conforming interface: The second condition ensures we

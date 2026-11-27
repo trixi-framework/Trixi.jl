@@ -166,7 +166,7 @@ save_solution = SaveSolutionCallback(interval = 20,
                                      save_final_solution = true)
 
 # Alternatively, we have the option to print solution files at fixed time intervals.
-# ```julua
+# ```julia
 # save_solution = SaveSolutionCallback(dt = 0.1,
 #                                      save_initial_solution = true,
 #                                      save_final_solution = true)

@@ -78,7 +78,7 @@ jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!, du_ode, u0_o
 # For most efficient solving we also want the coloring vector
 
 # We choose `nonsymmetric` `structure` because we're computing a Jacobian, which
-# is for the upwind-alike discretization of the advection term nonsymmmetric
+# is for the upwind-alike discretization of the advection term nonsymmetric
 # We arbitrarily choose a column-based `partitioning`. This means that we will color
 # structurally orthogonal columns the same. `row` partitioning would be equally valid here
 coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)

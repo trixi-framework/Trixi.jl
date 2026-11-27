@@ -2626,7 +2626,8 @@ end
         prim2cons(SVector(1.0, 3.5, 0.5), equations),
         prim2cons(SVector(0.5, -2.8, 0.4), equations)]
     splittings = [splitting_steger_warming, splitting_vanleer_haenel,
-        splitting_coirier_vanleer, splitting_lax_friedrichs]
+        splitting_coirier_vanleer, splitting_lax_friedrichs,
+        SplittingGlobalLaxFriedrichs(5.0)]
 
     orientation = 1
     for splitting in splittings, u in u_values
@@ -2635,6 +2636,78 @@ end
         @test fp ≈ splitting(u, Val{:plus}(), orientation, equations)
         @test fm + fp ≈ flux(u, orientation, equations)
     end
+end
+
+@testitem "Unit: SplittingGlobalLaxFriedrichs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    λ = 2.5
+    splitting = SplittingGlobalLaxFriedrichs(λ)
+    @test repr(splitting) == "SplittingGlobalLaxFriedrichs(2.5)"
+
+    # The upwind flux of the splitting is the central flux plus global Lax-Friedrichs
+    # dissipation
+    flux_upwind = FluxUpwind(splitting)
+    flux_dissipation = FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))
+
+    equations = CompressibleEulerEquations2D(1.4)
+    u_ll = prim2cons(SVector(1.1, 0.3, -0.2, 2.1), equations)
+    u_rr = prim2cons(SVector(0.7, -0.4, 0.5, 1.3), equations)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test fm ≈ splitting(u_ll, Val{:minus}(), orientation_or_normal_direction,
+                        equations)
+        @test fp ≈ splitting(u_ll, Val{:plus}(), orientation_or_normal_direction,
+                             equations)
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The `orientation` and `normal_direction` versions are consistent for axis-aligned
+    # normals
+    for (orientation, normal_direction) in ((1, SVector(1.0, 0.0)), (2, SVector(0.0, 1.0)))
+        fm, fp = splitting(u_ll, orientation, equations)
+        fm_normal, fp_normal = splitting(u_ll, normal_direction, equations)
+        @test fm ≈ fm_normal
+        @test fp ≈ fp_normal
+        fm_normal, fp_normal = splitting(u_ll, 2 * normal_direction, equations)
+        @test 2 * fm ≈ fm_normal
+        @test 2 * fp ≈ fp_normal
+    end
+
+    # No dissipation is added to the mean values of the acoustic perturbation equations
+    equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                c_mean_global = 2.0,
+                                                rho_mean_global = 0.9)
+    u_ll = SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3)
+    u_rr = SVector(0.2, 0.4, 0.6, -0.1, -1.2, 1.8, 1.4)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test iszero(fm[4:7])
+        @test iszero(fp[4:7])
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        diss = DissipationGlobalLaxFriedrichs(λ)(u_ll, u_rr,
+                                                 orientation_or_normal_direction,
+                                                 equations)
+        @test iszero(diss[4:7])
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The splitting is available for all equations implementing `flux`
+    equations = LinearScalarAdvectionEquation1D(-1.5)
+    u = SVector(0.7)
+    fm, fp = splitting(u, 1, equations)
+    @test fm ≈ 0.5 * (flux(u, 1, equations) - λ * u)
+    @test fp ≈ 0.5 * (flux(u, 1, equations) + λ * u)
+end
+
+@testitem "Unit: SurfaceIntegralUpwind" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    surface_integral = SurfaceIntegralUpwind(splitting_steger_warming)
+    @test surface_integral isa SurfaceIntegralStrongForm
+    @test surface_integral isa SurfaceIntegralUpwind
+    @test surface_integral.surface_flux isa FluxUpwind
+    @test surface_integral.surface_flux.splitting === splitting_steger_warming
+    @test !(SurfaceIntegralStrongForm(flux_lax_friedrichs) isa SurfaceIntegralUpwind)
 end
 
 @testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
@@ -4197,6 +4270,48 @@ end
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
 
+@testitem "Unit: FDSBP on TreeMesh with quadrature not exact for constants" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # A function space SBP operator on the nodes -1, 0, 1 that is exact for span{1, exp}.
+    # Since this space does not contain the identity, the quadrature is not exact for
+    # constants: the weights sum up to 2 sinh(1) instead of the length 2 of the interval.
+    nodes = [-1.0, 0.0, 1.0]
+    weights = [(exp(1) - 1) / 2, sinh(1), (1 - exp(-1)) / 2]
+    Q = [-0.5 0.5 0.0; -0.5 0.0 0.5; 0.0 -0.5 0.5]
+    D = SummationByPartsOperators.MatrixDerivativeOperator(-1.0, 1.0, nodes, weights,
+                                                           Q ./ weights, 1, nothing)
+    @test sum(weights) ≈ 2 * sinh(1)
+    @test D * exp.(nodes) ≈ exp.(nodes)
+    @test Trixi.reference_length(D) == 2
+
+    solver = FDSBP(D, surface_integral = SurfaceIntegralStrongForm(flux_lax_friedrichs),
+                   volume_integral = VolumeIntegralStrongForm())
+
+    # Linear advection with a solution in the function space in each coordinate direction,
+    # so the spatial semidiscretization is exact on a single cell of length 2.
+    for ndims in 1:3
+        advection_velocity = ntuple(_ -> 1.0, ndims)
+        equations = ndims == 1 ? LinearScalarAdvectionEquation1D(advection_velocity...) :
+                    ndims == 2 ? LinearScalarAdvectionEquation2D(advection_velocity...) :
+                    LinearScalarAdvectionEquation3D(advection_velocity...)
+        initial_condition = (x, t, equations) -> SVector(exp(sum(x) - ndims * t))
+        mesh = TreeMesh(ntuple(_ -> -1.0, ndims), ntuple(_ -> 1.0, ndims),
+                        initial_refinement_level = 0, periodicity = false)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = BoundaryConditionDirichlet(initial_condition))
+
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test sort(unique(node_coordinates)) ≈ nodes
+
+        u = compute_coefficients(0.0, semi)
+        du = similar(u)
+        Trixi.rhs_hyperbolic!(du, u, semi, 0.0)
+        @test du ≈ -ndims * u
+    end
+end
+
 @testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
@@ -5234,7 +5349,7 @@ end
     end
 end
 
-@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+@testitem "Unit: ndims function for SemidiscretizationHyperbolicSplit" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin

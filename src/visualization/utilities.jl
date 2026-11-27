@@ -1842,7 +1842,7 @@ function plotting_interpolation_matrix(dg::DGSEM;
                                        nvisnodes = 2 * length(dg.basis.nodes))
     Vp1D = polynomial_interpolation_matrix(dg.basis.nodes, LinRange(-1, 1, nvisnodes))
     # For quadrilateral elements, interpolation to plotting nodes involves applying a 1D interpolation
-    # operator to each line of nodes. This is equivalent to multiplying the vector containing all node
+    # operator to each line of nodes. This is equivalent to multiplying the vector containing all
     # node coordinates on an element by a Kronecker product of the 1D interpolation operator (e.g., a
     # multi-dimensional interpolation operator).
     return kron(Vp1D, Vp1D)
@@ -1910,7 +1910,7 @@ function is_on_same_side(point, x, y, z)
     end
 end
 
-# For a given 'point', return the id of the element it is contained in in; if not found return 0.
+# For a given 'point', return the id of the element it is contained in; if not found return 0.
 function find_element(point, pd)
     n_tri = size(pd.t, 1)
     n_elements = size(pd.x, 2)

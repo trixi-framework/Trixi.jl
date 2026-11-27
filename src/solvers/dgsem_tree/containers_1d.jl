@@ -97,10 +97,8 @@ end
 
 function init_elements!(elements, cell_ids, mesh::TreeMesh1D, basis)
     nodes = get_nodes(basis)
-    # Compute the length of the 1D reference interval by integrating
-    # the function with constant value unity on the corresponding
-    # element data type (using \circ)
-    reference_length = integrate(one ∘ eltype, nodes, basis)
+    # Compute the length of the 1D reference interval
+    reference_length_ = reference_length(basis)
     # Compute the offset of the midpoint of the 1D reference interval
     # (its difference from zero)
     reference_offset = (first(nodes) + last(nodes)) / 2
@@ -117,7 +115,7 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh1D, basis)
         dx = length_at_cell(mesh.tree, cell_id)
 
         # Calculate inverse Jacobian
-        jacobian = dx / reference_length
+        jacobian = dx / reference_length_
         elements.inverse_jacobian[element] = inv(jacobian)
 
         # Calculate node coordinates

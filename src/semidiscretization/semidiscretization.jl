@@ -328,7 +328,7 @@ associated with the semidiscretization `semi`.
 For example, the discrete coefficients of `func` for a discontinuous Galerkin
 spectral element method ([`DGSEM`](@ref)) are the values of `func` at the
 Lobatto-Legendre nodes. Similarly, a classical finite difference method will use
-the values of `func` at the nodes of the grid assoociated with the semidiscretization
+the values of `func` at the nodes of the grid associated with the semidiscretization
 `semi`.
 
 For semidiscretizations `semi` associated with an initial condition, `func` can be omitted
@@ -669,7 +669,7 @@ Base.@deprecate wrap_array_native(args...) wrap_array(args...) false
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)
-# - ndofsgloabal(mesh, solver, cache)
+# - ndofsglobal(mesh, solver, cache)
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)

@@ -7,7 +7,7 @@ equations = CompressibleEulerEquations1D(RealT(1.4))
 """
     initial_condition_modified_sod(x, t, equations::CompressibleEulerEquations1D)
 
-Modiﬁed Sod shock tube problem, presented in Section 6.4 of Toro's book.
+Modified Sod shock tube problem, presented in Section 6.4 of Toro's book.
 This problem consists of a left sonic rarefaction wave and is useful for testing whether numerical solutions
 violate the entropy condition.
 An entropy-satisfying solution should produce a smooth(!) rarefaction wave.
