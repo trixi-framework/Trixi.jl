@@ -8,6 +8,13 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
+- New experimental solver `MacroCellFV` on the 1D `TreeMesh`: finite volumes with
+  reconstruction of the face states on blocks of `n_cells` subcells per element, built
+  on the data structures of `BlockFV`. Each element is evaluated on a thread-local
+  padded array with halo subcells of its neighbors (ghost subcells at physical
+  boundaries), so that wider reconstruction stencils can be added. Supported
+  reconstructions: `ReconstructionConstant`, `ReconstructionMUSCL`, and the fifth-order
+  `ReconstructionWENO5JS` and `ReconstructionWENO5Z`.
 - Auxiliary variables are now also supported for `DGSEM` on (also statically refined)
   serial `P4estMesh{2}`es without AMR, also on GPUs (nonconservative terms only with
   combined conservative and nonconservative fluxes). The new equations
