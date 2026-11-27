@@ -845,7 +845,7 @@ end
 function reinit_boundaries!(boundary_conditions::UnstructuredSortedBoundaryTypes,
                             cache)
     # Reinitialize boundary types container because boundaries may have changed.
-    return init_boundary_types!(boundary_conditions, cache)
+    return reinit!(boundary_conditions, cache)
 end
 
 function reinit_boundaries!(boundary_conditions, cache)

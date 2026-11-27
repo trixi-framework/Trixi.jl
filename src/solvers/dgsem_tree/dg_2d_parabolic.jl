@@ -811,7 +811,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 
                 # TODO: add a field in `cache.boundaries` for gradient information.
                 # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
-                # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
+                # This currently works with Dirichlet/Neumann boundary conditions for LaplaceDiffusion2D and
                 # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
                 # It will not work with implementations which utilize `u_inner` to impose boundary conditions, such as
                 # the `Slip` boundary condition, which can be imposed to realize reflective or symmetric boundaries.

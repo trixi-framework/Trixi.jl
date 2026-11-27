@@ -428,7 +428,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 
             # TODO: add a field in `cache.boundaries` for gradient information.
             # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
-            # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
+            # This currently works with Dirichlet/Neumann boundary conditions for LaplaceDiffusion2D and
             # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
             # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
             flux = boundary_condition(flux_inner, nothing, nothing,
@@ -626,7 +626,7 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
     end
 
     # Prolong solution to interfaces.
-    # This reusues `prolong2interfaces!` for the purely hyperbolic case.
+    # This reuses `prolong2interfaces!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u_transformed, mesh,
                             equations_parabolic, dg)

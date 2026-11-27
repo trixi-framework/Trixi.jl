@@ -10,7 +10,7 @@
 # the RHS etc.
 function create_cache_hyperbolic(mesh::UnstructuredMesh2D, equations,
                                  dg::DG, RealT, uEltype)
-    elements = init_elements(mesh, equations, dg.basis, RealT, uEltype)
+    elements = init_elements(mesh, equations, dg.basis, uEltype)
 
     interfaces = init_interfaces(mesh, elements)
 
@@ -420,7 +420,7 @@ Base.@propagate_inbounds function calc_boundary_flux!(surface_flux_values, t,
     return nothing
 end
 
-# inlined version of the boundary flux and nonconseravtive terms calculation along a
+# inlined version of the boundary flux and nonconservative terms calculation along a
 # physical interface. The conservative portion of the boundary flux values
 # are set according to a particular `boundary_condition` function
 # Note, it is necessary to set and add in the nonconservative values because

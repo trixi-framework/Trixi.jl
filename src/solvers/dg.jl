@@ -439,7 +439,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     volume_integral_default::VolumeIntegralDefault
 
     # The volume integral used for the DG portion in the convex blending.
-    # Usually symmetric, e.g. split-form with entropy-conserative flux.
+    # Usually symmetric, e.g. split-form with entropy-conservative flux.
     volume_integral_blend_high_order::VolumeIntegralBlendHighOrder
 
     # Typically a first- or second-order finite volume method on the DG subcells.
@@ -555,7 +555,7 @@ end
                                        volume_integral_blend_high_order,
                                        volume_integral_blend_low_order)
 
-Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
+Generalized Hennemann-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
 In the non-stabilized region, `volume_integral_default` is used,
@@ -1058,16 +1058,13 @@ implemented in SummationByPartsOperators.jl. The `splitting` controls the
 discretization.
 
 See also [`splitting_steger_warming`](@ref), [`splitting_lax_friedrichs`](@ref),
-[`splitting_vanleer_haenel`](@ref).
+[`SplittingGlobalLaxFriedrichs`](@ref), [`splitting_vanleer_haenel`](@ref).
 
 ## References
 
 - Mattsson (2017)
   Diagonal-norm upwind SBP operators
   [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042)
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralUpwind{FluxSplitting} <: AbstractVolumeIntegral
     splitting::FluxSplitting
@@ -1163,27 +1160,15 @@ end
 Couple elements with upwind simultaneous approximation terms (SATs)
 that use a particular flux `splitting`, e.g.,
 [`splitting_steger_warming`](@ref).
+This is a shortcut for `SurfaceIntegralStrongForm(FluxUpwind(splitting))`,
+see [`SurfaceIntegralStrongForm`](@ref) and [`FluxUpwind`](@ref).
 
 See also [`VolumeIntegralUpwind`](@ref).
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
-struct SurfaceIntegralUpwind{FluxSplitting} <: AbstractSurfaceIntegral
-    splitting::FluxSplitting
-end
+const SurfaceIntegralUpwind = SurfaceIntegralStrongForm{<:FluxUpwind}
 
-function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
-    @nospecialize integral # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, integral)
-    else
-        setup = [
-            "flux splitting" => integral.splitting
-        ]
-        summary_box(io, "SurfaceIntegralUpwind", setup)
-    end
+function SurfaceIntegralUpwind(splitting)
+    return SurfaceIntegralStrongForm(FluxUpwind(splitting))
 end
 
 """
@@ -1323,6 +1308,14 @@ In particular, not the nodes themselves are returned.
 """
 @inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
 @inline nnodes(dg::DG) = nnodes(dg.basis)
+
+# Length of the one-dimensional reference element of `basis`, used to map its nodes to the
+# cells of a `TreeMesh`. By default, it is computed by integrating the function with constant
+# value unity on the corresponding element data type (using \circ), which requires a
+# quadrature that is exact for constants.
+function reference_length(basis)
+    return integrate(one ∘ eltype, get_nodes(basis), basis)
+end
 
 # This is used in some more general analysis code and needs to dispatch on the
 # `mesh` for some combinations of mesh/solver.
@@ -1479,7 +1472,7 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG
     return u_ll, u_rr
 end
 
-# As above but dispatches on an type argument
+# As above but dispatches on a type argument
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
                                                         indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`

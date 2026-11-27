@@ -301,7 +301,7 @@ end
 """
     flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
-This flux is is a modification of the original kinetic energy preserving two-point flux by
+This flux is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
@@ -470,9 +470,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - Joseph L. Steger and R. F. Warming (1979)
@@ -557,9 +554,6 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 
 ## References
 
@@ -651,9 +645,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - William Coirier and Bram van Leer (1991)
@@ -718,6 +709,63 @@ end
     f1m = -0.25f0 * rho * a * ((M - 1)^2 - mu * (M^2 - 1)^P)
     f2m = f1m * v1 + p_minus
     f3m = f1m * H + omega * rho * a^3 * M^2 * (M^2 - 1)^2
+
+    return SVector(f1m, f2m, f3m)
+end
+
+"""
+    splitting_lax_friedrichs(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+    splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+
+Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
+and `f⁻ = 0.5 (f - λ u)` with `λ = |v₁| + c`, where `c` is the speed of sound,
+similar to a flux splitting one would apply, e.g., to Burgers' equation.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
+"""
+@inline function splitting_lax_friedrichs(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
+    fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation, equations)
+    return fm, fp
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    v1 = rho_v1 / rho
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
+
+    a = sqrt(equations.gamma * p / rho)
+    H = (rho_e_total + p) / rho
+    lambda = 0.5f0 * (abs(v1) + a)
+
+    f1p = 0.5f0 * rho_v1 + lambda * u[1]
+    f2p = 0.5f0 * rho_v1 * v1 + 0.5f0 * p + lambda * u[2]
+    f3p = 0.5f0 * rho_v1 * H + lambda * u[3]
+
+    return SVector(f1p, f2p, f3p)
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    v1 = rho_v1 / rho
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
+
+    a = sqrt(equations.gamma * p / rho)
+    H = (rho_e_total + p) / rho
+    lambda = 0.5f0 * (abs(v1) + a)
+
+    f1m = 0.5f0 * rho_v1 - lambda * u[1]
+    f2m = 0.5f0 * rho_v1 * v1 + 0.5f0 * p - lambda * u[2]
+    f3m = 0.5f0 * rho_v1 * H - lambda * u[3]
 
     return SVector(f1m, f2m, f3m)
 end
@@ -952,7 +1000,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 

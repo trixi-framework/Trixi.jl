@@ -216,7 +216,7 @@ end
     Setup,
     AMDGPU3DExamples
 ] tags=[:AMDGPU] begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    # Using AMDGPU inside the testset since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -775,6 +775,13 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, first(ode.tspan))
     @test all(isfinite, du_ode)
+
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    (; equations_parabolic) = semi
+    dt = Trixi.max_dt(Trixi.wrap_array(ode.u0, semi), first(ode.tspan), mesh,
+                      Trixi.have_constant_diffusivity(equations_parabolic), equations,
+                      equations_parabolic, solver, cache)
+    @test isapprox(dt, 0.4017857142856942, rtol = 1.0e-12)
 end
 
 @testitem "AMDGPU 3D: elixir_navierstokes_convergence.jl Float32 / AMDGPU" setup=[

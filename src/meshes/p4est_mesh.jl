@@ -438,7 +438,7 @@ function P4estMesh{NDIMS}(meshfile::String;
     # Read in the Header of the meshfile to determine which constructor is appropriate
     header = open(meshfile, "r") do io
         readline(io) # *Header of the Abaqus file; discarded
-        return readline(io) # Readin the actual header information
+        return readline(io) # Read in the actual header information
     end
 
     # Check if the meshfile was generated using HOHQMesh
@@ -513,7 +513,7 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile,
     # since the Abaqus `.inp` format always stores 3D coordinates.
     vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
-    # Readin all the information from the mesh file into a string array
+    # Read in all the information from the mesh file into a string array
     file_lines = readlines(open(meshfile))
 
     # Get the file index where the mesh polynomial degree is given in the meshfile
@@ -1136,6 +1136,7 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * 3, n_trees)
     boundary_names[5, :] .= Symbol("inside")
     boundary_names[6, :] .= Symbol("outside")

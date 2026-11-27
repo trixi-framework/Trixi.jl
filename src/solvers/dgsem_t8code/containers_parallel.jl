@@ -37,8 +37,8 @@ function reinit_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cach
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                    eltype(elements))
+    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info,
+                    nvariables(equations), nnodes(dg), eltype(elements))
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)

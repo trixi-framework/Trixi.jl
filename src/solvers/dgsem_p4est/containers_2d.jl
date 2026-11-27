@@ -286,4 +286,135 @@ end
 
     return mortars
 end
+
+# Auxiliary variables at the interface and mortar nodes, cf. `prolong2interfaces!` and
+# `prolong2mortars!`.
+# MPI is not supported yet since the auxiliary variables are not stored at MPI interfaces
+# and MPI mortars, so parallel meshes use the fallback throwing an error. The values at
+# the interfaces are copied from the volume nodes, which requires Gauss-Lobatto-Legendre
+# nodes. Thus, other bases use the fallback throwing an error as well.
+function init_aux_surface_node_vars!(aux_vars, mesh::P4estMeshSerial{2}, equations,
+                                     solver::DGSEM{<:LobattoLegendreBasis}, cache)
+    @unpack aux, aux_interface = aux_vars
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy the auxiliary variables from the primary element using "delayed indexing"
+        # with a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_range)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        for i in eachnode(solver)
+            for v in eachauxvariable(equations)
+                aux_interface[1, v, i, interface] = aux[v, i_primary, j_primary,
+                                                        primary_element]
+            end
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+        end
+
+        # Copy the auxiliary variables from the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                     index_range)
+        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                     index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        for i in eachnode(solver)
+            for v in eachauxvariable(equations)
+                aux_interface[2, v, i, interface] = aux[v, i_secondary, j_secondary,
+                                                        secondary_element]
+            end
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
+
+    init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver.mortar, solver, cache)
+
+    return nothing
+end
+
+# The auxiliary variables are treated as the solution in `prolong2mortars!`: the values
+# of the small elements are copied and the values of the large element are interpolated
+# to the surface nodes of the small elements. Thus, the auxiliary variables do not need to
+# be continuous across mortars.
+function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMeshSerial{2}, equations,
+                                    mortar_l2::LobattoLegendreMortarL2, solver, cache)
+    @unpack aux, aux_mortar = aux_vars
+    @unpack neighbor_ids, node_indices = cache.mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmortar(solver, cache)
+        # Copy the auxiliary variables from the small elements using "delayed indexing"
+        # with a start value and a step size to get the correct face and orientation.
+        small_indices = node_indices[1, mortar]
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        for position in 1:2
+            i_small = i_small_start
+            j_small = j_small_start
+            element = neighbor_ids[position, mortar]
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_mortar[1, v, position, i, mortar] = aux[v, i_small, j_small,
+                                                                element]
+                end
+                i_small += i_small_step
+                j_small += j_small_step
+            end
+        end
+
+        # Buffer to copy the auxiliary variables of the large element face in the
+        # correct orientation before interpolating. This is done only once, so we do not
+        # need a pre-allocated buffer.
+        aux_buffer = similar(aux, nauxvariables(equations), nnodes(solver))
+
+        large_indices = node_indices[2, mortar]
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_large = i_large_start
+        j_large = j_large_start
+        element = neighbor_ids[3, mortar]
+        for i in eachnode(solver)
+            for v in eachauxvariable(equations)
+                aux_buffer[v, i] = aux[v, i_large, j_large, element]
+            end
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+
+        # Interpolate the auxiliary variables of the large element face to the surface
+        # nodes of the small elements
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 1, :, mortar),
+                                mortar_l2.forward_lower, aux_buffer)
+        multiply_dimensionwise!(view(aux_mortar, 2, :, 2, :, mortar),
+                                mortar_l2.forward_upper, aux_buffer)
+    end
+
+    return nothing
+end
 end # @muladd

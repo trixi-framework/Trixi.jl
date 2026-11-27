@@ -8,7 +8,7 @@
 # 2D unstructured cache
 function create_cache_hyperbolic(mesh::UnstructuredMesh2D, equations, dg::FDSBP,
                                  RealT, uEltype)
-    elements = init_elements(mesh, equations, dg.basis, RealT, uEltype)
+    elements = init_elements(mesh, equations, dg.basis, uEltype)
 
     interfaces = init_interfaces(mesh, elements)
 
@@ -90,7 +90,7 @@ end
 
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 # Note: This is the standard (not de-aliased) form of the volume integral.
-# So it is not provably stable for variable coefficients due to the the metric terms.
+# So it is not provably stable for variable coefficients due to the metric terms.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
                                have_nonconservative_terms::False, equations,
