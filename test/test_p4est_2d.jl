@@ -1385,6 +1385,20 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_advectionnonconservative_combined_fluxes_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    # Use the same reference values as for the separate fluxes
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advectionnonconservative_combined_fluxes_nonconforming.jl"),
+                        l2=[0.0020945051403072766],
+                        linf=[0.01650967141933235])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh2D: elixir_advectionnonconservative_free_stream_nonconforming.jl" setup=[
     Setup,
     P4estMesh2D

@@ -111,7 +111,7 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructed from
 # these attributes for plotting purposes.
 function save_mesh_file(mesh::StructuredMeshView, output_directory; system = "",
                         timestep = 0)

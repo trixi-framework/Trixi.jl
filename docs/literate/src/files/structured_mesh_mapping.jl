@@ -10,7 +10,7 @@
 # transformation mapping. We now present one short example each.
 
 # ## Mesh defined by domain boundary curves
-# Both examples are based on a semdiscretization of the 2D compressible Euler equations.
+# Both examples are based on a semidiscretization of the 2D compressible Euler equations.
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi

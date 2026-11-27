@@ -50,7 +50,7 @@ rules. For more details you can have a look at the current
 file that holds the configuration options we use for JuliaFormatter.jl.
 
 Note that we expect all contributions to Trixi.jl to be formatted with JuliaFormatter.jl
-before being merged to the `main` branch. We ensure this by running a automated check on all
+before being merged to the `main` branch. We ensure this by running an automated check on all
 PRs that verify that running JuliaFormatter.jl again will not change the source code.
 
 To format your contributions before created a PR (or, at least, before requesting a review

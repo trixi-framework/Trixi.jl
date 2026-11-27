@@ -459,7 +459,7 @@ end
     flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction,
                     equations::CompressibleEulerEquations2D)
 
-This flux is is a modification of the original kinetic energy preserving two-point flux by
+This flux is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
@@ -777,9 +777,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - Joseph L. Steger and R. F. Warming (1979)
@@ -907,9 +904,6 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 
 ## References
 
@@ -1170,9 +1164,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - Bram van Leer (1982)
@@ -1318,9 +1309,6 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 @inline function splitting_lax_friedrichs(u, orientation_or_normal_direction,
                                           equations::CompressibleEulerEquations2D)
@@ -1920,7 +1908,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 
@@ -1977,7 +1965,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, normal_direction, equations::CompressibleEulerEquations2D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 
