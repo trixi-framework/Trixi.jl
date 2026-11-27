@@ -286,7 +286,7 @@ export boundary_condition_do_nothing,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall,
        NoSlip, Slip,
-       Adiabatic, Isothermal,
+       Adiabatic, Isothermal, RadiativeEquilibriumOneWay,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export NodeIndex
