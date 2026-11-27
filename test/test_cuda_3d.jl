@@ -951,7 +951,7 @@ end
     @test u_ode isa CuArray
     du_ode = similar(u_ode)
     Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
-    du = Array(Trixi.wrap_array(du_ode, semi))
+    du = GC.@preserve du_ode Array(Trixi.wrap_array(du_ode, semi))
     x = Array(semi.cache.elements.node_coordinates)
     @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
 end

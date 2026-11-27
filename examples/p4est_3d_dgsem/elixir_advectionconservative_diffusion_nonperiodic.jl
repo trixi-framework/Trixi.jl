@@ -14,7 +14,9 @@ equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 
 # The auxiliary variables of `ConservativeLinearScalarAdvectionEquation3D` are the
 # components `(a1, a2, a3)` of the advection velocity
-aux_field(x, equations) = SVector(advection_velocity)
+function aux_field(x, equations::ConservativeLinearScalarAdvectionEquation3D)
+    return SVector(advection_velocity)
+end
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)

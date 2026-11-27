@@ -492,8 +492,8 @@ end
                            "elixir_advection_diffusion_nonperiodic.jl"),
                   tspan = (0.0, 0.1))
 
-    # Same as `BoundaryConditionDirichlet(initial_condition)` but as a plain function
-    # instead of a callable struct
+    # Same as `BoundaryConditionDirichlet(initial_condition)` but as a plain function,
+    # which `calc_boundary_flux!` must specialize on (see the type parameter `BC`)
     function boundary_condition_function(flux_inner, u_inner,
                                          normal_direction::AbstractVector, x, t,
                                          operator_type::Trixi.Gradient,
@@ -600,7 +600,6 @@ end
 
 @testitem "Parabolic3D: P4estMesh3D: auxiliary variables in the parabolic terms" setup=[
     Setup,
-    Parabolic3D,
     ParabolicAuxDiffusion3D
 ] tags=[:parabolic_part3] begin
     # Refine one element to test the mortars
@@ -624,15 +623,17 @@ end
                               Ptr{Trixi.p8est_quadrant_t}))
     Trixi.refine_p4est!(mesh_nonconforming.p4est, true, refine_fn_c, C_NULL)
 
-    for semi in (semidiscretization_parabolic_aux_3d(mesh),
-                 semidiscretization_parabolic_aux_3d(mesh_nonconforming))
+    semi_nonconforming = semidiscretization_parabolic_aux_3d(mesh_nonconforming)
+    # Make sure that the mesh is actually nonconforming
+    @test Trixi.nmortars(semi_nonconforming.solver, semi_nonconforming.cache) > 0
+
+    for semi in (semidiscretization_parabolic_aux_3d(mesh), semi_nonconforming)
         u_ode = compute_coefficients(0.0, semi)
         du_ode = similar(u_ode)
         Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
-        du = Trixi.wrap_array(du_ode, semi)
+        du = GC.@preserve du_ode Array(Trixi.wrap_array(du_ode, semi))
         x = semi.cache.elements.node_coordinates
         @test isapprox(du[1, :, :, :, :], 2 .+ 4 .* x[1, :, :, :, :], atol = 1.0e-12)
-        @test (Trixi.nmortars(semi.cache.mortars) > 0) == (semi.mesh === mesh_nonconforming)
     end
 
     # On the Cartesian mesh, the largest diffusivity `aux[1] = 1 + x = 2` determines the

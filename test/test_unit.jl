@@ -6625,6 +6625,7 @@ end
         equations_parabolic = LaplaceDiffusion3D(0.1, equations)
         equations_parabolic_no_aux = LaplaceDiffusion3D(0.1, equations_no_aux)
         @test nauxvariables(equations_parabolic) == 3
+        @test Trixi.auxvarnames(equations_parabolic) == ("a1", "a2", "a3")
         @test nauxvariables(equations_parabolic_no_aux) == 0
         boundary_conditions = (boundary_condition_periodic, boundary_condition_periodic)
 
