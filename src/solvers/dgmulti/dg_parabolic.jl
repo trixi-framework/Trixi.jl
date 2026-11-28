@@ -160,6 +160,47 @@ function calc_interface_flux_gradient!(scalar_flux_face_values,
     return nothing
 end
 
+# The LDG fluxes `flux_parabolic(u_ll, u_rr, normal_direction, ...)` select one-sided
+# values based on the sign of the dominant component of `normal_direction`, which is
+# the outward normal of the element providing `u_ll`. They are shared with the
+# `P4estMesh`, which visits each interface once. In contrast, `DGMulti` visits each
+# interior face node from both adjacent elements. The outward normals stored for both
+# elements are only equal up to round-off errors and a sign, which can lead to
+# inconsistent choices of the one-sided values. Thus, both visits use the normal
+# stored at the face node with the smaller index, with the sign flipped if necessary
+# so that it is the outward normal of the element containing `idM`.
+# At boundary nodes, `idM == idP` holds and the normal of the element itself is used.
+@inline function unique_normal_direction(nxyzJ, idM, idP,
+                                         mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+    if idM <= idP
+        return SVector{NDIMS}(getindex.(nxyzJ, idM))
+    else
+        return -SVector{NDIMS}(getindex.(nxyzJ, idP))
+    end
+end
+
+function calc_interface_flux_gradient!(scalar_flux_face_values,
+                                       mesh::DGMultiMesh, equations,
+                                       dg::DGMulti,
+                                       parabolic_scheme::ParabolicFormulationLocalDG,
+                                       cache, cache_parabolic)
+    (; u_face_values) = cache_parabolic
+    (; mapM, mapP, nxyzJ) = mesh.md
+    @threaded for face_node_index in each_face_node_global(mesh, dg)
+        idM, idP = mapM[face_node_index], mapP[face_node_index]
+        uM = u_face_values[idM]
+        uP = u_face_values[idP]
+        normal_direction = unique_normal_direction(nxyzJ, idM, idP, mesh)
+        u_flux = flux_parabolic(uM, uP, normal_direction, Gradient(), equations,
+                                parabolic_scheme)
+        # As for BR1, we use the "strong" formulation to compute the gradient
+        # and thus subtract the interior value.
+        scalar_flux_face_values[idM] = u_flux - uM
+    end
+
+    return nothing
+end
+
 function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
                         equations::AbstractEquationsParabolic,
                         boundary_conditions, dg::DGMulti, parabolic_scheme,
@@ -352,6 +393,16 @@ function calc_parabolic_penalty!(scalar_flux_face_values, u_face_values, t,
     return nothing
 end
 
+# no penalization for the LDG parabolic solver without a penalty parameter
+function calc_parabolic_penalty!(scalar_flux_face_values, u_face_values, t,
+                                 boundary_conditions,
+                                 mesh, equations::AbstractEquationsParabolic,
+                                 dg::DGMulti,
+                                 parabolic_scheme::ParabolicFormulationLocalDG{Nothing},
+                                 cache, cache_parabolic)
+    return nothing
+end
+
 function calc_parabolic_penalty!(scalar_flux_face_values, u_face_values, t,
                                  boundary_conditions, mesh,
                                  equations::AbstractEquationsParabolic,
@@ -434,6 +485,38 @@ function calc_interface_flux_divergence!(scalar_flux_face_values,
                               0.5f0 * (fP + fM) * nxyzJ[dim][face_node_index]
         end
         scalar_flux_face_values[idM] = flux_face_value
+    end
+
+    return nothing
+end
+
+function calc_interface_flux_divergence!(scalar_flux_face_values,
+                                         mesh::DGMultiMesh, equations,
+                                         dg::DGMulti,
+                                         parabolic_scheme::ParabolicFormulationLocalDG,
+                                         cache, cache_parabolic)
+    flux_parabolic_face_values = cache_parabolic.gradients_face_values # reuse storage
+    (; mapM, mapP, nxyzJ) = mesh.md
+
+    @threaded for face_node_index in each_face_node_global(mesh, dg, cache, cache_parabolic)
+        idM, idP = mapM[face_node_index], mapP[face_node_index]
+
+        normal_direction = unique_normal_direction(nxyzJ, idM, idP, mesh)
+
+        # compute f(u, ∇u) ⋅ n on both sides using the outward normal of this element
+        flux_normalM = zero(eltype(scalar_flux_face_values))
+        flux_normalP = zero(eltype(scalar_flux_face_values))
+        for dim in eachdim(mesh)
+            flux_normalM = flux_normalM +
+                           flux_parabolic_face_values[dim][idM] * normal_direction[dim]
+            flux_normalP = flux_normalP +
+                           flux_parabolic_face_values[dim][idP] * normal_direction[dim]
+        end
+
+        # As for BR1, we use the "weak" formulation to compute the divergence.
+        scalar_flux_face_values[idM] = flux_parabolic(flux_normalM, flux_normalP,
+                                                      normal_direction, Divergence(),
+                                                      equations, parabolic_scheme)
     end
 
     return nothing

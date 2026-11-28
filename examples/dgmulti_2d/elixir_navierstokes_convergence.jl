@@ -203,6 +203,7 @@ boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic),
                                              source_terms = source_terms_navier_stokes_convergence_test)

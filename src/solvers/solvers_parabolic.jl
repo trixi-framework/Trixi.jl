@@ -34,7 +34,8 @@ not need to be specialized for `Gradient` and `Divergence`.
 
 `normal_direction` is not used in the BR1 flux,
 but is included as an argument for consistency with the [`ParabolicFormulationLocalDG`](@ref) flux,
-which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian [`P4estMesh`](@ref).
+which does use the `normal_direction` to compute the LDG "switch" on the generally non-Cartesian
+[`P4estMesh`](@ref) and [`DGMultiMesh`](@ref).
 """
 @inline function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                                 gradient_or_divergence, equations_parabolic,
@@ -54,8 +55,10 @@ end
 The local DG (LDG) flux from "The Local Discontinuous Galerkin Method for Time-Dependent
 Convection-Diffusion Systems" by Cockburn and Shu (1998).
 
-The parabolic "upwinding" vector is currently implemented for `TreeMesh`; for all other mesh types,
-the LDG solver is equivalent to [`ParabolicFormulationBassiRebay1`](@ref) with an LDG-type penalization.
+The parabolic "upwinding" is implemented for [`TreeMesh`](@ref), [`P4estMesh`](@ref),
+and [`DGMultiMesh`](@ref). On the latter two mesh types, the LDG "switch" is determined
+by the sign of the dominant component of the interface normal, see
+[`flux_parabolic`](@ref).
 
 - Cockburn and Shu (1998).
   The Local Discontinuous Galerkin Method for Time-Dependent
@@ -81,6 +84,25 @@ Cockburn and Dong proved that this scheme is still stable despite the zero penal
 """
 ParabolicFormulationLocalDG() = ParabolicFormulationLocalDG(nothing)
 
+# Compute the LDG "switch" as the sign of the dominant component of `normal_direction`,
+# i.e., the component with the maximal magnitude. If several components have the same
+# magnitude up to round-off errors (e.g., on diagonal faces of triangles), we select
+# the first one, so that the choice does not depend on round-off errors and thus on
+# the platform. The default relative tolerance `sqrt(eps())` of `isapprox` is much
+# larger than such round-off errors, which can reach hundreds of `eps()`.
+# This is written as a plain loop to keep it type-stable and usable in GPU kernels.
+@inline function ldg_switch_dominant_direction(normal_direction)
+    max_abs = maximum(abs, normal_direction)
+    for component in normal_direction
+        if isapprox(abs(component), max_abs)
+            # Return first one found
+            return sign(component)
+        end
+    end
+    # Only reached if `normal_direction` contains `NaN`s
+    return sign(max_abs)
+end
+
 @doc raw"""
     flux_parabolic(u_ll, u_rr,
                    ::Gradient, equations_parabolic,
@@ -100,9 +122,11 @@ f_{\text{gradient}} = u_{L}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding.
+For the [`P4estMesh`](@ref) and the [`DGMultiMesh`](@ref), the `normal_direction` is used to
+compute the LDG "switch" ``\sigma`` for the upwinding.
 This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
 which corresponds to the "dominant" direction of the interface normal.
+If several components have the same magnitude up to round-off errors, the first one is selected.
 ```math
 i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
 \sigma = \text{sign} (n_i)
@@ -118,13 +142,12 @@ i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots
     # and `u_rr` for the divergence.
     return u_ll # Use the upwind value for the gradient interface flux
 end
-# Version for `P4estMesh`
+# Version for `P4estMesh` and `DGMultiMesh`
 @inline function flux_parabolic(u_ll, u_rr, normal_direction,
                                 ::Gradient, equations_parabolic,
                                 parabolic_scheme::ParabolicFormulationLocalDG)
     # Use "Upwind in dominant direction" for LDG switch
-    abs_max_dir = argmax(abs.(normal_direction))
-    ldg_switch = sign(normal_direction[abs_max_dir])
+    ldg_switch = ldg_switch_dominant_direction(normal_direction)
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
@@ -148,9 +171,11 @@ f_{\text{divergence}} = u_{R}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the downwinding.
+For the [`P4estMesh`](@ref) and the [`DGMultiMesh`](@ref), the `normal_direction` is used to
+compute the LDG "switch" ``\sigma`` for the downwinding.
 This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
 which corresponds to the "dominant" direction of the interface normal.
+If several components have the same magnitude up to round-off errors, the first one is selected.
 ```math
 i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
 \sigma = -\text{sign} (n_i)
@@ -161,13 +186,12 @@ i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots
                                 parabolic_scheme::ParabolicFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end
-# Version for `P4estMesh`
+# Version for `P4estMesh` and `DGMultiMesh`
 @inline function flux_parabolic(u_ll, u_rr, normal_direction,
                                 ::Divergence, equations_parabolic,
                                 parabolic_scheme::ParabolicFormulationLocalDG)
     # Use "Downwind in dominant direction" for LDG switch
-    abs_max_dir = argmax(abs.(normal_direction))
-    ldg_switch = -sign(normal_direction[abs_max_dir])
+    ldg_switch = -ldg_switch_dominant_direction(normal_direction)
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 

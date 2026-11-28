@@ -21,6 +21,9 @@ for human readability.
 - The new global Lax-Friedrichs flux splitting `SplittingGlobalLaxFriedrichs` is
   available for all equations and complements the dissipation
   `DissipationGlobalLaxFriedrichs` for upwind SBP methods ([#3497]).
+- `ParabolicFormulationLocalDG` is now supported for `DGMulti` solvers, i.e., the
+  alternating one-sided LDG fluxes for the gradient and the divergence are available
+  on `DGMultiMesh` ([#3324]).
 
 #### Changed
 - Fixes non-periodic boundary conditions for `FDSBP` solvers on `TreeMesh{1}` and
