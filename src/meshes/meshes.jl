@@ -7,6 +7,8 @@
 
 @inline Base.ndims(::Type{<:AbstractMesh{NDIMS}}) where {NDIMS} = NDIMS
 
+get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
+
 include("tree_mesh.jl")
 include("structured_mesh.jl")
 include("structured_mesh_view.jl")
