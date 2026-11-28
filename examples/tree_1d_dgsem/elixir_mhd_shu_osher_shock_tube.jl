@@ -13,6 +13,7 @@ Extended version of the test of Shu and Osher for one dimensional ideal MHD equa
 Taken from Section 4.1 of
 - Derigs et al. (2016)
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver withGuaranteed Positive Pressure
+  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)

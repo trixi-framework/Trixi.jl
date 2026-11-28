@@ -134,11 +134,12 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::False, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              aux, element)
     max_lambda1 = max_lambda2 = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
-        lambda1, lambda2 = max_abs_speeds(u_node, equations)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
+        lambda1, lambda2 = max_abs_speeds(u_node, aux_node..., equations)
 
         # Local speeds transformed to the reference element
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
@@ -156,52 +157,6 @@ end
     return max_lambda1 + max_lambda2
 end
 
-function max_dt(u, t,
-                mesh::P4estMesh{2}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
-                constant_diffusivity::False, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DG, cache)
-    # Avoid division by zero if the diffusivity vanishes everywhere
-    max_scaled_diffusivity = nextfloat(zero(t))
-
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
-
-    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
-        max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
-            diffusivity = max_diffusivity(u_node, equations_parabolic)
-
-            # Local diffusivity transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                  i, j, element)
-            # The metric terms are squared due to the second derivatives in the parabolic terms,
-            # which lead to application of the chain rule (coordinate transformation) twice.
-            # See for instance also the implementation in FLEXI
-            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
-            # or FLUXO:
-            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
-            diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                  i, j, element)
-            diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
-
-            max_diffusivity1 = Base.max(max_diffusivity1,
-                                        diffusivity1_transformed * inv_jacobian^2)
-            max_diffusivity2 = Base.max(max_diffusivity2,
-                                        diffusivity2_transformed * inv_jacobian^2)
-        end
-        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
-        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
-                                          max_diffusivity1 + max_diffusivity2)
-    end
-
-    return 4 / (nnodes(dg) * max_scaled_diffusivity)
-end
-
 @inline function max_scaled_speed_per_element(u,
                                               ::Type{<:Union{StructuredMesh{2},
                                                              UnstructuredMesh2D,
@@ -211,7 +166,7 @@ end
                                                              StructuredMeshView{2}}},
                                               constant_speed::True, equations, dg::DG,
                                               contravariant_vectors, inverse_jacobian,
-                                              element)
+                                              aux::Nothing, element)
     max_scaled_speed = zero(eltype(u))
     max_lambda1, max_lambda2 = max_abs_speeds(equations)
     for j in eachnode(dg), i in eachnode(dg)
@@ -235,51 +190,92 @@ end
 
 function max_dt(u, t,
                 mesh::P4estMesh{2}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
-                constant_diffusivity::True, equations,
+                constant_diffusivity, equations,
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
+    backend = trixi_backend(u)
+
+    max_diffusivity_ = calc_max_scaled_diffusivity(backend, u, mesh,
+                                                   constant_diffusivity, equations,
+                                                   equations_parabolic, dg, cache)
+
     # Avoid division by zero if the diffusivity vanishes everywhere
-    max_scaled_diffusivity = nextfloat(zero(t))
-
-    diffusivity = max_diffusivity(equations_parabolic)
-
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
-
-    @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)
-        max_diffusivity1 = max_diffusivity2 = zero(max_scaled_diffusivity)
-        for j in eachnode(dg), i in eachnode(dg)
-            # Local diffusivity transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
-                                                  i, j, element)
-            # The metric terms are squared due to the second derivatives in the parabolic terms,
-            # which lead to application of the chain rule (coordinate transformation) twice.
-            # See for instance also the implementation in FLEXI
-            # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
-            # or FLUXO:
-            # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
-            diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
-                                                  i, j, element)
-            diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
-
-            max_diffusivity1 = Base.max(max_diffusivity1,
-                                        diffusivity1_transformed * inv_jacobian^2)
-            max_diffusivity2 = Base.max(max_diffusivity2,
-                                        diffusivity2_transformed * inv_jacobian^2)
-        end
-        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
-        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
-        max_scaled_diffusivity = Base.max(max_scaled_diffusivity,
-                                          max_diffusivity1 + max_diffusivity2)
-    end
+    max_scaled_diffusivity = Base.max(nextfloat(zero(t)), max_diffusivity_)
 
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
+@inline function max_scaled_diffusivity_per_element(u, ::Type{<:P4estMesh{2}},
+                                                    constant_diffusivity::False,
+                                                    equations, equations_parabolic,
+                                                    dg::DG, contravariant_vectors,
+                                                    inverse_jacobian, aux::Nothing,
+                                                    element)
+    max_diffusivity1 = max_diffusivity2 = zero(eltype(u))
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        diffusivity = max_diffusivity(u_node, equations_parabolic)
+
+        # Local diffusivity transformed to the reference element
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                              i, j, element)
+        # The metric terms are squared due to the second derivatives in the parabolic terms,
+        # which lead to application of the chain rule (coordinate transformation) twice.
+        # See for instance also the implementation in FLEXI
+        # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+        # or FLUXO:
+        # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
+        diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                              i, j, element)
+        diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+        max_diffusivity1 = Base.max(max_diffusivity1,
+                                    diffusivity1_transformed * inv_jacobian^2)
+        max_diffusivity2 = Base.max(max_diffusivity2,
+                                    diffusivity2_transformed * inv_jacobian^2)
+    end
+    return max_diffusivity1 + max_diffusivity2
+end
+
+@inline function max_scaled_diffusivity_per_element(u, ::Type{<:P4estMesh{2}},
+                                                    constant_diffusivity::True,
+                                                    equations, equations_parabolic,
+                                                    dg::DG, contravariant_vectors,
+                                                    inverse_jacobian, aux::Nothing,
+                                                    element)
+    diffusivity = max_diffusivity(equations_parabolic)
+
+    max_diffusivity1 = max_diffusivity2 = zero(eltype(u))
+    for j in eachnode(dg), i in eachnode(dg)
+        # Local diffusivity transformed to the reference element
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                              i, j, element)
+        # The metric terms are squared due to the second derivatives in the parabolic terms,
+        # which lead to application of the chain rule (coordinate transformation) twice.
+        # See for instance also the implementation in FLEXI
+        # https://github.com/flexi-framework/flexi/blob/e980e8635e6605daf906fc176c9897314a9cd9b1/src/equations/navierstokes/calctimestep.f90#L75-L77
+        # or FLUXO:
+        # https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a84859f1/src/equation/navierstokes/calctimestep.f90#L130-L132
+        diffusivity1_transformed = diffusivity * (Ja11^2 + Ja12^2)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                              i, j, element)
+        diffusivity2_transformed = diffusivity * (Ja21^2 + Ja22^2)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+        max_diffusivity1 = Base.max(max_diffusivity1,
+                                    diffusivity1_transformed * inv_jacobian^2)
+        max_diffusivity2 = Base.max(max_diffusivity2,
+                                    diffusivity2_transformed * inv_jacobian^2)
+    end
+    return max_diffusivity1 + max_diffusivity2
+end
+
 function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_speed::False, equations, dg::DG, cache)
+                constant_speed, equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -289,57 +285,6 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
-    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
-
-    return dt
-end
-
-function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_speed::True, equations, dg::DG, cache)
-    # call the method accepting a general `mesh::P4estMesh{2}`
-    # TODO: MPI, we should improve this; maybe we should dispatch on `u`
-    #       and create some MPI array type, overloading broadcasting and mapreduce etc.
-    #       Then, this specific array type should also work well with DiffEq etc.
-    dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{2},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
-    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
-    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
-
-    return dt
-end
-
-function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_diffusivity::False, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DG, cache)
-    # call the method accepting a general `mesh::P4estMesh{2}`
-    dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{2},
-                      typeof(constant_diffusivity), typeof(equations),
-                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
-                dg, cache)
-    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
-    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
-
-    return dt
-end
-
-function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_diffusivity::True, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DG, cache)
-    # call the method accepting a general `mesh::P4estMesh{2}`
-    dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), P4estMesh{2},
-                      typeof(constant_diffusivity), typeof(equations),
-                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
-                dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -347,7 +292,7 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::T8codeMeshParallel{2},
-                constant_speed::False, equations, dg::DG, cache)
+                constant_speed, equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
@@ -363,17 +308,17 @@ function max_dt(u, t, mesh::T8codeMeshParallel{2},
     return dt
 end
 
-function max_dt(u, t, mesh::T8codeMeshParallel{2},
-                constant_speed::True, equations, dg::DG, cache)
-    # call the method accepting a general `mesh::T8codeMesh{2}`
-    # TODO: MPI, we should improve this; maybe we should dispatch on `u`
-    #       and create some MPI array type, overloading broadcasting and mapreduce etc.
-    #       Then, this specific array type should also work well with DiffEq etc.
+function max_dt(u, t, mesh::P4estMeshParallel{2},
+                constant_diffusivity, equations,
+                equations_parabolic::AbstractEquationsParabolic,
+                dg::DG, cache)
+    # call the method accepting a general `mesh::P4estMesh{2}`
     dt = invoke(max_dt,
-                Tuple{typeof(u), typeof(t), T8codeMesh{2},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                Tuple{typeof(u), typeof(t), P4estMesh{2},
+                      typeof(constant_diffusivity), typeof(equations),
+                      typeof(equations_parabolic), typeof(dg), typeof(cache)},
+                u, t, mesh, constant_diffusivity, equations, equations_parabolic,
+                dg, cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 

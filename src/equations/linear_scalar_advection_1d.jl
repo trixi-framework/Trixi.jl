@@ -209,9 +209,6 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 @inline function splitting_lax_friedrichs(u, orientation::Integer,
                                           equations::LinearScalarAdvectionEquation1D)
@@ -240,6 +237,8 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
+# Convert entropy variables to conservative variables
+@inline entropy2cons(u, equation::LinearScalarAdvectionEquation1D) = u
 
 @doc raw"""
     entropy(u, equations::AbstractLinearScalarAdvectionEquation)

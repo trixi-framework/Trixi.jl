@@ -6,7 +6,9 @@ Claude Code reads it via the `@AGENTS.md` import in `CLAUDE.md`. Keep this file
 the single source of truth; put only tool-specific notes into tool-specific
 files. The authoritative developer documentation lives in `docs/src/` (in
 particular `conventions.md`, `styleguide.md`, `testing.md`, and
-`development.md`); this file summarizes what agents need most.
+`development.md`); this file summarizes what agents need most. Task-specific
+details live in `docs/agents/`; read a linked file there when this file tells
+you to.
 
 When editing this file, only add instructions and commands that have actually
 been tested in this repository. Instructions that do not work are worse than no
@@ -32,7 +34,9 @@ discard, reset, or stash unrelated changes while testing a fix.
   `test/test_*.jl`).
 - `ext/`: package extensions for weak dependencies (e.g., Makie, Plots,
   CUDA, AMDGPU).
-- `docs/`: documentation source; `utils/`: developer scripts (e.g., formatting).
+- `docs/`: documentation source (`docs/src/`) and task-specific instructions
+  for agents (`docs/agents/`, linked from this file); `utils/`: developer
+  scripts (e.g., formatting).
 - `run/` (if present, ignored by git): the human developer's own Julia project
   as suggested in `README.md`. Do not modify it; agents use `run_agents/`
   instead (see below).
@@ -112,22 +116,20 @@ tools only by name until they are loaded (see `CLAUDE.md` for Claude Code). Use
 the shell commands in this file only if no such session is available.
 Task-specific instructions that show shell commands do not override this rule.
 
-### The `run_agents` Julia project
+### The `run_agents` Julia projects
 
-Use a local Julia project in the directory `run_agents/` at the root of this
-repository for running tests, elixirs, and scratch scripts. It develops the
-local version of Trixi.jl (`Pkg.develop`) and contains all dependencies of the
-tests (copied from `test/Project.toml`, including compat bounds and
-preferences). Recycle it from one run (and session) to the next instead of
-creating new environments. The directory is ignored by git (`run*/` in
-`.gitignore`) and must never be committed.
+Use the local Julia project `run_agents/` at the root of this repository for
+running tests, elixirs, and scratch scripts. It develops the local version of
+Trixi.jl and contains all dependencies of the tests (copied from
+`test/Project.toml`). Use `run_agents/kernelabstractions/`, which has the same
+packages but selects the KernelAbstractions.jl threading backend, for code and
+test items of this backend (e.g., tagged `:kernelabstractions`). The formatter
+lives in `run_agents/formatter/` (see [Code style](#code-style)). Recycle these
+projects from one run (and session) to the next instead of creating new
+environments. They are ignored by git (`run*/` in `.gitignore`) and must never
+be committed.
 
-The formatter JuliaFormatter.jl v1.0.60 (see [Code style](#code-style)) cannot
-be installed in `run_agents/` since its dependencies are incompatible with those
-of Trixi.jl. Thus, it lives in the separate project `run_agents/formatter/`,
-where it is pinned to this version.
-
-Create or update both projects by running the script
+Create or update all three projects by running the script
 `utils/setup_run_agents.jl` **before running tests or the formatter**, e.g.,
 from the root of the repository,
 
@@ -135,37 +137,11 @@ from the root of the repository,
 julia utils/setup_run_agents.jl
 ```
 
-The script works from any directory and is idempotent: if `run_agents/` is up to
-date with `test/Project.toml` and still points to this checkout, it reuses the
-environment; otherwise, it recreates the project. Similarly, it only
-(re-)creates `run_agents/formatter/` if JuliaFormatter.jl v1.0.60 is not pinned
-there. The first setup may take several minutes; afterward, it takes only a few
-seconds unless packages need to be precompiled again.
-
-The setup script does not check the dependencies of Trixi.jl itself (in the
-root `Project.toml`). If they changed (e.g., after you added a dependency to
-Trixi.jl or pulled such a change from `main`), loading Trixi.jl fails with an
-error such as `ArgumentError: Package Trixi does not have X in its dependencies`.
-Only in this case, run
-`julia --project=run_agents -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'`.
-Do not run `Pkg.resolve()` routinely, since it takes some time.
-
-If you need additional packages for your own experiments (e.g., BenchmarkTools),
-add them with `julia --project=run_agents -e 'using Pkg; Pkg.add("PackageName")'`.
-Note that they are removed when the project is re-created after a change of
-`test/Project.toml`; never add them to `test/Project.toml` or `Project.toml`
-unless this is part of the actual task. Temporary scripts can be stored in
-`run_agents/` as well.
-
-`run_agents/Manifest.toml` pins resolved package versions, and the setup script
-does not upgrade them. CI uses the latest compatible versions, so the
-local environment can fall behind. When investigating CI failures or numerical
-differences, compare the package versions in the CI logs with
-`julia --project=run_agents -e 'using Pkg; Pkg.status()'` before attributing a
-change to Trixi.jl. To move to the latest compatible versions, run
-`julia --project=run_agents -e 'using Pkg; Pkg.Registry.update(); Pkg.update()'`.
-Use a separate ignored or temporary environment to test other dependency
-versions so that the usual `run_agents/` setup remains reproducible.
+It is idempotent and takes only a few seconds if nothing changed. Read
+[`docs/agents/run_agents.md`](docs/agents/run_agents.md) if the setup or
+loading Trixi.jl fails (e.g., `ArgumentError: Package Trixi does not have X in
+its dependencies`), if you need additional packages, or if you compare results
+or package versions with CI.
 
 ### Running selected test items
 
@@ -198,32 +174,26 @@ Notes:
   TestItemRunner just prints a summary without any tests (`None`). Make sure
   that the number of passed tests is plausible, and copy test item names
   exactly from the `@testitem "..."` lines.
-- Without a persistent Julia session (see
-  [the next section](#persistent-julia-sessions-via-mcp)), batch related test
-  items into one call to avoid repeated startup costs.
+- Without a persistent Julia session, batch related test items into one call to
+  avoid repeated startup costs.
 - Always call `@run_package_tests` inside `cd(".../test") do ... end` as
   above. The macro searches for test items in the parent directory of the file
   it is called from; outside of a file (e.g., in `julia -e` or an MCP
-  session), this is the parent of the current working directory. From the
-  repository root, it would search the parent directory of the repository
-  (e.g., failing with `UndefVarError: Trixi not defined`). The `do` block
-  restores the previous working directory afterward. Output files of test
-  items are written to `test/out/`, as in `Pkg.test`.
+  session), this is the parent of the current working directory. The `do`
+  block restores the previous working directory afterward. Output files of
+  test items are written to `test/out/`, as in `Pkg.test`.
 - Do not use `julia --project=.` (the package environment lacks the test
   dependencies) or `julia --project=test` (the test environment lacks
-  Trixi.jl), and do not stack environments via `JULIA_LOAD_PATH` (e.g.,
-  `"@:test:@stdlib"`); the latter can mix incompatible package versions and fail
-  during precompilation. Use the `run_agents` project instead.
+  Trixi.jl), and do not stack environments via `JULIA_LOAD_PATH`; the latter
+  can mix incompatible package versions and fail during precompilation.
 - The first run after setting up or updating `run_agents` may take several
   minutes because of precompilation. Later runs are much faster.
 - Find the relevant test items by searching `test/` for the elixir name,
   function name, or equation type you changed, e.g.,
   `rg -n "elixir_mhd_rotor" test/` (or `grep -rn`). Remember that elixirs can
   be included by other elixirs and tests via `trixi_include`.
-- To quickly try an elixir without the test harness, use the `run_agents`
-  project (elixirs need packages such as `OrdinaryDiffEqLowStorageRK`, which are
-  test-only dependencies) and `trixi_include`, which can override assignments in
-  the elixir, e.g., in `julia --project=run_agents`:
+- To quickly try an elixir without the test harness, use `trixi_include` in the
+  `run_agents` project, which can override assignments in the elixir, e.g.,
   ```julia
   using Trixi
   trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_extended.jl"),
@@ -234,32 +204,9 @@ Notes:
   not be committed.
 - When developing new kernels, run Julia with `--check-bounds=yes` so that
   out-of-bounds accesses are caught despite `@inbounds`.
-
-### Running selected MPI test items
-
-Test items with the tag `:mpi` (e.g., in `test/test_mpi_p4est_2d.jl`) exercise
-the MPI code (e.g., `P4estMeshParallel`) only when run with more than one MPI
-rank; in a single Julia process, the mesh is not parallel. Thus, run selected
-MPI test items in the shell (not in a persistent session via MCP) with
-`mpiexec`, as the `mpi` suite does, but without running the complete suite:
-
-1. Write a script calling `@run_package_tests` with a filter as
-   [above](#running-selected-test-items), e.g., `run_agents/run_mpi_items.jl`.
-   The script must be located in `run_agents/`: when called from a file,
-   `@run_package_tests` searches the parent directory of the directory of this
-   file, so a script in another directory (e.g., a temporary directory) finds
-   no test items.
-2. Launch it from the root of the repository via `MPI.mpiexec()`:
-   ```bash
-   julia --project=run_agents -e 'using MPI; julia = Base.julia_cmd()[1]
-       run(`$(MPI.mpiexec()) -n 2 $julia --threads=1 --check-bounds=yes --project=run_agents run_agents/run_mpi_items.jl`)'
-   ```
-   Do not call the `mpiexec` binary of the MPI.jl artifact directly from the
-   shell; it fails since `libhwloc` is not found.
-3. Each rank prints its own test summary, and the output of the ranks may be
-   interleaved. Check that all ranks report only passed tests and that the
-   output of the elixirs shows `#MPI ranks: 2`.
-4. Remove the script afterward.
+- Test items with the tag `:mpi` exercise the MPI code only with more than one
+  MPI rank. Before running them, read
+  [`docs/agents/mpi_tests.md`](docs/agents/mpi_tests.md).
 
 ### Persistent Julia sessions via MCP
 
@@ -270,10 +217,13 @@ are available to you** (possibly only listed by name until they are loaded, see
 elixirs, in the following order of preference:
 
 1. a [Kaimon.jl](https://github.com/kahliburke/Kaimon.jl) session started by
-   the developer that loads Trixi.jl from this checkout (see
-   [below](#kaimonjl)), otherwise
-2. a session of [julia-mcp](https://github.com/aplavin/julia-mcp) (see
-   [below](#julia-mcp)), otherwise
+   the developer that loads Trixi.jl from this checkout (tools such as `ping`
+   and `ex`; read [`docs/agents/kaimon.md`](docs/agents/kaimon.md) before the
+   first call), otherwise
+2. a session of [julia-mcp](https://github.com/aplavin/julia-mcp) (tools
+   `julia_eval`, `julia_restart`, and `julia_list_sessions`; read
+   [`docs/agents/julia_mcp.md`](docs/agents/julia_mcp.md) before the first
+   call), otherwise
 3. the shell commands described above.
 
 Everything else in this file applies unchanged. Run the `run_agents` setup
@@ -283,111 +233,6 @@ Sessions may run with non-default Julia flags chosen by the developer (e.g.,
 `--threads=1 --check-bounds=yes`). Check them with `Threads.nthreads()` and
 `Base.JLOptions().check_bounds` (`1` means bounds checking is enabled) if they
 matter, e.g., for timings or allocation tests.
-
-#### Kaimon.jl
-
-Kaimon.jl connects agents to Julia sessions (REPLs) started by the developer,
-who sees the code you run in their REPL. Its tools include `ping` and `ex`
-(in Claude Code, e.g., `mcp__kaimon__ex`). They are only available while the
-Kaimon.jl server is running.
-
-- Call `ping` to list the connected sessions with their 8-character keys. Use
-  a session only if
-  `ex(e = "using Trixi; pkgdir(Trixi)", q = false, ses = "<key>")` returns the
-  absolute path of the root of this repository. Otherwise (e.g., for sessions
-  of other packages, clones, or worktrees, or if no session is connected), use
-  julia-mcp or the shell instead.
-- Always pass `q = false` (the default `q = true` does not return the result)
-  and `ses = "<key>"`.
-- `ex` returns the value of the last expression or the error, together with
-  the output printed to `stdout` and `stderr` (e.g., test summaries and
-  details of failures). However, output capture may be bypassed for code that
-  loads packages via `using` or `import`. Thus, load packages in a separate
-  call first, e.g., `ex(e = "using TestItemRunner", q = false, ses = "<key>")`,
-  and then run test items in another call such as
-  ```julia
-  cd("/path/to/Trixi.jl/test") do
-      @run_package_tests filter = ti -> ti.name in (
-          "TreeMesh2D Advection: elixir_advection_basic.jl",
-          "Unit: Spectral analysis",
-      )
-  end;
-  ```
-  ending with `;` to avoid printing the returned test set.
-- Pass `max_output = 25000` (the maximum; the default is 6000 characters) when
-  running test items. Longer output is truncated in the middle, keeping its
-  beginning and end (including the test summary). Since a single test item
-  running an elixir can print more than 10000 characters, run only a few test
-  items per call and rerun failed test items individually if their details
-  were truncated.
-- Kaimon.jl may remove calls such as `println` from your code; use the value
-  of the last expression to return results instead.
-- The session belongs to the developer. Do not restart or shut it down, do not
-  add or remove packages, do not start new sessions, and avoid persistent
-  changes to its global state (e.g., use `cd(...) do ... end` instead of
-  `cd(...)`). If the session cannot be used (e.g., missing packages, Revise.jl
-  not loaded so that changes in `src/` are not picked up, or a restart is
-  required after changing type definitions), ask the developer or use
-  julia-mcp or the shell instead.
-- Do not use the Kaimon.jl tools `run_tests` (not designed for the test items
-  of Trixi.jl, may run the complete test suite) and `format_code` (see
-  [Code style](#code-style) for the formatter).
-- If an evaluation takes longer than about 30 seconds (e.g., the first run of
-  test items, which includes compilation), `ex` returns a job ID (`eval_id`)
-  before the evaluation is finished. In this case, wait at least 30 seconds and
-  call `check_eval(eval_id = "<id>")` until its status is `completed` or
-  `failed`; then, the output and the result are shown.
-  Do not start other evaluations in the same session while a job is running.
-- If an evaluation does not produce any output for 10 minutes, Kaimon.jl
-  reports a timeout, but the evaluation may still be running in the session.
-- `trixi_include` writes its output files to `out/` in the working directory of
-  the session (check it with `pwd()`).
-
-#### julia-mcp
-
-julia-mcp provides the tools `julia_eval`, `julia_restart`, and
-`julia_list_sessions` (in Claude Code, e.g., `mcp__julia__julia_eval`) and
-starts the Julia sessions itself.
-
-- Always pass the **absolute path** of the `run_agents` directory as
-  `env_path` (e.g., `/path/to/Trixi.jl/run_agents`). Do not call
-  `Pkg.activate` in the code.
-- If a task needs a different environment (e.g., a copy of `run_agents` in a
-  temporary directory whose `LocalPreferences.toml` selects another threading
-  backend such as `backend = "kernelabstractions"`), pass the absolute path of
-  that environment as `env_path` instead of falling back to the shell. If its
-  `Manifest.toml` was copied from `run_agents`, replace the relative
-  `path = ".."` of Trixi.jl by the absolute path of this repository.
-- The developer chooses the Julia flags of the sessions (e.g.,
-  `--threads=1 --check-bounds=yes`). If a task needs other flags (e.g., the
-  default bounds-checking mode to exercise `@inbounds` code paths), pass them
-  via `julia_cmd` (e.g., `julia_cmd = "julia --check-bounds=auto"`). This
-  replaces the session of this `env_path`; pass the same `julia_cmd` in later
-  calls and verify the flags with `Base.JLOptions().check_bounds`.
-- `julia_eval` returns only the output printed to `stdout` and `stderr`, not
-  the value of the last expression. Use `println(...)` or `display(...)` to see
-  results, e.g., `println(format([...]))` for the formatter.
-- The working directory of the session is `run_agents/`, not the repository
-  root. Use absolute paths, e.g., wrap `@run_package_tests` in
-  `cd("/path/to/Trixi.jl/test") do ... end` to run test items.
-- The default `timeout` is 60 seconds, and a call exceeding its timeout **kills
-  the session**. Pass a generous `timeout` (e.g., `1800`) for the first call
-  (`using Trixi, TestItemRunner`) and for the first run of test items or
-  elixirs, which include compilation.
-- Afterward, repeat `@run_package_tests` calls with different filters in
-  the same session. Revise.jl is loaded automatically (if it is installed in
-  the global environment), so changes to files in `src/` are picked up without
-  restarting; test files are re-read by TestItemRunner.
-- Call `julia_restart` with the same `env_path` after changing type
-  definitions (e.g., fields of a `struct`), which Revise cannot handle, after
-  re-creating or updating `run_agents`, or if the session is in a broken state.
-- `trixi_include` writes its output files to `out/` in the working directory,
-  i.e., to `run_agents/out/`.
-- Run the formatter (see [Code style](#code-style)) in a separate session with
-  the absolute path of `run_agents/formatter` as `env_path`, e.g.,
-  `using JuliaFormatter; format(["/path/to/Trixi.jl/src/file.jl"])`, since
-  JuliaFormatter.jl is not available in the `run_agents` environment. Use
-  absolute paths since the working directory is `run_agents/formatter/`.
 
 ### Adding and changing tests
 
@@ -421,24 +266,10 @@ starts the Julia sessions itself.
   A local, commented tolerance is acceptable only for small differences whose
   cause is understood and outside Trixi.jl (e.g., adaptive time stepping in a
   new dependency version); mention it to the user.
-- When adding a numerical flux or wave speed estimate, add unit tests to
-  `test/test_unit.jl` (see the existing `"Unit: Consistency check for ..."`
-  and `"Unit: Equivalent ..."` test items). For a conservative numerical flux
-  `f`, check consistency with the physical flux, i.e.,
-  `f(u, u, orientation, equations) ≈ flux(u, orientation, equations)` and the
-  same with `normal_direction`. For all fluxes and wave speed estimates with
-  `normal_direction` methods, check agreement with the `orientation` methods
-  for axis-aligned unit normals. For new methods with a `normal_direction`
-  (including new equations), add the equations and fluxes to
-  `normal_direction_test_cases` in `test/test_unit.jl`; the test items
-  `"Unit: Wave speed estimates with normal_direction"` and
-  `"Unit: Numerical fluxes with normal_direction"` fail otherwise.
-- Except for consistency checks, unit tests for numerical fluxes and wave speed
-  estimates should use *different* left and right states: many copy-paste bugs
-  are invisible for `u_ll == u_rr`.
-- When adding an equation or new pointwise functions, add type stability tests
-  for `Float32` and `Float64` to `test/test_type.jl` (see the existing
-  `"Type stability: ..."` test items using `@inferred`).
+- Before adding or changing a numerical flux, a wave speed estimate, an
+  equation, or pointwise functions of an equation, read
+  [`docs/agents/tests_fluxes_equations.md`](docs/agents/tests_fluxes_equations.md)
+  for the required unit, consistency, and type stability tests.
 
 ## Code style
 
@@ -446,13 +277,13 @@ starts the Julia sessions itself.
   in `.JuliaFormatter.toml`, SciML style); CI checks the formatting. Other
   versions of JuliaFormatter.jl format differently, so use the pinned version
   in `run_agents/formatter/` (created by the
-  [setup command](#the-run_agents-julia-project)), e.g., from the root of the
+  [setup command](#the-run_agents-julia-projects)), e.g., from the root of the
   repository,
   ```bash
   julia --project=run_agents/formatter -e 'using JuliaFormatter; format(["src/file.jl", "test/test_file.jl"])'
   ```
   or via julia-mcp if available (see
-  [above](#julia-mcp)). `format` returns `true`
+  [`docs/agents/julia_mcp.md`](docs/agents/julia_mcp.md)). `format` returns `true`
   if all files were already formatted; otherwise, it formats them in place and
   returns `false`. Pass only the files you changed. (Human developers often use
   `utils/trixi-format-file.jl`, which installs the formatter in a temporary

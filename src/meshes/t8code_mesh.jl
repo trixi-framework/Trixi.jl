@@ -494,9 +494,10 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    # Non-periodic boundaries.
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
+    # Non-periodic boundaries
     for itree in 1:t8_forest_get_num_global_trees(forest)
         if !periodicity[1]
             boundary_names[1, itree] = :x_neg
@@ -911,6 +912,8 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                    mpi_comm())
 
     num_trees = t8_cmesh_get_num_trees(cmesh)
+
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
     for itree in 1:num_trees
         boundary_names[5, itree] = :inside
@@ -1232,7 +1235,7 @@ function count_interfaces(forest, ndims)
                     neighbor_level = t8_element_get_level(scheme, neighbor_eclass,
                                                           neighbor_leaves[1])
 
-                    # neighbor indices are < num_local_elements for for local leaves
+                    # neighbor indices are < num_local_elements for local leaves
                     # and >= for ghosts
                     if all(neighbor_ielements .< num_local_elements)
                         # Conforming interface: The second condition ensures we
@@ -1303,7 +1306,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
     if !isnothing(mpi_mesh_info)
         #! format: off
-        remotes = t8_forest_ghost_get_remotes(mesh.forest)
+        num_remotes_ref = Ref{Cint}()
+        remotes_ptr = t8_forest_ghost_get_remotes(mesh.forest, num_remotes_ref)
+        remotes = unsafe_wrap(Array, remotes_ptr, num_remotes_ref[])
+
         ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
 
         ghost_remote_first_elem = [num_local_elements +

@@ -189,10 +189,6 @@ function start_mpi_receive!(mpi_cache::P4estMPICache)
     return nothing
 end
 
-function finish_mpi_send!(mpi_cache::P4estMPICache)
-    return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
-end
-
 function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache,
                              mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
@@ -293,8 +289,8 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg::DG,
-                      ::Any, ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::P4estMeshParallel, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the p4est and create a new ghost layer before creating any
     # containers in case someone has tampered with the p4est after creating the mesh
     balance!(mesh)
@@ -322,10 +318,10 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_volume_integral_caches(mesh, equations, dg.volume_integral,
-                                           dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
     # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
     # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
     # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
@@ -335,11 +331,11 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
     return cache
 end
 
-function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
-                        nnodes, uEltype)
+function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
-    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars, nvars, nnodes,
-                    uEltype)
+    init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
+                    nvars, nnodes, uEltype)
 
     return mpi_cache
 end
@@ -370,7 +366,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::P4estMeshParallel,
     mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
     mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
 
-    # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
                        mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
@@ -779,6 +774,120 @@ function exchange_normal_directions!(mpi_mortars::P4estMPIMortarContainer, mpi_c
     return nothing
 end
 
+# Exchange the auxiliary variables at the MPI interfaces and MPI mortars after
+# initializing the values of the local elements, see `init_aux_mpi_surface_node_vars!`.
+# The data layout of the buffers is the same as for the solution, see `start_mpi_send!`
+# and `finish_mpi_receive!`, with the auxiliary variables instead of the conservative
+# variables.
+function exchange_aux_vars!(aux_vars, mpi_interfaces::P4estMPIInterfaceContainer,
+                            mpi_mortars::P4estMPIMortarContainer, mpi_cache,
+                            mesh::P4estMeshParallel, equations, n_nodes)
+    @unpack aux_mpi_interface, aux_mpi_mortar = aux_vars
+    @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = mpi_cache
+    RealT = eltype(aux_mpi_interface)
+    data_size = nauxvariables(equations) * n_nodes^(ndims(mesh) - 1)
+    n_small_elements = 2^(ndims(mesh) - 1)
+    n_positions = n_small_elements + 1
+
+    # Create buffers and requests. The mortar data of positions without local elements
+    # stays NaN and is skipped on the receiving side.
+    send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_ranks))
+    recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_ranks))
+    for index in eachindex(mpi_neighbor_ranks)
+        n_data = (length(mpi_neighbor_interfaces[index]) +
+                  length(mpi_neighbor_mortars[index]) * n_small_elements * 2) *
+                 data_size
+        send_buffers[index] = fill(NaN |> RealT, n_data)
+        recv_buffers[index] = fill(NaN |> RealT, n_data)
+    end
+    send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_ranks))
+    recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_ranks))
+
+    # Fill send buffers
+    for index in eachindex(mpi_neighbor_ranks)
+        send_buffer = send_buffers[index]
+
+        for (i, interface) in enumerate(mpi_neighbor_interfaces[index])
+            first = (i - 1) * data_size + 1
+            last = (i - 1) * data_size + data_size
+            local_side = mpi_interfaces.local_sides[interface]
+            @views send_buffer[first:last] .= vec(aux_mpi_interface[local_side, ..,
+                                                                    interface])
+        end
+
+        interfaces_data_size = length(mpi_neighbor_interfaces[index]) * data_size
+        for (i, mortar) in enumerate(mpi_neighbor_mortars[index])
+            index_base = interfaces_data_size +
+                         (i - 1) * n_small_elements * 2 * data_size
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
+
+            for position in mpi_mortars.local_neighbor_positions[mortar]
+                first, last = indices[position]
+                if position > n_small_elements # large element
+                    @views send_buffer[first:last] .= vec(aux_mpi_mortar[2, :, :, ..,
+                                                                         mortar])
+                else # small element
+                    @views send_buffer[first:last] .= vec(aux_mpi_mortar[1, :, position,
+                                                                         ..,
+                                                                         mortar])
+                end
+            end
+        end
+    end
+
+    # Start data exchange
+    for (index, rank) in enumerate(mpi_neighbor_ranks)
+        send_requests[index] = MPI.Isend(send_buffers[index], rank, mpi_rank(),
+                                         mpi_comm())
+        recv_requests[index] = MPI.Irecv!(recv_buffers[index], rank, rank, mpi_comm())
+    end
+
+    # Unpack data from receive buffers
+    data = MPI.Waitany(recv_requests)
+    while data !== nothing
+        recv_buffer = recv_buffers[data]
+
+        for (i, interface) in enumerate(mpi_neighbor_interfaces[data])
+            first = (i - 1) * data_size + 1
+            last = (i - 1) * data_size + data_size
+            if mpi_interfaces.local_sides[interface] == 1 # local element on primary side
+                @views vec(aux_mpi_interface[2, .., interface]) .= recv_buffer[first:last]
+            else # local element at secondary side
+                @views vec(aux_mpi_interface[1, .., interface]) .= recv_buffer[first:last]
+            end
+        end
+
+        interfaces_data_size = length(mpi_neighbor_interfaces[data]) * data_size
+        for (i, mortar) in enumerate(mpi_neighbor_mortars[data])
+            index_base = interfaces_data_size +
+                         (i - 1) * n_small_elements * 2 * data_size
+            indices = buffer_mortar_indices(mesh, index_base, data_size)
+
+            for position in 1:n_positions
+                # Skip if received data for `position` is NaN as no real data has been
+                # sent for the corresponding element
+                if isnan(recv_buffer[Base.first(indices[position])])
+                    continue
+                end
+
+                first, last = indices[position]
+                if position == n_positions # large element
+                    @views vec(aux_mpi_mortar[2, :, :, .., mortar]) .= recv_buffer[first:last]
+                else # small element
+                    @views vec(aux_mpi_mortar[1, :, position, .., mortar]) .= recv_buffer[first:last]
+                end
+            end
+        end
+
+        data = MPI.Waitany(recv_requests)
+    end
+
+    # Wait for communication to finish
+    MPI.Waitall(send_requests, MPI.Status)
+
+    return nothing
+end
+
 # Get normal direction of MPI interface (of the primary element) or MPI mortar (of the
 # small element)
 Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPIInterfaceContainer,
@@ -792,9 +901,11 @@ Base.@propagate_inbounds function get_normal_direction(container::Union{P4estMPI
                           Val(ndims(container))))
 end
 
+include("dg_parallel_gpu.jl")
 include("dg_2d_parallel.jl")
 include("dg_2d_parallel_gpu.jl")
 include("dg_3d_parallel.jl")
+include("dg_3d_parallel_gpu.jl")
 include("dg_2d_parabolic_parallel.jl")
 include("dg_3d_parabolic_parallel.jl")
 end # muladd

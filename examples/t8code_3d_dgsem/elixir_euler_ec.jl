@@ -19,6 +19,7 @@ solver = DGSEM(polydeg = 5, surface_flux = flux_ranocha,
 # Get the curved quad mesh from a file
 
 # Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi_, eta_, zeta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

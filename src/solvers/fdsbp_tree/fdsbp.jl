@@ -1,6 +1,3 @@
-# !!! warning "Experimental implementation (upwind SBP)"
-#     This is an experimental feature and may change in future releases.
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -21,9 +18,6 @@ constraints.
 
 `D_SBP` is an SBP derivative operator from SummationByPartsOperators.jl.
 The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 """
 const FDSBP = DG{Basis} where {Basis <: AbstractDerivativeOperator}
 
@@ -39,6 +33,12 @@ end
 nnodes(D::AbstractDerivativeOperator) = size(D, 1)
 eachnode(D::AbstractDerivativeOperator) = Base.OneTo(nnodes(D))
 get_nodes(D::AbstractDerivativeOperator) = grid(D)
+# The quadrature of an SBP operator is not necessarily exact for constants, e.g., for
+# function space SBP operators whose function space does not contain the identity.
+# Hence, we use the length of the interval the operator is defined on. For periodic
+# operators, this is the period, which is one grid spacing longer than the interval
+# spanned by the grid.
+reference_length(D::AbstractDerivativeOperator) = xmax(D) - xmin(D)
 
 # TODO: This is hack to enable the FDSBP solver to use the
 #       `SaveSolutionCallback`.
@@ -47,7 +47,7 @@ polydeg(fdsbp::FDSBP) = polydeg(fdsbp.basis)
 
 # TODO: FD. No mortars supported at the moment
 init_mortars(cell_ids, mesh, elements, mortar::Nothing) = nothing
-create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
+create_cache_mortar(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
 nmortars(mortar::Nothing) = 0
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,

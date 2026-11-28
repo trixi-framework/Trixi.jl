@@ -11,7 +11,7 @@ Create a summation by parts (SBP) discretization on the given `element_type`
 using a tensor product structure based on the 1D SBP derivative operator
 passed as `approximation_type`.
 
-For more info, see the documentations of
+For more info, see the documentation of
 [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
 and
 [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
@@ -183,12 +183,12 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
     return nothing
 end
 
-function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
+function create_cache_hyperbolic(mesh::DGMultiMesh, equations,
+                                 dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
-                                                               uEltype)
+    solution_container = init_dgmulti_solution_container(mesh, equations, dg,
+                                                         uEltype)
 
     # since dg.basis.Drst is not skew-symmetric for CG operators, we explicitly construct
     # the skew-symmetric operators for flux differencing

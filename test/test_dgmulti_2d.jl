@@ -327,17 +327,17 @@ end
                   polydeg = 2, adaptive = false, tspan = (0.0, 1e-3))
     l2, linf = analysis_callback(sol)
     @test isapprox(l2,
-                   [0.00045155999383061246,
-                       0.0007997114439550152,
-                       2.370224947246212e-6,
-                       0.002037206524508959
+                   [0.00045183371974862654,
+                       0.0007998516394109878,
+                       2.403266230266081e-6,
+                       0.002038430442692283
                    ])
     @test isapprox(linf,
                    [
-                       0.07544209921557377,
-                       0.17673745170823008,
-                       0.0009825284037637686,
-                       0.3386662161532019
+                       0.07545111051588993,
+                       0.17675880534000976,
+                       0.0009860446254600203,
+                       0.3387072029369502
                    ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -350,20 +350,136 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
                         h=0.1, tspan=(0.0, 0.1),
                         l2=[
-                            0.14885535871013134,
-                            0.2644911888198318,
-                            0.17695450167569188,
-                            0.6616829855205953
+                            0.1488492018818559,
+                            0.26446506325057373,
+                            0.17695453531831165,
+                            0.6616384812227014
                         ],
                         linf=[
-                            0.9552906049227992,
-                            1.313125417849597,
-                            1.1049630606394683,
-                            3.6468143028339775
+                            0.9552904687417887,
+                            1.314272268006107,
+                            1.1087793021195171,
+                            3.646845979512987
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "DGMulti2D: elixir_euler_sedov_limiter_zhang_shu.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_limiter_zhang_shu.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            0.16923634910484825,
+                            0.0859225614319878,
+                            0.08592256143198823,
+                            0.1959704363125734
+                        ],
+                        linf=[
+                            1.0131838858004771,
+                            0.5694608876418334,
+                            0.5694608876418359,
+                            0.821550942518871
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+
+    # The limiter is applied after every Runge-Kutta stage, so the final solution
+    # satisfies the bounds at all nodes
+    u = Trixi.wrap_array(sol.u[end], semi)
+    for (threshold, variable) in zip(limiter!.thresholds, limiter!.variables)
+        @test minimum(variable(u[i], equations) for i in eachindex(u)) >=
+              threshold * (1 - 1.0e-8)
+    end
+end
+
+@testitem "DGMulti2D: modal coefficients for IndicatorHennemannGassner (Tri, SBP)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
+    # The indicator compares the energy of the modes of the highest degrees with the
+    # total energy. Thus, the modal coefficients must be sorted by their total degree:
+    # only the first `nmodes(k, Tri())` ones are nonzero for a polynomial of degree `k`.
+    for polydeg in 2:4
+        basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
+        inverse_vandermonde = Trixi.calc_inverse_vandermonde(basis)
+        (; r, s) = basis
+        for k in 0:polydeg, l in 0:k
+            modal = inverse_vandermonde * (@. r^l * s^(k - l))
+            modes_degree_k = (Trixi.nmodes(k - 1, Tri()) + 1):Trixi.nmodes(k, Tri())
+            modes_higher_degree = (Trixi.nmodes(k, Tri()) + 1):length(modal)
+            @test maximum(abs, view(modal, modes_degree_k)) > 1.0e-2
+            @test maximum(abs, view(modal, modes_higher_degree); init = 0.0) < 1.0e-13
+        end
+    end
+end
+
+@testitem "DGMulti2D: compute_u_mean and limiter_zhang_shu! (SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    thresholds = (1.0e-8, 1.0e-8)
+    variables = (Trixi.density, pressure)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = thresholds,
+                                                   variables = variables)
+
+    # Flux differencing SBP solvers store the solution as `Matrix{SVector}`,
+    # weak form solvers as `StructArray`
+    for volume_integral in (VolumeIntegralFluxDifferencing(flux_ranocha),
+                            VolumeIntegralWeakForm())
+        dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = SBP(),
+                     surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+                     volume_integral = volume_integral)
+        mesh = DGMultiMesh(dg, (2, 2); periodicity = true)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        (; cache) = semi
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+
+        # The mean of a constant state is the state itself
+        u_constant = u[1, 1]
+        for element in Trixi.eachelement(mesh, dg, cache)
+            @test Trixi.compute_u_mean(u, element, mesh, equations, dg, cache) ≈
+                  u_constant
+        end
+
+        # The mean of a non-constant state is the volume-weighted average of the
+        # nodal values
+        (; wJq, xq, yq) = mesh.md
+        for element in Trixi.eachelement(mesh, dg, cache)
+            for i in Trixi.each_quad_node(mesh, dg, cache)
+                u[i, element] = u_constant *
+                                (1 + 0.25 * xq[i, element] - 0.5 * yq[i, element])
+            end
+            u_mean_expected = sum(wJq[i, element] * u[i, element]
+                                  for i in Trixi.each_quad_node(mesh, dg, cache)) /
+                              sum(view(wJq, :, element))
+            @test Trixi.compute_u_mean(u, element, mesh, equations, dg, cache) ≈
+                  u_mean_expected
+        end
+
+        # Make the density and the pressure negative at one node of one element and
+        # check that the limiter restores the bounds while preserving the cell average
+        element = 2
+        u[1, element] = SVector(-0.1, 0.1, -0.1, -0.5)
+        @test Trixi.density(u[1, element], equations) < 0
+        @test pressure(u[1, element], equations) < 0
+        u_mean_before = Trixi.compute_u_mean(u, element, mesh, equations, dg, cache)
+        u_other_before = copy(u[:, 1])
+
+        limiter!(u_ode, nothing, semi, 0.0)
+
+        @test isapprox(Trixi.compute_u_mean(u, element, mesh, equations, dg, cache),
+                       u_mean_before, atol = 1.0e-14)
+        for (threshold, variable) in zip(thresholds, variables)
+            @test minimum(variable(u[i, element], equations)
+                          for i in Trixi.each_quad_node(mesh, dg, cache)) >=
+                  threshold * (1 - 1.0e-8)
+        end
+        # Elements without bound violations are not changed
+        @test u[:, 1] == u_other_before
+    end
 end
 
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -820,6 +936,31 @@ end
                                        1.0842974228656006, 0.07866000368926784,
                                        0.0786646354518149, 0.1614896380292925,
                                        0.010358210347485542])
+end
+
+@testitem "DGMulti2D: divergence of the magnetic field" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    # B = (3x, 5y) has the constant divergence 8. The Jacobian of the elements
+    # differs from one so that a missing division by the Jacobian is detected.
+    equations = IdealGlmMhdEquations2D(1.4)
+    function initial_condition(x, t, equations)
+        prim = SVector(1.0, 0.0, 0.0, 0.0, 1.0, 3 * x[1], 5 * x[2], 0.0, 0.0)
+        return prim2cons(prim, equations)
+    end
+    for element_type in (Quad(), Tri())
+        dg = DGMulti(polydeg = 3, element_type = element_type,
+                     approximation_type = Polynomial(),
+                     surface_integral = SurfaceIntegralWeakForm(flux_hll),
+                     volume_integral = VolumeIntegralWeakForm())
+        mesh = DGMultiMesh(dg, (4, 4), periodicity = true,
+                           coordinates_min = (-1.5, -1.5), coordinates_max = (1.5, 1.5))
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                            boundary_conditions = boundary_condition_periodic)
+        @test !isapprox(mesh.md.J[1, 1], 1)
+        u_ode = compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        @test Trixi.analyze(Val(:l2_divb), nothing, u, 0.0, semi) ≈ 8
+        @test Trixi.analyze(Val(:linf_divb), nothing, u, 0.0, semi) ≈ 8
+    end
 end
 
 @testitem "DGMulti2D: elixir_mhd_reflective_wall.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin

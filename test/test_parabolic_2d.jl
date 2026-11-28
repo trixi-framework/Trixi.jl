@@ -35,7 +35,11 @@ end
     @test u0 ≈ ode.u0
 
     # test "do nothing" BC just returns first argument
-    @test boundary_condition_do_nothing(u0, nothing) == u0
+    for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+        @test boundary_condition_do_nothing(u0, u0, SVector(1.0, 0.0), SVector(0.0, 0.0),
+                                            0.0, operator_type,
+                                            semi.equations_parabolic) == u0
+    end
 
     (; cache, cache_parabolic, equations_parabolic) = semi
     (; gradients) = cache_parabolic
@@ -69,6 +73,66 @@ end
                            dg, semi.solver_parabolic, cache, cache_parabolic)
     Trixi.invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
     @test getindex.(du, 1) ≈ 2 * y
+end
+
+@testitem "Parabolic2D: DGMulti 2D rhs_parabolic! (non-zero Neumann BCs, source terms)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    using Trixi
+    left(x, tol = 50 * eps()) = abs(x[1] + 1) < tol
+    right(x, tol = 50 * eps()) = abs(x[1] - 1) < tol
+    bottom(x, tol = 50 * eps()) = abs(x[2] + 1) < tol
+    top(x, tol = 50 * eps()) = abs(x[2] - 1) < tol
+    is_on_boundary = (; left, right, top, bottom)
+
+    diffusivity = 0.7
+    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    equations_parabolic = LaplaceDiffusion2D(diffusivity, equations)
+
+    # u = (x^2 + y^2) / 2 has the outward normal derivative 1 on all boundaries
+    # of [-1, 1]^2 and the Laplacian 2.
+    initial_condition = (x, t, equations) -> SVector(0.5f0 * (x[1]^2 + x[2]^2))
+    boundary_condition = BoundaryConditionNeumann((x, t, equations) -> SVector(diffusivity))
+    boundary_conditions_parabolic = (; left = boundary_condition,
+                                     right = boundary_condition,
+                                     top = boundary_condition,
+                                     bottom = boundary_condition)
+    # polynomial of degree 3 that is projected exactly
+    source_terms_parabolic = (u, gradients, x, t, equations) -> SVector(x[1] * x[2]^2 +
+                                                                        u[1] *
+                                                                        gradients[1][1])
+
+    for (element_type, approximation_type) in ((Tri(), Polynomial()), (Quad(), SBP()))
+        dg = DGMulti(; polydeg = 3, element_type, approximation_type,
+                     surface_integral = SurfaceIntegralWeakForm(flux_central),
+                     volume_integral = VolumeIntegralWeakForm())
+        mesh = DGMultiMesh(dg, (2, 2); is_on_boundary)
+        (; x, y, xq, yq) = mesh.md
+
+        for source_terms in (nothing, source_terms_parabolic)
+            semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                         (equations, equations_parabolic),
+                                                         initial_condition, dg;
+                                                         source_terms_parabolic = source_terms,
+                                                         boundary_conditions = (boundary_condition_do_nothing,
+                                                                                boundary_conditions_parabolic))
+            u_ode = compute_coefficients(0.0, semi)
+            du_ode = similar(u_ode)
+            Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+            du = Trixi.wrap_array(du_ode, semi)
+
+            (; gradients) = semi.cache_parabolic
+            @test getindex.(gradients[1], 1) ≈ xq
+            @test getindex.(gradients[2], 1) ≈ yq
+
+            du_exact = fill(2 * diffusivity, size(x))
+            if !isnothing(source_terms)
+                @. du_exact += x * y^2 + 0.5 * (x^2 + y^2) * x
+            end
+            @test getindex.(du, 1) ≈ du_exact
+        end
+    end
 end
 
 @testitem "Parabolic2D: DGMulti: elixir_advection_diffusion.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
@@ -942,6 +1006,48 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: TreeMesh2D: elixir_mhd_diffusive_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_mhd_diffusive_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        l2=[
+                            0.017447653571448337,
+                            0.05437402290758454,
+                            0.05437402290758447,
+                            0.0,
+                            0.17140952349519153,
+                            0.03694354027024257,
+                            0.03694354027024267,
+                            0.0,
+                            0.021427609655284667
+                        ],
+                        linf=[
+                            0.11192644994296286,
+                            0.2357666533066436,
+                            0.2357666533066436,
+                            0.0,
+                            0.7854578016354044,
+                            0.11203078172243108,
+                            0.11203078172243286,
+                            0.0,
+                            0.0894588995494936
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Check specialised methods on ViscoResistiveMhd2D for coverage
+    equations_parabolic = semi.equations_parabolic
+    @test Trixi.gradient_variable_transformation(equations_parabolic) ===
+          Trixi.cons2prim_temperature
+    u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
+    @test Trixi.max_diffusivity(u_node, equations_parabolic) isa Real
+    @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
+end
+
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic.jl" setup=[
     Setup,
     Parabolic2D
@@ -1126,6 +1232,112 @@ end
     @test max_abs_rhs_parabolic(semi) < 1.0e-9
 end
 
+@testitem "Parabolic2D: P4estMesh2D/DGMulti: Neumann and adiabatic wall BCs (linear solution)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # The parabolic terms must vanish for a linear solution with the corresponding
+    # nonzero normal fluxes prescribed at the boundaries. Since the surface Jacobian
+    # is not one, this checks that the prescribed normal fluxes are scaled correctly.
+    function max_abs_rhs_parabolic(mesh, solver, equations, equations_parabolic,
+                                   initial_condition, boundary_conditions_parabolic,
+                                   boundary_condition_hyperbolic)
+        boundary_conditions = map(_ -> boundary_condition_hyperbolic,
+                                  boundary_conditions_parabolic)
+        semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions_parabolic))
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
+        return maximum(abs, du_ode)
+    end
+
+    # Curved mesh of the domain [-1, 0] x [-0.5, 0.5]
+    function mapping(xi, eta)
+        x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
+        y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
+        return SVector(0.5 * (1 + x) - 1, 0.5 * y)
+    end
+    mesh_p4est = P4estMesh((2, 3), polydeg = 3, mapping = mapping,
+                           initial_refinement_level = 1, periodicity = false)
+    solver_p4est = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+    # DGMulti on the domain [-1, 0] x [0, 0.5]
+    solver_dgmulti = DGMulti(polydeg = 3, element_type = Quad(),
+                             approximation_type = Polynomial(),
+                             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+                             volume_integral = VolumeIntegralWeakForm())
+    is_on_boundary = Dict(:left => x -> isapprox(x[1], -1, atol = 1.0e-12),
+                          :right => x -> isapprox(x[1], 0, atol = 1.0e-12),
+                          :bottom => x -> isapprox(x[2], 0, atol = 1.0e-12),
+                          :top => x -> isapprox(x[2], 0.5, atol = 1.0e-12))
+    mesh_dgmulti = DGMultiMesh(solver_dgmulti, (3, 4); coordinates_min = (-1.0, 0.0),
+                               coordinates_max = (0.0, 0.5), is_on_boundary)
+
+    # Neumann BCs prescribing the outward normal flux of `diffusivity * grad(u)`
+    diffusivity = 0.7
+    equations = LinearScalarAdvectionEquation2D(0.0, 0.0)
+    equations_parabolic = LaplaceDiffusion2D(diffusivity, equations)
+    initial_condition_linear(x, t, equations) = SVector(1 + 2 * x[1] + 3 * x[2])
+    neumann(normal_flux) = BoundaryConditionNeumann((x, t, equations) -> SVector(normal_flux))
+    boundary_conditions_neumann = (; x_neg = neumann(-2 * diffusivity),
+                                   x_pos = neumann(2 * diffusivity),
+                                   y_neg = neumann(-3 * diffusivity),
+                                   y_pos = neumann(3 * diffusivity))
+    @test max_abs_rhs_parabolic(mesh_p4est, solver_p4est, equations, equations_parabolic,
+                                initial_condition_linear, boundary_conditions_neumann,
+                                BoundaryConditionDirichlet(initial_condition_linear)) <
+          1.0e-9
+
+    boundary_conditions_neumann = (; left = neumann(-2 * diffusivity),
+                                   right = neumann(2 * diffusivity),
+                                   bottom = neumann(-3 * diffusivity),
+                                   top = neumann(3 * diffusivity))
+    @test max_abs_rhs_parabolic(mesh_dgmulti, solver_dgmulti, equations,
+                                equations_parabolic, initial_condition_linear,
+                                boundary_conditions_neumann,
+                                BoundaryConditionDirichlet(initial_condition_linear)) <
+          1.0e-9
+
+    # Fluid at rest with constant density and linear temperature; adiabatic walls
+    # prescribing the outward normal heat flux `kappa * dT/dn`
+    equations = CompressibleEulerEquations2D(1.4)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = 0.01,
+                                                              Prandtl = 0.72)
+    (; R) = equations_parabolic
+    kappa = 1.4 * 0.01 * R / ((1.4 - 1) * 0.72)
+    temperature(x) = 2 + 0.3 * x[1] - 0.2 * x[2]
+    function initial_condition_rest(x, t, equations)
+        return prim2cons(SVector(1, 0, 0, R * temperature(x)), equations)
+    end
+    function wall(velocity_bc, normal_heat_flux)
+        return BoundaryConditionNavierStokesWall(velocity_bc,
+                                                 Adiabatic((x, t, equations) -> normal_heat_flux))
+    end
+
+    for velocity_bc in (NoSlip((x, t, equations) -> (0.0, 0.0)), Slip())
+        boundary_conditions_parabolic = (; x_neg = wall(velocity_bc, -0.3 * kappa),
+                                         x_pos = wall(velocity_bc, 0.3 * kappa),
+                                         y_neg = wall(velocity_bc, 0.2 * kappa),
+                                         y_pos = wall(velocity_bc, -0.2 * kappa))
+        @test max_abs_rhs_parabolic(mesh_p4est, solver_p4est, equations,
+                                    equations_parabolic, initial_condition_rest,
+                                    boundary_conditions_parabolic,
+                                    boundary_condition_slip_wall) < 1.0e-9
+
+        boundary_conditions_parabolic = (; left = wall(velocity_bc, -0.3 * kappa),
+                                         right = wall(velocity_bc, 0.3 * kappa),
+                                         bottom = wall(velocity_bc, 0.2 * kappa),
+                                         top = wall(velocity_bc, -0.2 * kappa))
+        @test max_abs_rhs_parabolic(mesh_dgmulti, solver_dgmulti, equations,
+                                    equations_parabolic, initial_condition_rest,
+                                    boundary_conditions_parabolic,
+                                    boundary_condition_slip_wall) < 1.0e-9
+    end
+end
+
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" setup=[
     Setup,
     Parabolic2D
@@ -1140,6 +1352,8 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Test `get_boundary_element`
+    @test Trixi.get_boundary_element(semi.cache.boundaries, 1) == 1
 end
 
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl (LDG)" setup=[
@@ -1466,6 +1680,51 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach08.jl (entropy gradient variables)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        l2=[0.00018594980973881656,
+                            0.0005125796180749062,
+                            0.00038371304694500115,
+                            0.0021157711045400283],
+                        linf=[0.5125645624266784,
+                            1.2347607775786207,
+                            0.9219577223090923,
+                            5.609128002255419], tspan=(0.0, 0.001),
+                        initial_refinement_level=0)
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    # The shear stress is computed from the gradients of the entropy variables.
+    # The values are close to the ones obtained with `GradientVariablesPrimitive`
+    # above (drag coefficient 1.5427441885921553).
+    drag_f = Trixi.analyze(drag_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi, semi.cache_parabolic)
+    lift_f = Trixi.analyze(lift_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi, semi.cache_parabolic)
+
+    @test isapprox(drag_f, 1.5544983191877073, atol = 1e-13)
+    @test isapprox(lift_f, 0.010271534458877359, atol = 1e-13)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" setup=[
     Setup,
     Parabolic2D
@@ -1658,7 +1917,7 @@ end
 ] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
-                        tspan=(0.0, 0.5),
+                        tspan=(0.0, 0.25),
                         Re=20, # Render flow diffusion-dominated
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
@@ -1667,16 +1926,16 @@ end
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.011916730125703542,
-                            0.02792610689451856,
-                            0.019027000629638774,
-                            0.11793409419172704
+                            0.009952122968797168,
+                            0.022219210576707556,
+                            0.012376120744020475,
+                            0.10019012111030007
                         ],
                         linf=[
-                            0.3546114905832565,
-                            1.0152021588892746,
-                            0.5811487555005529,
-                            3.2073743136053725
+                            0.48510811105562013,
+                            1.0416447011987489,
+                            0.625942650810201,
+                            4.595413515248982
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

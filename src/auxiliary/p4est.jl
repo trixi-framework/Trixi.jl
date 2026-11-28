@@ -75,7 +75,7 @@ function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t},
     comm = P4est.uses_mpi() ? mpi_comm() : 0 # Use Trixi.jl's MPI communicator if p4est supports MPI
     return p4est_new_ext(comm,
                          connectivity,
-                         0, # No minimum initial qudrants per processor
+                         0, # No minimum initial quadrants per processor
                          initial_refinement_level,
                          true, # Refine uniformly
                          2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
@@ -163,6 +163,19 @@ end
 function coarsen_p4est!(p8est::PointerOrWrapper{p8est_t}, recursive, coarsen_fn_c,
                         init_fn_c)
     return p8est_coarsen(p8est, recursive, coarsen_fn_c, init_fn_c)
+end
+
+# Renumber the trees of a connectivity, where `permutation` is an `sc_array` mapping
+# the current to the new zero-based tree indices
+# 2D
+function permute_trees_p4est!(connectivity::PointerOrWrapper{p4est_connectivity_t},
+                              permutation)
+    return p4est_connectivity_permute(connectivity, permutation, 1)
+end
+# 3D
+function permute_trees_p4est!(connectivity::PointerOrWrapper{p8est_connectivity_t},
+                              permutation)
+    return p8est_connectivity_permute(connectivity, permutation, 1)
 end
 
 # Create new ghost layer from p4est, only connections via faces are relevant
