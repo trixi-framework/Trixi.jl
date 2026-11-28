@@ -68,7 +68,7 @@ end
 end
 
 @inline function set_u_mean!(u, new_cell_average, old_cell_average, element,
-                             mesh::AbstractMesh{1}, equations, dg, cache)
+                             mesh::AbstractMesh{1}, equations, dg::DGSEM, cache)
     diff_cell_average = new_cell_average - old_cell_average
     for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
@@ -78,7 +78,7 @@ end
 end
 
 @inline function set_u_mean!(u, new_cell_average, old_cell_average, element,
-                             mesh::AbstractMesh{2}, equations, dg, cache)
+                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
     diff_cell_average = new_cell_average - old_cell_average
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -88,7 +88,7 @@ end
 end
 
 @inline function set_u_mean!(u, new_cell_average, old_cell_average, element,
-                             mesh::AbstractMesh{3}, equations, dg, cache)
+                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache)
     diff_cell_average = new_cell_average - old_cell_average
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
