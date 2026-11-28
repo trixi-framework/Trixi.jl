@@ -95,6 +95,7 @@ ParabolicFormulationLocalDG() = ParabolicFormulationLocalDG(nothing)
     max_abs = maximum(abs, normal_direction)
     for component in normal_direction
         if isapprox(abs(component), max_abs)
+            # Return first one found
             return sign(component)
         end
     end
