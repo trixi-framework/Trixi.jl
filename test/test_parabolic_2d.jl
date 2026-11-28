@@ -202,6 +202,167 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_single_boundary_condition.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # Same boundary conditions on the same faces as `elixir_navierstokes_convergence.jl`,
+    # so the results are identical for the same solver (here, `Quad()` and `SBP()`).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_single_boundary_condition.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0028765202311539467,
+                            0.004466824091205487,
+                            0.004963710287911907,
+                            0.016763852754049503
+                        ],
+                        linf=[
+                            0.012006419073552488,
+                            0.03552087090116597,
+                            0.023401712147413736,
+                            0.11191122534046372
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The single boundary conditions are applied to all tagged boundaries of the mesh
+    @test keys(semi.boundary_conditions) == (:entire_boundary,)
+    @test keys(semi.boundary_conditions_parabolic) == (:entire_boundary,)
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_single_boundary_condition.jl (Tri, Polynomial)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # Same boundary conditions on the same faces as `elixir_navierstokes_convergence.jl`,
+    # so the results are identical for the same solver.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_single_boundary_condition.jl"),
+                        dg=DGMulti(polydeg = 3, element_type = Tri(),
+                                   approximation_type = Polynomial(),
+                                   surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
+                                   volume_integral = VolumeIntegralWeakForm()),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0015355076237431118,
+                            0.003384316785885901,
+                            0.0036531858026850757,
+                            0.009948436101649498
+                        ],
+                        linf=[
+                            0.005522560543588462,
+                            0.013425258431728926,
+                            0.013962115936715924,
+                            0.027483099961148838
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The single boundary conditions are applied to all tagged boundaries of the mesh
+    @test keys(semi.boundary_conditions) == (:entire_boundary,)
+    @test keys(semi.boundary_conditions_parabolic) == (:entire_boundary,)
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_partially_periodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # Same boundary conditions on the same faces as `elixir_navierstokes_convergence.jl`,
+    # so the results are identical for the same solver.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_partially_periodic.jl"),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0015355076237431118,
+                            0.003384316785885901,
+                            0.0036531858026850757,
+                            0.009948436101649498
+                        ],
+                        linf=[
+                            0.005522560543588462,
+                            0.013425258431728926,
+                            0.013962115936715924,
+                            0.027483099961148838
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+
+    # The faces connected periodically by the mesh are not boundary faces
+    @test isempty(mesh.boundary_faces.left)
+    @test isempty(mesh.boundary_faces.right)
+
+    # `calc_single_boundary_flux!` does nothing for periodic boundary conditions. Check this
+    # for the parabolic part (gradient and divergence) and for the hyperbolic part of
+    # equations with nonconservative terms (the case without nonconservative terms is
+    # used in the simulation above).
+    (; cache, cache_parabolic) = semi
+    u_face_values = copy(cache_parabolic.u_face_values)
+    flux_face_values = copy(cache_parabolic.scalar_flux_face_values)
+    flux_face_values_copy = copy(flux_face_values)
+    for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+        @test isnothing(Trixi.calc_single_boundary_flux!(flux_face_values, u_face_values,
+                                                         0.0, operator_type,
+                                                         boundary_condition_periodic,
+                                                         :left, mesh,
+                                                         equations_parabolic, dg, cache,
+                                                         cache_parabolic))
+        @test flux_face_values == flux_face_values_copy
+    end
+    @test isnothing(Trixi.calc_single_boundary_flux!(cache, 0.0,
+                                                     boundary_condition_periodic,
+                                                     :left, mesh, Trixi.True(),
+                                                     equations, dg))
+
+    # Periodic boundary conditions on boundaries that are not periodic in the mesh
+    # are rejected, since they would silently result in an outflow condition
+    mesh_nonperiodic = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)
+    @test_throws ArgumentError SemidiscretizationHyperbolicParabolic(mesh_nonperiodic,
+                                                                     (equations,
+                                                                      equations_parabolic),
+                                                                     initial_condition,
+                                                                     dg;
+                                                                     boundary_conditions = (boundary_conditions,
+                                                                                            boundary_conditions_parabolic))
+end
+
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_partially_periodic.jl (Quad, SBP)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    # Same boundary conditions on the same faces as `elixir_navierstokes_convergence.jl`,
+    # so the results are identical for the same solver.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_navierstokes_convergence_partially_periodic.jl"),
+                        dg=DGMulti(polydeg = 3, element_type = Quad(),
+                                   approximation_type = SBP(),
+                                   surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
+                                   volume_integral = VolumeIntegralWeakForm()),
+                        cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
+                        l2=[
+                            0.0028765202311539467,
+                            0.004466824091205487,
+                            0.004963710287911907,
+                            0.016763852754049503
+                        ],
+                        linf=[
+                            0.012006419073552488,
+                            0.03552087090116597,
+                            0.023401712147413736,
+                            0.11191122534046372
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
     Setup,
     Parabolic2D

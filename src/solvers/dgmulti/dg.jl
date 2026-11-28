@@ -177,7 +177,44 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
                                     mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}
                                                   } where {N}
+    for (boundary_key, boundary_condition) in pairs(boundary_conditions)
+        check_periodic_boundary(boundary_condition, boundary_key, mesh)
+    end
     return boundary_conditions
+end
+
+# Allow passing a single boundary condition, which is then applied to all boundaries
+# tagged in the mesh (e.g., `:entire_boundary` if no `is_on_boundary` was specified
+# when constructing the `DGMultiMesh`).
+function digest_boundary_conditions(boundary_conditions,
+                                    mesh::DGMultiMesh, dg::DGMulti, cache)
+    boundary_keys = Tuple(keys(mesh.boundary_faces))
+    return NamedTuple{boundary_keys}(map(_ -> boundary_conditions, boundary_keys))
+end
+
+# Resolve ambiguity with the general fallback for periodic boundary conditions
+function digest_boundary_conditions(boundary_conditions::BoundaryConditionPeriodic,
+                                    mesh::DGMultiMesh, dg::DGMulti, cache)
+    return boundary_conditions
+end
+
+# A `BoundaryConditionPeriodic` in a `NamedTuple` of boundary conditions does nothing
+# (see `calc_single_boundary_flux!`). This is only correct if the faces with this tag
+# are connected periodically by the mesh, i.e., if they are not boundary faces of the
+# `DGMultiMesh`. Otherwise, the interface flux would be computed with the solution of the
+# element itself as exterior value, which silently results in an outflow condition.
+check_periodic_boundary(boundary_condition, boundary_key, mesh::DGMultiMesh) = nothing
+
+function check_periodic_boundary(::BoundaryConditionPeriodic, boundary_key,
+                                 mesh::DGMultiMesh)
+    if haskey(mesh.boundary_faces, boundary_key) &&
+       !isempty(mesh.boundary_faces[boundary_key])
+        throw(ArgumentError("`boundary_condition_periodic` was specified for the " *
+                            "boundary `$boundary_key`, but the `DGMultiMesh` is not " *
+                            "periodic there. Use the keyword argument `periodicity` " *
+                            "when constructing the mesh."))
+    end
+    return nothing
 end
 
 # Allocate nested array type for DGMulti solution storage.
@@ -616,6 +653,20 @@ function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                                    mesh, have_nonconservative_terms, equations, dg)
     end
 
+    return nothing
+end
+
+# do nothing for periodic boundary conditions in a `NamedTuple` of boundary conditions,
+# e.g., for boundaries connected periodically by the mesh (see `check_periodic_boundary`)
+function calc_single_boundary_flux!(cache, t, ::BoundaryConditionPeriodic, boundary_key,
+                                    mesh, have_nonconservative_terms::False, equations,
+                                    dg::DGMulti)
+    return nothing
+end
+
+function calc_single_boundary_flux!(cache, t, ::BoundaryConditionPeriodic, boundary_key,
+                                    mesh, have_nonconservative_terms::True, equations,
+                                    dg::DGMulti)
     return nothing
 end
 

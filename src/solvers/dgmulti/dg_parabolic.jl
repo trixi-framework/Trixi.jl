@@ -250,6 +250,14 @@ function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
     return nothing
 end
 
+# do nothing for periodic boundary conditions in a `NamedTuple` of boundary conditions
+function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
+                                    operator_type, ::BoundaryConditionPeriodic,
+                                    boundary_key, mesh, equations, dg::DGMulti, cache,
+                                    cache_parabolic)
+    return nothing
+end
+
 function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
                                     operator_type, boundary_condition, boundary_key,
                                     mesh, equations, dg::DGMulti{NDIMS}, cache,
