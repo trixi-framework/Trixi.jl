@@ -8,8 +8,9 @@ for human readability.
 ## Changes in the v0.18 lifecycle
 
 #### Added
-- `DGMulti` solvers accept a single boundary condition instead of a `NamedTuple`, which
-  is then applied to all tagged boundaries of the `DGMultiMesh`. Moreover,
+- `DGMulti` solvers accept a single boundary condition instead of a `NamedTuple` (for
+  hyperbolic and parabolic boundary conditions), which is then applied to all tagged
+  boundaries of the `DGMultiMesh`. Moreover,
   `boundary_condition_periodic` can be used in a `NamedTuple` of boundary conditions for
   boundaries that are connected periodically by the mesh (e.g., with
   `periodicity = (true, false)`); it throws an error if the mesh is not periodic there.
