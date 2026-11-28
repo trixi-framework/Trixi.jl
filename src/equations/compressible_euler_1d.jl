@@ -141,9 +141,10 @@ end
 A sine wave in the density with constant velocity and pressure; reduces the
 compressible Euler equations to the linear advection equations.
 This setup is the test case for stability of EC fluxes from paper
-- Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
+- Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2022)
   Stability issues of entropy-stable and/or split-form high-order schemes
   [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
+  [DOI: 10.1007/s10915-021-01720-8](https://doi.org/10.1007/s10915-021-01720-8)
 with the following parameters
 - domain [-1, 1]
 - mesh = 4x4
@@ -163,13 +164,16 @@ end
     initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
 A weak blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
+- Sebastian Hennemann, Andrés M. Rueda-Ramírez, Florian J. Hindenlang,
+  Gregor J. Gassner (2021)
   A provably entropy stable subcell shock capturing approach for high order split form DG
+  for the compressible Euler equations
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerEquations1D)
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # From Hennemann et al. JCP paper 2021 (Sec. 6.3)
     # Set up polar coordinates
     RealT = eltype(x)
     inicenter = SVector(0)
@@ -194,9 +198,10 @@ end
 
 One dimensional variant of the setup used for convergence tests of the Euler equations
 with self-gravity from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2021)
   A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+  [DOI: 10.1016/j.jcp.2021.110467](https://doi.org/10.1016/j.jcp.2021.110467)
 !!! note
     There is no additional source term necessary for the manufactured solution in one
     spatial dimension. Thus, [`source_terms_eoc_test_coupled_euler_gravity`](@ref) is not
@@ -238,6 +243,7 @@ The implementation is modified to ensure non-negativity of `p_star`. This modifi
 preserves entropy stability based on the analysis in the paper:
 - F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
   Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
+  [arXiv: 1901.04924](https://arxiv.org/abs/1901.04924)
   [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
 
 Should be used together with [`TreeMesh`](@ref).
@@ -295,7 +301,7 @@ end
 """
     flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
-This flux is is a modification of the original kinetic energy preserving two-point flux by
+This flux is a modification of the original kinetic energy preserving two-point flux by
 - Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
@@ -367,6 +373,7 @@ Entropy conserving two-point flux by
 - Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
+  [arXiv: 1209.4994](https://arxiv.org/abs/1209.4994)
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
@@ -463,9 +470,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - Joseph L. Steger and R. F. Warming (1979)
@@ -550,9 +554,6 @@ Returns a tuple of the fluxes "minus" (associated with waves going into the
 negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
-
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
 
 ## References
 
@@ -644,9 +645,6 @@ negative axis direction) and "plus" (associated with waves going into the
 positive axis direction). If only one of the fluxes is required, use the
 function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
 
-!!! warning "Experimental implementation (upwind SBP)"
-    This is an experimental feature and may change in future releases.
-
 ## References
 
 - William Coirier and Bram van Leer (1991)
@@ -711,6 +709,63 @@ end
     f1m = -0.25f0 * rho * a * ((M - 1)^2 - mu * (M^2 - 1)^P)
     f2m = f1m * v1 + p_minus
     f3m = f1m * H + omega * rho * a^3 * M^2 * (M^2 - 1)^2
+
+    return SVector(f1m, f2m, f3m)
+end
+
+"""
+    splitting_lax_friedrichs(u, orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+    splitting_lax_friedrichs(u, which::Union{Val{:minus}, Val{:plus}}
+                             orientation::Integer,
+                             equations::CompressibleEulerEquations1D)
+
+Naive local Lax-Friedrichs style flux splitting of the form `f⁺ = 0.5 (f + λ u)`
+and `f⁻ = 0.5 (f - λ u)` with `λ = |v₁| + c`, where `c` is the speed of sound,
+similar to a flux splitting one would apply, e.g., to Burgers' equation.
+
+Returns a tuple of the fluxes "minus" (associated with waves going into the
+negative axis direction) and "plus" (associated with waves going into the
+positive axis direction). If only one of the fluxes is required, use the
+function signature with argument `which` set to `Val{:minus}()` or `Val{:plus}()`.
+"""
+@inline function splitting_lax_friedrichs(u, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    fm = splitting_lax_friedrichs(u, Val{:minus}(), orientation, equations)
+    fp = splitting_lax_friedrichs(u, Val{:plus}(), orientation, equations)
+    return fm, fp
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    v1 = rho_v1 / rho
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
+
+    a = sqrt(equations.gamma * p / rho)
+    H = (rho_e_total + p) / rho
+    lambda = 0.5f0 * (abs(v1) + a)
+
+    f1p = 0.5f0 * rho_v1 + lambda * u[1]
+    f2p = 0.5f0 * rho_v1 * v1 + 0.5f0 * p + lambda * u[2]
+    f3p = 0.5f0 * rho_v1 * H + lambda * u[3]
+
+    return SVector(f1p, f2p, f3p)
+end
+
+@inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
+                                          equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    v1 = rho_v1 / rho
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1 * v1)
+
+    a = sqrt(equations.gamma * p / rho)
+    H = (rho_e_total + p) / rho
+    lambda = 0.5f0 * (abs(v1) + a)
+
+    f1m = 0.5f0 * rho_v1 - lambda * u[1]
+    f2m = 0.5f0 * rho_v1 * v1 + 0.5f0 * p - lambda * u[2]
+    f3m = 0.5f0 * rho_v1 * H - lambda * u[3]
 
     return SVector(f1m, f2m, f3m)
 end
@@ -945,7 +1000,7 @@ end
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Computes the HLLE (Harten-Lax-van Leer-Einfeldt) flux for the compressible Euler equations.
-Special estimates of the signal velocites and linearization of the Riemann problem developed
+Special estimates of the signal velocities and linearization of the Riemann problem developed
 by Einfeldt to ensure that the internal energy and density remain positive during the computation
 of the numerical flux.
 

@@ -112,6 +112,7 @@ Implements Appendix B.2 of
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
   [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
+  [DOI: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
 
 Given an out-of-bounds solution state, this returns the closest point in the admissible set.
 This is possible by noting that there are only a finite number of possible candidate states

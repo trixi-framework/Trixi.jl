@@ -5,7 +5,39 @@
 @muladd begin
 #! format: noindent
 
-# This file contains some specialized volume integrals that require some indicators already to be defined.
+# This file contains the storage of DGSEM-specific volume integrals and specialized
+# volume integrals that require some indicators already to be defined.
+
+# Subcell-based volume integrals use finite volume fluxes on the subcells. The storage
+# for them is created by `create_cache_subcell_fv`, which dispatches on the mesh type.
+function create_cache_volume_integral(mesh, equations,
+                                      volume_integral::AbstractVolumeIntegralSubcell,
+                                      dg::DGSEM, cache_containers, uEltype)
+    return create_cache_subcell_fv(mesh, equations, dg, cache_containers, uEltype)
+end
+
+# The storage created by `create_cache_subcell_fv` is checked by
+# `check_axes_subcell_fv`, which dispatches on the mesh type as well.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::AbstractVolumeIntegralSubcell,
+                                    dg::DGSEM, cache)
+    check_axes_subcell_fv(mesh, equations, dg, cache)
+
+    return nothing
+end
+
+# The reconstruction accesses `sc_interface_coords[node_index - 1]` for the interior
+# subcell interfaces, i.e., for the nodes `2:nnodes(dg)`. The coordinates are computed
+# from the `basis` passed to the constructor, which must have as many nodes as the
+# basis of the solver `dg`.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                                    dg::DGSEM, cache)
+    check_axes_subcell_fv(mesh, equations, dg, cache)
+    check_axes(volume_integral.sc_interface_coords, (Base.OneTo(nnodes(dg) - 1),))
+
+    return nothing
+end
 
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
@@ -13,6 +45,14 @@
 @inline function perform_subcell_limiting(volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
                                           element)
     return volume_integral.indicator.cache.alpha[element] > 0
+end
+
+# Subcell limiting is supported as the `volume_integral_stabilized` of an adaptive
+# volume integral with an a-priori indicator, since `perform_subcell_limiting` above
+# tells the stage callbacks in which elements subcell limiting was performed.
+# See `check_volume_integral_tree` in `solvers/dg.jl`.
+function supports_subcell_limiting(volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner})
+    return volume_integral.volume_integral_stabilized isa VolumeIntegralSubcellLimiting
 end
 
 const VolumeIntegralAdaptiveEC_WF_DG = VolumeIntegralAdaptive{<:IndicatorEntropyChange,
@@ -45,39 +85,31 @@ to be defined.
 """
 const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrection,
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralEntropyCorrection,
+                                                dg, cache)
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.cache.alpha
     return nothing
 end
 
-function create_cache(mesh, equations,
-                      volume_integral::VolumeIntegralEntropyCorrection,
-                      dg, cache_containers, uEltype)
-    cache_default = create_cache(mesh, equations,
-                                 volume_integral.volume_integral_default,
-                                 dg, cache_containers, uEltype)
-    cache_stabilized = create_cache(mesh, equations,
-                                    volume_integral.volume_integral_stabilized,
-                                    dg, cache_containers, uEltype)
+# The blending factors `alpha` are stored in the indicator (per-instance state), not
+# in the `cache`. They are written in the volume integral kernel and used for
+# visualization. Thus, they must be sized for the elements of the mesh when the cache
+# is created and after mesh adaptation.
+function resize_cache_volume_integral!(cache, mesh,
+                                       volume_integral::VolumeIntegralEntropyCorrection,
+                                       dg, new_size)
+    resize!(volume_integral.indicator.cache.alpha, new_size)
 
-    resize!(volume_integral.indicator.cache.alpha, nelements(dg, cache_containers))
-
-    return (; cache_default..., cache_stabilized...)
+    return nothing
 end
 
-# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
-# We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
-# for visualization.
-function resize_volume_integral_cache!(cache, mesh,
-                                       volume_integral::VolumeIntegralEntropyCorrection,
-                                       new_size)
-    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
-    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
-    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
-
-    resize!(volume_integral.indicator.cache.alpha, new_size)
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralEntropyCorrection,
+                                    dg::DGSEM, cache)
+    (; indicator) = volume_integral
+    check_axes(indicator.cache.alpha, (eachelement(dg, cache),))
+    check_axes_volume_integral_values_threaded(indicator, mesh, equations, dg)
 
     return nothing
 end
@@ -86,11 +118,55 @@ end
 # indicator with a heuristic shock capturing indicator.
 const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
-                                dg, cache)
+function get_element_variables_volume_integral!(element_variables, u, mesh, equations,
+                                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                                dg, cache)
     # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
+    return nothing
+end
+
+# The blending factors of `indicator_shock_capturing` are resized lazily when the
+# indicator is called and are checked in `calc_volume_integral!` afterward. The
+# blending factors of `indicator_entropy_correction` are not used.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                    dg::DGSEM, cache)
+    (; indicator_entropy_correction) = volume_integral.indicator
+    check_axes_volume_integral_values_threaded(indicator_entropy_correction,
+                                               mesh, equations, dg)
+
+    return nothing
+end
+
+# The entropy correction volume integrals store the result of `volume_integral_default`
+# in the thread-local storage `volume_integral_values_threaded` of their
+# `IndicatorEntropyCorrection` while computing `volume_integral_stabilized`. This
+# storage is created with the indicator, i.e., without knowing the mesh, and has the
+# shape of `du` for a single element with the number of spatial dimensions of the
+# equations. Thus, the mesh must have the same number of spatial dimensions.
+function create_cache_volume_integral(mesh, equations,
+                                      volume_integral::Union{VolumeIntegralEntropyCorrection,
+                                                             VolumeIntegralEntropyCorrectionShockCapturingCombined},
+                                      dg::DGSEM, cache_containers, uEltype)
+    if ndims(mesh) != ndims(equations)
+        throw(ArgumentError("`VolumeIntegralAdaptive` with an `IndicatorEntropyCorrection` " *
+                            "or `IndicatorEntropyCorrectionShockCapturingCombined` " *
+                            "requires the mesh and the equations to have the same " *
+                            "number of spatial dimensions, but got " *
+                            "ndims(mesh) = $(ndims(mesh)) and " *
+                            "ndims(equations) = $(ndims(equations))."))
+    end
+
+    return NamedTuple()
+end
+
+function check_axes_volume_integral_values_threaded(indicator::IndicatorEntropyCorrection,
+                                                    mesh, equations, dg::DGSEM)
+    check_axes_threaded(indicator.cache.volume_integral_values_threaded,
+                        (eachvariable(equations),
+                         ntuple(_ -> eachnode(dg), Val(ndims(mesh)))...))
+
     return nothing
 end
 end # @muladd

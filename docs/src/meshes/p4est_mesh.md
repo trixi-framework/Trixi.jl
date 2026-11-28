@@ -274,10 +274,10 @@ The 3D Abaqus file format with high-order boundary information from `HOHQMesh` i
    ```
    *ELEMENT, type=C3D8, ELSET=Volume1
    ```
-   where `C3D8` corresponds to a Abaqus hexahedral element.
+   where `C3D8` corresponds to an Abaqus hexahedral element.
 2. There are six check digits included directly below the eight corner indexes to indicate whether
    the local face within the element is straight sided, `0`, or is curved, `1`. For curved faces
-   `(x,y,z)` coordinate values are available in order to construct an face interpolant with the mesh
+   `(x,y,z)` coordinate values are available in order to construct a face interpolant with the mesh
    polynomial order at the Chebyshev-Gauss-Lobatto nodes.
 3. The boundary labels are given in the following order according to the local surface index
    `-x` `+x` `-y` `+y` `-z` `+z` as required by the [`p4est`](https://github.com/cburstedde/p4est) library.
@@ -936,7 +936,7 @@ level_info_elements = some_user_defined_function()
 balance_p4est_multirate!(mesh, dg, cache, level_info_elements, alg.stages)
 # Actual move of elements across ranks
 rebalance_solver!(u0, mesh, equations, dg, cache, old_global_first_quadrant)
-reinitialize_boundaries!(semi.boundary_conditions, cache) # Needs to be called after `rebalance_solver!`
+reinit_boundaries!(semi.boundary_conditions, cache) # Needs to be called after `rebalance_solver!`
 ```
 This code could then be placed in the [`resize!`](https://github.com/trixi-framework/Trixi.jl/blob/eaeb04113523500ed831e3ab459694f12f7a49ea/src/time_integration/methods_2N.jl#L251-L255) function of a corresponding multirate integrator to ensure load-balancing for simulations involving AMR.
 

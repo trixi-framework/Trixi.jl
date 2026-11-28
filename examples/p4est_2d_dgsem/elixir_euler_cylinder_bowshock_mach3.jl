@@ -17,6 +17,7 @@ using OrdinaryDiffEqSSPRK
 # - G. Oblapenko and M. Torrilhon (2025)
 #   Entropy-conservative high-order methods for high-enthalpy gas flows.
 #   Computers & Fluids, 2025.
+#   [arXiv: 2403.16882](https://arxiv.org/abs/2403.16882)
 #   [DOI: 10.1016/j.compfluid.2025.106640](https://doi.org/10.1016/j.compfluid.2025.106640)
 #
 # The mapping produces the following geometry & shock (indicated by the asterisks `* `):
@@ -127,7 +128,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 trees_per_dimension = (25, 25)
 
 cylinder_radius = 0.5
-# Follow from a-priori known shock shape, originally for first qaudrant,
+# Follow from a-priori known shock shape, originally for first quadrant,
 # here transformed to second quadrant, see `mapping_cylinder_shock_fitted`.
 spline_points = [1.32, 1.05, 2.25]
 cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,

@@ -42,10 +42,10 @@ end
 function UnstructuredMesh2D(filename; RealT = Float64, periodicity = false,
                             unsaved_changes = true)
 
-    # readin all the information from the mesh file into a string array
+    # read in all the information from the mesh file into a string array
     file_lines = readlines(open(filename))
 
-    # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
+    # read in the number of nodes, number of interfaces, number of elements and local polynomial degree
     current_line = split(file_lines[2])
     n_corners = parse(Int, current_line[1])
     n_surfaces = parse(Int, current_line[2])
@@ -115,7 +115,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters,
     # counter to step through the mesh file line by line
     file_idx = 3
 
-    # readin an store the nodes that dictate the corners of the elements needed to construct the
+    # read in and store the nodes that dictate the corners of the elements needed to construct the
     # element geometry terms
     for j in 1:n_corners
         current_line = split(file_lines[file_idx])
@@ -124,7 +124,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters,
         file_idx += 1
     end
 
-    # readin an store the nodes that dictate the interfaces, neighbour data, and orientations contains
+    # read in and store the nodes that dictate the interfaces, neighbour data, and orientations contains
     # the following:
     #    interface_info[1] = start node ID
     #    interface_info[2] = end node ID
@@ -153,7 +153,7 @@ function parse_mesh_file!(arrays, RealT, CurvedSurfaceT, file_lines, counters,
     # work arrays to pull to correct corners of a given element (agnostic to curvature) and local
     # copies of the curved boundary information
 
-    # readin an store the curved boundary information of the elements
+    # read in and store the curved boundary information of the elements
 
     for j in 1:n_elements
         # pull the corner node IDs

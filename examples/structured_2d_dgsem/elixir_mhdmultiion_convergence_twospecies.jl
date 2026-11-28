@@ -22,7 +22,7 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (2.0, 4.0),
                                            electron_pressure = electron_pressure_alpha)
 
 """
-Initial (and exact) solution for the the manufactured solution test. Runs with
+Initial (and exact) solution for the manufactured solution test. Runs with
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
 * Domain size: [-1,1]²
@@ -108,6 +108,7 @@ coordinates_max = (1.0, 1.0)
 # To test convergence use:
 #   convergence_test("../examples/structured_2d_dgsem/elixir_mhdmultiion_convergence_twospecies.jl", 3, cells_per_dimension = (2, 2), polydeg = 3)
 # Mapping as described in https://arxiv.org/abs/2012.12040
+# (DOI: https://doi.org/10.1016/j.jcp.2021.110580)
 function mapping(xi_, eta_)
     # Transform input variables between -1 and 1 onto [0,3]
     xi = 1.5 * xi_ + 1.5

@@ -64,12 +64,16 @@ using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
+using EnumX: @enumx
 using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
-                          @synchronize, @uniform, get_backend, Backend
+# Re-export the module `KernelAbstractions` so that users can, e.g., select a GPU via
+# `KernelAbstractions.device!` without adding KernelAbstractions.jl to their environment
+@reexport using KernelAbstractions: KernelAbstractions
+using KernelAbstractions: @index, @kernel, @localmem, @synchronize, @uniform,
+                          get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
@@ -135,7 +139,7 @@ using UUIDs: UUID
 using SummationByPartsOperators: AbstractDerivativeOperator,
                                  AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 grid
+                                 grid, xmin, xmax
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
@@ -209,12 +213,17 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerMulticomponentEquations2D,
        CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       ViscoResistiveMhd2D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        IdealGlmMhdMultiIonEquations2D, IdealGlmMhdMultiIonEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
+       ConservativeLinearScalarAdvectionEquation2D,
+       ConservativeLinearScalarAdvectionEquation3D,
+       NonconservativeLinearScalarAdvectionEquation2D,
+       NonconservativeLinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
@@ -261,7 +270,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
-       splitting_drikakis_tsangaris
+       splitting_drikakis_tsangaris, SplittingGlobalLaxFriedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -279,6 +288,8 @@ export boundary_condition_do_nothing,
        NoSlip, Slip,
        Adiabatic, Isothermal,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
+
+export NodeIndex
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,
@@ -314,7 +325,7 @@ export DG,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       HalfSweep, FullSweep, FullSweepGlobal,
+       HalfSweep, FullSweep, FullSweepGlobal, Tuning,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,
@@ -335,8 +346,8 @@ export reconstruction_O2_inner, reconstruction_O2_full,
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
-export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable,
+export nelements, nnodes, nvariables, nauxvariables,
+       eachelement, eachnode, eachvariable, eachauxvariable,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate

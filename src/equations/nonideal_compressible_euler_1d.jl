@@ -175,7 +175,7 @@ A version of the central flux which uses the pressure equilibrium preserving wit
 (APEC) internal energy correction of
 "Approximately pressure-equilibrium-preserving scheme for fully conservative
 simulations of compressible multi-species and real-fluid interfacial flows"
-by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.11370>
+by Terashima, Ly, Ihme (2025). <https://doi.org/10.1016/j.jcp.2024.113701>
 """
 @inline function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                                              equations::NonIdealCompressibleEulerEquations1D)

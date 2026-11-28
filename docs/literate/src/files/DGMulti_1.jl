@@ -58,7 +58,7 @@ plot!(getmesh(pd))
 # This simulation is not as fast as the equivalent with `TreeMesh` since no special optimizations for
 # quads (for instance tensor product structure) have been implemented. Figure 4 in ["Efficient implementation of modern entropy stable
 # and kinetic energy preserving discontinuous Galerkin methods for conservation laws"](https://arxiv.org/abs/2112.10517)
-# (2021) provides a nice runtime comparison between the different mesh types. On the other hand,
+# ([DOI](https://doi.org/10.1145/3625559)) (2023) provides a nice runtime comparison between the different mesh types. On the other hand,
 # the functions are more general and thus we have more option we can choose from.
 
 # ## Simulation with Gauss nodes

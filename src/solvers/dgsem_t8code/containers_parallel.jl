@@ -1,4 +1,4 @@
-function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
+function reinit_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
     @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
     mpi_cache = cache
 
@@ -8,9 +8,7 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     init_elements!(elements, mesh, dg.basis)
 
     # Resize volume integral and related datastructures
-    @unpack volume_integral = dg
-    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
-    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+    reinit_cache_all_volume_integrals!(cache, mesh, dg, n_cells)
 
     count_required_surfaces!(mesh)
     required = count_required_surfaces(mesh)
@@ -39,8 +37,8 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                    eltype(elements))
+    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info,
+                    nvariables(equations), nnodes(dg), eltype(elements))
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)

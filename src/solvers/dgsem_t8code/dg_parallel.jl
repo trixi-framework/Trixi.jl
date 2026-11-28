@@ -4,9 +4,8 @@
 # This method is called when a `SemidiscretizationHyperbolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg::DG,
-                      ::Any,
-                      ::Type{uEltype}) where {uEltype <: Real}
+function create_cache_hyperbolic(mesh::T8codeMeshParallel, equations::AbstractEquations,
+                                 dg::DG, ::Any, ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
     # containers in case someone has tampered with forest after creating the
     # mesh.
@@ -36,8 +35,8 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
 
-    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                               uEltype)
+    mpi_cache = init_mpi_cache(mesh, mpi_mesh_info,
+                               nvariables(equations), nnodes(dg), uEltype)
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)
@@ -55,14 +54,21 @@ function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+             create_cache_all_volume_integrals(mesh, equations, dg.volume_integral,
+                                               dg, cache, uEltype)...)
     # Add Mortar cache
-    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    cache = (; cache..., create_cache_mortar(mesh, equations, dg.mortar, uEltype)...)
+    # Add the performance settings of the GPU and KernelAbstractions.jl kernels, which
+    # can be changed via `trixi_adapt`. Creating them together with the `cache` ensures
+    # that they are available for all backends, e.g., the KernelAbstractions.jl CPU
+    # backend without calling `trixi_adapt`.
+    cache = (; cache..., tuning = default_tuning())
 
     return cache
 end
 
-function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info, nvars, nnodes, uEltype)
+function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info,
+                        nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvars, nnodes, uEltype)
     return mpi_cache
@@ -73,12 +79,12 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::T8codeMeshParallel,
     mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_mesh_info,
                                                                                                        mesh)
 
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                                                                        mpi_neighbor_mortars,
-                                                                                                        ndims(mesh),
-                                                                                                        nvars,
-                                                                                                        nnodes,
-                                                                                                        uEltype)
+    (mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
+    mpi_interfaces_buffer_offsets,
+    mpi_send_requests, mpi_recv_requests) = init_mpi_buffers(mpi_neighbor_interfaces,
+                                                             mpi_neighbor_mortars,
+                                                             ndims(mesh), nvars,
+                                                             nnodes, uEltype)
     n_elements_global = Int(t8_forest_get_global_num_leaf_elements(mesh.forest))
     n_elements_local = Int(t8_forest_get_local_num_leaf_elements(mesh.forest))
 
@@ -96,7 +102,8 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::T8codeMeshParallel,
 
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
                        mpi_neighbor_mortars,
-                       mpi_send_buffers, mpi_recv_buffers,
+                       mpi_send_buffer, mpi_recv_buffer, mpi_buffer_ranges,
+                       mpi_interfaces_buffer_offsets,
                        mpi_send_requests, mpi_recv_requests,
                        n_elements_by_rank, n_elements_global,
                        first_element_global_id

@@ -33,11 +33,25 @@ function save_solution_file(u, time, dt, timestep,
     else
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
+        # result as a plain array of floating point numbers. The element type of
+        # the result is determined by `solution_variables` and can differ from
+        # `eltype(u)`, e.g., if `equations` use a different real type than `u`.
+        # The auxiliary variables, if any, are passed to `solution_variables`
+        # after the conservative variables, see `nauxvariables`.
+        aux = get_aux_vars(cache)
+        if aux === nothing
+            aux_vectors = ()
+        else
+            if trixi_backend(aux) !== nothing
+                aux = Array(aux)
+            end
+            aux_vectors = (reinterpret(SVector{nauxvariables(equations), eltype(aux)},
+                                       aux),)
+        end
+        data_vectors = solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                               eltype(u)}, u),
+                                           aux_vectors..., Ref(equations))
+        data = Array(reinterpret(eltype(eltype(data_vectors)), data_vectors))
 
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)
@@ -208,11 +222,25 @@ function save_solution_file(u, time, dt, timestep,
     else
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
+        # result as a plain array of floating point numbers. The element type of
+        # the result is determined by `solution_variables` and can differ from
+        # `eltype(u)`, e.g., if `equations` use a different real type than `u`.
+        # The auxiliary variables, if any, are passed to `solution_variables`
+        # after the conservative variables, see `nauxvariables`.
+        aux = get_aux_vars(cache)
+        if aux === nothing
+            aux_vectors = ()
+        else
+            if trixi_backend(aux) !== nothing
+                aux = Array(aux)
+            end
+            aux_vectors = (reinterpret(SVector{nauxvariables(equations), eltype(aux)},
+                                       aux),)
+        end
+        data_vectors = solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                               eltype(u)}, u),
+                                           aux_vectors..., Ref(equations))
+        data = Array(reinterpret(eltype(eltype(data_vectors)), data_vectors))
 
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)
@@ -372,7 +400,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         # Store element variables
         for (v, (key, element_variable)) in enumerate(element_variables)
             # Add to file
-            recv = Vector{eltype(data)}(undef, sum(element_counts))
+            recv = Vector{eltype(element_variable)}(undef, sum(element_counts))
             MPI.Gatherv!(element_variable, MPI.VBuffer(recv, element_counts),
                          mpi_root(), mpi_comm())
             file["element_variables_$v"] = recv
@@ -385,7 +413,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         # Store node variables
         for (v, (key, node_variable)) in enumerate(node_variables)
             # Add to file
-            recv = Vector{eltype(data)}(undef, sum(node_counts))
+            recv = Vector{eltype(node_variable)}(undef, sum(node_counts))
             MPI.Gatherv!(node_variable, MPI.VBuffer(recv, node_counts),
                          mpi_root(), mpi_comm())
             file["node_variables_$v"] = recv

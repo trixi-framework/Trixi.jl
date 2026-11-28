@@ -109,7 +109,7 @@ end
 
 # Compute the shortest distance from a `point` to the surface of each element
 # using the available `node_coordinates`. Also return the index pair of this
-# minimum surface point location. We compute and store in `min_distance`
+# minimum surface point location. We compute and store in `min_distance2`
 # the squared norm to avoid computing computationally more expensive square roots.
 # Note! Could be made more accurate if the `node_coordinates` were super-sampled
 # and reinterpolated onto a higher polynomial degree before this computation.
@@ -222,7 +222,7 @@ end
         x, y = straight_side_quad_map(xi, eta, element_corners)
         J11, J12, J21, J22 = straight_side_quad_map_metrics(xi, eta, element_corners)
 
-        # Compute residuals for the Newton teration for the current (x, y) coordinate
+        # Compute residuals for the Newton iteration for the current (x, y) coordinate
         r1 = x - point[1]
         r2 = y - point[2]
 
@@ -252,7 +252,7 @@ end
         x, y = transfinite_quad_map(xi, eta, surface_curves)
         J11, J12, J21, J22 = transfinite_quad_map_metrics(xi, eta, surface_curves)
 
-        # Compute residuals for the Newton teration for the current (x,y) coordinate
+        # Compute residuals for the Newton iteration for the current (x,y) coordinate
         r1 = x - point[1]
         r2 = y - point[2]
 

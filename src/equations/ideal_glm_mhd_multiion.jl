@@ -13,6 +13,7 @@ have_nonconservative_terms(::AbstractIdealGlmMhdMultiIonEquations) = True()
 # ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+#   [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
 #   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 # The first three entries of the state vector `cons[1:3]` are the magnetic field components. After that, we have chunks
 # of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `cons[end]` is the divergence
@@ -191,11 +192,12 @@ end
 @doc raw"""
     pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Computes the pressure of every component ``k`` analogouos to
+Computes the pressure of every component ``k`` analogous to
 [`pressure(u, equations::IdealGlmMhdEquations1D)`](@ref).
 """
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
-    B1, B2, B3, _ = u
+    B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(u, equations)
     p = zero(MVector{ncomponents(equations), eltype(u)})
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
@@ -203,8 +205,10 @@ Computes the pressure of every component ``k`` analogouos to
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         gamma = equations.gammas[k]
-        p[k] = (gamma - 1) * (rho_e_total - 0.5f0 *
-                              (rho * (v1^2 + v2^2 + v3^2) + B1^2 + B2^2 + B3^2))
+        p[k] = (gamma - 1) * (rho_e_total -
+                0.5f0 * (rho * (v1^2 + v2^2 + v3^2)
+                         + B1^2 + B2^2 + B3^2
+                         + psi^2))
     end
     return SVector(p)
 end
@@ -302,6 +306,7 @@ end
 # For details on the multi-ion entropy Jacobian ``H`` see
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+#   [arXiv: 2402.14615](https://arxiv.org/abs/2402.14615)
 #   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 # Since the entropy Jacobian is a sparse matrix, we do not construct it but directly compute the
 # action of its product with the jump in the entropy variables.

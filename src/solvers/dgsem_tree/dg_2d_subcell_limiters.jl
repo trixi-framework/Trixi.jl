@@ -51,9 +51,6 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
 
-    # The limiter cache was created with 0 elements
-    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
-
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
             fhat2_L_threaded, fhat2_R_threaded,
@@ -136,7 +133,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
@@ -200,8 +197,9 @@ end
 # The calculation of the non-conservative staggered "fluxes" requires non-conservative
 # terms that can be written as a product of local and a symmetric contributions. See, e.g.,
 #
-# - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
-#   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+# - Rueda-Ramírez, Gassner (2024). A Flux-Differencing Formula for Split-Form Summation By Parts
+#   Discretizations of Non-Conservative Systems. https://arxiv.org/abs/2211.14009
+#   (DOI: https://doi.org/10.1016/j.jcp.2023.112607).
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 ::Type{<:TreeMesh{2}}, have_nonconservative_terms::True,
@@ -233,7 +231,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
@@ -412,7 +410,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))

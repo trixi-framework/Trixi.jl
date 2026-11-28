@@ -5,20 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# The GPU kernel used for `VolumeIntegralFluxDifferencing` is stored in the `cache` so
-# that it can be selected via `trixi_adapt`, see also `src/solvers/dgsem_p4est/dg_3d_gpu.jl`.
-function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg::DG, cache_containers,
-                      uEltype)
-    return (; flux_differencing_kernel = HalfSweep())
-end
-
-# The `cache` of a `P4estMeshView` is created without passing the container cache
-function create_cache(mesh::P4estMeshView{2}, equations,
-                      ::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
-    return (; flux_differencing_kernel = HalfSweep())
-end
-
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
@@ -81,6 +67,20 @@ function rhs_hyperbolic!(backend::Backend,
     return nothing
 end
 
+# P4estMeshView on GPU is untested and missing some kernels
+function prolong2mortars!(backend::Backend, cache, u, mesh::P4estMeshView{2},
+                          equations, mortar, dg)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
+                           mesh::P4estMeshView{2}, have_nonconservative_terms,
+                           equations, mortar, surface_integral, dg, cache)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
                                                      surface_flux_values, u,
                                                      mesh::Union{P4estMesh{2},
@@ -100,10 +100,12 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
         check_axes(cache.interfaces, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_interface(get_aux_interface_vars(cache), equations, dg, cache)
     end
     index_range = eachnode(dg)
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
+    kernel!(surface_flux_values, u, get_aux_interface_vars(cache), typeof(mesh),
+            have_nonconservative_terms, equations,
             surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
             index_range,
             ndrange = (nnodes(dg), ninterfaces(cache.interfaces)))
@@ -113,6 +115,7 @@ end
 
 @kernel inbounds=true function prolong2interfaces_and_calc_interface_flux_KAkernel!(surface_flux_values,
                                                                                     u,
+                                                                                    aux_interface,
                                                                                     MeshT::Type{<:Union{P4estMesh{2},
                                                                                                         P4estMeshView{2},
                                                                                                         T8codeMesh{2}}},
@@ -125,7 +128,8 @@ end
                                                                                     contravariant_vectors,
                                                                                     index_range)
     i, interface = @index(Global, NTuple)
-    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u,
+                                                         aux_interface, MeshT,
                                                          have_nonconservative_terms,
                                                          equations,
                                                          surface_integral, dg,
@@ -205,6 +209,7 @@ end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
+                                                                                       aux_interface,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -231,7 +236,12 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                i,
                                                                                interface)
 
-    flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    # Auxiliary variables on both sides of the interface at the surface node `i`,
+    # counted along the primary side as for `surface_flux_values`
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
+                                         i, interface)
+
+    flux_ = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
     for v in eachvariable(equations)
         surface_flux_values[v, i, primary_direction, primary_element] = flux_[v]
         surface_flux_values[v, i_secondary, secondary_direction,
@@ -242,6 +252,7 @@ end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
+                                                                                       aux_interface,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -255,7 +266,8 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                        index_range,
                                                                                        i,
                                                                                        interface)
-    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u,
+                                                         aux_interface, MeshT,
                                                          have_nonconservative_terms,
                                                          combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                                                          equations),
@@ -270,6 +282,7 @@ end
 
 Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
                                                                                        u,
+                                                                                       aux_interface,
                                                                                        MeshT::Type{<:Union{P4estMesh{2},
                                                                                                            P4estMeshView{2},
                                                                                                            T8codeMesh{2}}},
@@ -297,7 +310,13 @@ Base.@propagate_inbounds function prolong2interfaces_and_calc_interface_flux_per
                                                                                i,
                                                                                interface)
 
-    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    # Auxiliary variables on both sides of the interface at the surface node `i`,
+    # counted along the primary side as for `surface_flux_values`
+    aux_node = get_aux_surface_node_vars(aux_interface, equations, typeof(dg),
+                                         i, interface)
+
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
     for v in eachvariable(equations)
         surface_flux_values[v, i, primary_direction, primary_element] = flux_left[v]
         surface_flux_values[v, i_secondary, secondary_direction,
@@ -448,7 +467,13 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
-    flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
+                                  i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, aux_inner..., normal_direction, x, t,
+                               surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -506,9 +531,14 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
     x = get_node_coords(node_coordinates, equations, dg,
                         i_index, j_index, element_index)
 
+    # Auxiliary variables inside the domain. There are no separate auxiliary variables
+    # on the outside of the boundary.
+    aux_inner = get_aux_node_vars(get_aux_vars(cache), equations, dg,
+                                  i_index, j_index, element_index)
+
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, normal_direction, x, t,
+    flux = boundary_condition(u_inner, aux_inner..., normal_direction, x, t,
                               surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
@@ -520,17 +550,353 @@ Base.@propagate_inbounds function calc_boundary_flux!(u, surface_flux_values, t,
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
-function prolong2mortars!(backend::Backend, cache, u, mesh, equations, mortar, dg)
-    @assert isempty(eachmortar(dg, cache))
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                          equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
+    end
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+
+    index_range = eachnode(dg)
+    nvars = nvariables(equations)
+
+    kernel! = prolong2mortars_KAkernel!(backend)
+    kernel!(cache.mortars.u, u, typeof(mesh),
+            neighbor_ids, node_indices,
+            mortar_l2.forward_lower, mortar_l2.forward_upper,
+            index_range, Val(nvars),
+            ndrange = (nnodes(dg), nmortars(dg, cache)))
+
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
-function calc_mortar_flux!(backend::Backend, surface_flux_values, mesh,
-                           have_nonconservative_terms, equations, mortar,
-                           surface_integral, dg, cache)
-    @assert isempty(eachmortar(dg, cache))
+@kernel inbounds=true function prolong2mortars_KAkernel!(mortars_u, u,
+                                                         MeshT::Type{<:Union{P4estMesh{2},
+                                                                             T8codeMesh{2}}},
+                                                         neighbor_ids,
+                                                         node_indices,
+                                                         forward_lower,
+                                                         forward_upper,
+                                                         index_range,
+                                                         val_vars::Val{nvars}) where {nvars}
+    node, mortar = @index(Global, NTuple)
+
+    prolong2mortars_per_node!(mortars_u, u, neighbor_ids, node_indices, forward_lower,
+                              forward_upper, node, mortar, index_range, val_vars)
+end
+
+Base.@propagate_inbounds function prolong2mortars_per_node!(mortars_u,
+                                                            u, neighbor_ids,
+                                                            node_indices,
+                                                            forward_lower,
+                                                            forward_upper,
+                                                            node, mortar, index_range,
+                                                            ::Val{nvars}) where {nvars}
+
+    # Copy solution data from the small elements using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    small_indices = node_indices[1, mortar]
+
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    i_small = i_small_start + (node - 1) * i_small_step
+    j_small = j_small_start + (node - 1) * j_small_step
+
+    for position in 1:2
+        element = neighbor_ids[position, mortar]
+        for v in 1:nvars
+            mortars_u[1, v, position, node, mortar] = u[v, i_small, j_small, element]
+        end
+    end
+
+    # Interpolate large element face data to small face locations
+    # In contrast to the CPU version, we do not buffer the data
+    large_indices = node_indices[2, mortar]
+    element = neighbor_ids[3, mortar]
+
+    i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
+    j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
+
+    # This is what the two multiply_dimensionwise! calls do in the CPU version
+    for v in 1:nvars
+        res_lower = zero(eltype(u))
+        res_upper = zero(eltype(u))
+        for ii in index_range
+            i_large = i_large_start + (ii - 1) * i_large_step
+            j_large = j_large_start + (ii - 1) * j_large_step
+            res_lower += forward_lower[node, ii] * u[v, i_large, j_large, element]
+            res_upper += forward_upper[node, ii] * u[v, i_large, j_large, element]
+        end
+        mortars_u[2, v, 1, node, mortar] = res_lower
+        mortars_u[2, v, 2, node, mortar] = res_upper
+    end
+    return nothing
+end
+
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
+                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                           have_nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                           dg::DGSEM{<:LobattoLegendreBasis}, cache)
+    nmortars(dg, cache) == 0 && return nothing
+    # Explicit bounds check, which allows us to assume inbounds access in the kernel
+    @boundscheck begin
+        check_axes_mortar_container(cache.mortars, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux_mortar(get_aux_mortar_vars(cache), equations, dg, cache)
+    end
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    index_range = eachnode(dg)
+    nvars = nvariables(equations)
+
+    kernel! = calc_mortar_flux_KAkernel!(backend)
+    kernel!(cache.mortars.u, get_aux_mortar_vars(cache), surface_flux_values,
+            typeof(mesh), have_nonconservative_terms, equations,
+            surface_flux, typeof(dg),
+            neighbor_ids, node_indices, contravariant_vectors,
+            (mortar_l2.reverse_lower, mortar_l2.reverse_upper),
+            index_range, Val(nvars),
+            ndrange = (nnodes(dg), nmortars(dg, cache)))
+
+    return nothing
+end
+
+@kernel inbounds=true function calc_mortar_flux_KAkernel!(mortars_u,
+                                                          aux_mortar,
+                                                          surface_flux_values,
+                                                          MeshT::Type{<:Union{P4estMesh{2},
+                                                                              T8codeMesh{2}}},
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          surface_flux::SurfaceFlux,
+                                                          ::Type{SolverT},
+                                                          neighbor_ids,
+                                                          node_indices,
+                                                          contravariant_vectors,
+                                                          reverse_matrices,
+                                                          index_range,
+                                                          val_vars::Val{nvars}) where {
+                                                                                       SurfaceFlux,
+                                                                                       SolverT,
+                                                                                       nvars
+                                                                                       }
+    node, mortar = @index(Global, NTuple)
+
+    calc_mortar_flux_small_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u, aux_mortar,
+                                     index_range, mortar, node, val_vars)
+
+    calc_mortar_flux_large_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u, aux_mortar,
+                                     reverse_matrices,
+                                     index_range, mortar, node, val_vars)
+end
+
+Base.@propagate_inbounds function calc_mortar_flux_small_per_node!(surface_flux_values,
+                                                                   MeshT::Type{<:Union{P4estMesh{2},
+                                                                                       T8codeMesh{2}}},
+                                                                   have_nonconservative_terms,
+                                                                   equations,
+                                                                   surface_flux,
+                                                                   SolverT,
+                                                                   neighbor_ids,
+                                                                   node_indices,
+                                                                   contravariant_vectors,
+                                                                   mortars_u,
+                                                                   aux_mortar,
+                                                                   index_range, mortar,
+                                                                   node,
+                                                                   ::Val{nvars}) where {nvars}
+
+    # Get index information on the small elements
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    i_small = i_small_start + (node - 1) * i_small_step
+    j_small = j_small_start + (node - 1) * j_small_step
+
+    for position in 1:2
+        element = neighbor_ids[position, mortar]
+        # Get the normal direction on the small element.
+        # Note, contravariant vectors at interfaces in negative coordinate direction
+        # are pointing inwards. This is handled by `get_normal_direction`.
+        normal_direction = get_normal_direction(small_direction,
+                                                contravariant_vectors,
+                                                i_small, j_small, element)
+
+        fstar_primary, _ = calc_mortar_flux_node(MeshT,
+                                                 have_nonconservative_terms,
+                                                 combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                 equations),
+                                                 equations,
+                                                 surface_flux, SolverT,
+                                                 mortars_u, aux_mortar,
+                                                 mortar, position, normal_direction,
+                                                 node)
+
+        # Write to small sides
+        for v in 1:nvars
+            surface_flux_values[v, node,
+            small_direction, element] = fstar_primary[v]
+        end
+    end
+    return nothing
+end
+
+Base.@propagate_inbounds function calc_mortar_flux_large_per_node!(surface_flux_values,
+                                                                   MeshT::Type{<:Union{P4estMesh{2},
+                                                                                       T8codeMesh{2}}},
+                                                                   have_nonconservative_terms,
+                                                                   equations,
+                                                                   surface_flux,
+                                                                   SolverT,
+                                                                   neighbor_ids,
+                                                                   node_indices,
+                                                                   contravariant_vectors,
+                                                                   mortars_u,
+                                                                   aux_mortar,
+                                                                   reverse_matrices,
+                                                                   index_range, mortar,
+                                                                   node,
+                                                                   ::Val{nvars}) where {nvars}
+
+    # Get index information on the small elements
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+    j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+    flux_large = zero(SVector{nvars, eltype(mortars_u)})
+
+    KernelAbstractions.Extras.@unroll for position in 1:2
+        reverse_matrix = reverse_matrices[position]
+        element = neighbor_ids[position, mortar]
+
+        i_small = i_small_start
+        j_small = j_small_start
+        for ii in index_range
+            # Get the normal direction on the small element.
+            # Note, contravariant vectors at interfaces in negative coordinate direction
+            # are pointing inwards. This is handled by `get_normal_direction`.
+            normal_direction = get_normal_direction(small_direction,
+                                                    contravariant_vectors,
+                                                    i_small, j_small,
+                                                    element)
+
+            _, fstar_secondary = calc_mortar_flux_node(MeshT,
+                                                       have_nonconservative_terms,
+                                                       combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                       equations),
+                                                       equations, surface_flux, SolverT,
+                                                       mortars_u, aux_mortar,
+                                                       mortar, position,
+                                                       normal_direction, ii)
+
+            flux_large += reverse_matrix[node, ii] * fstar_secondary
+
+            i_small += i_small_step
+            j_small += j_small_step
+        end
+    end
+
+    # Copy interpolated flux values to the large element face in the correct
+    # orientation.
+    # Note that the index of the small sides will always run forward but
+    # the index of the large side might need to run backwards for flipped sides.
+    large_element = neighbor_ids[3, mortar]
+    large_indices = node_indices[2, mortar]
+    large_direction = indices2direction(large_indices)
+    large_node_index = NodeIndex.IBackward in large_indices ?
+                       last(index_range) + 1 - node :
+                       node
+
+    # The flux is calculated in the outward direction of the small elements,
+    # so the sign must be switched to get the flux in outward direction
+    # of the large element.
+    # The contravariant vectors of the large element (and therefore the normal
+    # vectors of the large element as well) are twice as large as the
+    # contravariant vectors of the small elements. Therefore, the flux needs
+    # to be scaled by a factor of 2 to obtain the flux of the large element.
+    for v in 1:nvars
+        surface_flux_values[v, large_node_index, large_direction, large_element] = -2 *
+                                                                                   flux_large[v]
+    end
+    return nothing
+end
+
+# Mortar flux computation at a single node of a small element for conservation laws.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{2},
+                                                                            T8codeMesh{2}}},
+                                                        have_nonconservative_terms::False,
+                                                        combine_conservative_and_nonconservative_fluxes,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u, aux_mortar,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        node_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       node_index, mortar_index)
+    # Auxiliary variables on the small (primary) and the large (secondary) side,
+    # cf. `init_aux_mortar_node_vars!`
+    aux_node = get_aux_surface_node_vars(aux_mortar, equations, SolverT,
+                                         position_index, node_index, mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, aux_node..., normal_direction, equations)
+
+    return flux, flux
+end
+
+# Mortar flux computation at a single node of a small element for equations with
+# conservative and nonconservative terms.
+# In contrast to the CPU version, the fluxes for the small (primary) and large
+# (secondary) side are returned instead of being stored in buffers.
+Base.@propagate_inbounds function calc_mortar_flux_node(MeshT::Type{<:Union{P4estMesh{2},
+                                                                            T8codeMesh{2}}},
+                                                        have_nonconservative_terms::True,
+                                                        combine_conservative_and_nonconservative_fluxes::True,
+                                                        equations,
+                                                        surface_flux,
+                                                        SolverT::Type{<:DG},
+                                                        mortars_u, aux_mortar,
+                                                        mortar_index, position_index,
+                                                        normal_direction,
+                                                        node_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       node_index, mortar_index)
+    # Auxiliary variables on the small (primary) and the large (secondary) side,
+    # cf. `init_aux_mortar_node_vars!`
+    aux_node = get_aux_surface_node_vars(aux_mortar, equations, SolverT,
+                                         position_index, node_index, mortar_index)
+
+    # Compute combined fluxes
+    flux_left, flux_right = surface_flux(u_ll, u_rr, aux_node...,
+                                         normal_direction, equations)
+    return flux_left, flux_right
 end
 
 function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
@@ -552,6 +918,7 @@ function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Bac
         check_axes(u, mesh, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
+        check_axes_aux(get_aux_vars(cache), equations, dg, cache)
     end
     kernel_cache = kernel_filter_cache(cache)
     NNODES = nnodes(dg)
@@ -609,24 +976,29 @@ end
                                                                                   element]),
                                                     _zero)),
                                   Val(nvariables(equations))))
-    source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
-                                         equations, dg, i, j, element)
+    source_node = calc_source_terms_node(u, get_aux_vars(cache), t, source_terms,
+                                         node_coordinates, equations, dg,
+                                         i, j, element)
     jacobian_factor = inverse_jacobian[i, j, element]
     du_local = get_node_vars(du, equations, dg, i, j, element) + factor * surface_node
     du_node = source_node - jacobian_factor * du_local
     set_node_vars!(du, du_node, equations, dg, i, j, element)
 end
 
-Base.@propagate_inbounds function calc_source_terms_node(u, t, source_terms,
+# `aux` is the array of auxiliary variables or `nothing` for equations without auxiliary
+# variables, see `get_aux_vars`
+Base.@propagate_inbounds function calc_source_terms_node(u, aux, t,
+                                                         source_terms,
                                                          node_coordinates,
                                                          equations, dg::DG, indices...)
     u_local = get_node_vars(u, equations, dg, indices...)
+    aux_local = get_aux_node_vars(aux, equations, dg, indices...)
     x_local = get_node_coords(node_coordinates, equations, dg, indices...)
 
-    return source_terms(u_local, x_local, t, equations)
+    return source_terms(u_local, aux_local..., x_local, t, equations)
 end
 
-@inline function calc_source_terms_node(u, t, source_terms::Nothing,
+@inline function calc_source_terms_node(u, aux, t, source_terms::Nothing,
                                         node_coordinates,
                                         equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})

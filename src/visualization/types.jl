@@ -88,7 +88,7 @@ end
 
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
-                              VariableNames, PlottingTriangulation} <:
+                              VariableNames, PlottingTriangulation, NodeGroupsType} <:
        AbstractPlotData{2}
     x::NodeType # physical nodal coordinates, size (num_plotting_nodes x num_elements)
     y::NodeType
@@ -98,6 +98,17 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     y_face::FaceNodeType
     face_data::FaceDataType
     variable_names::VariableNames
+    point_values::Bool # `false` for cell (mean) values, e.g., for `BlockFV`
+    # For cell (mean) values: a group for each plotting node (same size as `x`), which is
+    # the same for all nodes at the same mesh vertex, including vertices that are identified
+    # through periodic boundaries. Contour plots average the cell values over these groups.
+    # `nothing` for point values. The constructors for solution and scalar data ensure that
+    # `node_groups` is available whenever `point_values == false`.
+    node_groups::NodeGroupsType
+    # Coordinate directions (1 -> `x`, 2 -> `y`, 3 -> `z`) of `x` and `y`, which differ from
+    # `(1, 2)` for slices of 3D data
+    orientation_x::Int
+    orientation_y::Int
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -110,7 +121,8 @@ function Base.show(io::IO, pd::PlotData2DTriangulated)
           typeof(pd.x_face), ", ",
           typeof(pd.face_data), ", ",
           typeof(pd.variable_names),
-          "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>)")
+          "}(<x>, <y>, <data>, <plot_triangulation>, <x_face>, <y_face>, <face_data>, <variable_names>, point_values = ",
+          pd.point_values, ")")
     return nothing
 end
 
@@ -346,7 +358,7 @@ function PlotData2D(sol::TrixiODESolution; kwargs...)
     return PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 end
 
-# Also redirect when using PlotData2DTriangulate.
+# Also redirect when using PlotData2DTriangulated.
 function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
     return PlotData2DTriangulated(sol.u[end], sol.prob.p; kwargs...)
 end
@@ -411,7 +423,8 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                                                         nvisnodes = nvisnodes)
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data,
-                                  variable_names)
+                                  variable_names, visualize_point_values(mesh, dg),
+                                  nothing, 1, 2)
 end
 
 # One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
@@ -428,6 +441,11 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables = nothing,
                                 nvisnodes = 2 * polydeg(dg))
     @assert ndims(mesh)==2 "Input must be two-dimensional."
+    if !visualize_point_values(mesh, dg)
+        throw(ArgumentError("Triangulated plot data does not support DGSEM with " *
+                            "`polydeg = 0`. On a `TreeMesh`, `PlotData2D` " *
+                            "visualizes such solutions as cell values."))
+    end
 
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
@@ -479,10 +497,51 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
 
-    transform_to_solution_variables!(uplot, solution_variables_, equations)
-    transform_to_solution_variables!(ufp, solution_variables_, equations)
+    # `nothing` if the equations do not have auxiliary variables
+    aux = get_aux_vars(cache)
+    if aux === nothing
+        transform_to_solution_variables!(uplot, solution_variables_, equations)
+        transform_to_solution_variables!(ufp, solution_variables_, equations)
+    else
+        auxplot, auxfp = interpolate_aux_to_plotting_nodes(aux, mesh, equations, dg,
+                                                           cache,
+                                                           plotting_interp_matrix,
+                                                           nvisnodes)
+        transform_to_solution_variables!(uplot, auxplot, solution_variables_,
+                                         equations)
+        transform_to_solution_variables!(ufp, auxfp, solution_variables_, equations)
+    end
 
-    return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+    return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names,
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
+end
+
+# Interpolate the auxiliary variables to the volume and wireframe plotting nodes in the
+# same way as the conservative variables in `PlotData2DTriangulated`, so that
+# `solution_variables(u, aux, equations)` can be evaluated at the plotting nodes.
+function interpolate_aux_to_plotting_nodes(aux, mesh, equations, dg::DGSEM, cache,
+                                           plotting_interp_matrix, nvisnodes)
+    n_nodes_2d = nnodes(dg)^ndims(mesh)
+    n_elements = nelements(dg, cache)
+    n_aux = nauxvariables(equations)
+
+    aux_components = ntuple(_ -> similar(aux, (n_nodes_2d, n_elements)), n_aux)
+    aux_extracted = StructArray{SVector{n_aux, eltype(aux)}}(aux_components)
+    for element in eachelement(dg, cache)
+        sk = 1
+        for j in eachnode(dg), i in eachnode(dg)
+            aux_node, = get_aux_node_vars(aux, equations, dg, i, j, element)
+            aux_extracted[sk, element] = aux_node
+            sk += 1
+        end
+    end
+
+    auxplot = StructArray{eltype(aux_extracted)}(map(x -> plotting_interp_matrix * x,
+                                                     StructArrays.components(aux_extracted)))
+    _, _, auxfp = mesh_plotting_wireframe(aux_extracted, mesh, equations, dg, cache;
+                                          nvisnodes = nvisnodes)
+
+    return auxplot, auxfp
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
@@ -563,12 +622,17 @@ function ScalarPlotData2D(u, mesh, equations, dg::DGMulti, cache;
 
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
-                                  x_face, y_face, face_data, variable_name)
+                                  x_face, y_face, face_data, variable_name,
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
 end
 
 function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache;
                           variable_name = nothing,
                           nvisnodes = 2 * nnodes(dg))
+    if !visualize_point_values(mesh, dg)
+        throw(ArgumentError("`ScalarPlotData2D` does not support DGSEM with " *
+                            "`polydeg = 0`."))
+    end
     n_nodes_2d = nnodes(dg)^ndims(mesh)
     n_elements = nelements(dg, cache)
 
@@ -604,7 +668,8 @@ function ScalarPlotData2D(u, mesh, equations, dg::Union{<:DGSEM, <:FDSBP}, cache
 
     # wrap solution in ScalarData struct for recipe dispatch
     return PlotData2DTriangulated(x_plot, y_plot, ScalarData(u_plot), t,
-                                  x_face, y_face, face_data, variable_name)
+                                  x_face, y_face, face_data, variable_name,
+                                  visualize_point_values(mesh, dg), nothing, 1, 2)
 end
 
 """
@@ -754,7 +819,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             element_width = 2.0 / cache.elements.inverse_jacobian[i]
             sub_cell_width = element_width / n_nodes
 
-            for j in 1:n_nodes #the loop over the subscells
+            for j in 1:n_nodes #the loop over the subcells
                 idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1 #slot number in the list x for the left side of this subcell
                 idx_right = (i - 1) * (2 * n_nodes) + 2 * j #slot number in the list x for the right side of this subcell
 
@@ -770,7 +835,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x
             left_boundary += element_width #go to the left boundary of the next cell
         end
-        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case it's the left boundary
 
     else
         error("BlockFV is not yet supported for 2D and 3D.")
@@ -795,11 +860,13 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
     n_cells = n^2 * n_elements
 
     corners_x, corners_y = calc_fv_cell_corners(mesh, dg, cache)
+    corner_groups = calc_fv_corner_groups(mesh, dg, cache)
 
     x = Array{Float64}(undef, 4, n_cells)
     y = similar(x)
     data = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype, 4, n_cells),
                                                        nvars))
+    groups = Array{Int}(undef, 4, n_cells)
 
     cell = 0
     for element in 1:n_elements
@@ -813,6 +880,10 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
             y[2, cell] = corners_y[i + 1, j, element]
             y[3, cell] = corners_y[i + 1, j + 1, element]
             y[4, cell] = corners_y[i, j + 1, element]
+            groups[1, cell] = corner_groups[i, j, element]
+            groups[2, cell] = corner_groups[i + 1, j, element]
+            groups[3, cell] = corner_groups[i + 1, j + 1, element]
+            groups[4, cell] = corner_groups[i, j + 1, element]
 
             u_node = solution_variables_(get_node_vars(u, equations, dg, i, j, element),
                                          equations)
@@ -829,8 +900,12 @@ function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
 
     x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
 
+    # Contour plots need point values. They average the cell values over the `groups`,
+    # i.e., over all cells sharing a mesh vertex.
+    # This is done only when needed and only for the plotted variable.
     return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
-                                  variable_names)
+                                  variable_names, visualize_point_values(mesh, dg),
+                                  groups, 1, 2)
 end
 
 # unwrap u if it is VectorOfArray
@@ -943,7 +1018,9 @@ function PlotData2D(u::StructArray,
     variable_names = SVector(varnames(solution_variables_, equations))
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, triangulation,
-                                  x_face, y_face, face_data, variable_names)
+                                  x_face, y_face, face_data, variable_names,
+                                  visualize_point_values(mesh, dg), nothing,
+                                  orientation_x, orientation_y)
 end
 
 function PlotData2D(u::Array{<:SVector}, mesh::DGMultiMesh{3}, equations,
@@ -996,10 +1073,13 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
+        # Only the first two coordinates of `point` are used in 2D (as for the `TreeMesh`)
+        # so that the default `point` with three coordinates also works here.
+        point_2d = (point[1], point[2])
         x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
                                                                solver, cache,
                                                                curve, slice,
-                                                               point, nvisnodes,
+                                                               point_2d, nvisnodes,
                                                                solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
@@ -1042,7 +1122,7 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
     variable_names_ = digest_variable_names(solution_variables_, equations,
                                             variable_names)
 
-    orientation_x = 0 # Set 'orientation' to zero on default.
+    orientation_x = 1
 
     if u isa StructArray
         # Convert conserved variables to the given `solution_variables` and set up

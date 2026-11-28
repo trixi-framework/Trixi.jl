@@ -51,9 +51,6 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
 
-    # The limiter cache was created with 0 elements
-    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
-
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
             fhat2_L_threaded, fhat2_R_threaded,
@@ -139,7 +136,7 @@ end
 
     # To use the symmetry of the `volume_flux`, the split form volume flux is precalculated
     # like in `calc_volume_integral!` for the `VolumeIntegralFluxDifferencing`
-    # and saved in in `flux_temp`.
+    # and saved in `flux_temp`.
 
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))

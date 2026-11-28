@@ -700,6 +700,146 @@ end
     @test isnothing(display(c3d))
 end
 
+@testitem "Unit: TreeMesh nonconservative mortar fluxes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # On the same Cartesian, nonconforming mesh, the DGSEM discretizations on
+    # `TreeMesh` and `P4estMesh` coincide. We compare their right-hand sides for
+    # element-wise discontinuous data such that the nonconservative surface terms
+    # at the mortars do not vanish. Since the domain is periodic and only the
+    # element at the origin is refined, there are mortars with the large element
+    # on the left and on the right side in each coordinate direction.
+    function max_rhs_difference(mesh_tree, mesh_p4est, equations, solver, func)
+        results = map((mesh_tree, mesh_p4est)) do mesh
+            semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                initial_condition_constant, solver;
+                                                boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi)
+            u = Trixi.wrap_array(u_ode, semi)
+            (; node_coordinates) = semi.cache.elements
+            ndims_ = ndims(mesh)
+            node_indices = CartesianIndices(ntuple(_ -> Trixi.nnodes(solver), ndims_))
+            for element in Trixi.eachelement(solver, semi.cache)
+                # The element center is used to make the data discontinuous
+                x_center = SVector(ntuple(d -> sum(node_coordinates[d, Tuple(I)...,
+                                                                    element]
+                                                   for I in node_indices) /
+                                               length(node_indices), ndims_))
+                for I in node_indices
+                    x = SVector(ntuple(d -> node_coordinates[d, Tuple(I)..., element],
+                                       ndims_))
+                    u[:, Tuple(I)..., element] .= func(x, x_center, equations)
+                end
+            end
+            du_ode = similar(u_ode)
+            Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+            return copy(Trixi.wrap_array_native(du_ode, semi)), copy(node_coordinates)
+        end
+        (du_tree, x_tree), (du_p4est, x_p4est) = results
+        @test size(du_tree) == size(du_p4est)
+        @test all(isfinite, du_tree)
+        @test all(isfinite, du_p4est)
+
+        # The element ordering differs, so we match elements by their node coordinates
+        max_difference = zero(eltype(du_tree))
+        for element_tree in axes(du_tree, ndims(du_tree))
+            x_element = selectdim(x_tree, ndims(x_tree), element_tree)
+            element_p4est = findfirst(axes(du_p4est, ndims(du_p4est))) do element
+                return isapprox(selectdim(x_p4est, ndims(x_p4est), element), x_element)
+            end
+            @test !isnothing(element_p4est)
+            max_difference = max(max_difference,
+                                 maximum(abs,
+                                         selectdim(du_tree, ndims(du_tree),
+                                                   element_tree) -
+                                         selectdim(du_p4est, ndims(du_p4est),
+                                                   element_p4est)))
+        end
+        return max_difference, maximum(abs, du_tree)
+    end
+
+    @testset "IdealGlmMhdEquations2D" begin
+        equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations2D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2]) + h, 0.1 + h, -0.2, 0.1,
+                           1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h, 0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0), (2.0, 2.0), initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0),
+                               coordinates_max = (2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p4est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p4est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+
+    @testset "IdealGlmMhdEquations3D" begin
+        equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
+        solver = DGSEM(polydeg = 3,
+                       surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                         flux_nonconservative_powell)))
+
+        function func(x, x_center, equations::IdealGlmMhdEquations3D)
+            h = 0.3 * sin(3 * x_center[1] + 5 * x_center[2] - 2 * x_center[3])
+            prim = SVector(1 + 0.2 * sin(x[1] + 2 * x[2] - x[3]) + h, 0.1 + h, -0.2,
+                           0.1 - h, 1 + h^2, 0.3 + h, 0.2 * x[1], -0.1 + h,
+                           0.0)
+            return prim2cons(prim, equations)
+        end
+
+        # Refine the element at the origin
+        mesh_tree = TreeMesh((0.0, 0.0, 0.0), (2.0, 2.0, 2.0),
+                             initial_refinement_level = 1,
+                             refinement_patches = ((type = "box",
+                                                    coordinates_min = (0.0, 0.0, 0.0),
+                                                    coordinates_max = (1.0, 1.0, 1.0)),),
+                             periodicity = true)
+        mesh_p4est = P4estMesh((1, 1, 1), polydeg = 1,
+                               coordinates_min = (0.0, 0.0, 0.0),
+                               coordinates_max = (2.0, 2.0, 2.0),
+                               initial_refinement_level = 1, periodicity = true)
+        refine_fn_c = @cfunction((p8est, which_tree, quadrant)->begin
+                                     quadrant_obj = unsafe_load(quadrant)
+                                     return Cint(quadrant_obj.x == 0 &&
+                                                 quadrant_obj.y == 0 &&
+                                                 quadrant_obj.z == 0 &&
+                                                 quadrant_obj.level < 2)
+                                 end,
+                                 Cint,
+                                 (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                  Ptr{Trixi.p8est_quadrant_t}))
+        Trixi.refine_p4est!(mesh_p4est.p4est, false, refine_fn_c, C_NULL)
+        max_difference, max_du = max_rhs_difference(mesh_tree, mesh_p4est, equations,
+                                                    solver, func)
+        @test max_du > 1
+        @test max_difference < 1.0e-12 * max_du
+    end
+end
+
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     capacity = 42
     n_variables = 9
@@ -734,9 +874,9 @@ end
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
 
-    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
-                                              LobattoLegendreBasis(3))
-    @test_nowarn show(stdout, indicator_ec)
+    indicator_entropy_correction = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                                              LobattoLegendreBasis(3))
+    @test_nowarn show(stdout, indicator_entropy_correction)
 
     # test Base.show for PositivityPreservingLimiterLiuZhang
     equations = LinearScalarAdvectionEquation1D(1.0)
@@ -792,6 +932,53 @@ end
     @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
                                       nu = 1.0) isa
           LatticeBoltzmannEquations3D
+end
+
+@testitem "Unit: Linearized Euler constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Mixed argument types are promoted
+    equations = @inferred LinearizedEulerEquations1D(1, 2.0f0, 3.0)
+    @test equations isa LinearizedEulerEquations1D{Float64}
+    @test (equations.v_mean_global, equations.c_mean_global,
+           equations.rho_mean_global) == (1.0, 2.0, 3.0)
+    @test @inferred(LinearizedEulerEquations1D(1, 2, 3.0f0)) isa
+          LinearizedEulerEquations1D{Float32}
+    @test @inferred(LinearizedEulerEquations1D{Float32}(1, 2.0, 3)) isa
+          LinearizedEulerEquations1D{Float32}
+    equations = @inferred LinearizedEulerEquations2D((1, 2.0f0), 3, 4.0)
+    @test equations isa LinearizedEulerEquations2D{Float64}
+    @test equations.v_mean_global == SVector(1.0, 2.0)
+    @test @inferred(LinearizedEulerEquations2D(SVector(1.0f0, 2.0f0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    @test @inferred(LinearizedEulerEquations2D{Float32}((1, 2.0), 3, 4)) isa
+          LinearizedEulerEquations2D{Float32}
+    equations = @inferred LinearizedEulerEquations3D(v_mean_global = (1, 2, 3.0f0),
+                                                     c_mean_global = 4,
+                                                     rho_mean_global = 5)
+    @test equations isa LinearizedEulerEquations3D{Float32}
+    @test equations.v_mean_global == SVector(1.0f0, 2.0f0, 3.0f0)
+    @test @inferred(LinearizedEulerEquations3D(SVector(1, 2, 3), 4.0, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+    @test @inferred(LinearizedEulerEquations3D{Float64}((1, 2, 3.0f0), 4, 5)) isa
+          LinearizedEulerEquations3D{Float64}
+
+    # Invalid mean values are rejected by all constructors
+    msg_c = "c_mean_global must be positive"
+    msg_rho = "rho_mean_global must be positive"
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, -1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0, 1.0, -1.0f0)
+    @test_throws msg_c LinearizedEulerEquations1D{Float64}(0.0, -1.0, 1.0)
+    @test_throws msg_c LinearizedEulerEquations1D(0.0, 0.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, 0.0)
+    @test_throws msg_rho LinearizedEulerEquations1D(0.0, 1.0, NaN)
+    @test_throws msg_c LinearizedEulerEquations2D(SVector(0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations2D((0.0, 0.0), 1.0, -1)
+    @test_throws msg_c LinearizedEulerEquations2D((0.0, 0.0), 0, 1)
+    @test_throws msg_c LinearizedEulerEquations3D(SVector(0.0, 0.0, 0.0), -1.0, 1.0)
+    @test_throws msg_rho LinearizedEulerEquations3D((0, 0, 0), 1, 0)
+    @test_throws msg_rho LinearizedEulerEquations3D(v_mean_global = (0.0, 0.0, 0.0),
+                                                    c_mean_global = 1.0,
+                                                    rho_mean_global = -1.0)
 end
 
 @testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -909,6 +1096,22 @@ end
     end
 end
 
+@testitem "Unit: Linear scalar advection conversion between conservative/entropy variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    for (equations, cons_vars) in ((LinearScalarAdvectionEquation1D(0.5),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation2D(0.5, -0.3),
+                                    SVector(1.2)),
+                                   (LinearScalarAdvectionEquation3D(0.5, -0.3, 0.7),
+                                    SVector(1.2)))
+        entropy_vars = cons2entropy(cons_vars, equations)
+        @test entropy_vars == cons_vars
+        @test entropy2cons(entropy_vars, equations) == cons_vars
+    end
+end
+
 @testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
     Setup,
     UnitTests
@@ -941,6 +1144,112 @@ end
         cons_vars = prim2cons(prim_vars, equations)
         @test prim_vars ≈ cons2prim(cons_vars, equations)
         @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
+@testitem "Unit: Navier-Stokes conversion of entropy variables with R != 1" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # Check `entropy2velocity_temperature` and `convert_derivative_to_primitive`
+    # against `cons2prim_temperature` and its derivative along a path in state space
+    # computed by automatic differentiation. Using a specific gas constant R != 1
+    # ensures that no factors of R are missing.
+    mu, Prandtl, R = 0.01, 0.72, 2.5
+    gradient_variables = GradientVariablesEntropy()
+
+    test_cases = ((CompressibleNavierStokesDiffusion1D(CompressibleEulerEquations1D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5)),
+                  (CompressibleNavierStokesDiffusion2D(CompressibleEulerEquations2D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 4.0), SVector(0.3, -0.2, 0.7, 0.5)),
+                  (CompressibleNavierStokesDiffusion3D(CompressibleEulerEquations3D(1.4);
+                                                       mu, Prandtl, R,
+                                                       gradient_variables),
+                   SVector(2.0, 0.1, 0.2, 0.3, 4.0),
+                   SVector(0.3, -0.2, 0.7, -0.4, 0.5)))
+
+    for (equations, prim_vars, prim_direction) in test_cases
+        cons_vars(s) = prim2cons(prim_vars + s * prim_direction, equations)
+        entropy_vars = cons2entropy(cons_vars(0.0), equations)
+
+        @test Trixi.temperature(cons_vars(0.0), equations) ≈
+              prim_vars[end] / (R * prim_vars[1])
+        @test Trixi.entropy2velocity_temperature(entropy_vars, equations) ≈
+              cons2prim_temperature(cons_vars(0.0), equations)[2:end]
+
+        gradient_entropy_vars = ForwardDiff.derivative(s -> cons2entropy(cons_vars(s),
+                                                                         equations),
+                                                       0.0)
+        gradient_prim_vars = ForwardDiff.derivative(s -> cons2prim_temperature(cons_vars(s),
+                                                                               equations),
+                                                    0.0)
+        gradient_converted = Trixi.convert_derivative_to_primitive(entropy_vars,
+                                                                   gradient_entropy_vars,
+                                                                   equations)
+        @test gradient_converted[2:end] ≈ gradient_prim_vars[2:end]
+    end
+end
+
+@testitem "Unit: Navier-Stokes 1D viscous flux consistent with 2D and 3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # For a flow depending only on x with zero transverse velocities, the viscous fluxes
+    # in x-direction of the 2D and 3D equations reduce to the 1D viscous flux.
+    # Prandtl = 3 ensures that the viscous stress (4/3 > gamma / Prandtl) determines
+    # `max_visc_cond`.
+    gamma, mu, R = 1.4, 0.01, 2.5
+    euler_1d = CompressibleEulerEquations1D(gamma)
+    euler_2d = CompressibleEulerEquations2D(gamma)
+    euler_3d = CompressibleEulerEquations3D(gamma)
+
+    # Viscous flux in x-direction for the state `prim_vars + x * prim_direction`
+    function viscous_flux_x(prim_vars, prim_direction, equations)
+        transformation = Trixi.gradient_variable_transformation(equations)
+        w(x) = transformation(prim2cons(prim_vars + x * prim_direction, equations),
+                              equations)
+        u = w(0.0)
+        gradient_x = ForwardDiff.derivative(w, 0.0)
+        gradients = ntuple(i -> i == 1 ? gradient_x : zero(u), ndims(equations))
+        return flux(u, gradients, 1, equations)
+    end
+
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy()),
+        Prandtl in (0.72, 3.0)
+
+        equations_1d = CompressibleNavierStokesDiffusion1D(euler_1d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_2d = CompressibleNavierStokesDiffusion2D(euler_2d; mu, Prandtl, R,
+                                                           gradient_variables)
+        equations_3d = CompressibleNavierStokesDiffusion3D(euler_3d; mu, Prandtl, R,
+                                                           gradient_variables)
+
+        @test equations_1d.max_visc_cond == max(4 / 3, gamma / Prandtl)
+        @test equations_1d.max_visc_cond == equations_2d.max_visc_cond
+        @test equations_1d.max_visc_cond == equations_3d.max_visc_cond
+
+        flux_1d = viscous_flux_x(SVector(2.0, 0.1, 4.0), SVector(0.3, -0.2, 0.5),
+                                 equations_1d)
+        flux_2d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.5), equations_2d)
+        flux_3d = viscous_flux_x(SVector(2.0, 0.1, 0.0, 0.0, 4.0),
+                                 SVector(0.3, -0.2, 0.0, 0.0, 0.5), equations_3d)
+        @test flux_2d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, flux_1d[3])
+        @test flux_3d ≈ SVector(flux_1d[1], flux_1d[2], 0.0, 0.0, flux_1d[3])
+    end
+
+    # The constant 4/3 in `max_visc_cond` must be computed in the real type
+    # of the equations.
+    for RealT in (Float32, BigFloat)
+        euler = CompressibleEulerEquations1D(RealT(gamma))
+        equations = CompressibleNavierStokesDiffusion1D(euler; mu = RealT(mu),
+                                                        Prandtl = RealT(3))
+        @test equations.max_visc_cond isa RealT
+        @test equations.max_visc_cond == RealT(4) / 3
     end
 end
 
@@ -1182,6 +1491,21 @@ end
         @test flux(u, orientation, equations) ≈
               boundary_condition_do_nothing(u, orientation, direction, x, t,
                                             surface_flux, equations)
+
+        # Parabolic solvers get the inner gradients or fluxes back
+        equations_parabolic = LaplaceDiffusion2D(0.1, equations)
+        flux_inner = SVector(1.0, 2.0, 3.0, 4.0)
+        for operator_type in (Trixi.Gradient(), Trixi.Divergence())
+            @test boundary_condition_do_nothing(flux_inner, u, outward_direction, x, t,
+                                                operator_type, equations_parabolic) ==
+                  flux_inner
+            @test boundary_condition_do_nothing(flux_inner, nothing, orientation,
+                                                direction, x, t, operator_type,
+                                                equations_parabolic) == flux_inner
+        end
+
+        # Unsupported arguments are not silently accepted
+        @test_throws MethodError boundary_condition_do_nothing(u, x, t, equations)
     end
 end
 
@@ -2161,6 +2485,43 @@ end
     end
 end
 
+@testitem "Unit: Godunov flux for hyperbolic diffusion 2D with normal_direction" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    using LinearAlgebra: eigen, Diagonal
+    # Compare with the exact upwind flux 0.5 * A_n * (u_ll + u_rr) - 0.5 * |A_n| * [[u]]
+    # of the linear system, where |A_n| = V |Λ| V⁻¹ is computed via an eigendecomposition
+    # of the flux Jacobian A_n.
+    equations = HyperbolicDiffusionEquations2D(nu = 1.3, Lr = 0.7)
+    u_ll = SVector(1.0, 0.3, -0.2)
+    u_rr = SVector(0.5, -0.7, 0.4)
+    normal_directions = [SVector(1.0, 0.0),
+        SVector(0.0, 1.0),
+        SVector(-1.0, 0.0),
+        SVector(0.0, -1.0),
+        SVector(0.6, 0.8),
+        SVector(-1.2, 0.3)]
+
+    for normal_direction in normal_directions
+        # The flux is linear, so its Jacobian is given by the fluxes of unit vectors
+        A_n = hcat((flux(SVector(ntuple(i -> i == j ? 1.0 : 0.0, 3)), normal_direction,
+                         equations) for j in 1:3)...)
+        Λ, V = eigen(A_n)
+        abs_A_n = real.(V * Diagonal(abs.(Λ)) / V)
+        f_exact = 0.5 * A_n * (u_ll + u_rr) - 0.5 * abs_A_n * (u_rr - u_ll)
+        @test flux_godunov(u_ll, u_rr, normal_direction, equations) ≈ f_exact
+    end
+
+    for orientation in 1:2
+        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0, 2))
+        @test flux_godunov(u_ll, u_rr, unit_normal, equations) ≈
+              flux_godunov(u_ll, u_rr, orientation, equations)
+        @test flux_godunov(u_ll, u_rr, -unit_normal, equations) ≈
+              -flux_godunov(u_rr, u_ll, orientation, equations)
+    end
+end
+
 @testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
     Setup,
     UnitTests
@@ -2201,6 +2562,98 @@ end
     end
 end
 
+@testitem "Unit: Consistency check for flux splittings: CEE 1D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations1D(1.4)
+    # subsonic and supersonic states with positive and negative velocities
+    u_values = [prim2cons(SVector(1.1, 0.3, 2.1), equations),
+        prim2cons(SVector(0.7, -0.4, 1.3), equations),
+        prim2cons(SVector(1.0, 3.5, 0.5), equations),
+        prim2cons(SVector(0.5, -2.8, 0.4), equations)]
+    splittings = [splitting_steger_warming, splitting_vanleer_haenel,
+        splitting_coirier_vanleer, splitting_lax_friedrichs,
+        SplittingGlobalLaxFriedrichs(5.0)]
+
+    orientation = 1
+    for splitting in splittings, u in u_values
+        fm, fp = splitting(u, orientation, equations)
+        @test fm ≈ splitting(u, Val{:minus}(), orientation, equations)
+        @test fp ≈ splitting(u, Val{:plus}(), orientation, equations)
+        @test fm + fp ≈ flux(u, orientation, equations)
+    end
+end
+
+@testitem "Unit: SplittingGlobalLaxFriedrichs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    λ = 2.5
+    splitting = SplittingGlobalLaxFriedrichs(λ)
+    @test repr(splitting) == "SplittingGlobalLaxFriedrichs(2.5)"
+
+    # The upwind flux of the splitting is the central flux plus global Lax-Friedrichs
+    # dissipation
+    flux_upwind = FluxUpwind(splitting)
+    flux_dissipation = FluxPlusDissipation(flux_central, DissipationGlobalLaxFriedrichs(λ))
+
+    equations = CompressibleEulerEquations2D(1.4)
+    u_ll = prim2cons(SVector(1.1, 0.3, -0.2, 2.1), equations)
+    u_rr = prim2cons(SVector(0.7, -0.4, 0.5, 1.3), equations)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test fm ≈ splitting(u_ll, Val{:minus}(), orientation_or_normal_direction,
+                        equations)
+        @test fp ≈ splitting(u_ll, Val{:plus}(), orientation_or_normal_direction,
+                             equations)
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The `orientation` and `normal_direction` versions are consistent for axis-aligned
+    # normals
+    for (orientation, normal_direction) in ((1, SVector(1.0, 0.0)), (2, SVector(0.0, 1.0)))
+        fm, fp = splitting(u_ll, orientation, equations)
+        fm_normal, fp_normal = splitting(u_ll, normal_direction, equations)
+        @test fm ≈ fm_normal
+        @test fp ≈ fp_normal
+        fm_normal, fp_normal = splitting(u_ll, 2 * normal_direction, equations)
+        @test 2 * fm ≈ fm_normal
+        @test 2 * fp ≈ fp_normal
+    end
+
+    # No dissipation is added to the mean values of the acoustic perturbation equations
+    equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                c_mean_global = 2.0,
+                                                rho_mean_global = 0.9)
+    u_ll = SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3)
+    u_rr = SVector(0.2, 0.4, 0.6, -0.1, -1.2, 1.8, 1.4)
+    for orientation_or_normal_direction in (1, 2, SVector(0.6, -0.8), SVector(1.5, 2.0))
+        fm, fp = splitting(u_ll, orientation_or_normal_direction, equations)
+        @test iszero(fm[4:7])
+        @test iszero(fp[4:7])
+        @test fm + fp ≈ flux(u_ll, orientation_or_normal_direction, equations)
+        diss = DissipationGlobalLaxFriedrichs(λ)(u_ll, u_rr,
+                                                 orientation_or_normal_direction,
+                                                 equations)
+        @test iszero(diss[4:7])
+        @test flux_upwind(u_ll, u_rr, orientation_or_normal_direction, equations) ≈
+              flux_dissipation(u_ll, u_rr, orientation_or_normal_direction, equations)
+    end
+
+    # The splitting is available for all equations implementing `flux`
+    equations = LinearScalarAdvectionEquation1D(-1.5)
+    u = SVector(0.7)
+    fm, fp = splitting(u, 1, equations)
+    @test fm ≈ 0.5 * (flux(u, 1, equations) - λ * u)
+    @test fp ≈ 0.5 * (flux(u, 1, equations) + λ * u)
+end
+
+@testitem "Unit: SurfaceIntegralUpwind" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    surface_integral = SurfaceIntegralUpwind(splitting_steger_warming)
+    @test surface_integral isa SurfaceIntegralStrongForm
+    @test surface_integral isa SurfaceIntegralUpwind
+    @test surface_integral.surface_flux isa FluxUpwind
+    @test surface_integral.surface_flux.splitting === splitting_steger_warming
+    @test !(SurfaceIntegralStrongForm(flux_lax_friedrichs) isa SurfaceIntegralUpwind)
+end
+
 @testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
     Setup,
     UnitTests
@@ -2221,6 +2674,39 @@ end
 
     @test flux_hll(u, u, orientation, equations) ≈
           flux(u, orientation, equations)
+end
+
+@testitem "Unit: Entropy and exact solution of LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = LinearElasticityEquations1D(rho = 2.0, mu = 1.0, lambda = 3.0)
+    orientation = 1
+
+    u = SVector(1.42, 2.666)
+    @test ForwardDiff.gradient(u -> entropy(u, equations), u) ≈
+          cons2entropy(u, equations)
+    @test entropy(u, equations) ≈ energy_total(u, equations)
+
+    # The entropy flux of a linear system is `w' * f(u) / 2` with the entropy
+    # variables `w`. Conservation of the entropy requires that its derivative
+    # with respect to `u` equals `w' * f'(u)`.
+    entropy_flux(u) = 0.5 * dot(cons2entropy(u, equations), flux(u, orientation, equations))
+    flux_jacobian = ForwardDiff.jacobian(u -> flux(u, orientation, equations), u)
+    @test ForwardDiff.gradient(entropy_flux, u) ≈
+          flux_jacobian' * cons2entropy(u, equations)
+
+    # `initial_condition_convergence_test` is an exact solution: u_t + f(u)_x = 0
+    for (x, t) in ((0.1, 0.0), (0.37, 0.3), (0.8, 1.7))
+        u_t = ForwardDiff.derivative(t -> initial_condition_convergence_test(SVector(x), t,
+                                                                             equations),
+                                     t)
+        f_x = ForwardDiff.derivative(x -> flux(initial_condition_convergence_test(SVector(x),
+                                                                                  t,
+                                                                                  equations),
+                                               orientation, equations), x)
+        @test isapprox(u_t + f_x, zero(u_t); atol = 100 * eps())
+    end
 end
 
 @testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
@@ -3227,6 +3713,477 @@ end
     end
 end
 
+@testsnippet NormalDirectionTests begin
+    # Test cases for methods with a `normal_direction`, e.g., wave speed estimates and
+    # numerical fluxes. These are used on curvilinear meshes, where the
+    # `normal_direction` is not normalized but contains the surface scaling.
+    # Each test case contains `equations`, three different states `u_values`, and the
+    # numerical fluxes to test for these `equations`. We use different states since
+    # many bugs are invisible for `u_ll == u_rr`.
+    function normal_direction_test_cases()
+        test_cases = Any[]
+
+        equations = CompressibleEulerEquations1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hllc, flux_ranocha,
+                   flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+                   FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal())]))
+
+        equations = InviscidBurgersEquation1D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_ec]))
+
+        # Primitive variables: rho, v1, p, a
+        equations = CompressibleEulerEquationsQuasi1D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, 2.0, 0.8), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 1.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 1.1, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_chan_etal,
+                   flux_nonconservative_chan_etal]))
+
+        euler_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hllc, FluxLMARS(340.0),
+            flux_ranocha, flux_ranocha_turbo, DissipationMatrixWintersEtal(),
+            FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal()),
+            flux_shima_etal, flux_shima_etal_turbo,
+            flux_chandrashekar, flux_kennedy_gruber]
+
+        equations = CompressibleEulerEquations2D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        equations = CompressibleEulerEquations3D(1.4)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1), equations)],
+               fluxes = euler_fluxes))
+
+        # Primitive variables: v1, v2, p, rho1, rho2
+        equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                               gas_constants = (0.287,
+                                                                                1.578))
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(0.3, -0.2, 2.0, 0.6, 0.4), equations),
+                   prim2cons(SVector(-0.7, 0.4, 0.4, 0.1, 0.4), equations),
+                   prim2cons(SVector(1.2, 0.9, 1.1, 1.2, 0.5), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   FluxLaxFriedrichs(max_abs_speed_naive), flux_ranocha,
+                   FluxRotated(flux_ranocha)]))
+
+        equations = PolytropicEulerEquations2D(1.4, 0.72)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_winters_etal]))
+
+        # Thermodynamic variables: V, v1, v2, T
+        eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+        equations = NonIdealCompressibleEulerEquations2D(eos)
+        push!(test_cases,
+              (; equations,
+               u_values = [thermo2cons(SVector(2.0, 0.1, 0.2, 10.0), equations),
+                   thermo2cons(SVector(2.5, -0.3, 0.1, 8.0), equations),
+                   thermo2cons(SVector(1.5, 0.4, -0.6, 12.0), equations)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   flux_terashima_etal, flux_central_terashima_etal]))
+
+        tracer_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxTracerEquationsCentral(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_ranocha),
+            FluxTracerEquationsUpwind(flux_lax_friedrichs)]
+
+        # Primitive variables: rho, v1, v2, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations2D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 2.0, 0.1, 0.7), equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        # Primitive variables: rho, v1, v2, v3, p, chi_1, chi_2
+        equations = PassiveTracerEquations(CompressibleEulerEquations3D(1.4),
+                                           n_tracers = 2)
+        push!(test_cases,
+              (; equations,
+               u_values = [prim2cons(SVector(1.0, 0.3, -0.2, 0.1, 2.0, 0.1, 0.7),
+                                     equations),
+                   prim2cons(SVector(0.5, -0.7, 0.4, -0.6, 0.4, 0.5, 0.2), equations),
+                   prim2cons(SVector(1.7, 1.2, 0.9, 0.3, 1.1, 0.9, 0.4), equations)],
+               fluxes = tracer_fluxes))
+
+        mhd_fluxes = [flux_central, flux_lax_friedrichs,
+            flux_hll, FluxRotated(flux_hll), FluxHLL(min_max_speed_naive), flux_hlle,
+            flux_hindenlang_gassner,
+            flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric]
+        for equations in (IdealGlmMhdEquations2D(1.4, 5.0),
+                          IdealGlmMhdEquations3D(1.4, 5.0))
+            fluxes = copy(mhd_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_powell_local_jump)
+            end
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1,
+                                                 0.0),
+                                         equations),
+                       prim2cons(SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2),
+                                 equations),
+                       prim2cons(SVector(0.8, 1.3, 0.9, -0.3, 4.0, 0.5, 0.3, -0.4, 0.1),
+                                 equations)],
+                   fluxes))
+        end
+
+        multiion_fluxes = [flux_central, flux_lax_friedrichs,
+            FluxLaxFriedrichs(max_abs_speed_naive), flux_ruedaramirez_etal,
+            flux_nonconservative_ruedaramirez_etal,
+            DissipationLaxFriedrichsEntropyVariables(),
+            FluxPlusDissipation(flux_ruedaramirez_etal,
+                                DissipationLaxFriedrichsEntropyVariables())]
+        # The default `initial_c_h = NaN` would result in `NaN`s in the fluxes
+        for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5),
+                          IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                         charge_to_mass = (1.0, 2.0),
+                                                         initial_c_h = 0.5))
+            fluxes = copy(multiion_fluxes)
+            if ndims(equations) == 2
+                push!(fluxes, flux_nonconservative_central)
+            end
+            # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each ion, psi
+            push!(test_cases,
+                  (; equations,
+                   u_values = [prim2cons(SVector(1.1, -0.3, 0.4, 0.5, 0.1, 0.3, 0.0, 0.4,
+                                                 0.7, -0.2, 0.4, 0.1, 0.6, 0.1), equations),
+                       prim2cons(SVector(0.2, 0.5, -0.1, 1.2, -0.4, 0.2, 0.3, 1.1,
+                                         0.3, 0.6, -0.5, 0.2, 0.9, -0.2), equations),
+                       prim2cons(SVector(-0.6, 0.1, 0.3, 0.8, 0.7, -0.6, 0.1, 0.5,
+                                         1.4, 0.2, 0.1, -0.3, 0.3, 0.05), equations)],
+                   fluxes))
+        end
+
+        equations = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.3),
+                                               c_mean_global = 1.2,
+                                               rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 1.0),
+                   SVector(0.5, -0.2, 0.1, 5.0),
+                   SVector(-0.4, 0.8, 0.3, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive), flux_godunov]))
+
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, -0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.3, 0.5, -0.7, 0.1, 1.0),
+                   SVector(0.5, -0.2, 0.1, 0.2, 5.0),
+                   SVector(-0.4, 0.8, 0.3, -0.6, 0.2)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_hll,
+                   FluxHLL(min_max_speed_naive)]))
+
+        # Variables: v1_prime, v2_prime, p_prime_scaled, v1_mean, v2_mean, c_mean,
+        # rho_mean
+        equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                    c_mean_global = 2.0,
+                                                    rho_mean_global = 0.9)
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(0.1, 0.3, 0.5, -0.2, -0.9, 2.0, 1.3),
+                   SVector(0.2, 0.4, 0.6, 0.6, -1.2, 1.5, 1.4),
+                   SVector(-0.3, 0.1, 0.2, 0.1, 0.4, 0.8, 0.7)],
+               fluxes = [flux_central, flux_lax_friedrichs,
+                   DissipationLocalLaxFriedrichs()]))
+
+        for equations in (LinearScalarAdvectionEquation2D(0.3, -0.7),
+                          LinearScalarAdvectionEquation3D(0.3, -0.7, 0.4))
+            push!(test_cases,
+                  (; equations,
+                   u_values = [SVector(1.0), SVector(-0.4), SVector(2.2)],
+                   fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+        end
+
+        equations = HyperbolicDiffusionEquations2D()
+        push!(test_cases,
+              (; equations,
+               u_values = [SVector(1.0, 0.3, -0.2),
+                   SVector(0.5, -0.7, 0.4),
+                   SVector(1.7, 1.2, 0.9)],
+               fluxes = [flux_central, flux_lax_friedrichs, flux_godunov]))
+
+        return test_cases
+    end
+
+    # A non-axis-aligned `normal_direction` with non-unit length
+    function oblique_normal_direction(equations)
+        if ndims(equations) == 1
+            return SVector(-1.2)
+        elseif ndims(equations) == 2
+            return SVector(-1.2, 0.3)
+        else
+            return SVector(-1.2, 0.3, 0.7)
+        end
+    end
+
+    # Return all specialized methods of the callable objects in `functions` defined in
+    # Trixi.jl that take the arguments `(u_ll, u_rr, normal_direction, equations)`
+    # (or `(u, normal_direction, equations)` for `n_args = 3`).
+    # This skips only generic fallbacks for all `equations` or all equations in a given
+    # number of dimensions, but not methods for families of equations such as
+    # `AbstractIdealGlmMhdMultiIonEquations`.
+    # Note that this uses some Julia internals (`method.sig` etc.) since there is no
+    # public API to inspect method signatures.
+    generic_equations_types = (Any, Trixi.AbstractEquations, Trixi.AbstractEquations{1},
+                               Trixi.AbstractEquations{2}, Trixi.AbstractEquations{3})
+    function specialized_normal_direction_methods(functions; n_args = 4)
+        found_methods = Set{Method}()
+        for f in functions, method in methods(f)
+            parentmodule(method) === Trixi || continue
+            # The first parameter is the type of the callable object itself
+            parameters = Base.unwrap_unionall(method.sig).parameters
+            length(parameters) == n_args + 1 || continue
+            direction_type, equations_type = parameters[end - 1], parameters[end]
+            direction_type isa Type && direction_type <: Integer && continue
+            equations_type isa TypeVar && (equations_type = equations_type.ub)
+            any(==(equations_type), generic_equations_types) && continue
+            push!(found_methods, method)
+        end
+        return found_methods
+    end
+
+    # Check that all methods found by `specialized_normal_direction_methods` are
+    # covered by the tests. Otherwise, print an informative error message since new
+    # methods must be added manually to `normal_direction_test_cases`.
+    function test_all_methods_tested(found_methods, tested_methods)
+        untested_methods = setdiff(found_methods, tested_methods)
+        if !isempty(untested_methods)
+            message = """The following methods with a `normal_direction` are not tested.
+                      Add the corresponding equations (and numerical fluxes) to
+                      `normal_direction_test_cases` in `test/test_unit.jl`. New callable
+                      flux or dissipation types must also be added to `numerical_fluxes`
+                      in the test item "Unit: Numerical fluxes with normal_direction"."""
+            @error message untested_methods=collect(untested_methods)
+        end
+        @test isempty(untested_methods)
+    end
+end
+
+@testitem "Unit: Wave speed estimates with normal_direction" setup=[
+    Setup,
+    UnitTests,
+    NormalDirectionTests
+] tags=[:misc_part1] begin
+    # Wave speed estimates with a `normal_direction` must
+    # - agree with the `orientation` methods for axis-aligned unit normals,
+    # - be homogeneous of degree one in the `normal_direction`, i.e., scale linearly
+    #   with its (positive) length, and
+    # - be consistent under reflection, i.e., flipping the `normal_direction` and
+    #   swapping the left and right states.
+    estimates = (max_abs_speed_naive, max_abs_speed,
+                 min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt)
+
+    # The estimates are either scalars (`max_abs_speed`) or tuples (`min_max_speed`).
+    # Thus, we compare them via `all(isapprox.(x, y))`, which handles both cases.
+    tested_methods = Set{Method}()
+    for test_case in normal_direction_test_cases(), estimate in estimates
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        u = first(u_values)
+        signature = Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}
+        hasmethod(estimate, signature) || continue
+        push!(tested_methods, which(estimate, signature))
+        # In 1D, `max_abs_speed` with a `normal_direction` falls back to
+        # `max_abs_speed_naive` and does not agree with specialized `orientation`
+        # methods of `max_abs_speed`.
+        check_orientation = hasmethod(estimate,
+                                      Tuple{typeof(u), typeof(u), Int,
+                                            typeof(equations)}) &&
+                            !(ndims(equations) == 1 && estimate === max_abs_speed)
+
+        @testset "$(nameof(typeof(equations))), $(nameof(estimate))" begin
+            for u_ll in u_values, u_rr in u_values
+                if check_orientation
+                    for orientation in 1:ndims(equations)
+                        unit_normal = SVector(ntuple(i -> i == orientation ? 1.0 : 0.0,
+                                                     ndims(equations)))
+                        @test all(isapprox.(estimate(u_ll, u_rr, unit_normal, equations),
+                                            estimate(u_ll, u_rr, orientation, equations)))
+                    end
+                end
+
+                for factor in (2.5, 0.1)
+                    @test all(isapprox.(estimate(u_ll, u_rr, factor * normal_direction,
+                                                 equations),
+                                        factor .*
+                                        estimate(u_ll, u_rr, normal_direction, equations)))
+                end
+
+                speeds = estimate(u_ll, u_rr, normal_direction, equations)
+                speeds_reflected = estimate(u_rr, u_ll, -normal_direction, equations)
+                if speeds isa Tuple # (λ_min, λ_max)
+                    @test all(isapprox.(speeds,
+                                        (-speeds_reflected[2], -speeds_reflected[1])))
+                else # λ_max
+                    @test speeds ≈ speeds_reflected
+                end
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the wave speed estimates with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding equations to
+    # `normal_direction_test_cases`.
+    found_methods = specialized_normal_direction_methods(estimates)
+    test_all_methods_tested(found_methods, tested_methods)
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(max_abs_speed_naive,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+end
+
+@testitem "Unit: Numerical fluxes with normal_direction" setup=[
+    Setup,
+    UnitTests,
+    NormalDirectionTests
+] tags=[:misc_part1] begin
+    # Numerical fluxes with a `normal_direction` must be homogeneous of degree one in
+    # the `normal_direction`, i.e., scale linearly with its (positive) length.
+    # This also applies to nonconservative fluxes and dissipation operators.
+    # We use an absolute tolerance since some of them vanish, e.g., dissipation
+    # operators for `u_ll == u_rr`. Since `isapprox` sets the default `rtol` to zero
+    # if `atol` is given, we specify `rtol` as well.
+    tested_methods = Set{Method}()
+    for test_case in normal_direction_test_cases(), numerical_flux in test_case.fluxes
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        u = first(u_values)
+        push!(tested_methods,
+              which(numerical_flux,
+                    Tuple{typeof(u), typeof(u), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), $(numerical_flux)" begin
+            for u_ll in u_values, u_rr in u_values, factor in (2.5, 0.1)
+                @test isapprox(numerical_flux(u_ll, u_rr, factor * normal_direction,
+                                              equations),
+                               factor * numerical_flux(u_ll, u_rr, normal_direction,
+                                              equations),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of the numerical fluxes with a
+    # `normal_direction` defined in Trixi.jl is tested above. If this test fails
+    # after adding a new method, add the corresponding numerical flux or equations to
+    # `normal_direction_test_cases`. We check all exported numerical fluxes
+    # `flux_*` and instances of callable types with specialized methods.
+    # Note that methods of callable types can only be found via instances of these
+    # types. Thus, new callable flux or dissipation types with specialized methods
+    # (as well as non-exported numerical fluxes) must be added to the list below.
+    numerical_fluxes = Any[getfield(Trixi, name)
+                           for name in names(Trixi)
+                           if startswith(string(name), "flux_")]
+    append!(numerical_fluxes,
+            [FluxLMARS(340.0), FluxTracerEquationsCentral(flux_central),
+                FluxTracerEquationsUpwind(flux_central), DissipationMatrixWintersEtal(),
+                DissipationLocalLaxFriedrichs(),
+                DissipationLaxFriedrichsEntropyVariables()])
+    found_methods = specialized_normal_direction_methods(numerical_fluxes)
+    test_all_methods_tested(found_methods, tested_methods)
+
+    # Positive control: make sure that the method introspection above still works
+    # and does not skip all methods silently
+    known_method = which(flux_ranocha,
+                         Tuple{SVector{4, Float64}, SVector{4, Float64},
+                               SVector{2, Float64}, CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods
+
+    # The physical flux with a `normal_direction` must be the corresponding linear
+    # combination of the fluxes in the coordinate directions. This implies that it
+    # scales correctly with the `normal_direction` and agrees with the `orientation`
+    # methods for axis-aligned unit normals.
+    tested_methods_flux = Set{Method}()
+    for test_case in normal_direction_test_cases()
+        (; equations, u_values) = test_case
+        normal_direction = oblique_normal_direction(equations)
+        push!(tested_methods_flux,
+              which(flux,
+                    Tuple{eltype(u_values), typeof(normal_direction),
+                          typeof(equations)}))
+
+        @testset "$(nameof(typeof(equations))), flux" begin
+            for u in u_values
+                @test isapprox(flux(u, normal_direction, equations),
+                               sum(normal_direction[orientation] *
+                                   flux(u, orientation, equations)
+                                   for orientation in 1:ndims(equations)),
+                               atol = 1.0e-14, rtol = 1.0e-12)
+            end
+        end
+    end
+
+    # Make sure that every specialized method of `flux` with a `normal_direction`
+    # defined in Trixi.jl is tested above, and check the method introspection
+    found_methods_flux = specialized_normal_direction_methods((flux,), n_args = 3)
+    test_all_methods_tested(found_methods_flux, tested_methods_flux)
+    known_method = which(flux,
+                         Tuple{SVector{4, Float64}, SVector{2, Float64},
+                               CompressibleEulerEquations2D{Float64}})
+    @test known_method in found_methods_flux
+end
+
+@testitem "Unit: IdealGlmMhdMultiIon pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The pressure must be consistent with `cons2prim` and `prim2cons`, in particular
+    # for a non-zero divergence cleaning field `psi`.
+    # Primitive variables: B1, B2, B3, (rho, v1, v2, v3, p) for each species, psi
+    prim = SVector(1.1, -0.3, 0.4,
+                   0.5, 0.1, 0.3, -0.2, 0.4,
+                   1.2, -0.2, 0.4, 0.6, 0.7,
+                   0.8, 0.3, -0.5, 0.1, 1.3,
+                   0.6)
+    p_expected = SVector(0.4, 0.7, 1.3)
+    for equations in (IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)),
+                      IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667, 1.6),
+                                                     charge_to_mass = (1.0, 2.0, 3.0)))
+        u = prim2cons(prim, equations)
+        p = pressure(u, equations)
+        @test p ≈ p_expected
+        @test p ≈ SVector(ntuple(k -> Trixi.get_component(k, cons2prim(u, equations),
+                                                      equations)[5],
+                             Val(ncomponents(equations))))
+    end
+end
+
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     N = 3
 
@@ -3255,6 +4212,48 @@ end
     dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D)
 
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
+end
+
+@testitem "Unit: FDSBP on TreeMesh with quadrature not exact for constants" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # A function space SBP operator on the nodes -1, 0, 1 that is exact for span{1, exp}.
+    # Since this space does not contain the identity, the quadrature is not exact for
+    # constants: the weights sum up to 2 sinh(1) instead of the length 2 of the interval.
+    nodes = [-1.0, 0.0, 1.0]
+    weights = [(exp(1) - 1) / 2, sinh(1), (1 - exp(-1)) / 2]
+    Q = [-0.5 0.5 0.0; -0.5 0.0 0.5; 0.0 -0.5 0.5]
+    D = SummationByPartsOperators.MatrixDerivativeOperator(-1.0, 1.0, nodes, weights,
+                                                           Q ./ weights, 1, nothing)
+    @test sum(weights) ≈ 2 * sinh(1)
+    @test D * exp.(nodes) ≈ exp.(nodes)
+    @test Trixi.reference_length(D) == 2
+
+    solver = FDSBP(D, surface_integral = SurfaceIntegralStrongForm(flux_lax_friedrichs),
+                   volume_integral = VolumeIntegralStrongForm())
+
+    # Linear advection with a solution in the function space in each coordinate direction,
+    # so the spatial semidiscretization is exact on a single cell of length 2.
+    for ndims in 1:3
+        advection_velocity = ntuple(_ -> 1.0, ndims)
+        equations = ndims == 1 ? LinearScalarAdvectionEquation1D(advection_velocity...) :
+                    ndims == 2 ? LinearScalarAdvectionEquation2D(advection_velocity...) :
+                    LinearScalarAdvectionEquation3D(advection_velocity...)
+        initial_condition = (x, t, equations) -> SVector(exp(sum(x) - ndims * t))
+        mesh = TreeMesh(ntuple(_ -> -1.0, ndims), ntuple(_ -> 1.0, ndims),
+                        initial_refinement_level = 0, periodicity = false)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = BoundaryConditionDirichlet(initial_condition))
+
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test sort(unique(node_coordinates)) ≈ nodes
+
+        u = compute_coefficients(0.0, semi)
+        du = similar(u)
+        Trixi.rhs_hyperbolic!(du, u, semi, 0.0)
+        @test du ≈ -ndims * u
+    end
 end
 
 @testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3407,44 +4406,90 @@ end
 end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    function mu(u, equations)
-        T_ref = 291.15
-
-        R_specific_air = 287.052874
-        T = R_specific_air * Trixi.temperature(u, equations)
-
-        C_air = 120.0
-        mu_ref_air = 1.827e-5
-
-        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
-    end
-
-    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
-        T = R_specific * Trixi.temperature(u, equations)
-
-        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
-    end
-
     # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
-    T_ref = 291.15
-    C = 120.0 # Sutherland's constant
-    R_specific = 287.052874
-    mu_ref = 1.827e-5
+    T_ref = 291.15 # [K]
+    C = 120.0 # Sutherland's constant [K]
+    R_specific = 287.052874 # [J/(kg K)]
+    mu_ref = 1.827e-5 # [kg/(m s)]
     prandtl_number() = 0.72
     gamma = 1.4
 
+    sutherland(T) = mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+
+    # The viscosity is called with the transformed variables, see
+    # `gradient_variable_transformation`.
+    function mu(u_transformed, equations)
+        T = last(Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                   equations))
+        return sutherland(T)
+    end
+
     equations = CompressibleEulerEquations2D(gamma)
-    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                              Prandtl = prandtl_number())
-    @test equations_parabolic.gamma == gamma
-    @test :gamma in @inferred(propertynames(equations_parabolic))
+    for gradient_variables in (GradientVariablesPrimitive(), GradientVariablesEntropy())
+        equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific,
+                                                                  gradient_variables = gradient_variables)
+        @test equations_parabolic.gamma == gamma
+        @test :gamma in @inferred(propertynames(equations_parabolic))
 
-    # Flow at rest
-    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        # Air at atmospheric pressure and 18°C, slightly moving
+        p = 101325.0 # [Pa]
+        T = T_ref
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        @test Trixi.temperature(u, equations_parabolic) ≈ T
 
-    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
-    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
-                   1.803e-5, atol = 5e-8)
+        transformation = Trixi.gradient_variable_transformation(equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ mu_ref
+        # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html
+        # at 18°C, which agrees with the reference value of Sutherland's law up to 1.5%
+        @test isapprox(mu_T, 1.803e-5, rtol = 0.015)
+
+        # Air at 100°C
+        T = 373.15 # [K]
+        rho = p / (R_specific * T)
+        u = prim2cons(SVector(rho, 0.1, -0.2, p), equations_parabolic)
+        mu_T = Trixi.dynamic_viscosity(transformation(u, equations_parabolic),
+                                       equations_parabolic)
+        @test mu_T ≈ sutherland(T)
+
+        # Some parts of Trixi.jl only have access to the conservative variables
+        @test Trixi.dynamic_viscosity_conservative(u, equations_parabolic) ≈ mu_T
+        @test max_diffusivity(u, equations_parabolic) ≈
+              mu_T / rho * equations_parabolic.max_visc_cond
+
+        # Gradients of (rho, v1, v2, T) in x- and y-direction
+        gradients_prim_1 = SVector(0.1, 0.2, 0.3, 0.4)
+        gradients_prim_2 = SVector(-0.5, 0.6, -0.7, 0.8)
+        # `viscous_stress_tensor` expects the gradients of the transformed variables,
+        # which we compute from the gradients of (rho, v1, v2, T) by the chain rule
+        prim_temperature = cons2prim_temperature(u, equations_parabolic)
+        function prim_temperature2transformed(q)
+            rho, v1, v2, T = q
+            u_ = prim2cons(SVector(rho, v1, v2, R_specific * rho * T),
+                           equations_parabolic)
+            return transformation(u_, equations_parabolic)
+        end
+        gradients_1 = ForwardDiff.derivative(s -> prim_temperature2transformed(prim_temperature +
+                                                                               s *
+                                                                               gradients_prim_1),
+                                             0.0)
+        gradients_2 = ForwardDiff.derivative(s -> prim_temperature2transformed(prim_temperature +
+                                                                               s *
+                                                                               gradients_prim_2),
+                                             0.0)
+        tau = Trixi.viscous_stress_tensor(u, equations_parabolic,
+                                          gradients_1, gradients_2)
+        @test collect(tau) ≈
+              mu_T .* [
+            4 / 3 * 0.2 - 2 / 3 * (-0.7),
+            0.6 + 0.3,
+            4 / 3 * (-0.7) - 2 / 3 * 0.2
+        ]
+    end
 end
 
 @testitem "Unit: Slope Limiters" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3768,7 +4813,7 @@ end
     ### Compute the Jacobian sparsity pattern ###
 
     # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_jac_type! = function (du_ode, u0_ode)
         Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
     end
@@ -3885,7 +4930,7 @@ end
     # This test validates this.
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
-    # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
+    # https://juliadiff.org/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
                                                                       u0_ode,
                                                                       semi_jac_type,
@@ -4248,7 +5293,7 @@ end
     end
 end
 
-@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+@testitem "Unit: ndims function for SemidiscretizationHyperbolicSplit" setup=[
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
@@ -4343,6 +5388,132 @@ end
                                            refinement_level = 2)
 end
 
+@testitem "Unit: P4estMesh structured connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all corners (and edges in 3D) connecting trees, `p4est_balance` does not
+    # always produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112,
+    # https://github.com/trixi-framework/Trixi.jl/issues/1358, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2289.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_2d(p4est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.level < 5)
+    end
+    refine_corner_2d_c = @cfunction(refine_corner_2d, Cint,
+                                    (Ptr{Trixi.p4est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p4est_quadrant_t}))
+
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    # Check that the trees are ordered lexicographically and connected via their faces
+    # as expected, with zero-based tree and face indices
+    function has_lexicographic_faces(connectivity, trees_per_dimension, periodicity)
+        n_dims = length(trees_per_dimension)
+        n_trees = prod(trees_per_dimension)
+        tree_to_tree = unsafe_wrap(Array, connectivity.tree_to_tree, (2 * n_dims, n_trees))
+        tree_to_face = unsafe_wrap(Array, connectivity.tree_to_face, (2 * n_dims, n_trees))
+        linear_indices = LinearIndices(trees_per_dimension)
+        result = true
+        for cell in CartesianIndices(trees_per_dimension), dim in 1:n_dims, side in 0:1
+            tree = linear_indices[cell]
+            face = 2 * (dim - 1) + side
+            neighbor_index = cell[dim] + 2 * side - 1
+            if 1 <= neighbor_index <= trees_per_dimension[dim] || periodicity[dim]
+                neighbor = Base.setindex(Tuple(cell),
+                                         mod1(neighbor_index, trees_per_dimension[dim]),
+                                         dim)
+                expected = (linear_indices[neighbor...] - 1, xor(face, 1))
+            else
+                expected = (tree - 1, face)
+            end
+            result &= (tree_to_tree[face + 1, tree], tree_to_face[face + 1, tree]) ==
+                      expected
+        end
+        return result
+    end
+
+    for trees_per_dimension in ((1, 1), (2, 1), (3, 2)),
+        periodicity in ((false, false), (true, false), (true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # A single call to `p4est_balance` is sufficient. Call it directly since
+        # `balance!` calls it twice for connectivities without corners.
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.p4est_balance(mesh.p4est, Trixi.P4EST_CONNECT_FACE, C_NULL)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+
+        # Remove all corners to obtain a connectivity containing only face connections,
+        # e.g., as created by older versions of Trixi.jl, for which `balance!` calls
+        # `p4est_balance` twice
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0), coordinates_max = (1.0, 1.0),
+                         periodicity)
+        Trixi.p4est_connectivity_reduce(mesh.p4est.connectivity)
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_2d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p4est_is_balanced(mesh.p4est, Trixi.P4EST_CONNECT_FACE) == 1
+    end
+
+    for trees_per_dimension in ((1, 1, 1), (2, 1, 2), (2, 2, 2)),
+        periodicity in ((false, false, false), (true, false, true), (true, true, true))
+
+        mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                         coordinates_min = (0.0, 0.0, 0.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity)
+        @test has_lexicographic_faces(mesh.p4est.connectivity, trees_per_dimension,
+                                      periodicity)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
+@testitem "Unit: P4estMeshCubedSphere connectivity is complete" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Without all edges and corners connecting trees, `p8est_balance` does not always
+    # produce a balanced forest, see https://github.com/cburstedde/p4est/issues/112.
+    # Refining the quadrant at the origin of each tree recursively to level 5 is enough to
+    # trigger this for incomplete connectivities.
+    function refine_corner_3d(p8est, which_tree, quadrant)
+        q = unsafe_load(quadrant)
+        return Cint(q.x == 0 && q.y == 0 && q.z == 0 && q.level < 5)
+    end
+    refine_corner_3d_c = @cfunction(refine_corner_3d, Cint,
+                                    (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
+                                     Ptr{Trixi.p8est_quadrant_t}))
+
+    for (trees_per_face_dimension, layers) in ((1, 2), (2, 1), (3, 2))
+        mesh = P4estMeshCubedSphere(trees_per_face_dimension, layers, 0.5, 0.5;
+                                    polydeg = 1)
+
+        # `p4est` only stores edges and corners connecting trees that are not all
+        # connected via faces. These are the radial edges at the vertices of the cube
+        # surface where four trees meet (all except the 8 corners of the cube), and
+        # all tangential edges and the corners where four trees meet between two layers.
+        n = trees_per_face_dimension
+        @test mesh.p4est.connectivity.num_edges[] ==
+              (6 * n^2 - 6) * layers + 12 * n^2 * (layers - 1)
+        @test mesh.p4est.connectivity.num_corners[] == (6 * n^2 - 6) * (layers - 1)
+
+        # `balance!` calls `p8est_balance` only once
+        Trixi.refine_p4est!(mesh.p4est, true, refine_corner_3d_c, C_NULL)
+        Trixi.balance!(mesh)
+        @test Trixi.p8est_is_balanced(mesh.p4est, Trixi.P8EST_CONNECT_FACE) == 1
+    end
+end
+
 @testitem "Unit: TreeMesh initial capacity" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
@@ -4365,12 +5536,12 @@ end
         # Reference: large capacity, no growth needed
         mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
                                                     domain_length)
-        Trixi.initialize!(mesh_ref, 3, (), ())
+        Trixi.init_refinement!(mesh_ref, 3, (), ())
 
         # Small: deliberately tiny initial capacity, must grow
         mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
                                                       domain_length)
-        Trixi.initialize!(mesh_small, 3, (), ())
+        Trixi.init_refinement!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
@@ -4994,9 +6165,62 @@ end
                                         boundary_conditions = boundary_condition_periodic)
     @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
                                                                                       semi)
+
+    # `FullSweep` stages the auxiliary variables in shared memory as well. With
+    # `polydeg = 12`, one variable fits into 48 KiB, but not together with three
+    # auxiliary variables.
+    solver = DGSEM(polydeg = 12, surface_flux = flux_lax_friedrichs,
+                   volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                      semi)
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    aux_field(x, equations) = SVector(1.0, 0.0, 0.0)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic,
+                                        aux_field)
+    @test_logs (:warn, r"shared memory") (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(FullSweep(),
+                                                                                                                semi)
+    @test_logs (:warn, r"workgroup size") Trixi.check_flux_differencing_shared_memory(HalfSweep(),
+                                                                                      semi)
+end
+
+@testitem "Unit: NodeIndex and BoundaryConditionCoupled indices" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The node indices are stored efficiently as plain bits
+    @test isbitstype(NTuple{3, NodeIndex.T})
+    @test sizeof(NTuple{3, NodeIndex.T}) == 3
+
+    @test Trixi.indices2direction((NodeIndex.End, NodeIndex.IForward)) == 2
+    @test Trixi.indices2direction((NodeIndex.IForward, NodeIndex.JBackward,
+                                   NodeIndex.Begin)) == 5
+    @test Trixi.surface_indices((NodeIndex.IBackward, NodeIndex.End,
+                                 NodeIndex.JForward)) ==
+          (NodeIndex.IBackward, NodeIndex.JForward)
+
+    coupling_converter = (x, u, equations_other, equations_own) -> u
+    bc = BoundaryConditionCoupled(2, (NodeIndex.End, NodeIndex.IForward), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.End, NodeIndex.IForward)
+    @test bc.other_orientation == 1
+
+    bc = BoundaryConditionCoupled(2, (NodeIndex.IBackward, NodeIndex.Begin), Float64,
+                                  coupling_converter)
+    @test bc.indices == (NodeIndex.IBackward, NodeIndex.Begin)
+    @test bc.other_orientation == 2
+
+    # `indices` must be `NodeIndex` values; `Symbol`s are rejected
+    @test_throws MethodError BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+                                                      coupling_converter)
 end
 
 @testitem "Unit: trixi_adapt and semidiscretize" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Backend to check the defaults of GPU backends without a GPU.
+    # `KernelAbstractions.GPU` is deprecated in KernelAbstractions.jl v0.10.
+    struct DummyGPUBackend <: Trixi.KernelAbstractions.Backend end
+
     mesh = P4estMesh((2, 2), polydeg = 1,
                      coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
                      periodicity = true)
@@ -5009,8 +6233,16 @@ end
 
     # Without keyword arguments, nothing is adapted
     @test trixi_adapt(semi) === semi
-    # The flux differencing kernel is part of the `cache` from the beginning
-    @test semi.cache.flux_differencing_kernel === HalfSweep()
+    # The tuning is part of the `cache` from the beginning. Settings that are `nothing`
+    # select the defaults of the backend.
+    @test semi.cache.tuning === Tuning()
+    @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(), semi.cache.tuning) ===
+          Tuning(flux_differencing_kernel = FullSweep())
+    @test Trixi.resolve_tuning(Trixi.KernelAbstractions.CPU(),
+                               Tuning(flux_differencing_kernel = FullSweepGlobal())) ===
+          Tuning(flux_differencing_kernel = FullSweepGlobal())
+    @test Trixi.resolve_tuning(DummyGPUBackend(), semi.cache.tuning) ===
+          Tuning(flux_differencing_kernel = HalfSweep())
 
     # Only the real type is changed, the current array type is kept
     @test Trixi.storage_type(semi) === Array
@@ -5026,32 +6258,68 @@ end
                                              solver;
                                              boundary_conditions = boundary_condition_periodic)
     @test Trixi.storage_type(semi_tree) === Array
-    @test semi32.cache.flux_differencing_kernel === HalfSweep()
+    @test semi32.cache.tuning === Tuning()
+    # Other meshes do not support tuning
+    @test_throws ArgumentError trixi_adapt(semi_tree;
+                                           tuning = Tuning(flux_differencing_kernel = FullSweep()))
 
     # An explicitly selected kernel is kept when adapting the semidiscretization again
-    semi_global = trixi_adapt(semi; flux_differencing_kernel = FullSweepGlobal())
+    semi_global = trixi_adapt(semi;
+                              tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
     @test real(semi_global) == Float64
-    @test semi_global.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test semi_global.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
     semi_global32 = trixi_adapt(semi_global; storage_type = Array, real_type = Float32)
     @test real(semi_global32) == Float32
-    @test semi_global32.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test semi_global32.cache.tuning.flux_differencing_kernel === FullSweepGlobal()
+    # Settings that are `nothing` keep their current value
+    @test Tuning() === Tuning(flux_differencing_kernel = nothing)
+    # Invalid settings throw an error when creating the `Tuning`
+    @test_throws MethodError Tuning(flux_differencing_kernel = :invalid)
+    @test_throws MethodError Tuning(:invalid)
+    @test trixi_adapt(semi_global; tuning = Tuning()).cache.tuning ===
+          semi_global.cache.tuning
+    @test Trixi.merge_tuning(Tuning(flux_differencing_kernel = HalfSweep()),
+                             Tuning(flux_differencing_kernel = FullSweep())) ===
+          Tuning(flux_differencing_kernel = FullSweep())
 
-    # The kernel can only be selected if it is used
+    # `remake` keeps the tuning, but drops it if the new semidiscretization does not
+    # support it
+    semi_global_remade = Trixi.remake(semi_global)
+    @test semi_global_remade !== semi_global
+    @test semi_global_remade.cache.tuning === semi_global.cache.tuning
+    @test Trixi.remake(semi_global32).cache.tuning === semi_global32.cache.tuning
+    @test Trixi.copy_tuning(semi_tree, semi_global) === semi_tree
+    semi_hyp_para = SemidiscretizationHyperbolicParabolic(mesh,
+                                                          (equations,
+                                                           LaplaceDiffusion2D(0.1,
+                                                                              equations)),
+                                                          initial_condition_convergence_test,
+                                                          solver;
+                                                          boundary_conditions = (boundary_condition_periodic,
+                                                                                 boundary_condition_periodic))
+    semi_hyp_para_global = trixi_adapt(semi_hyp_para;
+                                       tuning = Tuning(flux_differencing_kernel = FullSweepGlobal()))
+    @test Trixi.remake(semi_hyp_para_global).cache.tuning ===
+          semi_hyp_para_global.cache.tuning
+
+    # The tuning is available for all volume integrals and does not change the
+    # volume integral cache
     solver_weak_form = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
     semi_weak_form = SemidiscretizationHyperbolic(mesh, equations,
                                                   initial_condition_convergence_test,
                                                   solver_weak_form;
                                                   boundary_conditions = boundary_condition_periodic)
-    @test !haskey(semi_weak_form.cache, :flux_differencing_kernel)
+    @test semi_weak_form.cache.tuning === Trixi.default_tuning()
     @test real(trixi_adapt(semi_weak_form; real_type = Float32)) == Float32
-    @test_throws ArgumentError trixi_adapt(semi_weak_form;
-                                           flux_differencing_kernel = FullSweep())
+    semi_weak_form_full = trixi_adapt(semi_weak_form;
+                                      tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi_weak_form_full.cache.tuning.flux_differencing_kernel === FullSweep()
 
-    # The volume integral cache of a `P4estMeshView` is created differently
+    # The `cache` of a `P4estMeshView` is created differently
     mesh_view = P4estMeshView(mesh, [1, 2])
-    cache_view = Trixi.create_cache(mesh_view, equations, solver.volume_integral, solver,
-                                    Float64)
-    @test cache_view.flux_differencing_kernel === HalfSweep()
+    cache_view = Trixi.create_cache_hyperbolic(mesh_view, equations, solver,
+                                               nothing, Float64)
+    @test cache_view.tuning === Trixi.default_tuning()
 
     # The GPU resource limits are not checked for CPU arrays, see also
     # "Unit: check_flux_differencing_shared_memory"
@@ -5065,11 +6333,11 @@ end
                                            LinearScalarAdvectionEquation3D(1.0, 1.0, 1.0),
                                            initial_condition_constant, solver_3d;
                                            boundary_conditions = boundary_condition_periodic)
-    @test semi_3d.cache.flux_differencing_kernel === HalfSweep()
+    @test semi_3d.cache.tuning === Tuning()
     semi_3d_full_sweep = @test_logs min_level=Base.CoreLogging.Warn trixi_adapt(semi_3d;
                                                                                 storage_type = Array,
-                                                                                flux_differencing_kernel = FullSweep())
-    @test semi_3d_full_sweep.cache.flux_differencing_kernel === FullSweep()
+                                                                                tuning = Tuning(flux_differencing_kernel = FullSweep()))
+    @test semi_3d_full_sweep.cache.tuning.flux_differencing_kernel === FullSweep()
 
     # `semidiscretize` uses the real type of `semi` for the time span
     ode = semidiscretize(semi32, (0.0, 1.0))
@@ -5079,16 +6347,6 @@ end
     ode = semidiscretize(semi, (0.0f0, 1.0f0))
     @test ode.p === semi
     @test ode.tspan === (0.0, 1.0)
-
-    # Deprecated keyword arguments of `semidiscretize`
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0); real_type = Float32)
-    @test real(ode.p) == Float32
-    @test ode.tspan === (0.0f0, 1.0f0)
-    @test ode.u0 isa Vector{Float32}
-    ode = @test_deprecated semidiscretize(semi, (0.0, 1.0);
-                                          flux_differencing_kernel = FullSweep())
-    @test real(ode.p) == Float64
-    @test ode.p.cache.flux_differencing_kernel === FullSweep()
 
     # The `SummaryCallback` warns if the time type differs from the real type of
     # the semidiscretization, e.g., when passing `dt = 1.0e-3` for `Float32`
@@ -5198,4 +6456,1330 @@ end
                                                              equations) ≈
               flux(u, orientation_or_normal, equations)
     end
+end
+
+@testitem "Unit: Nested volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = CompressibleEulerEquations2D(1.4)
+    basis = LobattoLegendreBasis(3)
+    indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                             variable = density_pressure)
+    volume_integral_wf = VolumeIntegralWeakForm()
+    volume_integral_fd = VolumeIntegralFluxDifferencing(flux_ranocha)
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+    volume_integral_adaptive = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                      volume_integral_default = volume_integral_wf,
+                                                      volume_integral_stabilized = volume_integral_fd)
+    volume_integral = VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                         volume_integral_default = volume_integral_adaptive,
+                                                         volume_integral_blend_high_order = volume_integral_fd,
+                                                         volume_integral_blend_low_order = volume_integral_fv)
+
+    # Tree of volume integrals
+    @test Trixi.volume_integral_children(volume_integral_wf) === ()
+    @test Trixi.volume_integral_children(volume_integral) ===
+          (volume_integral_adaptive, volume_integral_fd, volume_integral_fv)
+    visited = Any[]
+    Trixi.foreach_volume_integral(volume_integral) do volume_integral_
+        push!(visited, volume_integral_)
+        return nothing
+    end
+    # `map` stops at the end of the shorter collection, so check the length first
+    @test length(visited) == 6
+    @test all(map(===, visited,
+                  [volume_integral, volume_integral_adaptive, volume_integral_wf,
+                      volume_integral_fd, volume_integral_fd, volume_integral_fv]))
+
+    # Entries with the same name are shared if they are compatible
+    cache1 = (; a = [zeros(2, 3)], b = 1)
+    cache2 = (; a = [zeros(2, 3)], c = 2.0)
+    cache = Trixi.merge_shared(cache1, cache2)
+    @test keys(cache) == (:a, :b, :c)
+    @test cache.a === cache2.a
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; a = [zeros(2, 4)]))
+    @test_throws ArgumentError Trixi.merge_shared(cache1, (; b = 1.0))
+
+    # The subcell finite volume buffers of the children are shared
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
+                    periodicity = true)
+    function create_semi(volume_integral)
+        solver = DGSEM(basis, flux_hllc, volume_integral)
+        return SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+    end
+    semi = create_semi(volume_integral)
+    @test haskey(semi.cache, :fstar1_L_threaded)
+
+    # Per-instance state stored in the volume integral objects is sized when the cache
+    # is created, also for nested volume integrals
+    indicator_entropy_correction = IndicatorEntropyCorrection(equations, basis)
+    volume_integral_entropy_correction = VolumeIntegralAdaptive(indicator = indicator_entropy_correction,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_fv)
+    semi = create_semi(VolumeIntegralShockCapturingHGType(indicator_sc;
+                                                          volume_integral_default = volume_integral_entropy_correction,
+                                                          volume_integral_blend_high_order = volume_integral_fd,
+                                                          volume_integral_blend_low_order = volume_integral_fv))
+    @test length(indicator_entropy_correction.cache.alpha) ==
+          nelements(semi.solver, semi.cache)
+
+    # At most one subcell limiter is supported, and only in some positions
+    limiter_idp = SubcellLimiterIDP(equations, basis;
+                                    positivity_variables_cons = ["rho"])
+    volume_integral_sl = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                       volume_flux_dg = flux_ranocha,
+                                                       volume_flux_fv = flux_hllc)
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_fd))
+    @test_throws ArgumentError create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                                                  volume_integral_default = volume_integral_sl,
+                                                                  volume_integral_stabilized = volume_integral_sl))
+    # The subcell finite volume buffers are created for `volume_integral_low_order`
+    @test_throws ArgumentError create_semi(VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                         volume_flux_dg = flux_ranocha,
+                                                                         volume_integral_low_order = volume_integral_wf))
+    semi = create_semi(VolumeIntegralAdaptive(indicator = indicator_sc,
+                                              volume_integral_default = volume_integral_wf,
+                                              volume_integral_stabilized = volume_integral_sl))
+    @test haskey(semi.cache, :fstar1_L_threaded)
+    @test haskey(semi.cache, :antidiffusive_fluxes)
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) ==
+          nelements(semi.solver, semi.cache)
+
+    # The storage of subcell limiting is resized after mesh adaptation.
+    # Fill the antidiffusive fluxes with `NaN`s first so that the check of the
+    # element interfaces below does not depend on the content of the new memory.
+    for antidiffusive_flux in (semi.cache.antidiffusive_fluxes.antidiffusive_flux1_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux1_R,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_L,
+                               semi.cache.antidiffusive_fluxes.antidiffusive_flux2_R)
+        fill!(antidiffusive_flux, NaN)
+    end
+    new_size = nelements(semi.solver, semi.cache) + 3
+    Trixi.reinit_cache_all_volume_integrals!(semi.cache, mesh, semi.solver, new_size)
+    (; antidiffusive_flux1_L, antidiffusive_flux2_R) = semi.cache.antidiffusive_fluxes
+    @test size(antidiffusive_flux1_L, 4) == new_size
+    @test size(limiter_idp.cache.subcell_limiter_coefficients.alpha, 3) == new_size
+    # The antidiffusive fluxes at the element interfaces are zero
+    @test iszero(antidiffusive_flux1_L[:, 1, :, :])
+    @test iszero(antidiffusive_flux1_L[:, end, :, :])
+    @test iszero(antidiffusive_flux2_R[:, :, 1, :])
+    @test iszero(antidiffusive_flux2_R[:, :, end, :])
+
+    # Subcell limiting is not supported for all meshes
+    equations_1d = CompressibleEulerEquations1D(1.4)
+    mesh_1d = TreeMesh(-1.0, 1.0, initial_refinement_level = 2, periodicity = true)
+    limiter_idp_1d = SubcellLimiterIDP(equations_1d, basis;
+                                       positivity_variables_cons = ["rho"])
+    solver_1d = DGSEM(basis, flux_hllc,
+                      VolumeIntegralSubcellLimiting(limiter_idp_1d;
+                                                    volume_flux_dg = flux_ranocha,
+                                                    volume_flux_fv = flux_hllc))
+    @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_1d, equations_1d,
+                                                            initial_condition_constant,
+                                                            solver_1d;
+                                                            boundary_conditions = boundary_condition_periodic)
+end
+
+@testitem "Unit: Auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Whether auxiliary variables are used is a fixed property of the equations
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    equations_no_aux = LinearScalarAdvectionEquation3D(0.5, -0.3, 0.2)
+    @test nauxvariables(equations) == 3
+    @test eachauxvariable(equations) == Base.OneTo(3)
+    @test nauxvariables(equations_no_aux) == 0
+    @test isempty(eachauxvariable(equations_no_aux))
+    @test Trixi.auxvarnames(equations) == ("a1", "a2", "a3")
+    @test Trixi.auxvarnames(equations_no_aux) == ()
+
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+    solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+    initial_condition(x, t, equations) = SVector(sinpi(x[1] + x[2] + x[3]))
+    # The auxiliary variables have to be continuous across the periodic boundaries
+    aux_field(x, equations) = SVector(1 + 0.125f0 * sinpi(x[1]), 0.5f0 * sinpi(x[2]),
+                                      -0.25f0 * cospi(x[3]))
+
+    @timed_testset "Equations with auxiliary variables require aux_field" begin
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic)
+        # `aux_field` has to return the correct number of auxiliary variables
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field = (x, equations) -> SVector(1,
+                                                                                                      2))
+
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        (; aux, aux_interface) = semi.cache.aux_vars
+        @test size(aux) == (3, 3, 3, 3, 8)
+        @test !any(isnan, aux)
+        @test !any(isnan, aux_interface)
+        # The auxiliary variables are evaluated at the node coordinates
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test all(aux[:, i, j, k, element] ≈
+                  aux_field(node_coordinates[:, i, j, k, element], equations)
+                  for i in 1:3, j in 1:3, k in 1:3, element in 1:8)
+        # The auxiliary variables are continuous, so both sides of an interface agree
+        @test aux_interface[1, :, :, :, :] ≈ aux_interface[2, :, :, :, :]
+        @test_nowarn show(devnull, MIME"text/plain"(), semi)
+        @test_nowarn show(devnull, MIME"text/plain"(), equations)
+    end
+
+    @timed_testset "Remake and automatic differentiation" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        @test Trixi.get_aux_field(semi.cache) === aux_field
+
+        # `remake` evaluates the same `aux_field` again by default
+        semi_remade = Trixi.remake(semi)
+        @test semi_remade.cache.aux_vars.aux == semi.cache.aux_vars.aux
+        @test semi_remade.cache.aux_vars.aux_interface ==
+              semi.cache.aux_vars.aux_interface
+        @test semi_remade.cache.aux_vars.aux_mortar == semi.cache.aux_vars.aux_mortar
+
+        # `remake` is used to compute Jacobians via automatic differentiation
+        @test jacobian_ad_forward(semi) ≈ jacobian_fd(semi)
+    end
+
+    @timed_testset "trixi_adapt" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+
+        # The auxiliary variables are adapted together with the semidiscretization
+        semi32 = trixi_adapt(semi; real_type = Float32)
+        (; aux, aux_interface, aux_mortar) = semi32.cache.aux_vars
+        @test aux isa Array{Float32, 5}
+        @test aux_interface isa Array{Float32, 5}
+        @test aux_mortar isa Array{Float32, 6}
+        @test aux ≈ semi.cache.aux_vars.aux
+        @test aux_interface ≈ semi.cache.aux_vars.aux_interface
+        @test semi32.cache.aux_vars.aux_field === aux_field
+        u_ode = compute_coefficients(0.0f0, semi32)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi32, 0.0f0)
+        @test eltype(du_ode) == Float32
+        @test all(isfinite, du_ode)
+    end
+
+    @timed_testset "Analysis and output functions get the auxiliary variables" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        # `integrate` calls `func(u, aux, equations)`.
+        # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
+        # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
+        @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
+        @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
+                       atol = 1.0e-14)
+
+        # Plots use `cons2prim(u, aux, equations)` by default
+        @test Trixi.digest_solution_variables(equations, nothing) === cons2prim
+
+        # Plots along a curve interpolate `aux[1]` in the same way as a solution
+        # `u = aux[1]`. The mesh with `polydeg = 1` uses the search of p4est, the mesh
+        # with `polydeg = 2` the general implementation.
+        first_aux(u, aux, equations) = SVector(aux[1])
+        mesh_quadratic = P4estMesh((2, 2, 2), polydeg = 2,
+                                   coordinates_min = (-1.0, -1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0, 1.0), periodicity = true)
+        for mesh_ in (mesh, mesh_quadratic)
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
+                                                 boundary_conditions = boundary_condition_periodic,
+                                                 aux_field)
+            u_ode_ = compute_coefficients(0.0, semi_)
+            aux_as_u_ode = vec(semi_.cache.aux_vars.aux[1, :, :, :, :])
+            point = (0.1, -0.2, 0.3)
+            pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, point,
+                                variable_names = ["a1"])
+            pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, point)
+            @test pd_aux.data ≈ pd_u.data
+        end
+    end
+
+    @timed_testset "No auxiliary variables for equations without them" begin
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations_no_aux,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations_no_aux, initial_condition,
+                                            solver;
+                                            boundary_conditions = boundary_condition_periodic)
+        @test !haskey(semi.cache, :aux_vars)
+        @test Trixi.get_aux_vars(semi.cache) === nothing
+        @test Trixi.get_aux_interface_vars(semi.cache) === nothing
+        @test Trixi.get_aux_mortar_vars(semi.cache) === nothing
+        @test Trixi.get_aux_node_vars(nothing, equations_no_aux, solver, 1, 1, 1, 1) ===
+              ()
+        @test Trixi.get_aux_surface_node_vars(nothing, equations_no_aux, typeof(solver),
+                                              1, 1, 1) === ()
+    end
+end
+
+@testitem "Unit: FluxTurbo with auxiliary variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The default precomputed variables of `FluxTurbo` are the conserved variables followed
+    # by the auxiliary variables, and the default `flux_turbo` calls the fluxes with the
+    # auxiliary variables of both nodes
+    normal_direction = SVector(0.2, -0.3, 0.9)
+    u_ll = SVector(1.2)
+    u_rr = SVector(0.7)
+    aux_ll = SVector(0.3, -0.5, 1.1)
+    aux_rr = SVector(0.4, 0.2, -0.6)
+
+    # Conservative equation
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    @test Trixi.nturbovars(flux_central, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(flux_central, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_central, u_rr..., aux_rr..., equations)
+    @test turbo_ll == (u_ll..., aux_ll...)
+    @test Trixi.flux_turbo(flux_central, turbo_ll..., turbo_rr..., normal_direction...,
+                           equations) ≈
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The fallback used outside of the turbo kernels forwards the auxiliary variables to
+    # the wrapped flux
+    @test FluxTurbo(flux_central)(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                  equations) ==
+          flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    # The default `flux_turbo` detects precomputed variables without the auxiliary
+    # variables
+    @test_throws "requires the default layout of `cons2turbo`" Trixi.flux_turbo(flux_central,
+                                                                                u_ll...,
+                                                                                u_rr...,
+                                                                                normal_direction...,
+                                                                                equations)
+
+    # Nonconservative equation: the node receiving the nonconservative flux passes its
+    # own state and auxiliary variables first
+    equations = NonconservativeLinearScalarAdvectionEquation3D()
+    numerical_flux = (flux_central, flux_nonconservative_central)
+    @test Trixi.nturbovars(numerical_flux, equations) == Val(4)
+    turbo_ll = Trixi.cons2turbo(numerical_flux, u_ll..., aux_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(numerical_flux, u_rr..., aux_rr..., equations)
+    flux_left, flux_right = Trixi.flux_turbo(numerical_flux, turbo_ll..., turbo_rr...,
+                                             normal_direction..., equations)
+    flux = flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+    @test flux_left ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                       normal_direction, equations)
+    @test flux_right ≈
+          flux +
+          0.5 * flux_nonconservative_central(u_rr, u_ll, aux_rr, aux_ll,
+                                       normal_direction, equations)
+
+    # Equations without auxiliary variables are not affected
+    equations = CompressibleEulerEquations3D(1.4)
+    @test Trixi.nturbovars(flux_shima_etal, equations) == Val(5)
+    u_ll = prim2cons(SVector(1.0, 0.1, -0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.1, 0.2, 0.1, 0.9), equations)
+    turbo_ll = Trixi.cons2turbo(flux_shima_etal, u_ll..., equations)
+    turbo_rr = Trixi.cons2turbo(flux_shima_etal, u_rr..., equations)
+    @test Trixi.flux_turbo(flux_shima_etal, turbo_ll..., turbo_rr...,
+                           normal_direction..., equations) ≈
+          flux_shima_etal(u_ll, u_rr, normal_direction, equations)
+end
+
+@testitem "Unit: Auxiliary variables at mortars" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # We only need the statically refined mesh of the elixir. Thus, we do not run the
+    # simulation by replacing `sol = solve(...)` with `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_3d_dgsem",
+                           "elixir_advectionconservative_source_terms_nonconforming.jl");
+                  sol = nothing)
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+    aux_mortar = semi.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    # The auxiliary variables of the large elements are interpolated to the surface nodes
+    # of the small elements. In general, they differ from the values of the small elements.
+    @test !(aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :])
+
+    # Both sides agree if the auxiliary variables are polynomials of degree `polydeg`
+    aux_field_polynomial(x, equations) = SVector(1 + x[1]^3, x[2] * x[3], -x[1]^2 * x[3])
+    semi_polynomial = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                   solver; boundary_conditions,
+                                                   aux_field = aux_field_polynomial)
+    aux_mortar = semi_polynomial.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    @test aux_mortar[1, :, :, :, :, :] ≈ aux_mortar[2, :, :, :, :, :]
+end
+
+@testitem "Unit: boundary_condition_do_nothing with auxiliary variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+    equations_noncons = NonconservativeLinearScalarAdvectionEquation3D()
+    u = SVector(2.0)
+    aux = SVector(3.0, -1.0, 0.5)
+    outward_direction = SVector(0.2, -0.3, 0.4)
+    x = SVector(0.1, 0.2, 0.3)
+    t = 0.5
+
+    @test boundary_condition_do_nothing(u, aux, outward_direction, x, t,
+                                        flux_lax_friedrichs, equations) ≈
+          flux(u, aux, outward_direction, equations)
+
+    surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_central)
+    flux_cons, flux_noncons = boundary_condition_do_nothing(u, aux, outward_direction,
+                                                            x, t, surface_fluxes,
+                                                            equations_noncons)
+    @test flux_cons ≈ flux_lax_friedrichs(u, u, aux, aux, outward_direction,
+                              equations_noncons)
+    @test flux_noncons ≈ flux_nonconservative_central(u, u, aux, aux,
+                                       outward_direction,
+                                       equations_noncons)
+
+    # Parabolic boundary conditions with the same number of arguments return the inner
+    # gradients or fluxes
+    equations_parabolic = LaplaceDiffusion3D(0.1, equations)
+    flux_inner = SVector(5.0)
+    @test boundary_condition_do_nothing(flux_inner, u, outward_direction, x, t,
+                                        Trixi.Gradient(), equations_parabolic) ==
+          flux_inner
+    @test boundary_condition_do_nothing(flux_inner, nothing, outward_direction, x, t,
+                                        Trixi.Divergence(), equations_parabolic) ==
+          flux_inner
+
+    # A constant state is preserved for a constant velocity
+    mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                     coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+    initial_condition_constant(x, t, equations) = SVector(1.0)
+    aux_field(x, equations) = SVector(1.0, 0.5, 0.25)
+    solvers = (DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs),
+               DGSEM(polydeg = 2, surface_flux = surface_fluxes,
+                     volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                       flux_nonconservative_central))))
+    for (equations_, solver) in zip((equations, equations_noncons), solvers)
+        semi = SemidiscretizationHyperbolic(mesh, equations_, initial_condition_constant,
+                                            solver;
+                                            boundary_conditions = boundary_condition_do_nothing,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        @test maximum(abs, du_ode) < 1.0e-12
+    end
+
+    # The same holds in 2D
+    mesh_2d = P4estMesh((2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0),
+                        coordinates_max = (1.0, 1.0), periodicity = false)
+    aux_field_2d(x, equations) = SVector(1.0, 0.5)
+    equations_2d = (ConservativeLinearScalarAdvectionEquation2D(),
+                    NonconservativeLinearScalarAdvectionEquation2D())
+    for (equations_, solver) in zip(equations_2d, solvers)
+        semi = SemidiscretizationHyperbolic(mesh_2d, equations_,
+                                            initial_condition_constant, solver;
+                                            boundary_conditions = boundary_condition_do_nothing,
+                                            aux_field = aux_field_2d)
+        u_ode = compute_coefficients(0.0, semi)
+        du_ode = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, 0.0)
+        @test maximum(abs, du_ode) < 1.0e-12
+    end
+end
+
+@testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation3D()
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3, 0.2)
+    aux_rr = SVector(-0.4, 0.1, 0.6)
+    normal_direction = SVector(-1.2, 0.3, 0.7)
+    unit_normals = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                    SVector(0.0, 0.0, 1.0))
+
+    @timed_testset "Consistency with the physical flux" begin
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            for orientation in 1:3
+                @test flux_central(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+                @test flux_lax_friedrichs(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+            end
+            @test flux_central(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+            @test flux_lax_friedrichs(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:3
+            unit_normal = unit_normals[orientation]
+            @test flux(u_ll, aux_ll, unit_normal, equations) ≈
+                  flux(u_ll, aux_ll, orientation, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, unit_normal, equations) ≈
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux(u_ll, aux_ll, factor * normal_direction, equations) ≈
+                  factor * flux(u_ll, aux_ll, normal_direction, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, factor * normal_direction,
+                                equations) ≈
+                  factor *
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant velocity agrees with LinearScalarAdvectionEquation3D" begin
+        equations_constant = LinearScalarAdvectionEquation3D(aux_ll...)
+        for orientation in 1:3
+            @test flux(u_ll, aux_ll, orientation, equations) ≈
+                  flux(u_ll, orientation, equations_constant)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, orientation, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, orientation, equations_constant)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) ≈
+              flux(u_ll, normal_direction, equations_constant)
+        @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, normal_direction, equations) ≈
+              max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_constant)
+        @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_ll, normal_direction,
+                                  equations) ≈
+              flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_constant)
+        @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
+                  Trixi.max_abs_speeds(equations_constant))
+    end
+end
+
+@testitem "Unit: Consistency check for NonconservativeLinearScalarAdvectionEquation3D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = NonconservativeLinearScalarAdvectionEquation3D()
+    @test Trixi.have_nonconservative_terms(equations) == Trixi.True()
+    @test nauxvariables(equations) == 3
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3, 0.2)
+    aux_rr = SVector(-0.4, 0.1, 0.6)
+    normal_direction = SVector(-1.2, 0.3, 0.7)
+    unit_normals = (SVector(1.0, 0.0, 0.0), SVector(0.0, 1.0, 0.0),
+                    SVector(0.0, 0.0, 1.0))
+
+    @timed_testset "Vanishing physical flux" begin
+        for orientation in 1:3
+            @test flux(u_ll, aux_ll, orientation, equations) == zero(u_ll)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) == zero(u_ll)
+    end
+
+    @timed_testset "Consistency of the nonconservative flux" begin
+        # For equal states, the central nonconservative flux is twice the advection
+        # velocity in normal direction times the state, since it is scaled by 0.5 in
+        # Trixi.jl
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            @test flux_nonconservative_central(u, u, aux, aux, normal_direction,
+                                               equations) ≈
+                  2 * dot(aux, normal_direction) * u
+        end
+        # Only the auxiliary variables of the element receiving the flux are used
+        @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                           equations) ≈
+              dot(aux_ll, normal_direction) * (u_ll + u_rr)
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:3
+            unit_normal = unit_normals[orientation]
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                               equations) ≈
+                  flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                               equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               factor * normal_direction, equations) ≈
+                  factor * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant velocity agrees with the conservative form" begin
+        # For a constant advection velocity, the nonconservative discretization with
+        # central fluxes and local Lax-Friedrichs dissipation is the same as the
+        # conservative one (up to round-off errors)
+        mesh = P4estMesh((2, 2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0, -1.0),
+                         coordinates_max = (1.0, 1.0, 1.0), periodicity = false)
+        aux_field(x, equations) = SVector(0.75f0, -0.5f0, 0.25f0)
+        function initial_condition(x, t, equations)
+            return SVector(1 + 0.5f0 * sinpi(x[1] + 2 * x[2] - x[3]))
+        end
+        boundary_conditions = BoundaryConditionDirichlet(initial_condition)
+
+        solver_nonconservative = DGSEM(polydeg = 3,
+                                       surface_flux = (flux_lax_friedrichs,
+                                                       flux_nonconservative_central),
+                                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                                         flux_nonconservative_central)))
+        semi_nonconservative = SemidiscretizationHyperbolic(mesh, equations,
+                                                            initial_condition,
+                                                            solver_nonconservative;
+                                                            boundary_conditions,
+                                                            aux_field)
+
+        solver_conservative = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+        semi_conservative = SemidiscretizationHyperbolic(mesh,
+                                                         ConservativeLinearScalarAdvectionEquation3D(),
+                                                         initial_condition,
+                                                         solver_conservative;
+                                                         boundary_conditions,
+                                                         aux_field)
+
+        u_ode = compute_coefficients(0.0, semi_nonconservative)
+        du_ode_nonconservative = similar(u_ode)
+        du_ode_conservative = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
+        Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
+        @test du_ode_nonconservative ≈ du_ode_conservative
+    end
+end
+
+@testitem "Unit: Auxiliary variables 2D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation2D()
+    @test nauxvariables(equations) == 2
+    @test Trixi.auxvarnames(equations) == ("a1", "a2")
+
+    mesh = P4estMesh((2, 2), polydeg = 1, coordinates_min = (-1.0, -1.0),
+                     coordinates_max = (1.0, 1.0), periodicity = true)
+    solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
+    initial_condition(x, t, equations) = SVector(sinpi(x[1] + x[2]))
+    # The auxiliary variables have to be continuous across the periodic boundaries
+    aux_field(x, equations) = SVector(1 + 0.125f0 * sinpi(x[1]), 0.5f0 * sinpi(x[2]))
+
+    @timed_testset "Initialization" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        (; aux, aux_interface, aux_mortar) = semi.cache.aux_vars
+        @test size(aux) == (2, 3, 3, 4)
+        @test size(aux_interface) == (2, 2, 3, Trixi.ninterfaces(semi.cache.interfaces))
+        @test size(aux_mortar) == (2, 2, 2, 3, 0)
+        @test !any(isnan, aux)
+        @test !any(isnan, aux_interface)
+        # The auxiliary variables are evaluated at the node coordinates
+        node_coordinates = semi.cache.elements.node_coordinates
+        @test all(aux[:, i, j, element] ≈
+                  aux_field(node_coordinates[:, i, j, element], equations)
+                  for i in 1:3, j in 1:3, element in 1:4)
+        # The auxiliary variables are continuous, so both sides of an interface agree
+        @test aux_interface[1, :, :, :] ≈ aux_interface[2, :, :, :]
+    end
+
+    @timed_testset "Analysis functions get the auxiliary variables" begin
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic,
+                                            aux_field)
+        u_ode = compute_coefficients(0.0, semi)
+        # `integrate` calls `func(u, aux, equations)`.
+        # The mean values of `aux[1] = 1 + 0.125 * sinpi(x[1])` and
+        # `aux[2] = 0.5 * sinpi(x[2])` are one and zero.
+        @test Trixi.integrate((u, aux, equations) -> aux[1], u_ode, semi) ≈ 1
+        @test isapprox(Trixi.integrate((u, aux, equations) -> aux[2], u_ode, semi), 0;
+                       atol = 1.0e-14)
+
+        # The entropy variables of `ConservativeLinearScalarAdvectionEquation2D` are the
+        # conservative variables, so the relaxation methods integrate `u ⋅ u` here
+        u = Trixi.wrap_array(u_ode, semi)
+        @test Trixi.integrate_w_dot_stage(u, u, mesh, equations, solver, semi.cache) ≈
+              Trixi.integrate((u, aux, equations) -> u[1]^2, u_ode, semi)
+
+        @test PlotData2D(u_ode, semi) isa Trixi.PlotData2DTriangulated
+
+        # Plots interpolate `aux[1]` in the same way as a solution `u = aux[1]`.
+        # Along a curve, the mesh with `polydeg = 1` uses the search of p4est, the mesh
+        # with `polydeg = 2` the general implementation.
+        first_aux(u, aux, equations) = SVector(aux[1])
+        function Trixi.varnames(::typeof(first_aux),
+                                ::ConservativeLinearScalarAdvectionEquation2D)
+            return ("a1",)
+        end
+        mesh_quadratic = P4estMesh((2, 2), polydeg = 2,
+                                   coordinates_min = (-1.0, -1.0),
+                                   coordinates_max = (1.0, 1.0), periodicity = true)
+        curve = vcat(range(-0.9, 0.9, length = 17)', fill(-0.2, 1, 17))
+        for mesh_ in (mesh, mesh_quadratic)
+            semi_ = SemidiscretizationHyperbolic(mesh_, equations,
+                                                 initial_condition, solver;
+                                                 boundary_conditions = boundary_condition_periodic,
+                                                 aux_field)
+            u_ode_ = compute_coefficients(0.0, semi_)
+            aux_as_u_ode = vec(semi_.cache.aux_vars.aux[1, :, :, :])
+            pd_aux = PlotData2D(u_ode_, semi_; solution_variables = first_aux)
+            pd_u = PlotData2D(aux_as_u_ode, semi_; solution_variables = cons2cons)
+            @test pd_aux.data ≈ pd_u.data
+            @test pd_aux.face_data ≈ pd_u.face_data
+            pd_aux = PlotData1D(u_ode_, semi_; solution_variables = first_aux, curve,
+                                variable_names = ["a1"])
+            pd_u = PlotData1D(aux_as_u_ode, semi_; solution_variables = cons2cons, curve)
+            @test pd_aux.data ≈ pd_u.data
+        end
+    end
+
+    @timed_testset "Unsupported meshes and solvers" begin
+        # The interface values are copied from the volume nodes, which requires
+        # Gauss-Lobatto-Legendre nodes
+        solver_gauss = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs,
+                             basis_type = GaussLegendreBasis)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh, equations,
+                                                                initial_condition,
+                                                                solver_gauss;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
+
+        mesh_tree = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 1,
+                             periodicity = true)
+        @test_throws ArgumentError SemidiscretizationHyperbolic(mesh_tree, equations,
+                                                                initial_condition,
+                                                                solver;
+                                                                boundary_conditions = boundary_condition_periodic,
+                                                                aux_field)
+    end
+end
+
+@testitem "Unit: Auxiliary variables at mortars 2D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # We only need the statically refined mesh of the elixir. Thus, we do not run the
+    # simulation by replacing `sol = solve(...)` with `sol = nothing`.
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_advectionconservative_source_terms_nonconforming.jl");
+                  sol = nothing)
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+    aux_mortar = semi.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    # The auxiliary variables of the large elements are interpolated to the surface nodes
+    # of the small elements. In general, they differ from the values of the small elements.
+    @test !(aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :])
+
+    # Both sides agree if the auxiliary variables are polynomials of degree `polydeg`
+    aux_field_polynomial(x, equations) = SVector(1 + x[1]^3, x[1] * x[2]^2)
+    semi_polynomial = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                   solver; boundary_conditions,
+                                                   aux_field = aux_field_polynomial)
+    aux_mortar = semi_polynomial.cache.aux_vars.aux_mortar
+    @test !any(isnan, aux_mortar)
+    @test aux_mortar[1, :, :, :, :] ≈ aux_mortar[2, :, :, :, :]
+end
+
+@testitem "Unit: Consistency check for ConservativeLinearScalarAdvectionEquation2D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = ConservativeLinearScalarAdvectionEquation2D()
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3)
+    aux_rr = SVector(-0.4, 0.6)
+    normal_direction = SVector(-1.2, 0.3)
+    unit_normals = (SVector(1.0, 0.0), SVector(0.0, 1.0))
+
+    @timed_testset "Consistency with the physical flux" begin
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            for orientation in 1:2
+                @test flux_central(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+                @test flux_lax_friedrichs(u, u, aux, aux, orientation, equations) ≈
+                      flux(u, aux, orientation, equations)
+            end
+            @test flux_central(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+            @test flux_lax_friedrichs(u, u, aux, aux, normal_direction, equations) ≈
+                  flux(u, aux, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:2
+            unit_normal = unit_normals[orientation]
+            @test flux(u_ll, aux_ll, unit_normal, equations) ≈
+                  flux(u_ll, aux_ll, orientation, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, unit_normal, equations) ≈
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux(u_ll, aux_ll, factor * normal_direction, equations) ≈
+                  factor * flux(u_ll, aux_ll, normal_direction, equations)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, factor * normal_direction,
+                                equations) ≈
+                  factor *
+                  max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant velocity agrees with LinearScalarAdvectionEquation2D" begin
+        equations_constant = LinearScalarAdvectionEquation2D(aux_ll...)
+        for orientation in 1:2
+            @test flux(u_ll, aux_ll, orientation, equations) ≈
+                  flux(u_ll, orientation, equations_constant)
+            @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, orientation, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, orientation, equations_constant)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) ≈
+              flux(u_ll, normal_direction, equations_constant)
+        @test max_abs_speed(u_ll, u_rr, aux_ll, aux_ll, normal_direction, equations) ≈
+              max_abs_speed_naive(u_ll, u_rr, normal_direction, equations_constant)
+        @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_ll, normal_direction,
+                                  equations) ≈
+              flux_lax_friedrichs(u_ll, u_rr, normal_direction, equations_constant)
+        @test all(Trixi.max_abs_speeds(u_ll, aux_ll, equations) .≈
+                  Trixi.max_abs_speeds(equations_constant))
+    end
+end
+
+@testitem "Unit: Consistency check for NonconservativeLinearScalarAdvectionEquation2D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = NonconservativeLinearScalarAdvectionEquation2D()
+    @test Trixi.have_nonconservative_terms(equations) == Trixi.True()
+    @test nauxvariables(equations) == 2
+
+    # Different states and auxiliary variables on both sides
+    u_ll = SVector(0.4)
+    u_rr = SVector(-0.2)
+    aux_ll = SVector(0.5, -0.3)
+    aux_rr = SVector(-0.4, 0.6)
+    normal_direction = SVector(-1.2, 0.3)
+    unit_normals = (SVector(1.0, 0.0), SVector(0.0, 1.0))
+
+    @timed_testset "Vanishing physical flux" begin
+        for orientation in 1:2
+            @test flux(u_ll, aux_ll, orientation, equations) == zero(u_ll)
+        end
+        @test flux(u_ll, aux_ll, normal_direction, equations) == zero(u_ll)
+    end
+
+    @timed_testset "Consistency of the nonconservative flux" begin
+        # For equal states, the central nonconservative flux is twice the advection
+        # velocity in normal direction times the state, since it is scaled by 0.5 in
+        # Trixi.jl
+        for u in (u_ll, u_rr), aux in (aux_ll, aux_rr)
+            @test flux_nonconservative_central(u, u, aux, aux, normal_direction,
+                                               equations) ≈
+                  2 * dot(aux, normal_direction) * u
+        end
+        # Only the auxiliary variables of the element receiving the flux are used
+        @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                           equations) ≈
+              dot(aux_ll, normal_direction) * (u_ll + u_rr)
+    end
+
+    @timed_testset "Agreement of normal_direction and orientation methods" begin
+        for orientation in 1:2
+            unit_normal = unit_normals[orientation]
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                               equations) ≈
+                  flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                               equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, unit_normal,
+                                      equations) ≈
+                  flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr, orientation,
+                                      equations)
+        end
+    end
+
+    @timed_testset "Homogeneity in normal_direction" begin
+        for factor in (2.5, 0.1)
+            @test flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               factor * normal_direction, equations) ≈
+                  factor * flux_nonconservative_central(u_ll, u_rr, aux_ll, aux_rr,
+                                               normal_direction, equations)
+            @test flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      factor * normal_direction, equations) ≈
+                  factor * flux_lax_friedrichs(u_ll, u_rr, aux_ll, aux_rr,
+                                      normal_direction, equations)
+        end
+    end
+
+    @timed_testset "Constant velocity agrees with the conservative form" begin
+        # For a constant advection velocity, the nonconservative discretization with
+        # central fluxes and local Lax-Friedrichs dissipation is the same as the
+        # conservative one (up to round-off errors). The mesh is statically refined to
+        # include mortars.
+        trixi_include(@__MODULE__,
+                      joinpath(examples_dir(), "p4est_2d_dgsem",
+                               "elixir_advectionconservative_source_terms_nonconforming.jl");
+                      sol = nothing)
+        aux_field_constant(x, equations) = SVector(0.75f0, -0.5f0)
+        function initial_condition_nonperiodic(x, t, equations)
+            return SVector(1 + 0.5f0 * sinpi(x[1] + 2 * x[2]))
+        end
+        boundary_conditions = BoundaryConditionDirichlet(initial_condition_nonperiodic)
+
+        solver_nonconservative = DGSEM(polydeg = 3,
+                                       surface_flux = (flux_lax_friedrichs,
+                                                       flux_nonconservative_central),
+                                       volume_integral = VolumeIntegralFluxDifferencing((flux_central,
+                                                                                         flux_nonconservative_central)))
+        semi_nonconservative = SemidiscretizationHyperbolic(mesh,
+                                                            NonconservativeLinearScalarAdvectionEquation2D(),
+                                                            initial_condition_nonperiodic,
+                                                            solver_nonconservative;
+                                                            boundary_conditions,
+                                                            aux_field = aux_field_constant)
+
+        solver_conservative = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+        semi_conservative = SemidiscretizationHyperbolic(mesh,
+                                                         ConservativeLinearScalarAdvectionEquation2D(),
+                                                         initial_condition_nonperiodic,
+                                                         solver_conservative;
+                                                         boundary_conditions,
+                                                         aux_field = aux_field_constant)
+
+        u_ode = compute_coefficients(0.0, semi_nonconservative)
+        du_ode_nonconservative = similar(u_ode)
+        du_ode_conservative = similar(u_ode)
+        Trixi.rhs_hyperbolic!(du_ode_nonconservative, u_ode, semi_nonconservative, 0.0)
+        Trixi.rhs_hyperbolic!(du_ode_conservative, u_ode, semi_conservative, 0.0)
+        @test du_ode_nonconservative ≈ du_ode_conservative
+    end
+end
+
+@testitem "Unit: check_axes of the storage of volume integrals" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the storage of all volume integrals in the tree with root `dg.volume_integral`
+    # for correct and wrongly sized subcell finite volume buffers
+    function test_check_axes_volume_integrals(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        (; volume_integral) = dg
+        @test Trixi.check_axes_volume_integrals(mesh, equations, volume_integral,
+                                                dg, cache) === nothing
+        @test (@allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                            volume_integral,
+                                                            dg, cache)) == 0
+
+        # A composite with `volume_integral` as a child checks the whole tree
+        volume_integral_nested = VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(),
+                                                        volume_integral_default = VolumeIntegralWeakForm(),
+                                                        volume_integral_stabilized = volume_integral)
+
+        # Wrong number of subcell interfaces
+        fstar1_L_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f)[3:end]...)
+                          for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = fstar1_L_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral_nested,
+                                                                         dg, cache_wrong)
+        # Volume integrals without storage of their own do not check anything
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               VolumeIntegralWeakForm(),
+                                               dg, cache_wrong) === nothing
+
+        # Too few thread-local buffers
+        cache_wrong = (; cache...,
+                       fstar1_R_threaded = cache.fstar1_R_threaded[1:(end - 1)])
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                         volume_integral,
+                                                                         dg, cache_wrong)
+
+        # Subcell normal vectors of non-Cartesian meshes for a wrong number of elements
+        if haskey(cache, :normal_vectors)
+            normal_vectors_wrong = deepcopy(cache.normal_vectors)
+            resize!(normal_vectors_wrong, nelements(dg, cache) + 1)
+            cache_wrong = (; cache..., normal_vectors = normal_vectors_wrong)
+            @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh,
+                                                                             equations,
+                                                                             volume_integral,
+                                                                             dg,
+                                                                             cache_wrong)
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of most elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("StructuredMesh{1}",
+                                 joinpath("structured_1d_dgsem",
+                                          "elixir_euler_shu_osher_nonuniform_fvO2.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_volume_integrals, semi)
+        end
+    end
+
+    # The subcell normal vectors are resized and reinitialized after mesh adaptation
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "p4est_2d_dgsem",
+                           "elixir_euler_blast_wave_amr.jl"); maxiters = 1)
+    @testset "P4estMesh{2} with AMR" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        # The initial mesh has `initial_refinement_level = 1`
+        @test nelements(dg, cache) != 4 * Trixi.ntrees(mesh)
+        test_check_axes_volume_integrals(semi)
+    end
+
+    # The shock-capturing composites check their inputs, the storage of the tree of
+    # volume integrals, and the blending factors returned by the indicator
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_blast_wave.jl"); sol = nothing)
+
+    struct IndicatorWrongSize end
+    function (::IndicatorWrongSize)(u, mesh, equations, dg, cache; kwargs...)
+        return zeros(eltype(u), nelements(dg, cache) - 1)
+    end
+
+    @testset "Shock-capturing composites" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        nonconservative_terms = Trixi.have_nonconservative_terms(equations)
+        # `u` does not keep `u_ode` alive
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        GC.@preserve u_ode begin
+            du = zero(u)
+            du_wrong = similar(du, size(du)[1:(end - 1)]..., size(du, ndims(du)) - 1)
+
+            (; volume_integral) = dg
+            @test volume_integral isa Trixi.VolumeIntegralShockCapturingHGType
+            (; indicator, volume_integral_default, volume_integral_blend_high_order,
+            volume_integral_blend_low_order) = volume_integral
+            volume_integral_adaptive = VolumeIntegralAdaptive(; indicator,
+                                                              volume_integral_default,
+                                                              volume_integral_stabilized = volume_integral_blend_low_order)
+
+            for volume_integral_ in (volume_integral, volume_integral_adaptive)
+                @test Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                                  nonconservative_terms, equations,
+                                                  volume_integral_, dg, cache) === nothing
+                @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing,
+                                                                           du_wrong,
+                                                                           u, mesh,
+                                                                           nonconservative_terms,
+                                                                           equations,
+                                                                           volume_integral_,
+                                                                           dg, cache)
+            end
+
+            volume_integral_wrong_alpha = Trixi.VolumeIntegralShockCapturingHGType(IndicatorWrongSize();
+                                                                                   volume_integral_default,
+                                                                                   volume_integral_blend_high_order,
+                                                                                   volume_integral_blend_low_order)
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u, mesh,
+                                                                       nonconservative_terms,
+                                                                       equations,
+                                                                       volume_integral_wrong_alpha,
+                                                                       dg, cache)
+
+            # The subcell interface coordinates of the second-order finite volume method
+            # must be computed from a basis with as many nodes as the basis of the solver
+            @test Trixi.polydeg(dg) == 3
+            for basis_ in (LobattoLegendreBasis(2), LobattoLegendreBasis(5))
+                volume_integral_wrong_basis = VolumeIntegralShockCapturingRRG(basis_,
+                                                                              indicator)
+                @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, du, u,
+                                                                           mesh,
+                                                                           nonconservative_terms,
+                                                                           equations,
+                                                                           volume_integral_wrong_basis,
+                                                                           dg, cache)
+            end
+            volume_integral_rrg = VolumeIntegralShockCapturingRRG(dg.basis, indicator)
+            @test Trixi.calc_volume_integral!(nothing, du, u, mesh, nonconservative_terms,
+                                              equations, volume_integral_rrg,
+                                              dg, cache) === nothing
+        end
+    end
+
+    # The entropy correction volume integrals store the result of their default volume
+    # integral in thread-local buffers of their indicator, which are shaped like `du` of
+    # a single element, and check them together with their blending factors
+    @testset "Entropy correction composites" begin
+        (; volume_integral) = solver
+        (; indicator, volume_integral_blend_low_order) = volume_integral
+        volume_integral_wf = VolumeIntegralWeakForm()
+        function create_semi(volume_integral_)
+            return SemidiscretizationHyperbolic(mesh, equations, initial_condition,
+                                                DGSEM(basis, surface_flux,
+                                                      volume_integral_);
+                                                boundary_conditions = boundary_condition_periodic)
+        end
+        function allocated_check_axes(mesh, equations, volume_integral, dg, cache)
+            return @allocated Trixi.check_axes_volume_integrals(mesh, equations,
+                                                                volume_integral,
+                                                                dg, cache)
+        end
+
+        indicator_ec = IndicatorEntropyCorrection(equations, basis)
+        volume_integral_ec = VolumeIntegralAdaptive(indicator = indicator_ec,
+                                                    volume_integral_default = volume_integral_wf,
+                                                    volume_integral_stabilized = volume_integral_blend_low_order)
+        indicator_combined = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = indicator,
+                                                                              indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                        basis))
+        volume_integral_combined = VolumeIntegralAdaptive(indicator = indicator_combined,
+                                                          volume_integral_default = volume_integral_wf,
+                                                          volume_integral_stabilized = volume_integral_blend_low_order)
+        # Each indicator has its own buffers, so entropy correction volume integrals
+        # can be nested in each other
+        volume_integral_nested_default = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                                       basis),
+                                                                volume_integral_default = volume_integral_ec,
+                                                                volume_integral_stabilized = volume_integral_blend_low_order)
+        volume_integral_nested_stabilized = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations,
+                                                                                                          basis),
+                                                                   volume_integral_default = volume_integral_wf,
+                                                                   volume_integral_stabilized = volume_integral_ec)
+
+        for (volume_integral_, indicator_ec_) in ((volume_integral_ec, indicator_ec),
+                                                  (volume_integral_combined,
+                                                   indicator_combined.indicator_entropy_correction),
+                                                  (volume_integral_nested_default,
+                                                   volume_integral_nested_default.indicator),
+                                                  (volume_integral_nested_stabilized,
+                                                   volume_integral_nested_stabilized.indicator))
+            semi_ = create_semi(volume_integral_)
+            mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+            nonconservative_terms = Trixi.have_nonconservative_terms(equations_)
+            # `u` does not keep `u_ode` alive
+            u_ode = Trixi.compute_coefficients(0.0, semi_)
+            u = Trixi.wrap_array(u_ode, semi_)
+            GC.@preserve u_ode begin
+                du = zero(u)
+
+                (; volume_integral_values_threaded) = indicator_ec_.cache
+                @test length(volume_integral_values_threaded) == Threads.maxthreadid()
+                @test all(==(size(du)[1:(end - 1)]), size.(volume_integral_values_threaded))
+                @test Trixi.check_axes_volume_integrals(mesh_, equations_, volume_integral_,
+                                                        dg_, cache_) === nothing
+                # Measure inside a function since accessing global variables allocates
+                @test allocated_check_axes(mesh_, equations_, volume_integral_,
+                                           dg_, cache_) == 0
+                @test Trixi.calc_volume_integral!(nothing, du, u, mesh_,
+                                                  nonconservative_terms, equations_,
+                                                  volume_integral_, dg_, cache_) === nothing
+
+                # Too few thread-local buffers
+                values_last = pop!(volume_integral_values_threaded)
+                @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_,
+                                                                                 equations_,
+                                                                                 volume_integral_,
+                                                                                 dg_,
+                                                                                 cache_)
+                push!(volume_integral_values_threaded, values_last)
+            end
+        end
+
+        semi_ = create_semi(volume_integral_ec)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+
+        # The storage of an indicator created for equations with another number of
+        # spatial dimensions than the mesh is rejected
+        equations_3d = CompressibleEulerEquations3D(1.4)
+        volume_integral_3d = VolumeIntegralAdaptive(indicator = IndicatorEntropyCorrection(equations_3d,
+                                                                                           basis),
+                                                    volume_integral_default = volume_integral_wf,
+                                                    volume_integral_stabilized = volume_integral_blend_low_order)
+        @test_throws "same number of spatial dimensions" Trixi.create_cache_volume_integral(mesh_,
+                                                                                            equations_3d,
+                                                                                            volume_integral_3d,
+                                                                                            dg_,
+                                                                                            nothing,
+                                                                                            Float64)
+        Trixi.resize_cache_all_volume_integrals!(cache_, mesh_, volume_integral_3d, dg_,
+                                                 nelements(dg_, cache_))
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
+                                                                         volume_integral_3d,
+                                                                         dg_, cache_)
+
+        # The blending factors are sized for the elements of the mesh
+        @test length(indicator_ec.cache.alpha) == nelements(dg_, cache_)
+        resize!(indicator_ec.cache.alpha, nelements(dg_, cache_) - 1)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integrals(mesh_, equations_,
+                                                                         volume_integral_ec,
+                                                                         dg_, cache_)
+
+        # The blending factors returned by the shock capturing indicator are checked
+        indicator_combined_wrong = IndicatorEntropyCorrectionShockCapturingCombined(indicator_shock_capturing = IndicatorWrongSize(),
+                                                                                    indicator_entropy_correction = IndicatorEntropyCorrection(equations,
+                                                                                                                                              basis))
+        volume_integral_combined_wrong = VolumeIntegralAdaptive(indicator = indicator_combined_wrong,
+                                                                volume_integral_default = volume_integral_wf,
+                                                                volume_integral_stabilized = volume_integral_blend_low_order)
+        semi_ = create_semi(volume_integral_combined_wrong)
+        mesh_, equations_, dg_, cache_ = Trixi.mesh_equations_solver_cache(semi_)
+        # `u` does not keep `u_ode` alive
+        u_ode = Trixi.compute_coefficients(0.0, semi_)
+        u = Trixi.wrap_array(u_ode, semi_)
+        GC.@preserve u_ode begin
+            @test_throws DimensionMismatch Trixi.calc_volume_integral!(nothing, zero(u), u,
+                                                                       mesh_,
+                                                                       Trixi.have_nonconservative_terms(equations_),
+                                                                       equations_,
+                                                                       volume_integral_combined_wrong,
+                                                                       dg_, cache_)
+        end
+    end
+end
+
+@testitem "Unit: check_axes of the storage of indicators" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Check the solution passed to the indicators and their thread-local storage, whose
+    # size is determined by the basis passed when constructing them
+    function test_check_axes_indicators(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        # `u` does not keep `u_ode` alive
+        u_ode = Trixi.compute_coefficients(0.0, semi)
+        u = Trixi.wrap_array(u_ode, semi)
+        GC.@preserve u_ode begin
+            u_wrong = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+
+            # `IndicatorLöhner` checks the axes only in 3D, where it assumes inbounds access
+            check_loehner = ndims(mesh) == 3
+
+            indicators = (IndicatorHennemannGassner(semi; variable = density_pressure),
+                          IndicatorLöhner(semi; variable = density),
+                          IndicatorMax(semi; variable = density),
+                          IndicatorNodalFunction((u, x, t) -> u[1], semi))
+            for indicator in indicators
+                alpha = indicator(u, mesh, equations, dg, cache; t = 0.0)
+                @test length(alpha) == nelements(dg, cache)
+                if indicator isa IndicatorLöhner && !check_loehner
+                    continue
+                end
+                @test_throws DimensionMismatch indicator(u_wrong, mesh, equations, dg,
+                                                         cache;
+                                                         t = 0.0)
+            end
+
+            # Thread-local storage for a basis different from the one of `dg`
+            for polydeg in (Trixi.polydeg(dg) - 1, Trixi.polydeg(dg) + 1)
+                basis = LobattoLegendreBasis(polydeg)
+                indicators = (IndicatorHennemannGassner(equations, basis;
+                                                        variable = density_pressure),
+                              IndicatorMax(equations, basis; variable = density))
+                if check_loehner
+                    indicators = (indicators...,
+                                  IndicatorLöhner(equations, basis; variable = density))
+                end
+                for indicator in indicators
+                    @test_throws DimensionMismatch indicator(u, mesh, equations, dg, cache;
+                                                             t = 0.0)
+                end
+            end
+        end
+
+        return nothing
+    end
+
+    # We only need the semidiscretizations of the elixirs below. Thus, we do not run
+    # the simulations by replacing `sol = solve(...)` with `sol = nothing`.
+    for (mesh_name, elixir) in (("TreeMesh{1}",
+                                 joinpath("tree_1d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("TreeMesh{2}",
+                                 joinpath("tree_2d_dgsem", "elixir_euler_blast_wave.jl")),
+                                ("StructuredMesh{2}",
+                                 joinpath("structured_2d_dgsem", "elixir_euler_sedov.jl")),
+                                ("TreeMesh{3}",
+                                 joinpath("tree_3d_dgsem",
+                                          "elixir_euler_sedov_blast_wave.jl")),
+                                ("P4estMesh{3}",
+                                 joinpath("p4est_3d_dgsem", "elixir_euler_sedov.jl")))
+        trixi_include(@__MODULE__, joinpath(examples_dir(), elixir); sol = nothing)
+        @testset "$mesh_name" begin
+            # The elixir defines new methods, so we need the latest world age
+            Base.invokelatest(test_check_axes_indicators, semi)
+        end
+    end
+end
+
+@testitem "Unit: mock @turbo" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The fallback `@turbo` used when LoopVectorization.jl is disabled
+    # (see `Trixi.set_loop_vectorization!`) must attach `julia.simdloop` loopinfo
+    # to every loop level.
+    MockTurbo = Module()
+    Base.include(MockTurbo, joinpath(pkgdir(Trixi), "src", "auxiliary", "mock_turbo.jl"))
+    Core.eval(MockTurbo,
+              quote
+                  function f!(c, a, b)
+                      @turbo for j in axes(c, 2)
+                          for i in axes(c, 1)
+                              c[i, j] = a[i, j] + b[i, j]
+                          end
+                      end
+                      return c
+                  end
+              end)
+
+    a = [1.0 2.0; 3.0 4.0]
+    b = [5.0 6.0; 7.0 8.0]
+    c = zeros(2, 2)
+    @test MockTurbo.f!(c, a, b) == [6.0 8.0; 10.0 12.0]
+
+    code = only(code_lowered(MockTurbo.f!,
+                             (Matrix{Float64}, Matrix{Float64},
+                              Matrix{Float64}))).code
+    loopinfos = filter(x -> Meta.isexpr(x, :loopinfo), code)
+    @test length(loopinfos) == 2
+    @test all(x -> Symbol("julia.simdloop") in x.args, loopinfos)
 end

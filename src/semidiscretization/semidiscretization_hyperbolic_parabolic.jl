@@ -11,31 +11,32 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law.
 """
-struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
-                                             InitialCondition,
-                                             BoundaryConditions,
-                                             BoundaryConditionsParabolic,
-                                             SourceTerms, SourceTermsParabolic,
-                                             Solver, SolverParabolic,
-                                             Cache, CacheParabolic} <:
-       AbstractSemidiscretization
+mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations,
+                                                     EquationsParabolic,
+                                                     InitialCondition,
+                                                     BoundaryConditions,
+                                                     BoundaryConditionsParabolic,
+                                                     SourceTerms, SourceTermsParabolic,
+                                                     Solver, SolverParabolic,
+                                                     Cache, CacheParabolic} <:
+               AbstractSemidiscretization
     mesh::Mesh
 
-    equations::Equations
-    equations_parabolic::EquationsParabolic
+    equations::Equations # cannot be const due to `GlmSpeedCallback`
+    const equations_parabolic::EquationsParabolic
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    boundary_conditions_parabolic::BoundaryConditionsParabolic
+    const boundary_conditions::BoundaryConditions
+    const boundary_conditions_parabolic::BoundaryConditionsParabolic
 
-    source_terms::SourceTerms
-    source_terms_parabolic::SourceTermsParabolic
+    const source_terms::SourceTerms
+    const source_terms_parabolic::SourceTermsParabolic
 
-    solver::Solver
-    solver_parabolic::SolverParabolic
+    const solver::Solver
+    const solver_parabolic::SolverParabolic
 
     cache::Cache
     cache_parabolic::CacheParabolic
@@ -62,7 +63,7 @@ end
                                           solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
                                           source_terms_parabolic=nothing,
-                                          bboundary_conditions,
+                                          boundary_conditions,
                                           RealT=real(solver),
                                           uEltype=RealT)
 
@@ -92,7 +93,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
 
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    cache = create_cache_hyperbolic(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions,
                                                       mesh, solver, cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
@@ -155,13 +156,15 @@ function remake(semi::SemidiscretizationHyperbolicParabolic;
     # TODO: Which parts do we want to `remake`? At least the solver needs some
     #       special care if shock-capturing volume integrals are used (because of
     #       the indicators and their own caches...).
-    return SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                                 initial_condition, solver;
-                                                 solver_parabolic, source_terms,
-                                                 source_terms_parabolic,
-                                                 boundary_conditions = (boundary_conditions,
-                                                                        boundary_conditions_parabolic),
-                                                 uEltype)
+    semi_new = SemidiscretizationHyperbolicParabolic(mesh,
+                                                     (equations, equations_parabolic),
+                                                     initial_condition, solver;
+                                                     solver_parabolic, source_terms,
+                                                     source_terms_parabolic,
+                                                     boundary_conditions = (boundary_conditions,
+                                                                            boundary_conditions_parabolic),
+                                                     uEltype)
+    return copy_tuning(semi_new, semi)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolicParabolic)
@@ -265,7 +268,7 @@ end
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
@@ -279,17 +282,11 @@ Optional keyword arguments:
   The hyperbolic right-hand side is expected to be treated explicitly, and therefore its Jacobian is irrelevant.
 - `colorvec_parabolic`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation. Not necessarily required when `jac_prototype_parabolic` is given.
-
-The keyword arguments `storage_type`, `real_type`, and `flux_differencing_kernel` are
-deprecated. Use [`trixi_adapt`](@ref) before calling `semidiscretize` instead.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
-                        storage_type = nothing,
-                        real_type = nothing,
-                        flux_differencing_kernel = nothing)
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -297,8 +294,6 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         Polyester.reset_threads!()
     end
 
-    semi = trixi_adapt_deprecated(semi; storage_type, real_type,
-                                  flux_differencing_kernel)
     tspan = convert_tspan(semi, tspan)
 
     u0_ode = compute_coefficients(first(tspan), semi)
@@ -336,7 +331,7 @@ end
                    colorvec_parabolic::Union{AbstractVector, Nothing} = nothing)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
-that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+that can be passed to `solve` from the [SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
@@ -416,7 +411,9 @@ function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabo
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms_parabolic, solver, solver_parabolic, cache, cache_parabolic = semi
+    @unpack mesh, equations_parabolic, boundary_conditions_parabolic,
+    source_terms_parabolic, solver, solver_parabolic, cache,
+    cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
