@@ -161,17 +161,8 @@ end
                                                      boundary_conditions = (boundary_condition_periodic,
                                                                             boundary_condition_periodic))
 
-        # assemble the matrix of the linear parabolic operator column by column
-        u_ode = Trixi.compute_coefficients(0.0, semi)
-        du_ode = similar(u_ode)
-        u, du = Base.parent(u_ode), Base.parent(du_ode)
-        A = zeros(length(u), length(u))
-        for j in eachindex(u)
-            fill!(u, zero(eltype(u)))
-            u[j] = SVector(1.0)
-            Trixi.rhs_parabolic!(du_ode, u_ode, semi, 0.0)
-            A[:, j] .= vec(getindex.(du, 1))
-        end
+        # matrix of the linear parabolic operator
+        A = jacobian_ad_forward_parabolic(semi)
 
         # The LDG discretization of the Laplacian is symmetric and negative
         # semi-definite with respect to the mass matrix. This requires that both
@@ -1237,7 +1228,7 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_rotated.jl"),
-                        l2=[1.9587359234701733e-5], linf=[0.000577240851833416])
+                        l2=[1.9325888362467785e-5], linf=[0.0005260863498779411])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

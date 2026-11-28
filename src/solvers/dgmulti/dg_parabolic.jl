@@ -160,50 +160,23 @@ function calc_interface_flux_gradient!(scalar_flux_face_values,
     return nothing
 end
 
-# The LDG fluxes select one-sided values at each face. To this end, the two elements
-# sharing a face are ordered as "left" and "right" element based on the sign of the
-# dominant component of the normal direction, as for the `P4estMesh`.
-# Each interior face node is visited from both adjacent elements, and both visits have
-# to agree on this ordering. Moreover, the ordering should not depend on round-off
-# errors, e.g., on faces of simplices where several components of the normal have the
-# same magnitude. Thus, we
-# - always use the normal stored at the face node with the smaller index and
-# - select the first component whose magnitude is maximal up to round-off errors.
-# Returns `true` if the element containing the face node `idM` is the left element.
-@inline function is_left_element_ldg(nxyzJ, idM, idP,
-                                     mesh::DGMultiMesh{NDIMS}) where {NDIMS}
-    normal_direction = SVector{NDIMS}(getindex.(nxyzJ, min(idM, idP)))
-    # The dominant direction is the first one whose component has the maximal magnitude
-    # up to round-off errors, as determined by `isapprox` with its default relative
-    # tolerance `sqrt(eps())`. This tolerance is much larger than the round-off errors
-    # of the normals, which reach relative differences of about `1e-13` on uniform
-    # meshes of triangles, i.e., hundreds of `eps()`.
-    max_abs = maximum(abs, normal_direction)
-    abs_max_dir = findfirst(component -> isapprox(abs(component), max_abs),
-                            normal_direction)
-    dominant_component = normal_direction[abs_max_dir]
-
-    # `normal_direction` is the outward normal of the element containing the face node
-    # `min(idM, idP)`. As for the `P4estMesh`, an element is the left element if its
-    # outward normal has a positive dominant component. The dominant component is
-    # nonzero since it has the maximal magnitude. For the element containing `idM`,
-    # there are four cases:
-    # 1. `idM < idP` and `dominant_component > 0`: `normal_direction` is the outward
-    #    normal of the element containing `idM`, which is the left element.
-    # 2. `idM < idP` and `dominant_component < 0`: `normal_direction` is the outward
-    #    normal of the element containing `idM`, which is the right element.
-    # 3. `idM > idP` and `dominant_component > 0`: `normal_direction` is the outward
-    #    normal of the neighboring element containing `idP`. Thus, the neighboring
-    #    element is the left element and the element containing `idM` is the right one.
-    # 4. `idM > idP` and `dominant_component < 0`: `normal_direction` is the outward
-    #    normal of the neighboring element containing `idP`. Thus, the neighboring
-    #    element is the right element and the element containing `idM` is the left one.
-    # The two visits of an interior face node use the same `normal_direction` and fall
-    # into cases 1 and 3 or into cases 2 and 4, so they assign different sides to the
-    # two elements. At boundary nodes, `idM == idP` holds and the normal of the element
-    # itself is used as in cases 1 and 2. There, the ordering has no effect since both
-    # one-sided values coincide.
-    return (dominant_component > 0) == (idM <= idP)
+# The LDG fluxes `flux_parabolic(u_ll, u_rr, normal_direction, ...)` select one-sided
+# values based on the sign of the dominant component of `normal_direction`, which is
+# the outward normal of the element providing `u_ll`. They are shared with the
+# `P4estMesh`, which visits each interface once. In contrast, `DGMulti` visits each
+# interior face node from both adjacent elements. The outward normals stored for both
+# elements are only equal up to round-off errors and a sign, which can lead to
+# inconsistent choices of the one-sided values. Thus, both visits use the normal
+# stored at the face node with the smaller index, with the sign flipped if necessary
+# so that it is the outward normal of the element containing `idM`.
+# At boundary nodes, `idM == idP` holds and the normal of the element itself is used.
+@inline function unique_normal_direction(nxyzJ, idM, idP,
+                                         mesh::DGMultiMesh{NDIMS}) where {NDIMS}
+    if idM <= idP
+        return SVector{NDIMS}(getindex.(nxyzJ, idM))
+    else
+        return -SVector{NDIMS}(getindex.(nxyzJ, idP))
+    end
 end
 
 function calc_interface_flux_gradient!(scalar_flux_face_values,
@@ -217,12 +190,9 @@ function calc_interface_flux_gradient!(scalar_flux_face_values,
         idM, idP = mapM[face_node_index], mapP[face_node_index]
         uM = u_face_values[idM]
         uP = u_face_values[idP]
-        if is_left_element_ldg(nxyzJ, idM, idP, mesh)
-            u_ll, u_rr = uM, uP
-        else
-            u_ll, u_rr = uP, uM
-        end
-        u_flux = flux_parabolic(u_ll, u_rr, Gradient(), equations, parabolic_scheme)
+        normal_direction = unique_normal_direction(nxyzJ, idM, idP, mesh)
+        u_flux = flux_parabolic(uM, uP, normal_direction, Gradient(), equations,
+                                parabolic_scheme)
         # As for BR1, we use the "strong" formulation to compute the gradient
         # and thus subtract the interior value.
         scalar_flux_face_values[idM] = u_flux - uM
@@ -531,25 +501,21 @@ function calc_interface_flux_divergence!(scalar_flux_face_values,
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache, cache_parabolic)
         idM, idP = mapM[face_node_index], mapP[face_node_index]
 
+        normal_direction = unique_normal_direction(nxyzJ, idM, idP, mesh)
+
         # compute f(u, ∇u) ⋅ n on both sides using the outward normal of this element
         flux_normalM = zero(eltype(scalar_flux_face_values))
         flux_normalP = zero(eltype(scalar_flux_face_values))
         for dim in eachdim(mesh)
             flux_normalM = flux_normalM +
-                           flux_parabolic_face_values[dim][idM] *
-                           nxyzJ[dim][face_node_index]
+                           flux_parabolic_face_values[dim][idM] * normal_direction[dim]
             flux_normalP = flux_normalP +
-                           flux_parabolic_face_values[dim][idP] *
-                           nxyzJ[dim][face_node_index]
+                           flux_parabolic_face_values[dim][idP] * normal_direction[dim]
         end
 
-        if is_left_element_ldg(nxyzJ, idM, idP, mesh)
-            flux_ll, flux_rr = flux_normalM, flux_normalP
-        else
-            flux_ll, flux_rr = flux_normalP, flux_normalM
-        end
         # As for BR1, we use the "weak" formulation to compute the divergence.
-        scalar_flux_face_values[idM] = flux_parabolic(flux_ll, flux_rr, Divergence(),
+        scalar_flux_face_values[idM] = flux_parabolic(flux_normalM, flux_normalP,
+                                                      normal_direction, Divergence(),
                                                       equations, parabolic_scheme)
     end
 
